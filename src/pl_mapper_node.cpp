@@ -10,10 +10,28 @@
 
 PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const std::string & node_namespace) : 
         rclcpp::Node(node_name, node_namespace),
-        powerline_(1., 0.25, this->get_logger(), 0, 60, 150) {
+        powerline_(this->get_logger()) {
             // first val = r = mmW variance 5
             // second val = q = odo variance 0.005
             // last three values indicate alive_cnt_low_thresh=0, alive_cnt_high_thresh=60, alive_cnt_ceiling=90
+
+    this->declare_parameter<float>("kf_r", 1.);
+    this->declare_parameter<float>("kf_q", 0.25);
+
+    this->get_parameter("kf_r", r_);
+    this->get_parameter("kf_q", q_);
+
+    this->declare_parameter<int>("alive_cnt_low_thresh", 0);
+    this->declare_parameter<int>("alive_cnt_high_thresh", 60);
+    this->declare_parameter<int>("alive_cnt_ceiling", 150);
+
+    this->get_parameter("alive_cnt_low_thresh", alive_cnt_low_thresh_);
+    this->get_parameter("alive_cnt_high_thresh", alive_cnt_high_thresh_);
+    this->get_parameter("alive_cnt_ceiling", alive_cnt_ceiling_);
+
+    this->declare_parameter<float>("matching_line_max_dist", 3.);
+
+    this->get_parameter("matching_line_max_dist", matching_line_max_dist_);
 
     this->declare_parameter<float>("min_point_dist", 0.1);
     this->declare_parameter<float>("max_point_dist", 20.);
@@ -22,6 +40,19 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
     this->declare_parameter<float>("min_point_dist_strict", 0.2);
     this->declare_parameter<float>("max_point_dist_strict", 18.);
     this->declare_parameter<float>("view_cone_slope_strict", 0.75);
+
+    this->declare_parameter<std::string>("world_frame_id", "world");
+    this->declare_parameter<std::string>("drone_frame_id", "drone");
+    this->declare_parameter<std::string>("mmwave_frame_id", "mmwave");
+
+    this->get_parameter("world_frame_id", world_frame_id_);
+    this->get_parameter("drone_frame_id", drone_frame_id_);
+    this->get_parameter("mmwave_frame_id", mmwave_frame_id_);
+
+    this->declare_parameter<int>("init_sleep_time_ms", 1000);
+    this->declare_parameter<int>("odometry_callback_period_ms", 25);
+
+    powerline_.SetParams(r_, q_, alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_, matching_line_max_dist_, drone_frame_id_, mmwave_frame_id_);
 
     pl_direction_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
         "/pl_dir_computer/powerline_direction", 10, std::bind(&PowerlineMapperNode::plDirectionCallback, this, std::placeholders::_1));
@@ -48,7 +79,7 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
 
         try {
 
-            mmw_tf = tf_buffer_->lookupTransform("drone", "iwr6843_frame", tf2::TimePointZero);
+            mmw_tf = tf_buffer_->lookupTransform(drone_frame_id_, mmwave_frame_id_, tf2::TimePointZero);
 
             //RCLCPP_INFO(this->get_logger(), "Found mmWave transform, frame drone to iwr6843_frame");
             break;
@@ -61,12 +92,18 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
 
     }
 
-	rclcpp::Rate rate(1000ms);
+    int init_sleep_time_ms;
+    this->get_parameter("init_sleep_time_ms", init_sleep_time_ms);
+    std::chrono::milliseconds sleep_ms(init_sleep_time_ms);
+	rclcpp::Rate rate(sleep_ms);
 	rate.sleep();
 
     // Call on_timer function every second
+    int odometry_callback_period_ms;
+    this->get_parameter("odometry_callback_period_ms", odometry_callback_period_ms);
+    std::chrono::milliseconds odom_callback_ms(odometry_callback_period_ms);
     drone_tf_timer_ = this->create_wall_timer(
-      10ms, std::bind(&PowerlineMapperNode::odometryCallback, this));
+      odom_callback_ms, std::bind(&PowerlineMapperNode::odometryCallback, this));
 
 
     quat_t mmw_quat(
@@ -101,7 +138,7 @@ void PowerlineMapperNode::odometryCallback() {
 
     try {
 
-        tf = tf_buffer_->lookupTransform("world", "drone", tf2::TimePointZero);
+        tf = tf_buffer_->lookupTransform(world_frame_id_, drone_frame_id_, tf2::TimePointZero);
 
     } catch(tf2::TransformException & ex) {
 
@@ -172,7 +209,7 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
         ptr += POINT_STEP;
 
         // filter points based on diagonal distance
-        if( !SingleLine(1, point, 1, 1, this->get_logger(), 1, 1, 1).IsInFOV(point, min_point_dist, max_point_dist, view_cone_slope) ) {
+        if( !SingleLine(1, point, 1, 1, this->get_logger(), 1, 1, 1, "", "").IsInFOV(point, min_point_dist, max_point_dist, view_cone_slope) ) {
             RCLCPP_INFO(this->get_logger(), "Point filtered away: [%f , %f , %f]", point(0), point(1), point(2));
             continue;
         }
@@ -183,7 +220,7 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
         pt.point.y = point(1);
         pt.point.z = point(2);
 
-        pt = tf_buffer_->transform(pt, "drone");
+        pt = tf_buffer_->transform(pt, drone_frame_id_);
 
         point(0) = pt.point.x;
         point(1) = pt.point.y;
@@ -256,7 +293,7 @@ void PowerlineMapperNode::publishPowerline() {
     auto msg = iii_interfaces::msg::Powerline();
     auto quat_msg = geometry_msgs::msg::Quaternion();
     auto pcl2_msg = sensor_msgs::msg::PointCloud2();
-    pcl2_msg.header.frame_id = "drone";
+    pcl2_msg.header.frame_id = drone_frame_id_;
     pcl2_msg.header.stamp = this->get_clock()->now();
 
     pcl2_msg.fields.resize(3);
@@ -318,7 +355,7 @@ void PowerlineMapperNode::publishPowerline() {
         pose_msg.position = point_msg;
 
         pose_stamped_msg.pose = pose_msg;
-        pose_stamped_msg.header.frame_id = "drone";
+        pose_stamped_msg.header.frame_id = drone_frame_id_;
         pose_stamped_msg.header.stamp = this->get_clock()->now();
 
         //individual_pl_pubs_->at(i)->publish(pose_stamped_msg);
@@ -376,7 +413,7 @@ void PowerlineMapperNode::publishPoints(std::vector<point_t> points, rclcpp::Pub
     // //RCLCPP_INFO(this->get_logger(), "Publishing points");
 
     auto pcl2_msg = sensor_msgs::msg::PointCloud2();
-    pcl2_msg.header.frame_id = "drone";
+    pcl2_msg.header.frame_id = drone_frame_id_;
     pcl2_msg.header.stamp = this->get_clock()->now();
 
     pcl2_msg.fields.resize(3);

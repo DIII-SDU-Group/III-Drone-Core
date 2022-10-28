@@ -17,18 +17,20 @@ def generate_launch_description():
 
     hough = Node(
         package="iii_drone",
-        executable="hough_interfacer",
+        executable="hough_transformer_HW",
         parameters=[config]
     )
 
     pl_dir_computer = Node(
         package="iii_drone",
-        executable="pl_dir_computer"
+        executable="pl_dir_computer",
+        parameters=[config]
     )
 
     pl_mapper = Node(
         package="iii_drone",
-        executable="pl_mapper"
+        executable="pl_mapper",
+        parameters=[config]
     )
 
     return LaunchDescription([

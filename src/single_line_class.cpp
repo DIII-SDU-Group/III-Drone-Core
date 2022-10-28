@@ -9,7 +9,8 @@
 /*****************************************************************************/
 
 SingleLine::SingleLine(int id, point_t initial_point, float r, float q, 
-    rclcpp::Logger logger, int alive_cnt_low_thresh, int alive_cnt_high_thresh, int alive_cnt_ceiling) : logger_(logger) {
+    rclcpp::Logger logger, int alive_cnt_low_thresh, int alive_cnt_high_thresh, int alive_cnt_ceiling,
+    std::string drone_frame_id, std::string mmwave_frame_id) : logger_(logger) {
 
     id_ = id;
 
@@ -34,7 +35,10 @@ SingleLine::SingleLine(int id, point_t initial_point, float r, float q,
     alive_cnt_high_thresh_ = alive_cnt_high_thresh;
     alive_cnt_ceiling_ = alive_cnt_ceiling;
 
-    alive_cnt_ = (alive_cnt_low_thresh_ + alive_cnt_high_thresh_) / 10;
+    alive_cnt_ = (alive_cnt_low_thresh_ + alive_cnt_high_thresh_) / 2;
+
+    drone_frame_id_ = drone_frame_id;
+    mmwave_frame_id_ = mmwave_frame_id;
 
 }
 
@@ -47,7 +51,7 @@ int SingleLine::GetId() {
 SingleLine SingleLine::GetCopy() {
 
     SingleLine sl(id_, pl_point_, r_, q_, 
-        logger_, alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_);
+        logger_, alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_, drone_frame_id_, mmwave_frame_id_);
 
     return sl;
 
@@ -108,14 +112,14 @@ bool SingleLine::IsInFOV(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float min_
     // //RCLCPP_INFO(logger_, "b1");
 
     geometry_msgs::msg::PointStamped point_stamped;
-    point_stamped.header.frame_id = "drone";
+    point_stamped.header.frame_id = drone_frame_id_;
     point_stamped.point.x = pl_point_(0);
     point_stamped.point.y = pl_point_(1);
     point_stamped.point.z = pl_point_(2);
 
     // //RCLCPP_INFO(logger_, "b2");
 
-    geometry_msgs::msg::PointStamped mmwave_point_stamped = tf_buffer->transform(point_stamped, "iwr6843_frame");
+    geometry_msgs::msg::PointStamped mmwave_point_stamped = tf_buffer->transform(point_stamped, mmwave_frame_id_);
 
     // //RCLCPP_INFO(logger_, "b3");
 

@@ -1,17 +1,52 @@
-drone_frame_broadcaster:
-  ros__parameters:
-    world_frame_id: "world"
-    drone_frame_id: "drone"
-
 hough_transformer:
-  ros__parameters:
-    canny_low_threshold: 50
-    canny_ratio: 4
-    canny_kernel_size: 3
-    n_lines_include: 8
-    
+  hough_transformer:
+    ros__parameters:
+      canny_low_threshold: 50
+      canny_ratio: 4
+      canny_kernel_size: 3
+      n_lines_include: 8
 
-/**:
+offboard_control:
+  offboard_control:
+    ros__parameters:
+      yaw_frac: 0.1
+      pos_frac: 0.5
+      hover_height: 2.
+    
+pl_dir_computer:
+  pl_dir_computer:
+    ros__parameters:
+      kf_r: 0.999
+      kf_q: 0.001
+      init_sleep_time_ms: 1000
+      odometry_callback_period_ms: 25
+
+pl_mapper:
+  pl_mapper:
+    ros__parameters:
+      kf_r: 1.
+      kf_q: 0.25
+      alive_cnt_low_thresh: 0
+      alive_cnt_high_thresh: 60
+      alive_cnt_ceiling: 150
+      matching_line_max_dist: 3.
+      min_point_dist: 0.1
+      min_point_dist_strict: 0.2
+      max_point_dist: 20.
+      max_point_dist_strict: 18.
+      view_cone_slope: 0.55
+      view_cone_slope_strict: 0.75
+      init_sleep_time_ms: 1000
+      odometry_callback_period_ms: 25
+
+mmwave:
+  iwr6843_pcl_pub:
+    ros__parameters:
+      cli_port: /dev/ttyUSB0
+      data_port: /dev/ttyUSB1
+
+cable_camera:
+  cable_camera:
     ros__parameters:
       video_device: "/dev/video0"
       framerate: 30.0
@@ -23,4 +58,26 @@ hough_transformer:
       camera_name: "test_camera"
       camera_info_url: "package://usb_cam/config/camera_info.yaml"
       cfg_path: "/home/mp4d/ros2_ws/src/iwr6843aop/cfg_files/30deg_Group_18m_30Hz.cfg"
+
+/**:
+  ros__parameters:
+    world_frame_id: "world"
+    drone_frame_id: "drone"
+    cable_drum_frame_id: "cable_drum"
+    cable_gripper_frame_id: "cable_gripper"
+    mmwave_frame_id: "mmwave"
+    depth_cam_frame_id: "depth_cam"
+
+tf:
+  sim:
+    ros__parameters:
+      drone_to_cable_drum: [0.0, 0.0, 0.09, 1.57079632679, 0.0, 0.0]
+      drone_to_cable_gripper: [0.0, 0.0, 0.09, 1.57079632679, 0.0, 0.0]
+      drone_to_mmwave: [0.035, -0.23, 0.28, 3.1415, -1.57079632679, 0.0] 
+      drone_to_depth_cam: [0.035, -0.23, 0.28, -1.57079632679, 0.0, 0.0]
+  real:
+    ros__parameters:
+      drone_to_cable_drum: [-0.13, -0.01, -0.09, 3.1415, 0.0, 0.0]
+      drone_to_cable_gripper: [0.0, 0.0, 0.13, 0.0, 0.0, 0.0]
+      drone_to_mmwave: [0.0, 0.0, 0.05, 3.1415, -1.57079632679, 0.0] 
       

@@ -95,6 +95,9 @@ public:
 
 		this->declare_parameter<float>("yaw_frac", 0.1);
 		this->declare_parameter<float>("pos_frac", 0.5);
+		this->declare_parameter<float>("hover_height", 2.0);
+
+		this->get_parameter("hover_height", hover_height_);
 
 		// VehicleStatus: https://github.com/PX4/px4_msgs/blob/master/msg/VehicleStatus.msg
 		vehicle_status_sub_ = create_subscription<px4_msgs::msg::VehicleStatus>(
@@ -342,7 +345,7 @@ private:
 
 	float yaw_ = 0, yawspeed_ = 0;
 	float vx_ = 0, vy_ = 0, vz_ = 0;
-	float hover_height_ = 2;
+	float hover_height_;
 
 	void publish_test_setpoint();
 	void publish_offboard_control_mode() const;

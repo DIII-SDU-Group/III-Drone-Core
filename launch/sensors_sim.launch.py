@@ -5,8 +5,16 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import PathJoinSubstitution
+from ament_index_python.packages import get_package_share_directory
+import os
 
 def generate_launch_description():
+    config = os.path.join(
+        get_package_share_directory('iii_drone'),
+        'config',
+        'params.yaml'
+    )
+
     cam = Node(
         package='iii_drone',
         executable='img_3d_to_2d_proj',
@@ -16,7 +24,8 @@ def generate_launch_description():
     mmwave = Node(
         package='iii_drone',
         executable='depth_cam_to_mmwave',
-        name='depth_cam_to_mmwave'
+        name='depth_cam_to_mmwave',
+        parameters=[config]
     )
 
     return LaunchDescription([

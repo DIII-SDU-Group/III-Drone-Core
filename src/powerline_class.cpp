@@ -8,7 +8,7 @@
 // Implementation
 /*****************************************************************************/
 
-Powerline::Powerline(float r, float q, rclcpp::Logger logger, int alive_cnt_low_thresh, int alive_cnt_high_thresh, int alive_cnt_ceiling) : logger_(logger) {
+Powerline::Powerline(rclcpp::Logger logger) : logger_(logger) {
 
     direction_ = quat_t(1,0,0,0);
     //last_global_input_direction_ = 0;
@@ -21,6 +21,13 @@ Powerline::Powerline(float r, float q, rclcpp::Logger logger, int alive_cnt_low_
     projection_plane_ = { .p=point_t(0,0,0), .normal=vector_t(0,0,0) };
     //plane_orientation_ = orientation_t(0,0,0);
 
+    id_cnt_ = 0;
+
+}
+
+void Powerline::SetParams(float r, float q, int alive_cnt_low_thresh, int alive_cnt_high_thresh, int alive_cnt_ceiling, float matching_line_max_dist,
+            std::string drone_frame_id, std::string mmwave_frame_id) {
+
     r_ = r;
     q_ = q;
 
@@ -28,7 +35,10 @@ Powerline::Powerline(float r, float q, rclcpp::Logger logger, int alive_cnt_low_
     alive_cnt_high_thresh_ = alive_cnt_high_thresh;
     alive_cnt_ceiling_ = alive_cnt_ceiling;
 
-    id_cnt_ = 0;
+    matching_line_max_dist_ = matching_line_max_dist;
+
+    drone_frame_id_ = drone_frame_id;
+    mmwave_frame_id_ = mmwave_frame_id;
 
 }
 
@@ -137,7 +147,8 @@ point_t Powerline::UpdateLine(point_t point) {
             //RCLCPP_INFO(logger_, "Creating new line");
 
             auto new_line = SingleLine(new_id, projected_point, r_, q_, 
-                    logger_, alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_);
+                    logger_, alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_,
+                    drone_frame_id_, mmwave_frame_id_);
 
             for (int i = 0; i < lines_.size(); i++) {
                 // //RCLCPP_INFO(logger_, "Creating inter line position");
@@ -558,7 +569,7 @@ int Powerline::findMatchingLine(point_t point) {
 
             //RCLCPP_INFO(logger_, "Distance between point and line is %f", dist);
 
-            if (dist < 3. && dist < best_dist) {
+            if (dist < matching_line_max_dist_ && dist < best_dist) {
 
                 //RCLCPP_INFO(logger_, "Found line candidate");
 

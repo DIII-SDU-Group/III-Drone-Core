@@ -45,19 +45,19 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(image_transport REQUIRED)
 
-add_executable(hough_interfacer
-  src/hough_interfacer_node.cpp
+add_executable(hough_transformer_HW
+  src/hough_transformer_HW.cpp
   src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel_linux.c
   src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel.c
 )
-ament_target_dependencies(hough_interfacer
+ament_target_dependencies(hough_transformer_HW
   rclcpp
   sensor_msgs
   OpenCV
   cv_bridge
   iii_interfaces
 )
-install(TARGETS hough_interfacer DESTINATION lib/${PROJECT_NAME})
+install(TARGETS hough_transformer_HW DESTINATION lib/${PROJECT_NAME})
 
 add_executable(pl_dir_computer
   src/pl_dir_computer_node.cpp
@@ -123,7 +123,7 @@ endfunction()
 
 
 custom_executable(img_3d_to_2d_proj)
-custom_executable(hough_pub)
+custom_executable(hough_transformer_SW)
 custom_executable(offboard_control_fly_to_line)
 custom_executable(img_decompress)
 

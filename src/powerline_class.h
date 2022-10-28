@@ -31,7 +31,10 @@
 class Powerline
 {
 public:
-    Powerline(float r, float q, rclcpp::Logger logger, int alive_cnt_low_thresh, int alive_cnt_high_thresh, int alive_cnt_ceiling);
+    Powerline(rclcpp::Logger logger);
+
+    void SetParams(float r, float q, int alive_cnt_low_thresh, int alive_cnt_high_thresh, int alive_cnt_ceiling, float matching_line_max_dist,
+            std::string drone_frame_id, std::string mmwave_frame_id);
 
     std::vector<SingleLine> GetVisibleLines();
     quat_t GetDirection();
@@ -98,6 +101,10 @@ private:
     int id_cnt_;
 
     float r_, q_;
+
+    float matching_line_max_dist_;
+
+    std::string drone_frame_id_, mmwave_frame_id_;
 
     rclcpp::Logger logger_;
 

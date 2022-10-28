@@ -55,6 +55,8 @@ private:
     std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
     rclcpp::TimerBase::SharedPtr drone_tf_timer_{nullptr};
 
+    std::string world_frame_id_, drone_frame_id_;
+
     bool received_angle = false;
     bool received_first_quat = false;
     bool received_second_quat = false;

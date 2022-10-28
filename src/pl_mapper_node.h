@@ -61,6 +61,14 @@ private:
     std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
     rclcpp::TimerBase::SharedPtr drone_tf_timer_{nullptr};
 
+    std::string world_frame_id_, drone_frame_id_, mmwave_frame_id_;
+
+    float r_, q_;
+
+    int alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_;
+
+    float matching_line_max_dist_;
+
     Powerline powerline_;
 
     rotation_matrix_t R_drone_to_mmw;

@@ -11,8 +11,20 @@
 PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(const std::string & node_name, const std::string & node_namespace) : 
         rclcpp::Node(node_name, node_namespace) {
 
-    r_ = 0.999;
-    q_ = 1-r_;
+    this->declare_parameter<float>("kf_r", 0.999);
+    this->declare_parameter<float>("kf_q", 0.001);
+
+    this->get_parameter("kf_r", r_);
+    this->get_parameter("kf_q", q_);
+
+    this->declare_parameter<int>("init_sleep_time_ms", 1000);
+    this->declare_parameter<int>("odometry_callback_period_ms", 25);
+
+    this->declare_parameter<std::string>("world_frame_id", "world");
+    this->declare_parameter<std::string>("drone_frame_id", "drone");
+
+    this->get_parameter("world_frame_id", world_frame_id_);
+    this->get_parameter("drone_frame_id", drone_frame_id_);
 
     for (int i = 0; i < 3; i++) { pl_angle_est[i].state_est = 0; pl_angle_est[i].var_est = 1; }
 
@@ -41,12 +53,18 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(const std::string
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
-	rclcpp::Rate rate(1000ms);
+    int init_sleep_time_ms;
+    this->get_parameter("init_sleep_time_ms", init_sleep_time_ms);
+    std::chrono::milliseconds sleep_ms(init_sleep_time_ms);
+	rclcpp::Rate rate(sleep_ms);
 	rate.sleep();
 
     // Call on_timer function every second
+    int odometry_callback_period_ms;
+    this->get_parameter("odometry_callback_period_ms", odometry_callback_period_ms);
+    std::chrono::milliseconds odom_callback_ms(odometry_callback_period_ms);
     drone_tf_timer_ = this->create_wall_timer(
-      25ms, std::bind(&PowerlineDirectionComputerNode::odometryCallback, this));
+      odom_callback_ms, std::bind(&PowerlineDirectionComputerNode::odometryCallback, this));
 
     RCLCPP_DEBUG(this->get_logger(), "Initialized PowerlineDirectionComputerNode");
 
@@ -60,7 +78,7 @@ void PowerlineDirectionComputerNode::odometryCallback() {
 
     try {
 
-        tf = tf_buffer_->lookupTransform("drone", "world", tf2::TimePointZero);
+        tf = tf_buffer_->lookupTransform(drone_frame_id_, world_frame_id_, tf2::TimePointZero);
 
     } catch(tf2::TransformException & ex) {
 
@@ -304,7 +322,7 @@ void PowerlineDirectionComputerNode::publishPowerlineDirection() {
     RCLCPP_DEBUG(this->get_logger(), "Publishing powerline direction");
 
     geometry_msgs::msg::PoseStamped msg;
-    msg.header.frame_id = "drone"; //"drone";
+    msg.header.frame_id = drone_frame_id_; //"drone";
     msg.header.stamp = this->get_clock()->now();
 
     direction_mutex_.lock(); {
@@ -404,9 +422,9 @@ float PowerlineDirectionComputerNode::mapAngle2(float curr_angle, float new_angl
 
     }
 
-    RCLCPP_INFO(this->get_logger(), "curr_angle = %f", curr_angle);
-    RCLCPP_INFO(this->get_logger(), "new_angle = %f", new_angle);
-    RCLCPP_INFO(this->get_logger(), "best_angle = %f", best_angle);
+    // RCLCPP_INFO(this->get_logger(), "curr_angle = %f", curr_angle);
+    // RCLCPP_INFO(this->get_logger(), "new_angle = %f", new_angle);
+    // RCLCPP_INFO(this->get_logger(), "best_angle = %f", best_angle);
 
     //file << "Best candidate: " << std::to_string(best_angle) << std::endl;
 

@@ -2,7 +2,7 @@
 // Includes
 /*****************************************************************************/
 
-#include "hough_interfacer_node.h"
+#include "hough_transformer_HW.h"
 
 /*****************************************************************************/
 // Implementation
@@ -16,7 +16,6 @@ HoughInterfacerNode::HoughInterfacerNode(const std::string & node_name, const st
     this->declare_parameter<int>("canny_low_threshold", 50);
     this->declare_parameter<int>("canny_ratio", 4);
     this->declare_parameter<int>("canny_kernel_size", 3);
-    // this->declare_parameter<int>("n_lines_include", 8);
     this->declare_parameter<int>("n_lines_include", 1); // only use first value to accomodate edge case ±PI flip
 
     this->get_parameter("canny_low_threshold", canny_low_threshold_);

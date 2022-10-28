@@ -26,7 +26,9 @@ def generate_launch_description():
     mmwave_node = Node(
         package="iwr6843aop_pub",
         executable="pcl_pub",
-        remappings=[("/iwr6843_pcl", "/mmwave/pcl")]
+        namespace="mmwave",
+        remappings=[("/mmwave/iwr6843_pcl", "/mmwave/pcl")],
+        parameters=[config]
     )
 
 
