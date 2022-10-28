@@ -34,7 +34,7 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(const std::string
     // pl_direction_sub_ = this->create_subscription<iii_interfaces::msg::PowerlineDirection>(
     //     "/hough_transformer/cable_yaw_angle", 10, std::bind(&PowerlineDirectionComputerNode::plDirectionCallback, this, std::placeholders::_1));
     pl_direction_sub_ = this->create_subscription<iii_interfaces::msg::PowerlineDirection>(
-        "/hough_cable_yaw_angle", 10, std::bind(&PowerlineDirectionComputerNode::plDirectionCallback, this, std::placeholders::_1));
+        "/hough_transformer/cable_yaw_angle", 10, std::bind(&PowerlineDirectionComputerNode::plDirectionCallback, this, std::placeholders::_1));
 
     pl_direction_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("powerline_direction", 10);
 

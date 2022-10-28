@@ -50,7 +50,7 @@ using namespace std::chrono_literals;
 class HoughInterfacerNode : public rclcpp::Node
 {
 public:
-    HoughInterfacerNode(const std::string & node_name="hough_transformer");
+    HoughInterfacerNode(const std::string & node_name="hough_transformer", const std::string & node_namespace="/hough_transformer");
     ~HoughInterfacerNode();
 
 private:

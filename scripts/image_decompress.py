@@ -16,7 +16,7 @@ from cv_bridge import CvBridge
 
 class ImageDecompressor(Node):
     def __init__(self):
-        super().__init__("image_decompressor")
+        super().__init__("image_decompressor", "image_decompressor")
         self.camera_sub_ = self.create_subscription(
             CompressedImage,
             "/image_raw/compressed",	
@@ -26,7 +26,7 @@ class ImageDecompressor(Node):
 
         self.image_pub = self.create_publisher(
             Image,
-            "/decompressed_image",
+            "decompressed_image",
             10
         )
 

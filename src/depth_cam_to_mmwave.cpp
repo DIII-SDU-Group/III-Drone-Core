@@ -40,11 +40,11 @@ class DepthCamToMmwave : public rclcpp::Node
 {
 
 	public:
-		DepthCamToMmwave() : Node("depth_cam_to_mmwave_converter") {
-			depth_cam_to_mmwave_pcl_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/iwr6843_pcl", 10);
-			filtered_points_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/mmwave_converter/filtered_points", 10);
-			received_points_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/mmwave_converter/received_points", 10);
-			clustered_points_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/mmwave_converter/clustered_points", 10);
+		DepthCamToMmwave() : Node("depth_cam_to_mmwave_converter", "/mmwave_converter") {
+			depth_cam_to_mmwave_pcl_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/mmwave/pcl", 10);
+			filtered_points_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("filtered_points", 10);
+			received_points_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("received_points", 10);
+			clustered_points_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("clustered_points", 10);
 
 			subscription_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
 			"/depth_camera/points",	10,

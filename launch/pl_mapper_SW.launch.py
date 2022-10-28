@@ -9,8 +9,7 @@ from launch.substitutions import PathJoinSubstitution
 def generate_launch_description():
     hough = Node(
         package="iii_drone",
-        executable="hough_pub",
-        remappings=[('/image_raw','/cable_camera/image_raw')]
+        executable="hough_pub"
     )
 
     pl_dir_computer = Node(

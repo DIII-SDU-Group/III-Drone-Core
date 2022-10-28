@@ -19,13 +19,14 @@ def generate_launch_description():
         package="usb_cam",
         executable="usb_cam_node_exe",
         name="usb_cam",
-        namespace="usb_cam",
+        namespace="cable_camera",
         parameters=[config]
     )
 
     mmwave_node = Node(
         package="iwr6843aop_pub",
-        executable="pcl_pub"
+        executable="pcl_pub",
+        remappings=[("/iwr6843_pcl", "/mmwave/pcl")]
     )
 
 

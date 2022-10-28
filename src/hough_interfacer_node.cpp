@@ -8,8 +8,8 @@
 // Implementation
 /*****************************************************************************/
 
-HoughInterfacerNode::HoughInterfacerNode(const std::string & node_name) 
-    : Node(node_name)
+HoughInterfacerNode::HoughInterfacerNode(const std::string & node_name, const std::string & node_namespace) 
+    : Node(node_name, node_namespace)
 {
 
     // Params
@@ -36,10 +36,10 @@ HoughInterfacerNode::HoughInterfacerNode(const std::string & node_name)
     // subscriber_ = this->create_subscription<sensor_msgs::msg::Image>(
     //         "/usb_cam/image_raw", video_qos, std::bind(&HoughInterfacerNode::imageRecvCallback, this, std::placeholders::_1));
     subscriber_ = this->create_subscription<sensor_msgs::msg::Image>(
-            "/image_raw", video_qos, std::bind(&HoughInterfacerNode::imageRecvCallback, this, std::placeholders::_1));
+            "/cable_camera/image_raw", video_qos, std::bind(&HoughInterfacerNode::imageRecvCallback, this, std::placeholders::_1));
     
     cable_yaw_publisher_ = this->create_publisher<iii_interfaces::msg::PowerlineDirection>(
-        "/hough_cable_yaw_angle", 10);
+        "cable_yaw_angle", 10);
 
 }
 

@@ -28,7 +28,7 @@ class DepthToImageProjection : public rclcpp::Node
 			proj_img_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("img_3d_to_2d_proj", 10);
 						
 			lidar_to_mmwave_pcl_subscription_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-			"/iwr6843_pcl",	10,
+			"/mmwave/pcl",	10,
 			std::bind(&DepthToImageProjection::OnDepthMsg, this, std::placeholders::_1));
 
 			camera_subscription_ = this->create_subscription<sensor_msgs::msg::Image>(

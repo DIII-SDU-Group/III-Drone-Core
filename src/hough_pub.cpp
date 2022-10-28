@@ -34,8 +34,8 @@ using namespace std::chrono_literals;
 class HoughTFPub : public rclcpp::Node
 {
 	public:
-		HoughTFPub(const std::string & node_name="hough_transformer") 
-						: Node(node_name) {
+		HoughTFPub(const std::string & node_name="hough_transformer", const std::string & node_namespace="/hough_transformer") 
+						: Node(node_name, node_namespace) {
 
 			// Params
 			this->declare_parameter<int>("canny_low_threshold", 50);
@@ -47,7 +47,7 @@ class HoughTFPub : public rclcpp::Node
 			this->get_parameter("canny_kernel_size", canny_kernel_size_);
 
 			cable_yaw_publisher_ = this->create_publisher<iii_interfaces::msg::PowerlineDirection>(
-				"/hough_cable_yaw_angle", 10);
+				"cable_yaw_angle", 10);
 
 
 			// hough_yaw_publisher_ = this->create_publisher<iii_interfaces::msg::PowerlineDirection>(
@@ -55,7 +55,7 @@ class HoughTFPub : public rclcpp::Node
 						
 
 			camera_subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
-				"/image_raw",	10,
+				"/cable_camera/image_raw",	10,
 				std::bind(&HoughTFPub::OnCameraMsg, this, std::placeholders::_1));
 
 

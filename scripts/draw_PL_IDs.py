@@ -70,7 +70,7 @@ class IdDrawer(Node):
         self.pressed_keys = []
         self.typed_ID = -1
 
-        super().__init__("image_drawer")
+        super().__init__("image_drawer", "image_drawer")
         self.pl_sub_ = self.create_subscription(
             Powerline,
             "/pl_mapper/powerline",	
@@ -87,13 +87,13 @@ class IdDrawer(Node):
 
         self.drawn_img_pub_ = self.create_publisher(
             Image,
-            "/ID_image",
+            "ID_image",
             10
         )
 
         self.ID_pub_ = self.create_publisher(
             Int32,
-            "/typed_ID",
+            "/offboard_control/typed_ID",
             10
         )
 

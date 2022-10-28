@@ -85,13 +85,13 @@ using namespace px4_msgs::msg;
 
 class OffboardControl : public rclcpp::Node {
 public:
-	OffboardControl() : Node("offboard_control") {
+	OffboardControl() : Node("offboard_control", "/offboard_control") {
 		offboard_control_mode_publisher_ =
-			this->create_publisher<OffboardControlMode>("fmu/offboard_control_mode/in", 10);
+			this->create_publisher<OffboardControlMode>("/fmu/offboard_control_mode/in", 10);
 		trajectory_setpoint_publisher_ =
-			this->create_publisher<TrajectorySetpoint>("fmu/trajectory_setpoint/in", 10);
+			this->create_publisher<TrajectorySetpoint>("/fmu/trajectory_setpoint/in", 10);
 		vehicle_command_publisher_ =
-			this->create_publisher<VehicleCommand>("fmu/vehicle_command/in", 10);
+			this->create_publisher<VehicleCommand>("/fmu/vehicle_command/in", 10);
 
 		this->declare_parameter<float>("yaw_frac", 0.1);
 		this->declare_parameter<float>("pos_frac", 0.5);
@@ -107,7 +107,7 @@ public:
 
 		
 		powerline_ID_sub_ = create_subscription<std_msgs::msg::Int32>(
-            "/typed_ID",
+            "typed_ID",
             10,
             [this](std_msgs::msg::Int32::ConstSharedPtr msg) {
               pl_id_ = msg->data;
@@ -115,7 +115,7 @@ public:
 
 
 		powerline_dir_sub_ = create_subscription<iii_interfaces::msg::PowerlineDirection>(
-            "/hough_cable_yaw_angle",
+            "/hough_transformer/cable_yaw_angle",
             10,
             [this](iii_interfaces::msg::PowerlineDirection::ConstSharedPtr msg) {
 			  pl_yaw_ = -msg->angle;
@@ -191,7 +191,7 @@ public:
 
 		// get common timestamp
 		timesync_sub_ =
-			this->create_subscription<px4_msgs::msg::Timesync>("fmu/timesync/out", 10,
+			this->create_subscription<px4_msgs::msg::Timesync>("/fmu/timesync/out", 10,
 				[this](const px4_msgs::msg::Timesync::UniquePtr msg) {
 					timestamp_.store(msg->timestamp);
 				});
