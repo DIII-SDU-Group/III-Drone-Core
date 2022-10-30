@@ -22,6 +22,9 @@ endif()
 include_directories(src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src)
 link_directories(src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src)
 
+include_directories(src/matlab_MPC_5Hz)
+link_directories(src/matlab_MPC_5Hz)
+
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
@@ -44,6 +47,39 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(image_transport REQUIRED)
+
+add_executable(trajectory_controller 
+  src/trajectory_controller.cpp
+  src/matlab_MPC_5Hz/minOrMax.cpp
+  src/matlab_MPC_5Hz/mpcmoveCodeGeneration.cpp
+  src/matlab_MPC_5Hz/mpcmoveCodeGeneration_data.cpp
+  src/matlab_MPC_5Hz/mpcmoveCodeGeneration_initialize.cpp
+  src/matlab_MPC_5Hz/mpcmoveCodeGeneration_rtwutil.cpp
+  src/matlab_MPC_5Hz/mpcmoveCodeGeneration_terminate.cpp
+  src/matlab_MPC_5Hz/norm.cpp
+  src/matlab_MPC_5Hz/qpkwik.cpp
+  src/matlab_MPC_5Hz/rtGetInf.cpp
+  src/matlab_MPC_5Hz/rtGetNaN.cpp
+  src/matlab_MPC_5Hz/rt_nonfinite.cpp
+  src/matlab_MPC_5Hz/trisolve.cpp
+  src/matlab_MPC_5Hz/xgerc.cpp
+  src/matlab_MPC_5Hz/xnrm2.cpp
+  src/matlab_MPC_5Hz/xpotrf.cpp
+  src/geometry.cpp
+)
+ament_target_dependencies(trajectory_controller
+  rclcpp
+  Eigen3
+  iii_interfaces
+  sensor_msgs
+  px4_msgs
+  geometry_msgs
+  std_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+)
+install(TARGETS trajectory_controller DESTINATION lib/${PROJECT_NAME})
 
 add_executable(hough_transformer_HW
   src/hough_transformer_HW.cpp
@@ -147,6 +183,7 @@ install(PROGRAMS
   scripts/image_drawer.py
   scripts/image_decompress.py
   scripts/draw_PL_IDs.py
+  scripts/iii_gui.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
