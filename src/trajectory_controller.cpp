@@ -129,6 +129,15 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 		std::bind(&TrajectoryController::handleAcceptedFlyToPosition, this, std::placeholders::_1)
 	);
 
+	// Fly under cable action:
+	this->fly_under_cable_server_ = rclcpp_action::create_server<FlyUnderCable>(
+		this,
+		"fly_under_cable",
+		std::bind(&TrajectoryController::handleGoalFlyUnderCable, this, std::placeholders::_1, std::placeholders::_2),
+		std::bind(&TrajectoryController::handleCancelFlyUnderCable, this, std::placeholders::_1),
+		std::bind(&TrajectoryController::handleAcceptedFlyUnderCable, this, std::placeholders::_1)
+	);
+
 	// Cable landing action:
 	this->cable_landing_server_ = rclcpp_action::create_server<CableLanding>(
 		this,
@@ -575,7 +584,258 @@ void TrajectoryController::followFlyToPositionCompletion(const std::shared_ptr<G
 		// //LOG_INFO("q");
 
 			if (goal_handle->is_canceling()) {
-				RCLCPP_INFO(this->get_logger(), "hej");
+				// RCLCPP_INFO(this->get_logger(), "hej");
+
+				result->success = false;
+				goal_handle->canceled(result);
+
+				return;
+				break;
+
+			}
+
+		case reject:
+		// //LOG_INFO("r");
+		case fail:
+
+		// //LOG_INFO("s");
+			result->success = false;
+			goal_handle->abort(result);
+
+			return;
+			break;
+		
+		case accept:
+		// //LOG_INFO("t");
+
+			break;
+
+		case success:
+
+		// //LOG_INFO("u");
+
+			result->success = true;
+			goal_handle->succeed(result);
+
+			return;
+			break;
+
+		}
+	}
+}
+
+rclcpp_action::GoalResponse TrajectoryController::handleGoalFlyUnderCable(
+	const rclcpp_action::GoalUUID & uuid, 
+	std::shared_ptr<const FlyUnderCable::Goal> goal
+) {
+
+	// //LOG_INFO("a");
+
+	RCLCPP_DEBUG(this->get_logger(), "Received fly under cable goal request");
+	
+	(void)uuid;
+
+	if (state_ != hovering)
+		return rclcpp_action::GoalResponse::REJECT;
+
+	// //LOG_INFO("b");
+
+	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)uuid;
+
+	fly_to_position_request_params_t *params = new fly_to_position_request_params_t;
+
+	int cable_id = goal->target_cable_id;
+	float cable_distance = goal->target_cable_distance;
+
+	geometry_msgs::msg::PoseStamped cable_pose;
+
+	bool cable_found = false;
+
+	powerline_mutex_.lock(); {
+
+		for (int i = 0; i < powerline_.count; i++) {
+
+			if (powerline_.ids[i] == cable_id) {
+
+				cable_found = true;
+				cable_pose = powerline_.poses[i];
+				break;
+
+			}
+		}
+
+	} powerline_mutex_.unlock();
+
+	if (!cable_found)
+		return rclcpp_action::GoalResponse::REJECT;
+
+	geometry_msgs::msg::TransformStamped D_T_gripper = tf_buffer_->lookupTransform("drone", "cable_gripper", tf2::TimePointZero);
+	quat_t D_Q_gripper(
+		D_T_gripper.transform.rotation.w,
+		D_T_gripper.transform.rotation.x,
+		D_T_gripper.transform.rotation.y,
+		D_T_gripper.transform.rotation.z
+	);
+	orientation_t D_eul_gripper = quatToEul(D_Q_gripper);
+	float D_yaw_gripper = D_eul_gripper(2);
+
+	geometry_msgs::msg::PoseStamped target_pose = tf_buffer_->transform(cable_pose, "world");
+	target_pose.pose.position.z -= cable_distance;
+
+	// //LOG_INFO("c");
+
+	quat_t quat(
+		target_pose.pose.orientation.w,
+		target_pose.pose.orientation.x,
+		target_pose.pose.orientation.y,
+		target_pose.pose.orientation.z
+	);
+
+	orientation_t eul = quatToEul(quat);
+
+	pos4_t target_position;
+	target_position(0) = target_pose.pose.position.x;
+	target_position(1) = target_pose.pose.position.y;
+	target_position(2) = target_pose.pose.position.z;
+	target_position(3) = eul(2) - D_yaw_gripper;
+
+	params->target_position = target_position;
+
+	// //LOG_INFO("d");
+
+	request_t request = {
+		.action_id = action_id,
+		.request_type = fly_to_position_request,
+		.request_params = (void *)params
+	};
+
+	if (!request_queue_.Push(request, false)) 
+		return rclcpp_action::GoalResponse::REJECT;
+
+	// //LOG_INFO("e");
+
+	return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+
+}
+
+rclcpp_action::CancelResponse TrajectoryController::handleCancelFlyUnderCable(const std::shared_ptr<GoalHandleFlyUnderCable> goal_handle) {
+
+	RCLCPP_INFO(this->get_logger(), "Received fly under cable cancel request");
+
+	// //LOG_INFO("f");
+	
+	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)goal_handle->get_goal_id();
+
+	request_t request = {
+		.action_id = action_id,
+		.request_type = cancel_request,
+		.request_params = NULL
+	};
+
+	// //LOG_INFO("g");
+
+	if (!request_queue_.Push(request, false))
+		return rclcpp_action::CancelResponse::REJECT;
+
+	// //LOG_INFO("h");
+
+	return rclcpp_action::CancelResponse::ACCEPT;
+
+}
+
+void TrajectoryController::handleAcceptedFlyUnderCable(const std::shared_ptr<GoalHandleFlyUnderCable> goal_handle) {
+
+	// //LOG_INFO("i");
+
+	using namespace std::placeholders;
+
+	std::thread{ std::bind(&TrajectoryController::followFlyUnderCableCompletion, this, _1), goal_handle}.detach();
+
+}
+
+void TrajectoryController::followFlyUnderCableCompletion(const std::shared_ptr<GoalHandleFlyUnderCable> goal_handle) {
+
+	// //LOG_INFO("j");
+
+	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)goal_handle->get_goal_id();
+
+	auto feedback = std::make_shared<FlyUnderCable::Feedback>();
+
+	auto result = std::make_shared<FlyUnderCable::Result>();
+
+	request_reply_t reply = {
+		.action_id = action_id
+	};
+
+	// //LOG_INFO("k");
+	
+	while(true) {
+
+		// //LOG_INFO("l");
+
+		while (!request_reply_queue_.Peak(reply, false) || reply.action_id != action_id) {
+
+			// //LOG_INFO("m");
+
+			geometry_msgs::msg::PoseStamped vehicle_pose = loadVehiclePose();
+			nav_msgs::msg::Path planned_path = loadPlannedPath();
+			geometry_msgs::msg::PoseStamped target = loadPlannedTarget();
+
+			feedback->vehicle_pose = vehicle_pose;
+			feedback->planned_path = planned_path;
+
+			quat_t veh_quat(
+				vehicle_pose.pose.orientation.w,
+				vehicle_pose.pose.orientation.x,
+				vehicle_pose.pose.orientation.y,
+				vehicle_pose.pose.orientation.z
+			);
+			orientation_t veh_eul = quatToEul(veh_quat);
+			pos4_t veh_state(
+				vehicle_pose.pose.position.x,
+				vehicle_pose.pose.position.y,
+				vehicle_pose.pose.position.z,
+				veh_eul(2)
+			);
+			quat_t target_quat(
+				target.pose.orientation.w,
+				target.pose.orientation.x,
+				target.pose.orientation.y,
+				target.pose.orientation.z
+			);
+			orientation_t target_eul = quatToEul(target_quat);
+			pos4_t target_state(
+				target.pose.position.x,
+				target.pose.position.y,
+				target.pose.position.z,
+				target_eul(2)
+			);
+
+			feedback->distance_vehicle_to_target = (target_state - veh_state).norm();
+
+			goal_handle->publish_feedback(feedback);
+
+			// //LOG_INFO("n");
+
+			request_completion_poll_rate_.sleep();
+
+		}
+
+		// //LOG_INFO("o");
+
+		if(!request_reply_queue_.Pop(reply, false)) throw std::exception(); // The reply should still be in the queue
+
+		// //LOG_INFO("p");
+			
+		switch (reply.reply_type) {
+
+		default:
+		case cancel:
+
+		// //LOG_INFO("q");
+
+			if (goal_handle->is_canceling()) {
+				// RCLCPP_INFO(this->get_logger(), "hej");
 
 				result->success = false;
 				goal_handle->canceled(result);

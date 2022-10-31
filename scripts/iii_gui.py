@@ -14,7 +14,7 @@ from std_msgs.msg import Int32
 from sensor_msgs.msg import Image, PointCloud2, PointField
 from geometry_msgs.msg import PoseStamped
 from iii_interfaces.msg import Powerline, PowerlineDirection, ControlState
-from iii_interfaces.action import Takeoff, Landing, FlyToPosition, CableLanding, CableTakeoff
+from iii_interfaces.action import Takeoff, Landing, FlyToPosition, FlyUnderCable, CableLanding, CableTakeoff
 
 import cv2 as cv
 from cv_bridge import CvBridge
@@ -190,6 +190,7 @@ class IIIGuiNode(Node):
         self.takeoff_client = ActionClient(self, Takeoff, "/trajectory_controller/takeoff")
         self.landing_client = ActionClient(self, Landing, "/trajectory_controller/landing")
         self.fly_to_position_client = ActionClient(self, FlyToPosition, "/trajectory_controller/fly_to_position")
+        self.fly_under_cable_client = ActionClient(self, FlyUnderCable, "/trajectory_controller/fly_under_cable")
         self.cable_landing_client = ActionClient(self, CableLanding, "/trajectory_controller/cable_landing")
         self.cable_takeoff_client = ActionClient(self, CableTakeoff, "/trajectory_controller/cable_takeoff")
         
@@ -206,9 +207,6 @@ class IIIGuiNode(Node):
             self.on_state_msg,
             10
         )
-
-        timer_period = 0.1  # seconds
-        self.timer = self.create_timer(timer_period, self.draw_image)
 
         self.current_action = "None"
         self.action_status = "Idle"
@@ -269,63 +267,6 @@ class IIIGuiNode(Node):
 
             self.control_state_lock_.release()
 
-    def draw_image(self):
-
-        pl_tuples = []
-        pl_quat = None
-        if self.pl_lock_.acquire(blocking=True):
-            for tuple in self.powerline_tuples_:
-                pl_tuples.append((tuple[0], tuple[1]))
-            pl_quat = self.powerline_quat_
-            self.pl_lock_.release()
-
-        else:
-            return
-
-        rotated_tuples = []
-
-        for tuple in pl_tuples:
-            point = tuple[1]
-            point = np.matmul(quatToMat(pl_quat).transpose(), point)
-            new_tuple = (tuple[0], point)
-            rotated_tuples.append(new_tuple)
-
-        points_y = [rotated_tuples[i][1][1] for i in range(len(rotated_tuples))]
-        points_z = [rotated_tuples[i][1][2] for i in range(len(rotated_tuples))]
-        points_id = [rotated_tuples[i][0] for i in range(len(rotated_tuples))]
-
-        fig, ax = plt.subplots()
-        ax.scatter(points_y, points_z, linewidth=0.000001, color='green', label='Powerlines (#ID)')
-        ax.scatter(0, 0, linewidth=0.000001, color='red', label='Ego', marker='X')
-
-        for i, txt in enumerate(points_id):
-            ax.annotate(txt, (points_y[i], points_z[i]))
-
-        # ax.legend()
-
-        plt.axis('square')
-
-        if (len(points_y)>0):
-            plt.xlim([min([min(points_y)-2,-2]), max([max(points_y)+2, 2])])
-
-
-        fig.canvas.draw()
-
-        img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-        # img = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-        img  = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-
-        # img is rgb, convert to opencv's default bgr
-        img = cv.cvtColor(img,cv.COLOR_RGB2BGR)
-
-        plt.cla()
-        plt.clf()
-        plt.close('all')
-
-        if self.img_lock_.acquire(blocking=True):
-            self.img_ = img
-            self.img_lock_.release()
-
     def get_img(self):
         img = None
         
@@ -353,6 +294,13 @@ class IIIGuiNode(Node):
             self.action_status_lock_.release()
 
         return current_action, action_status
+
+    def get_cable_ids(self):       
+        self.pl_lock_.acquire(blocking=True)
+        ids = [self.powerline_tuples_[i][0] for i in range(len(self.powerline_tuples_))]
+        self.pl_lock_.release()
+
+        return ids
 
     def send_takeoff_action_request(self, takeoff_height):
         print("Sending takeoff action request with height: "+str(takeoff_height))
@@ -399,6 +347,23 @@ class IIIGuiNode(Node):
         self.fly_to_position_client.wait_for_server()
         
         self.future = self.fly_to_position_client.send_goal_async(goal_msg)
+        self.future.add_done_callback(self.goal_response_callback)
+
+    def send_fly_under_cable_action_request(self, cable_id, target_distance):
+        print("Sending fly-under-cable action request with cable id", cable_id, "and target distance", target_distance)
+
+        if self.action_status_lock_.acquire(blocking=True):
+            self.current_action = "FlyUnderCable"
+            self.action_status = "Waiting for reply"
+            self.action_status_lock_.release()
+
+        goal_msg = FlyUnderCable.Goal()
+        goal_msg.target_cable_id = cable_id
+        goal_msg.target_cable_distance = target_distance
+        
+        self.fly_under_cable_client.wait_for_server()
+        
+        self.future = self.fly_under_cable_client.send_goal_async(goal_msg)
         self.future.add_done_callback(self.goal_response_callback)
 
     def send_cable_landing_action_request(self, target_cable_id):
@@ -466,16 +431,21 @@ class IIIGui():
     def __init__(self):
         self.node = IIIGuiNode()
 
+        self.end = False
+
         self.node_thread = Thread(target=self.spin_node)
         self.node_thread.start()
 
         self.takeoff_height = 0
         self.target_pose = PoseStamped()
+        self.target_cable_id = 0
+        self.target_cable_distance = 1.
 
         self.current_action = "None"
         self.action_status = "Idle"
 
         self.root = tkinter.Tk()
+        self.root.title("III-Drone GUI")
         # self.root.geometry("200x200")
 
         self.action_options_window = None
@@ -491,6 +461,7 @@ class IIIGui():
             "Takeoff",
             "Landing",
             "FlyToPosition",
+            "FlyUnderCable",
             "CableLanding",
             "CableTakeoff"
         ]
@@ -547,8 +518,11 @@ class IIIGui():
         self.put_control_state()
         self.put_action_status()
         self.root.mainloop()
+        self.end = True
         self.node_thread.join()
-        self.node.destroy_node()
+
+
+        # self.node.destroy_node()
 
     def execute_action(self):
         self.action_options_window = Toplevel(self.root)
@@ -559,7 +533,7 @@ class IIIGui():
 
         action = self.action_stringvar.get()
 
-        vcmd_numeric = (self.root.register(self.validate_numeric),
+        vcmd_numeric = (self.root.register(self.validate_numeric_and_empty),
                     '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
 
         def on_cancel_btn_click():
@@ -646,7 +620,7 @@ class IIIGui():
             ok_btn.grid()
             cancel_btn.grid()
 
-        if action == "FlyToPosition":
+        elif action == "FlyToPosition":
             ftp_label = tkinter.Label(
                 self.action_options_frame,
                 text="FlyToPosition options"
@@ -784,25 +758,214 @@ class IIIGui():
             frame_optionmenu.grid()
             ok_btn.grid()
             cancel_btn.grid()
+
+        elif action == "FlyUnderCable":
+            fuc_label = tkinter.Label(
+                self.action_options_frame,
+                text="FlyUnderCable options"
+            )
+            id_label = tkinter.Label(
+                self.action_options_frame,
+                text="Cable ID:"
+            )
+            cable_ids = self.node.get_cable_ids()
+            cable_id_stringvar = tkinter.StringVar(self.action_options_window)
+            cable_id_stringvar.set(cable_ids[0])
+            cable_id_optionmenu = tkinter.OptionMenu(
+                self.action_options_frame,
+                cable_id_stringvar,
+                *cable_ids
+            )
+            distance_label = tkinter.Label(
+                self.action_options_frame,
+                text="Target cable distance:"
+            )
+            distance_entry = tkinter.Entry(
+                self.action_options_frame,
+                validate="key",
+                validatecommand=vcmd_numeric
+            )
+
+            def on_ok_btn_click():
+                fail = False
+
+                try:
+                    self.target_cable_distance = float(distance_entry.get())
+                except ValueError:
+                    distance_entry.configure(
+                        bg="red"
+                    )
+
+                    fail = True
+
+                try:
+                    self.target_cable_id = int(cable_id_stringvar.get())
+                except ValueError:
+                    cable_id_optionmenu.configure(
+                        bg="red"
+                    )
+
+                    fail = True
+
+                if fail:
+                    return
+
+                self.action_options_window.destroy()
+                self.action_options_window = None
+                self.action_options_frame = None
+
+                self.node.send_fly_under_cable_action_request(self.target_cable_id, self.target_cable_distance)
+
+            ok_btn = tkinter.Button(
+                self.action_options_frame,
+                text="OK",
+                command=on_ok_btn_click
+            )
+
+            cancel_btn = tkinter.Button(
+                self.action_options_frame,
+                text="Cancel",
+                command=on_cancel_btn_click
+            )
+
+            fuc_label.grid()
+            id_label.grid()
+            cable_id_optionmenu.grid()
+            distance_label.grid()
+            distance_entry.grid()
+            ok_btn.grid()
+            cancel_btn.grid()
+
+        elif action == "CableLanding":
+            cl_label = tkinter.Label(
+                self.action_options_frame,
+                text="CableLanding options"
+            )
+            id_label = tkinter.Label(
+                self.action_options_frame,
+                text="Cable ID:"
+            )
+            cable_ids = self.node.get_cable_ids()
+            cable_id_stringvar = tkinter.StringVar(self.action_options_window)
+            cable_id_stringvar.set(cable_ids[0])
+            cable_id_optionmenu = tkinter.OptionMenu(
+                self.action_options_frame,
+                cable_id_stringvar,
+                *cable_ids
+            )
+
+            def on_ok_btn_click():
+                fail = False
+
+                try:
+                    self.target_cable_id = int(cable_id_stringvar.get())
+                except ValueError:
+                    cable_id_optionmenu.configure(
+                        bg="red"
+                    )
+
+                    fail = True
+
+                if fail:
+                    return
+
+                self.action_options_window.destroy()
+                self.action_options_window = None
+                self.action_options_frame = None
+
+                self.node.send_cable_landing_action_request(self.target_cable_id)
+
+            ok_btn = tkinter.Button(
+                self.action_options_frame,
+                text="OK",
+                command=on_ok_btn_click
+            )
+
+            cancel_btn = tkinter.Button(
+                self.action_options_frame,
+                text="Cancel",
+                command=on_cancel_btn_click
+            )
+
+            cl_label.grid()
+            id_label.grid()
+            cable_id_optionmenu.grid()
+            ok_btn.grid()
+            cancel_btn.grid()
+
+        elif action == "CableTakeoff":
+            ct_label = tkinter.Label(
+                self.action_options_frame,
+                text="CableTakeoff options"
+            )
+            distance_label = tkinter.Label(
+                self.action_options_frame,
+                text="Target cable distance:"
+            )
+            distance_entry = tkinter.Entry(
+                self.action_options_frame,
+                validate="key",
+                validatecommand=vcmd_numeric
+            )
+
+            def on_ok_btn_click():
+                fail = False
+
+                try:
+                    self.target_cable_distance = float(distance_entry.get())
+                except ValueError:
+                    distance_entry.configure(
+                        bg="red"
+                    )
+
+                    fail = True
+
+                if fail:
+                    return
+
+                self.action_options_window.destroy()
+                self.action_options_window = None
+                self.action_options_frame = None
+
+                self.node.send_cable_takeoff_action_request(self.target_cable_distance)
+
+            ok_btn = tkinter.Button(
+                self.action_options_frame,
+                text="OK",
+                command=on_ok_btn_click
+            )
+
+            cancel_btn = tkinter.Button(
+                self.action_options_frame,
+                text="Cancel",
+                command=on_cancel_btn_click
+            )
+
+            ct_label.grid()
+            distance_label.grid()
+            distance_entry.grid()
+            ok_btn.grid()
+            cancel_btn.grid()
             
     def cancel_action(self):
         self.node.cancel_action()
 
-    def validate_numeric(self, action, index, value_if_allowed,
+    def validate_numeric_and_empty(self, action, index, value_if_allowed,
                        prior_value, text, validation_type, trigger_type, widget_name):
-        if value_if_allowed:
-            if value_if_allowed == "\b":
-                return True
-            try:
-                float(value_if_allowed)
-                return True
-            except ValueError:
-                return False
-        else:
+        if value_if_allowed == "\b" or value_if_allowed == "":
+            return True
+        try:
+            float(value_if_allowed)
+            return True
+        except ValueError:
             return False
 
     def spin_node(self):
-        rclpy.spin(self.node)
+        while True:
+            if self.end:
+                break
+
+            rclpy.spin_once(self.node)
 
     def set_execute_button_state(self):
         if self.action_status == "Idle" or self.action_status == "Cancelled" or self.action_status == "Success":
@@ -836,7 +999,52 @@ class IIIGui():
         self.action_status_label.after(100, self.put_action_status)
 
     def put_img(self):
-        img = self.node.get_img()
+        pl_tuples = []
+        pl_quat = None
+        self.node.pl_lock_.acquire(blocking=True)
+        for tuple in self.node.powerline_tuples_:
+            pl_tuples.append((tuple[0], tuple[1]))
+        pl_quat = self.node.powerline_quat_
+        self.node.pl_lock_.release()
+
+        rotated_tuples = []
+
+        for tuple in pl_tuples:
+            point = tuple[1]
+            point = np.matmul(quatToMat(pl_quat).transpose(), point)
+            new_tuple = (tuple[0], point)
+            rotated_tuples.append(new_tuple)
+
+        points_y = [rotated_tuples[i][1][1] for i in range(len(rotated_tuples))]
+        points_z = [rotated_tuples[i][1][2] for i in range(len(rotated_tuples))]
+        points_id = [rotated_tuples[i][0] for i in range(len(rotated_tuples))]
+
+        fig, ax = plt.subplots()
+        ax.scatter(points_y, points_z, linewidth=0.000001, color='green', label='Powerlines (#ID)')
+        ax.scatter(0, 0, linewidth=0.000001, color='red', label='Ego', marker='X')
+
+        for i, txt in enumerate(points_id):
+            ax.annotate(txt, (points_y[i], points_z[i]))
+
+        plt.axis('square')
+
+        if (len(points_y)>0):
+            plt.xlim([min([min(points_y)-2,-2]), max([max(points_y)+2, 2])])
+
+
+        fig.canvas.draw()
+
+        img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+        # img = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+        img  = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+
+        # img is rgb, convert to opencv's default bgr
+        img = cv.cvtColor(img,cv.COLOR_RGB2BGR)
+
+        plt.cla()
+        plt.clf()
+        plt.close('all')
+
         if img is not None:
             img = Image.fromarray(img)
             imgtk = ImageTk.PhotoImage(image=img)

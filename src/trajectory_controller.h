@@ -50,6 +50,7 @@
 #include "iii_interfaces/action/fly_to_position.hpp"
 #include "iii_interfaces/action/cable_landing.hpp"
 #include "iii_interfaces/action/cable_takeoff.hpp"
+#include "iii_interfaces/action/fly_under_cable.hpp"
 
 #include "geometry.h"
 #include "blocking_queue.h"
@@ -220,6 +221,9 @@ public:
 	using FlyToPosition = iii_interfaces::action::FlyToPosition;
 	using GoalHandleFlyToPosition = rclcpp_action::ServerGoalHandle<FlyToPosition>;
 
+	using FlyUnderCable = iii_interfaces::action::FlyUnderCable;
+	using GoalHandleFlyUnderCable = rclcpp_action::ServerGoalHandle<FlyUnderCable>;
+
 	using CableLanding = iii_interfaces::action::CableLanding;
 	using GoalHandleCableLanding = rclcpp_action::ServerGoalHandle<CableLanding>;
 
@@ -264,6 +268,17 @@ private:
 	rclcpp_action::CancelResponse handleCancelFlyToPosition(const std::shared_ptr<GoalHandleFlyToPosition> goal_handle);
 	void handleAcceptedFlyToPosition(const std::shared_ptr<GoalHandleFlyToPosition> goal_handle);
 	void followFlyToPositionCompletion(const std::shared_ptr<GoalHandleFlyToPosition> goal_handle);
+
+	// Fly under cable action:
+	rclcpp_action::Server<FlyUnderCable>::SharedPtr fly_under_cable_server_;
+
+	rclcpp_action::GoalResponse handleGoalFlyUnderCable(
+		const rclcpp_action::GoalUUID & uuid, 
+		std::shared_ptr<const FlyUnderCable::Goal> goal
+	);
+	rclcpp_action::CancelResponse handleCancelFlyUnderCable(const std::shared_ptr<GoalHandleFlyUnderCable> goal_handle);
+	void handleAcceptedFlyUnderCable(const std::shared_ptr<GoalHandleFlyUnderCable> goal_handle);
+	void followFlyUnderCableCompletion(const std::shared_ptr<GoalHandleFlyUnderCable> goal_handle);
 
 	// Cable landing action:
 	rclcpp_action::Server<CableLanding>::SharedPtr cable_landing_server_;

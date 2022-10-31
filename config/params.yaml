@@ -31,7 +31,7 @@ pl_mapper:
       alive_cnt_ceiling: 150
       matching_line_max_dist: 3.
       min_point_dist: 0.1
-      min_point_dist_strict: 0.2
+      min_point_dist_strict: 0.6
       max_point_dist: 20.
       max_point_dist_strict: 18.
       view_cone_slope: 0.55
@@ -58,6 +58,77 @@ cable_camera:
       camera_name: "test_camera"
       camera_info_url: "package://usb_cam/config/camera_info.yaml"
       cfg_path: "/home/mp4d/ros2_ws/src/iwr6843aop/cfg_files/30deg_Group_18m_30Hz.cfg"
+
+trajectory_controller:
+  trajectory_controller:
+    ros__parameters:
+      controller_period_ms: 200
+      landed_altitude_threshold: 0.1
+      reached_position_euclidean_distance_threshold: 0.1
+      min_target_altitude: 1.
+      target_cable_fixed_position_distance_threshold: 0.5
+      target_cable_safety_margin_distance_threshold: 0.25
+      target_cable_safety_margin_max_euc_distance: 0.1
+      target_cable_safety_margin_max_euc_velocity: 1.
+      target_cable_safety_margin_max_euc_acceleration: 1.
+      target_cable_safety_margin_max_yaw_distance: 0.314159265
+      target_cable_safety_margin_max_yaw_velocity: 1.570796327
+      target_cable_set_point_truncate_distance_threshold: 0.25
+      MPC_dt: 0.2
+      position_MPC_vx_max: 0.5
+      position_MPC_vy_max: 0.5
+      position_MPC_vz_max: 0.5
+      position_MPC_ax_max: 1.0
+      position_MPC_ay_max: 1.0
+      position_MPC_az_max: 1.0
+      position_MPC_wx: 1.
+      position_MPC_wy: 1.
+      position_MPC_wz: 1.
+      position_MPC_wvx: 1.0
+      position_MPC_wvy: 1.0
+      position_MPC_wvz: 1.0
+      position_MPC_wax: 0.01
+      position_MPC_way: 0.01
+      position_MPC_waz: 0.01
+      position_MPC_wjx: 0.1
+      position_MPC_wjy: 0.1
+      position_MPC_wjz: 0.1
+      cable_landing_MPC_vx_max: 2.
+      cable_landing_MPC_vy_max: 2.
+      cable_landing_MPC_vz_max: 0.5
+      cable_landing_MPC_ax_max: 1.
+      cable_landing_MPC_ay_max: 1.
+      cable_landing_MPC_az_max: 1.
+      cable_landing_MPC_wx: 15.
+      cable_landing_MPC_wy: 15.
+      cable_landing_MPC_wz: 1.
+      cable_landing_MPC_wvx: 2.
+      cable_landing_MPC_wvy: 2.
+      cable_landing_MPC_wvz: 1.
+      cable_landing_MPC_wax: 0.01
+      cable_landing_MPC_way: 0.01
+      cable_landing_MPC_waz: 0.01
+      cable_landing_MPC_wjx: 0.1
+      cable_landing_MPC_wjy: 0.1
+      cable_landing_MPC_wjz: 0.1
+      cable_takeoff_MPC_vx_max: 2.
+      cable_takeoff_MPC_vy_max: 2.
+      cable_takeoff_MPC_vz_max: 2.
+      cable_takeoff_MPC_ax_max: 1.
+      cable_takeoff_MPC_ay_max: 1.
+      cable_takeoff_MPC_az_max: 1.
+      cable_takeoff_MPC_wx: 1.
+      cable_takeoff_MPC_wy: 1.
+      cable_takeoff_MPC_wz: 10.
+      cable_takeoff_MPC_wvx: 1.
+      cable_takeoff_MPC_wvy: 1.
+      cable_takeoff_MPC_wvz: 1.
+      cable_takeoff_MPC_wax: 0.01
+      cable_takeoff_MPC_way: 0.01
+      cable_takeoff_MPC_waz: 0.01
+      cable_takeoff_MPC_wjx: 0.1
+      cable_takeoff_MPC_wjy: 0.1
+      cable_takeoff_MPC_wjz: 0.1
 
 /**:
   ros__parameters:
