@@ -93,8 +93,8 @@ trajectory_controller:
       position_MPC_wjx: 0.1
       position_MPC_wjy: 0.1
       position_MPC_wjz: 0.1
-      cable_landing_MPC_vx_max: 2.
-      cable_landing_MPC_vy_max: 2.
+      cable_landing_MPC_vx_max: 0.5
+      cable_landing_MPC_vy_max: 0.5
       cable_landing_MPC_vz_max: 0.5
       cable_landing_MPC_ax_max: 1.
       cable_landing_MPC_ay_max: 1.
