@@ -24,8 +24,8 @@ pl_dir_computer:
 pl_mapper:
   pl_mapper:
     ros__parameters:
-      kf_r: 1.
-      kf_q: 0.25
+      kf_r: 0.999
+      kf_q: 0.001
       alive_cnt_low_thresh: 0
       alive_cnt_high_thresh: 60
       alive_cnt_ceiling: 150
