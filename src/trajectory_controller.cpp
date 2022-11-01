@@ -232,13 +232,11 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalTakeoff(
 	this->get_parameter("min_target_altitude", min_target_altitude);
 
 	if (goal->target_altitude < min_target_altitude){
-		std::cout << "1\n";
 		return rclcpp_action::GoalResponse::REJECT;
 	}
 
 
 	if (state_ != on_ground_non_offboard) {
-		std::cout << "2\n";
 		return rclcpp_action::GoalResponse::REJECT;
 	}
 
@@ -254,7 +252,6 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalTakeoff(
 	};
 
 	if (!request_queue_.Push(request, false)) {
-		std::cout << "3\n";
 		return rclcpp_action::GoalResponse::REJECT;
 	}
 
@@ -346,7 +343,7 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalLanding(
 	
 	(void)uuid;
 
-	if (state_ != hovering)
+	if (state_ != hovering && state_ != hovering_under_cable)
 		return rclcpp_action::GoalResponse::REJECT;
 
 	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)uuid;
@@ -450,7 +447,7 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalFlyToPosition(
 	
 	(void)uuid;
 
-	if (state_ != hovering)
+	if (state_ != hovering && state_ != hovering_under_cable)
 		return rclcpp_action::GoalResponse::REJECT;
 
 	// //LOG_INFO("b");
@@ -638,78 +635,39 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalFlyUnderCable(
 	
 	(void)uuid;
 
-	if (state_ != hovering)
+	if (state_ != hovering && state_ != hovering_under_cable)
 		return rclcpp_action::GoalResponse::REJECT;
 
 	// //LOG_INFO("b");
 
 	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)uuid;
 
-	fly_to_position_request_params_t *params = new fly_to_position_request_params_t;
+	fly_under_cable_request_params_t *params = new fly_under_cable_request_params_t;
 
 	int cable_id = goal->target_cable_id;
 	float cable_distance = goal->target_cable_distance;
 
-	geometry_msgs::msg::PoseStamped cable_pose;
-
-	bool cable_found = false;
-
-	powerline_mutex_.lock(); {
-
-		for (int i = 0; i < powerline_.count; i++) {
-
-			if (powerline_.ids[i] == cable_id) {
-
-				cable_found = true;
-				cable_pose.header.frame_id = powerline_.poses[i].header.frame_id;
-				cable_pose.pose = powerline_.poses[i].pose;
-				break;
-
-			}
-		}
-
-	} powerline_mutex_.unlock();
-
-	if (!cable_found)
+	if (cable_distance <= 0)
 		return rclcpp_action::GoalResponse::REJECT;
 
-	geometry_msgs::msg::TransformStamped D_T_gripper = tf_buffer_->lookupTransform("drone", "cable_gripper", tf2::TimePointZero);
-	quat_t D_Q_gripper(
-		D_T_gripper.transform.rotation.w,
-		D_T_gripper.transform.rotation.x,
-		D_T_gripper.transform.rotation.y,
-		D_T_gripper.transform.rotation.z
-	);
-	orientation_t D_eul_gripper = quatToEul(D_Q_gripper);
-	float D_yaw_gripper = D_eul_gripper(2);
+	state4_t veh_state = loadVehicleState();
 
-	geometry_msgs::msg::PoseStamped target_pose = tf_buffer_->transform(cable_pose, "world");
-	target_pose.pose.position.z -= cable_distance;
+	if (!updateTargetCablePose(veh_state, cable_id)) {
 
-	// //LOG_INFO("c");
+		clearTargetCable();
 
-	quat_t quat(
-		target_pose.pose.orientation.w,
-		target_pose.pose.orientation.x,
-		target_pose.pose.orientation.y,
-		target_pose.pose.orientation.z
-	);
+		return rclcpp_action::GoalResponse::REJECT;
 
-	orientation_t eul = quatToEul(quat);
+	}
 
-	pos4_t target_position;
-	target_position(0) = target_pose.pose.position.x;
-	target_position(1) = target_pose.pose.position.y;
-	target_position(2) = target_pose.pose.position.z;
-	target_position(3) = eul(2) - D_yaw_gripper;
+	target_cable_distance_ = cable_distance;
 
-	params->target_position = target_position;
-
-	// //LOG_INFO("d");
+	params->cable_id = cable_id;
+	params->target_cable_distance = cable_distance;
 
 	request_t request = {
 		.action_id = action_id,
-		.request_type = fly_to_position_request,
+		.request_type = fly_under_cable_request,
 		.request_params = (void *)params
 	};
 
@@ -888,10 +846,13 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalCableLanding(
 	
 	(void)uuid;
 
-	if (state_ != hovering)
+	if (state_ != hovering_under_cable)
 		return rclcpp_action::GoalResponse::REJECT;
 
 	int cable_id = goal->target_cable_id;
+
+	if (cable_id != target_cable_id_)
+		return rclcpp_action::GoalResponse::REJECT;
 
 	state4_t veh_state = loadVehicleState();
 
@@ -1208,6 +1169,7 @@ void TrajectoryController::stateMachineCallback() {
 	static int target_cable_cnt = 0;
 
 	static int cable_id = -1;
+	static float target_cable_distance = -1;
 
 	bool offboard = isOffboard();
 	bool armed = isArmed();
@@ -1648,6 +1610,8 @@ void TrajectoryController::stateMachineCallback() {
 
 			set_point = fixed_reference;
 
+			setTrajectoryTarget(fixed_reference);
+
 			state_ = taking_off;
 
 		} else {
@@ -1693,6 +1657,8 @@ void TrajectoryController::stateMachineCallback() {
 
 			set_point = fixed_reference;
 
+			setTrajectoryTarget(fixed_reference);
+
 		}
 
 		break;
@@ -1733,26 +1699,27 @@ void TrajectoryController::stateMachineCallback() {
 
 			state_ = in_positional_flight;
 
-		} else if (tryPendingRequest(cable_landing_request, if_match, if_match)) {
+		} else if (tryPendingRequest(fly_under_cable_request, if_match, if_match)) {
 
-			cable_landing_request_params_t *request_params = (cable_landing_request_params_t *)request.request_params;
+			fly_under_cable_request_params_t *request_params = (fly_under_cable_request_params_t *)request.request_params;
 			cable_id = request_params->cable_id;
-			
+			target_cable_distance = request_params->target_cable_distance;
+
 			delete request.request_params;
 
 			target_cable_cnt = 10;
 
 			target_cable_cnt = updateTargetCablePose(veh_state, cable_id) ? target_cable_cnt : target_cable_cnt-1;
 
-			fixed_reference = loadTargetCableState();
+			fixed_reference = loadTargetUnderCableState();
 
 			setTrajectoryTarget(fixed_reference);
 
-			set_point = stepMPC(veh_state, fixed_reference, true, cable_landing);
-			set_point = setPointSafetyMarginTruncate(set_point, veh_state, fixed_reference);
+			set_point = stepMPC(prev_veh_state, fixed_reference, true, positional);
 
-			state_ = during_cable_landing;
+			offboard_cnt = 10;
 
+			state_ = in_positional_flight;
 
 		} else {
 
@@ -1794,6 +1761,118 @@ void TrajectoryController::stateMachineCallback() {
 
 		break;
 
+	case hovering_under_cable:
+
+		if (!offboard || !armed) {
+
+			rejectPendingRequest();
+
+			clearPlannedTrajectory();
+			clearTargetCable();
+
+			state_ = init;
+
+		} else if (target_cable_cnt == 0) {
+
+			clearPlannedTrajectory();
+			clearTargetCable();
+
+			fixed_reference = setZeroVelocity(veh_state); // For explicability
+
+			set_point = fixed_reference;
+
+			state_ = hovering;
+
+		} else if (tryPendingRequest(landing_request, if_match, if_match)) {
+
+			clearPlannedTrajectory();
+			clearTargetCable();
+
+			land();
+
+			set_point = setNanVelocity(veh_state);
+
+			land_cnt = 100;
+
+			state_ = landing;
+
+		} else if (tryPendingRequest(fly_to_position_request, if_match, if_match)) {
+
+			fly_to_position_request_params_t *request_params = (fly_to_position_request_params_t *)request.request_params;
+			pos4_t target_position = request_params->target_position;
+
+			delete request.request_params;
+
+			fixed_reference = appendZeroVelocity(target_position);
+
+			setTrajectoryTarget(fixed_reference);
+
+			set_point = stepMPC(prev_veh_state, fixed_reference, true, positional);
+			//set_point = setZeroVelocity(fixed_reference);
+
+			offboard_cnt = 10;
+
+			state_ = in_positional_flight;
+
+		} else if (tryPendingRequest(fly_under_cable_request, if_match, if_match)) {
+
+			fly_under_cable_request_params_t *request_params = (fly_under_cable_request_params_t *)request.request_params;
+			cable_id = request_params->cable_id;
+			target_cable_distance = request_params->target_cable_distance;
+
+			delete request.request_params;
+
+			target_cable_cnt = 10;
+
+			target_cable_cnt = updateTargetCablePose(veh_state, cable_id) ? target_cable_cnt : target_cable_cnt-1;
+
+			fixed_reference = loadTargetUnderCableState();
+
+			setTrajectoryTarget(fixed_reference);
+
+			set_point = stepMPC(prev_veh_state, fixed_reference, true, positional);
+
+			offboard_cnt = 10;
+
+			state_ = in_positional_flight;
+
+		} else if (tryPendingRequest(cable_landing_request, if_match, if_match)) {
+
+			cable_landing_request_params_t *request_params = (cable_landing_request_params_t *)request.request_params;
+			cable_id = request_params->cable_id;
+			
+			delete request.request_params;
+
+			target_cable_cnt = 10;
+
+			target_cable_cnt = updateTargetCablePose(veh_state, cable_id) ? target_cable_cnt : target_cable_cnt-1;
+
+			fixed_reference = loadTargetCableState();
+
+			setTrajectoryTarget(fixed_reference);
+
+			set_point = stepMPC(veh_state, fixed_reference, true, cable_landing);
+			set_point = setPointSafetyMarginTruncate(set_point, veh_state, fixed_reference);
+
+			state_ = during_cable_landing;
+
+		} else {
+
+			rejectPendingRequest();
+
+			target_cable_cnt = updateTargetCablePose(veh_state, cable_id) ? target_cable_cnt : target_cable_cnt-1;
+
+			fixed_reference = loadTargetUnderCableState();
+
+			setTrajectoryTarget(fixed_reference);
+
+			set_point = fixed_reference;
+
+		}
+
+		break;
+
+
 	case in_positional_flight:
 
 		//LOG_INFO("1");
@@ -1805,7 +1884,25 @@ void TrajectoryController::stateMachineCallback() {
 			notifyCurrentRequest(fail);
 			rejectPendingRequest();
 
+			clearPlannedTrajectory();
+			clearTargetCable();
+
 			state_ = init;
+
+		} else if (request.request_type == fly_under_cable_request && target_cable_cnt == 0) {
+
+			LOG_INFO("Target cable counter is zero, aborting request, going to state hovering");
+
+			notifyCurrentRequest(fail);
+
+			clearPlannedTrajectory();
+			clearTargetCable();
+
+			fixed_reference = setZeroVelocity(veh_state); // For explicability
+
+			set_point = fixed_reference;
+
+			state_ = hovering;
 
 		 } else if (currentRequestIsCancelled(if_match, if_match)) {
 
@@ -1814,6 +1911,7 @@ void TrajectoryController::stateMachineCallback() {
 		 	fixed_reference = setZeroVelocity(veh_state); // For explicability
 
 		 	clearPlannedTrajectory();
+			clearTargetCable();
 
 		 	set_point = fixed_reference;
 
@@ -1825,19 +1923,47 @@ void TrajectoryController::stateMachineCallback() {
 
 			notifyCurrentRequest(success);
 
-			clearPlannedTrajectory();
+			if (request.request_type == fly_under_cable_request) {
 
-			fixed_reference = setZeroVelocity(fixed_reference); // For explicability
+				clearPlannedTrajectory();
 
-			set_point = fixed_reference;
+				target_cable_cnt = updateTargetCablePose(veh_state) ? target_cable_cnt : target_cable_cnt-1;
 
-			state_ = hovering;
+				fixed_reference = loadTargetUnderCableState();
+
+				setTrajectoryTarget(fixed_reference);
+
+				set_point = fixed_reference;
+				
+				state_ = hovering_under_cable;
+
+			} else {
+
+				clearPlannedTrajectory();
+
+				fixed_reference = setZeroVelocity(fixed_reference); // For explicability
+
+				set_point = fixed_reference;
+
+				state_ = hovering;
+
+			}
 
 		} else {
 
 			//LOG_INFO("2");
 
 			rejectPendingRequest();
+
+			if (request.request_type == fly_under_cable_request) {
+
+				target_cable_cnt = updateTargetCablePose(veh_state) ? target_cable_cnt : target_cable_cnt-1;
+
+				fixed_reference = loadTargetUnderCableState();
+
+				setTrajectoryTarget(fixed_reference);
+
+			}
 
 			set_point = stepMPC(veh_state, fixed_reference, false, positional);
 			//set_point = setZeroVelocity(fixed_reference);
@@ -1954,7 +2080,7 @@ void TrajectoryController::stateMachineCallback() {
 		} else if (tryPendingRequest(cable_takeoff_request, if_match, if_match)) {
 
 			cable_takeoff_request_params_t *request_params = (cable_takeoff_request_params_t *)request.request_params;
-			float target_cable_distance = request_params->target_cable_distance;
+			target_cable_distance = request_params->target_cable_distance;
 			
 			delete request.request_params;
 
@@ -2259,6 +2385,10 @@ void TrajectoryController::publishControlState() {
 
 		msg.state = msg.CONTROL_STATE_DURING_CABLE_TAKEOFF;
 		break;
+
+	case hovering_under_cable:
+		msg.state = msg.CONTROL_STATE_HOVERING_UNDER_CABLE;
+		break;
 	
 	}
 
@@ -2347,6 +2477,12 @@ void TrajectoryController::publishPlannedTrajectory() {
 
 		target = loadVehiclePose();
 		path.poses.push_back(target);
+
+		if (state_ == arming || state_ == setting_offboard || state_ == taking_off || state_ == hovering_under_cable) {
+
+			target = loadPlannedTarget();
+
+		}
 
 	} else {
 
@@ -2633,6 +2769,82 @@ state4_t TrajectoryController::loadTargetCableState() {
 	//cable_state(3) = best_yaw;
 
 	return cable_state;
+
+}
+
+state4_t TrajectoryController::loadTargetUnderCableState() {
+
+	state4_t under_cable_state;
+
+	geometry_msgs::msg::Pose cable_pose;
+
+	powerline_mutex_.lock(); {
+
+		cable_pose = target_cable_pose_.pose;
+
+	} powerline_mutex_.unlock();
+
+	quat_t cable_quat(
+		cable_pose.orientation.w,
+		cable_pose.orientation.x,
+		cable_pose.orientation.y,
+		cable_pose.orientation.z
+	);
+
+	orientation_t cable_eul = quatToEul(cable_quat);
+
+	geometry_msgs::msg::TransformStamped T_drone_to_cable_gripper = tf_buffer_->lookupTransform("cable_gripper", "drone", tf2::TimePointZero);
+
+	quat_t q_drone_to_cable_gripper(
+		T_drone_to_cable_gripper.transform.rotation.w,
+		T_drone_to_cable_gripper.transform.rotation.x,
+		T_drone_to_cable_gripper.transform.rotation.y,
+		T_drone_to_cable_gripper.transform.rotation.z
+	);
+
+	orientation_t eul_drone_to_cable_gripper = quatToEul(q_drone_to_cable_gripper);
+
+	float target_yaw;
+
+	target_yaw_mutex_.lock(); {
+
+		target_yaw = target_yaw_;
+
+	} target_yaw_mutex_.unlock();
+
+	if (target_yaw > M_PI) 
+		target_yaw -= 2*M_PI;
+	else if (target_yaw < -M_PI)
+		target_yaw += 2*M_PI;
+
+	float cable_gripper_target_yaw = cable_eul(2) + eul_drone_to_cable_gripper(2);
+
+	if (cable_gripper_target_yaw > M_PI)
+		cable_gripper_target_yaw -= 2*M_PI;
+	else if (cable_gripper_target_yaw < -M_PI)
+		cable_gripper_target_yaw += 2*M_PI;
+
+	float best_yaw = cable_gripper_target_yaw;
+
+	if (abs(best_yaw - target_yaw) > abs(cable_gripper_target_yaw-M_PI - target_yaw))
+		best_yaw = cable_gripper_target_yaw - M_PI;
+
+	if (abs(best_yaw - target_yaw) > abs(cable_gripper_target_yaw+M_PI-target_yaw))
+		best_yaw = cable_gripper_target_yaw + M_PI;
+
+	under_cable_state(0) = cable_pose.position.x;
+	under_cable_state(1) = cable_pose.position.y;
+	under_cable_state(2) = cable_pose.position.z - target_cable_distance_;
+	under_cable_state(3) = best_yaw; 
+	under_cable_state(4) = 0;
+	under_cable_state(5) = 0;
+	under_cable_state(6) = 0;
+	under_cable_state(7) = 0;
+
+
+	//cable_state(3) = best_yaw;
+
+	return under_cable_state;
 
 }
 
@@ -3044,47 +3256,57 @@ bool TrajectoryController::updateTargetCablePose(state4_t vehicle_state, int new
 
 	powerline_mutex_.lock(); {
 
-		vector_t pos(
-			vehicle_state(0),
-			vehicle_state(1),
-			vehicle_state(2)
-		);
-		vector_t cable_pos(
-			target_cable_pose_.pose.position.x,
-			target_cable_pose_.pose.position.y,
-			target_cable_pose_.pose.position.z
-		);
+		if (new_id > -1) {
 
-		float target_cable_fixed_position_distance_threshold;
-		this->get_parameter("target_cable_fixed_position_distance_threshold", target_cable_fixed_position_distance_threshold);
+			target_cable_id_ = new_id;
 
-		if (new_id < 0 && (pos - cable_pos).norm() <= target_cable_fixed_position_distance_threshold) {
+		}
 
-			success = true;
+		for (int i = 0; i < powerline_.count; i++) {
 
-		} else {
+			if (powerline_.ids[i] == target_cable_id_) {
 
-			if (new_id > -1) {
+				geometry_msgs::msg::PoseStamped tmp_pose;
+				tmp_pose.header.frame_id = powerline_.poses[i].header.frame_id;
+				tmp_pose.pose = powerline_.poses[i].pose;
 
-				target_cable_id_ = new_id;
+				target_cable_pose_ = tf_buffer_->transform(tmp_pose, "world");
 
-			}
+				vector_t unit_x(1,0,0);
+				quat_t cable_quat(
+					target_cable_pose_.pose.orientation.w,
+					target_cable_pose_.pose.orientation.x,
+					target_cable_pose_.pose.orientation.y,
+					target_cable_pose_.pose.orientation.z
+				);
+				vector_t cable_dir = quatToMat(cable_quat) * unit_x;
 
-			for (int i = 0; i < powerline_.count; i++) {
+				point_t cable_point(
+					target_cable_pose_.pose.position.x,
+					target_cable_pose_.pose.position.y,
+					target_cable_pose_.pose.position.z
+				);
 
-				if (powerline_.ids[i] == target_cable_id_) {
+				target_cable_plane_.normal = cable_dir;
 
-					geometry_msgs::msg::PoseStamped tmp_pose;
-					tmp_pose.header.frame_id = powerline_.poses[i].header.frame_id;
-					tmp_pose.pose = powerline_.poses[i].pose;
+				if (new_id > -1) {
 
-					target_cable_pose_ = tf_buffer_->transform(tmp_pose, "world");
+					target_cable_plane_.p(0) = vehicle_state(0);
+					target_cable_plane_.p(1) = vehicle_state(1);
+					target_cable_plane_.p(2) = vehicle_state(2);
 
-					success = true;
+				} 
 
-					break;
-					
-				}
+				cable_point = projectPointOnPlane(cable_point, target_cable_plane_);
+
+				target_cable_pose_.pose.position.x = cable_point(0);
+				target_cable_pose_.pose.position.y = cable_point(1);
+				target_cable_pose_.pose.position.z = cable_point(2);
+
+				success = true;
+
+				break;
+				
 			}
 		}
 

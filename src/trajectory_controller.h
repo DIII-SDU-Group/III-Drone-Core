@@ -90,7 +90,8 @@ enum state_t {
 	in_positional_flight,
 	during_cable_landing,
 	on_cable_armed,
-	during_cable_takeoff
+	during_cable_takeoff,
+	hovering_under_cable
 };
 
 enum request_type_t {
@@ -99,7 +100,8 @@ enum request_type_t {
 	landing_request,
 	fly_to_position_request,
 	cable_landing_request,
-	cable_takeoff_request
+	cable_takeoff_request,
+	fly_under_cable_request
 };
 
 struct takeoff_request_params_t {
@@ -115,6 +117,11 @@ struct cable_landing_request_params_t {
 };
 
 struct cable_takeoff_request_params_t {
+	float target_cable_distance;
+};
+
+struct fly_under_cable_request_params_t {
+	int cable_id;
 	float target_cable_distance;
 };
 
@@ -330,6 +337,8 @@ private:
 	iii_interfaces::msg::Powerline powerline_;
 	int target_cable_id_ = -1;
 	geometry_msgs::msg::PoseStamped target_cable_pose_;
+	float target_cable_distance_ = -1;
+	plane_t target_cable_plane_;
 
 	std::mutex odometry_mutex_;
 	std::mutex planned_trajectory_mutex_;
@@ -403,6 +412,7 @@ private:
 	nav_msgs::msg::Path loadPlannedMacroPath();
 	geometry_msgs::msg::PoseStamped loadPlannedTarget();
 	state4_t loadTargetCableState();
+	state4_t loadTargetUnderCableState();
 
 	state4_t stepMPC(state4_t vehicle_state, state4_t target_state, bool reset, MPC_mode_t mpc_mode);
 	void threadFunctionMPC(double *x, double *u, double *planned_traj, double *target, 

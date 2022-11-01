@@ -31,7 +31,7 @@ pl_mapper:
       alive_cnt_ceiling: 150
       matching_line_max_dist: 3.
       min_point_dist: 0.1
-      min_point_dist_strict: 0.6
+      min_point_dist_strict: 1.0
       max_point_dist: 20.
       max_point_dist_strict: 18.
       view_cone_slope: 0.55
@@ -93,9 +93,9 @@ trajectory_controller:
       position_MPC_wjx: 0.1
       position_MPC_wjy: 0.1
       position_MPC_wjz: 0.1
-      cable_landing_MPC_vx_max: 0.5
-      cable_landing_MPC_vy_max: 0.5
-      cable_landing_MPC_vz_max: 0.5
+      cable_landing_MPC_vx_max: 0.2
+      cable_landing_MPC_vy_max: 0.2
+      cable_landing_MPC_vz_max: 0.2
       cable_landing_MPC_ax_max: 1.
       cable_landing_MPC_ay_max: 1.
       cable_landing_MPC_az_max: 1.
@@ -143,7 +143,7 @@ tf:
   sim:
     ros__parameters:
       drone_to_cable_drum: [0.0, 0.0, 0.09, 1.57079632679, 0.0, 0.0]
-      drone_to_cable_gripper: [0.0, 0.0, 0.09, 1.57079632679, 0.0, 0.0]
+      drone_to_cable_gripper: [0.0, 0.0, 0.30, 1.57079632679, 0.0, 0.0]
       drone_to_mmwave: [0.035, -0.23, 0.28, 3.1415, -1.57079632679, 0.0] 
       drone_to_depth_cam: [0.035, -0.23, 0.28, -1.57079632679, 0.0, 0.0]
   real:

@@ -262,6 +262,8 @@ class IIIGuiNode(Node):
                 self.control_state_ = "on cable armed"
             elif msg.state == msg.CONTROL_STATE_DURING_CABLE_TAKEOFF:
                 self.control_state_ = "during cable takeoff"
+            elif msg.state == msg.CONTROL_STATE_HOVERING_UNDER_CABLE:
+                self.control_state_ = "hovering under cable"
             else:
                 self.control_state_ = "unknown"
 

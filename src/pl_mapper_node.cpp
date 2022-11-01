@@ -132,6 +132,8 @@ void PowerlineMapperNode::odometryCallback() {
     this->get_parameter("max_point_dist_strict", max_point_dist_strict);
     this->get_parameter("view_cone_slope_strict", view_cone_slope_strict);
 
+    // RCLCPP_INFO(this->get_logger(), "Min points dist strict: %f", min_point_dist_strict);
+
     // //RCLCPP_INFO(this->get_logger(), "Fetching odometry transform");
 
     geometry_msgs::msg::TransformStamped tf;
@@ -183,6 +185,11 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
     this->get_parameter("max_point_dist", max_point_dist);
     this->get_parameter("view_cone_slope", view_cone_slope);
     this->get_parameter("inter_pos_window_size", inter_pos_window_size);
+
+    float min_point_dist_strict, max_point_dist_strict, view_cone_slope_strict;
+    this->get_parameter("min_point_dist_strict", min_point_dist_strict);
+    this->get_parameter("max_point_dist_strict", max_point_dist_strict);
+    this->get_parameter("view_cone_slope_strict", view_cone_slope_strict);
 
     // //RCLCPP_INFO(this->get_logger(), "Received mmWave message");
 
@@ -249,13 +256,13 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
     // //RCLCPP_INFO(this->get_logger(), "Now registered %d lines", powerline_.GetLinesCount());
 
-    powerline_.CleanupLines(tf_buffer_, min_point_dist, max_point_dist, view_cone_slope);
+    powerline_.CleanupLines(tf_buffer_, min_point_dist_strict, max_point_dist_strict, view_cone_slope_strict);
 
     // //RCLCPP_INFO(this->get_logger(), "Finished Cleanup, now registered %d lines", powerline_.GetLinesCount());
 
     // //RCLCPP_INFO(this->get_logger(), "d");
 
-    powerline_.ComputeInterLinePositions(tf_buffer_, min_point_dist, max_point_dist, view_cone_slope, inter_pos_window_size);
+    powerline_.ComputeInterLinePositions(tf_buffer_, min_point_dist_strict, max_point_dist_strict, view_cone_slope, inter_pos_window_size);
 
     //RCLCPP_INFO(this->get_logger(), "Finished mmWave callback, now registered %d lines", powerline_.GetLinesCount());
 
