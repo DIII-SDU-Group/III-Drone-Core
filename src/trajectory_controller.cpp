@@ -459,7 +459,10 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalFlyToPosition(
 
 	fly_to_position_request_params_t *params = new fly_to_position_request_params_t;
 
-	geometry_msgs::msg::PoseStamped target_pose = tf_buffer_->transform(goal->target_pose, "world");
+	geometry_msgs::msg::PoseStamped target_pose;
+	target_pose.header.frame_id = goal->target_pose.header.frame_id;
+	target_pose.pose = goal->target_pose.pose;
+	target_pose = tf_buffer_->transform(target_pose, "world");
 
 	// //LOG_INFO("c");
 
@@ -658,7 +661,8 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalFlyUnderCable(
 			if (powerline_.ids[i] == cable_id) {
 
 				cable_found = true;
-				cable_pose = powerline_.poses[i];
+				cable_pose.header.frame_id = powerline_.poses[i].header.frame_id;
+				cable_pose.pose = powerline_.poses[i].pose;
 				break;
 
 			}

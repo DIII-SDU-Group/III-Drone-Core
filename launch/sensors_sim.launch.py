@@ -15,12 +15,6 @@ def generate_launch_description():
         'params.yaml'
     )
 
-    cam = Node(
-        package='iii_drone',
-        executable='img_3d_to_2d_proj',
-        name='img_3d_to_2d_proj'
-    )
-
     mmwave = Node(
         package='iii_drone',
         executable='depth_cam_to_mmwave',
@@ -29,6 +23,5 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        cam,
         mmwave
     ])
