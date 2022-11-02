@@ -954,7 +954,7 @@ class IIIGui():
 
     def validate_numeric_and_empty(self, action, index, value_if_allowed,
                        prior_value, text, validation_type, trigger_type, widget_name):
-        if value_if_allowed == "\b" or value_if_allowed == "":
+        if value_if_allowed == "\b" or value_if_allowed == "" or value_if_allowed == "-":
             return True
         try:
             float(value_if_allowed)

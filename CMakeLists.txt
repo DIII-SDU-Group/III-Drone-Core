@@ -22,8 +22,8 @@ endif()
 include_directories(src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src)
 link_directories(src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src)
 
-include_directories(src/matlab_MPC_5Hz)
-link_directories(src/matlab_MPC_5Hz)
+include_directories(src/matlab_MPC_5Hz_hp10)
+link_directories(src/matlab_MPC_5Hz_hp10)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
@@ -50,21 +50,21 @@ find_package(image_transport REQUIRED)
 
 add_executable(trajectory_controller 
   src/trajectory_controller.cpp
-  src/matlab_MPC_5Hz/minOrMax.cpp
-  src/matlab_MPC_5Hz/mpcmoveCodeGeneration.cpp
-  src/matlab_MPC_5Hz/mpcmoveCodeGeneration_data.cpp
-  src/matlab_MPC_5Hz/mpcmoveCodeGeneration_initialize.cpp
-  src/matlab_MPC_5Hz/mpcmoveCodeGeneration_rtwutil.cpp
-  src/matlab_MPC_5Hz/mpcmoveCodeGeneration_terminate.cpp
-  src/matlab_MPC_5Hz/norm.cpp
-  src/matlab_MPC_5Hz/qpkwik.cpp
-  src/matlab_MPC_5Hz/rtGetInf.cpp
-  src/matlab_MPC_5Hz/rtGetNaN.cpp
-  src/matlab_MPC_5Hz/rt_nonfinite.cpp
-  src/matlab_MPC_5Hz/trisolve.cpp
-  src/matlab_MPC_5Hz/xgerc.cpp
-  src/matlab_MPC_5Hz/xnrm2.cpp
-  src/matlab_MPC_5Hz/xpotrf.cpp
+  src/matlab_MPC_5Hz_hp10/minOrMax.cpp
+  src/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration.cpp
+  src/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_data.cpp
+  src/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_initialize.cpp
+  src/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_rtwutil.cpp
+  src/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_terminate.cpp
+  src/matlab_MPC_5Hz_hp10/norm.cpp
+  src/matlab_MPC_5Hz_hp10/qpkwik.cpp
+  src/matlab_MPC_5Hz_hp10/rtGetInf.cpp
+  src/matlab_MPC_5Hz_hp10/rtGetNaN.cpp
+  src/matlab_MPC_5Hz_hp10/rt_nonfinite.cpp
+  src/matlab_MPC_5Hz_hp10/trisolve.cpp
+  src/matlab_MPC_5Hz_hp10/xgerc.cpp
+  src/matlab_MPC_5Hz_hp10/xnrm2.cpp
+  src/matlab_MPC_5Hz_hp10/xpotrf.cpp
   src/geometry.cpp
 )
 ament_target_dependencies(trajectory_controller

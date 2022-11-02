@@ -29,8 +29,8 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	this->declare_parameter<float>("target_cable_safety_margin_max_yaw_velocity", M_PI_2);
 	this->declare_parameter<float>("target_cable_set_point_truncate_distance_threshold", 0.1);
 
-	this->declare_parameter<double>("MPC_dt", 0.1);
-	this->declare_parameter<int>("MPC_hp", 20);
+	this->declare_parameter<double>("MPC_dt", 0.2);
+	this->declare_parameter<int>("MPC_N", 10);
 
 	this->declare_parameter<double>("position_MPC_vx_max", 10.);
 	this->declare_parameter<double>("position_MPC_vy_max", 10.);
@@ -87,6 +87,8 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	this->declare_parameter<double>("cable_takeoff_MPC_wvx", 0.);
 	this->declare_parameter<double>("cable_takeoff_MPC_wvy", 0.);
 	this->declare_parameter<double>("cable_takeoff_MPC_wvz", 0.);
+
+	this->get_parameter("MPC_N", MPC_N_);
 
 	quat_t temp_q(1,0,0,0);
 	vector_t temp_vec(0,0,0);
@@ -2909,7 +2911,7 @@ state4_t TrajectoryController::stepMPC(state4_t vehicle_state, state4_t target_s
 
 	auto resetTraj = [&]() -> void {
 
-		for (int i = 0; i < 20; i++) {
+		for (int i = 0; i < MPC_N_; i++) {
 			for (int j = 0; j < 3; j++) {
 
 				planned_traj[i*6+j] = vehicle_state(j);
@@ -2942,7 +2944,7 @@ state4_t TrajectoryController::stepMPC(state4_t vehicle_state, state4_t target_s
 
 		} else {
 
-			for (int i = 0; i < 120; i++) planned_traj[i] = MPC_planned_traj_[i];
+			for (int i = 0; i < MPC_N_; i++) planned_traj[i] = MPC_planned_traj_[i];
 			for (int i = 0; i < 6; i++) x[i] = MPC_x_[i];
 			for (int i = 0; i < 3; i++) u[i] = MPC_u_[i];
 
@@ -2980,7 +2982,7 @@ state4_t TrajectoryController::stepMPC(state4_t vehicle_state, state4_t target_s
 
 		planned_trajectory_.resize(0);
 
-		for (int i = 0; i < 20; i++) {
+		for (int i = 0; i < MPC_N_; i++) {
 
 			state4_t tmp_state;
 			for (int j = 0; j < 3; j++) tmp_state(j) = planned_traj[i*6+j];
@@ -3013,7 +3015,7 @@ void TrajectoryController::threadFunctionMPC(double *x, double *u, double *plann
 
 	static MPC_parameters_t mpc_params;
 
-	const int N = 20;
+	const int N = 10;
 
 	static pos_MPC::struct10_T Info;
 	static pos_MPC::struct4_T mpcmovestate;
@@ -3041,7 +3043,7 @@ void TrajectoryController::threadFunctionMPC(double *x, double *u, double *plann
 
 		for(int i = 0; i < 81; i++) mpcmovestate.Covariance[i] = 0;
 		for(int i=0; i < 3; i++) mpcmovestate.Disturbance[i] = 0;
-		for(int i = 0; i < 228; i++) mpcmovestate.iA[i] = 0;
+		for(int i = 0; i < 120; i++) mpcmovestate.iA[i] = 0;
 		for(int i=0; i < 3; i++) mpcmovestate.LastMove[i] = 0;
 		for(int i=0; i < 6; i++) mpcmovestate.Plant[i] = x[i];
 
@@ -3272,14 +3274,14 @@ bool TrajectoryController::updateTargetCablePose(state4_t vehicle_state, int new
 
 				target_cable_pose_ = tf_buffer_->transform(tmp_pose, "world");
 
-				vector_t unit_x(1,0,0);
-				quat_t cable_quat(
-					target_cable_pose_.pose.orientation.w,
-					target_cable_pose_.pose.orientation.x,
-					target_cable_pose_.pose.orientation.y,
-					target_cable_pose_.pose.orientation.z
-				);
-				vector_t cable_dir = quatToMat(cable_quat) * unit_x;
+				// vector_t unit_x(1,0,0);
+				// quat_t cable_quat(
+				// 	target_cable_pose_.pose.orientation.w,
+				// 	target_cable_pose_.pose.orientation.x,
+				// 	target_cable_pose_.pose.orientation.y,
+				// 	target_cable_pose_.pose.orientation.z
+				// );
+				// vector_t cable_dir = quatToMat(cable_quat) * unit_x;
 
 				point_t cable_point(
 					target_cable_pose_.pose.position.x,
@@ -3287,17 +3289,17 @@ bool TrajectoryController::updateTargetCablePose(state4_t vehicle_state, int new
 					target_cable_pose_.pose.position.z
 				);
 
-				target_cable_plane_.normal = cable_dir;
+				// target_cable_plane_.normal = cable_dir;
 
-				if (new_id > -1) {
+				// if (new_id > -1) {
 
-					target_cable_plane_.p(0) = vehicle_state(0);
-					target_cable_plane_.p(1) = vehicle_state(1);
-					target_cable_plane_.p(2) = vehicle_state(2);
+				// 	target_cable_plane_.p(0) = vehicle_state(0);
+				// 	target_cable_plane_.p(1) = vehicle_state(1);
+				// 	target_cable_plane_.p(2) = vehicle_state(2);
 
-				} 
+				// } 
 
-				cable_point = projectPointOnPlane(cable_point, target_cable_plane_);
+				// cable_point = projectPointOnPlane(cable_point, target_cable_plane_);
 
 				target_cable_pose_.pose.position.x = cable_point(0);
 				target_cable_pose_.pose.position.y = cable_point(1);

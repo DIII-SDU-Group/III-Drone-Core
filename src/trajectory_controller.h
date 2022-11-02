@@ -378,6 +378,8 @@ private:
 	double MPC_x_[6];
 	double MPC_planned_traj_[120];
 
+	int MPC_N_;
+
 	// General member methods:
 	void stateMachineCallback();
 	void odometryCallback(px4_msgs::msg::VehicleOdometry::SharedPtr msg);
