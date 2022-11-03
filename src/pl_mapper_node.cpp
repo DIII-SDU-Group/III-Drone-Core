@@ -238,7 +238,7 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
         // filter points based on diagonal distance
         if( !SingleLine(1, point, 1, 1, this->get_logger(), 1, 1, 1, "", "").IsInFOV(point, min_point_dist, max_point_dist, view_cone_slope) ) {
-            RCLCPP_INFO(this->get_logger(), "Point filtered away: [%f , %f , %f]", point(0), point(1), point(2));
+            // RCLCPP_INFO(this->get_logger(), "Point filtered away: [%f , %f , %f]", point(0), point(1), point(2));
             continue;
         }
 

@@ -617,15 +617,26 @@ class IIIGui():
 
         def on_ok_btn_click():
             value = value_entry.get()
+            param = param_stringvar.get()
 
-            node_name = "/" + node_key + "/" + node_key
+            parameter_type = type(self.config[node_key][node_key]["ros__parameters"][param])
 
-            bashCommand = "ros2 param set " + node_name + " " + value
-            process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
-            output, error = process.communicate()
+            success = True
 
-            self.node.get_logger().info(output)
-            self.node.get_logger().info(error)
+            try:
+                value = parameter_type(value)
+            except ValueError:
+                success = False
+
+            if success:
+                node_name = "/" + node_key + "/" + node_key
+
+                bashCommand = str("ros2 param set " + str(node_name) + " " + str(param) + " " + str(value))
+                process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+                output, error = process.communicate()
+
+                self.node.get_logger().info(str(output))
+                self.node.get_logger().info(str(error))
 
             self.params_options_window.destroy()
             self.params_options_window = None
