@@ -18,20 +18,11 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
     this->declare_parameter<float>("kf_r", 1.);
     this->declare_parameter<float>("kf_q", 0.25);
 
-    this->get_parameter("kf_r", r_);
-    this->get_parameter("kf_q", q_);
-
     this->declare_parameter<int>("alive_cnt_low_thresh", 0);
     this->declare_parameter<int>("alive_cnt_high_thresh", 60);
     this->declare_parameter<int>("alive_cnt_ceiling", 150);
 
-    this->get_parameter("alive_cnt_low_thresh", alive_cnt_low_thresh_);
-    this->get_parameter("alive_cnt_high_thresh", alive_cnt_high_thresh_);
-    this->get_parameter("alive_cnt_ceiling", alive_cnt_ceiling_);
-
     this->declare_parameter<float>("matching_line_max_dist", 3.);
-
-    this->get_parameter("matching_line_max_dist", matching_line_max_dist_);
 
     this->declare_parameter<float>("min_point_dist", 0.1);
     this->declare_parameter<float>("max_point_dist", 20.);
@@ -53,6 +44,13 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
     this->declare_parameter<int>("odometry_callback_period_ms", 25);
 
     this->declare_parameter<int>("max_lines", 10);
+
+    this->get_parameter("kf_r", r_);
+    this->get_parameter("kf_q", q_);
+    this->get_parameter("alive_cnt_low_thresh", alive_cnt_low_thresh_);
+    this->get_parameter("alive_cnt_high_thresh", alive_cnt_high_thresh_);
+    this->get_parameter("alive_cnt_ceiling", alive_cnt_ceiling_);
+    this->get_parameter("matching_line_max_dist", matching_line_max_dist_);
     this->get_parameter("max_lines", max_lines_);
 
     powerline_.SetParams(r_, q_, alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_, matching_line_max_dist_, drone_frame_id_, mmwave_frame_id_, max_lines_);
@@ -128,6 +126,16 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
 
 void PowerlineMapperNode::odometryCallback() {
 
+    this->get_parameter("kf_r", r_);
+    this->get_parameter("kf_q", q_);
+    this->get_parameter("alive_cnt_low_thresh", alive_cnt_low_thresh_);
+    this->get_parameter("alive_cnt_high_thresh", alive_cnt_high_thresh_);
+    this->get_parameter("alive_cnt_ceiling", alive_cnt_ceiling_);
+    this->get_parameter("matching_line_max_dist", matching_line_max_dist_);
+    this->get_parameter("max_lines", max_lines_);
+
+    powerline_.SetParams(r_, q_, alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_, matching_line_max_dist_, drone_frame_id_, mmwave_frame_id_, max_lines_);
+
     //RCLCPP_INFO(this->get_logger(), "Odometry callback");
 
     float min_point_dist_strict, max_point_dist_strict, view_cone_slope_strict;
@@ -178,6 +186,16 @@ void PowerlineMapperNode::odometryCallback() {
 }
 
 void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
+
+    this->get_parameter("kf_r", r_);
+    this->get_parameter("kf_q", q_);
+    this->get_parameter("alive_cnt_low_thresh", alive_cnt_low_thresh_);
+    this->get_parameter("alive_cnt_high_thresh", alive_cnt_high_thresh_);
+    this->get_parameter("alive_cnt_ceiling", alive_cnt_ceiling_);
+    this->get_parameter("matching_line_max_dist", matching_line_max_dist_);
+    this->get_parameter("max_lines", max_lines_);
+
+    powerline_.SetParams(r_, q_, alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_, matching_line_max_dist_, drone_frame_id_, mmwave_frame_id_, max_lines_);
 
     //RCLCPP_INFO(this->get_logger(), "mmWave callback");
 
@@ -274,6 +292,16 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 }
 
 void PowerlineMapperNode::plDirectionCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
+
+    this->get_parameter("kf_r", r_);
+    this->get_parameter("kf_q", q_);
+    this->get_parameter("alive_cnt_low_thresh", alive_cnt_low_thresh_);
+    this->get_parameter("alive_cnt_high_thresh", alive_cnt_high_thresh_);
+    this->get_parameter("alive_cnt_ceiling", alive_cnt_ceiling_);
+    this->get_parameter("matching_line_max_dist", matching_line_max_dist_);
+    this->get_parameter("max_lines", max_lines_);
+
+    powerline_.SetParams(r_, q_, alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_, matching_line_max_dist_, drone_frame_id_, mmwave_frame_id_, max_lines_);
 
     //RCLCPP_INFO(this->get_logger(), "PL direction callback");
 

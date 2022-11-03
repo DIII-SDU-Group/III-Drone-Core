@@ -1,3 +1,9 @@
+iii_gui:
+  iii_gui:
+    ros__parameters:
+      config_file_path: "III-Drone-ROS2-pkg/config/params.yaml"
+
+
 hough_transformer:
   hough_transformer:
     ros__parameters:
@@ -6,13 +12,6 @@ hough_transformer:
       canny_kernel_size: 3
       n_lines_include: 8
 
-offboard_control:
-  offboard_control:
-    ros__parameters:
-      yaw_frac: 0.1
-      pos_frac: 0.5
-      hover_height: 2.
-    
 pl_dir_computer:
   pl_dir_computer:
     ros__parameters:

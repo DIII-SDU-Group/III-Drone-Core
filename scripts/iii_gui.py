@@ -37,6 +37,10 @@ import tkinter # note that module name has changed from Tkinter in Python 2 to t
 from tkinter import Toplevel, ttk
 from PIL import ImageTk, Image
 
+from time import sleep
+import yaml
+import subprocess
+
 ###############################################################################
 # Methods
 ###############################################################################
@@ -173,6 +177,13 @@ class IIIGuiNode(Node):
 
         self.declare_parameter("world_frame_id", "world")
         self.declare_parameter("drone_frame_id", "drone")
+
+        self.declare_parameter("/pl_dir_computer/pl_dir_computer/kf_r", 0.1)
+
+        self.declare_parameter("config_file_path", "III-Drone-ROS2-pkg/config/params.yaml")
+        config_file_path = self.get_parameter("config_file_path").value
+
+        self.config_file_path = os.path.dirname(os.path.realpath(__file__)).replace("install/iii_drone/lib/iii_drone", "src/"+config_file_path) 
         
         self.powerline_tuples_ = [] # (id, point)
         self.powerline_quat_ = None
@@ -438,6 +449,18 @@ class IIIGui():
         self.node_thread = Thread(target=self.spin_node)
         self.node_thread.start()
 
+        sleep(1)
+
+        self.config = yaml.safe_load(open(self.node.config_file_path,"r").read())
+
+        self.config_node_keys = []
+        for key in self.config.keys():
+            key = str(key)
+            if (key == "/**" or key == "tf" or key == "iii_gui"):
+                continue
+
+            self.config_node_keys.append(key)
+
         self.takeoff_height = 0
         self.target_pose = PoseStamped()
         self.target_cable_id = 0
@@ -451,11 +474,14 @@ class IIIGui():
         # self.root.geometry("200x200")
 
         self.action_options_window = None
+        self.params_options_window = None
 
         self.pl_viz_frame = tkinter.Frame(self.root, bg="white")
         self.action_ctrl_frame = tkinter.Frame(self.root, bg="white")
         self.status_monitor_frame = tkinter.Frame(self.root, bg="white")
         self.action_options_frame = None
+        self.params_frame = tkinter.Frame(self.root, bg="white")
+        self.params_options_frame = None
 
         self.label_viz = tkinter.Label(self.pl_viz_frame)
 
@@ -500,9 +526,29 @@ class IIIGui():
             text=""
         )
 
+        self.param_label = tkinter.Label(
+            self.params_frame, 
+            text="Param options:"
+        )
+
+        self.param_stringvar = tkinter.StringVar(self.root)
+        self.param_stringvar.set(self.config_node_keys[0])
+        self.param_optionmenu = tkinter.OptionMenu(
+            self.params_frame,
+            self.param_stringvar,
+            *self.config_node_keys
+        )
+
+        self.set_params_button = tkinter.Button(
+            self.params_frame,
+            text="Set params",
+            command=self.set_params
+        )
+
         self.pl_viz_frame.grid()
         self.action_ctrl_frame.grid()
         self.status_monitor_frame.grid()
+        self.params_frame.grid()
 
         self.label_viz.grid()
 
@@ -513,6 +559,10 @@ class IIIGui():
         self.control_state_label.grid()
         self.current_action_label.grid()
         self.action_status_label.grid()
+
+        self.param_label.grid()
+        self.param_optionmenu.grid()
+        self.set_params_button.grid()
 
         self.set_execute_button_state()
         self.set_cancel_button_state()
@@ -525,6 +575,76 @@ class IIIGui():
 
 
         # self.node.destroy_node()
+
+    def set_params(self):
+        self.params_options_window = Toplevel(self.root)
+        self.params_options_window.title("Params options")
+        self.params_options_frame = tkinter.Frame(self.params_options_window, bg="white")
+
+        self.params_options_frame.grid()
+
+        node_key = self.param_stringvar.get()
+
+        params = []
+        for key in self.config[node_key][node_key]["ros__parameters"].keys():
+            params.append(str(key))
+
+        param_stringvar = tkinter.StringVar(self.root)
+        param_stringvar.set(params[0])
+        param_optionmenu = tkinter.OptionMenu(
+            self.params_options_frame,
+            param_stringvar,
+            *params
+        )
+
+        param_optionmenu.grid()
+
+        value_label = tkinter.Label(
+            self.params_options_frame,
+            text="Parameter value:"
+        )
+        value_entry = tkinter.Entry(
+            self.params_options_frame
+        )
+
+        value_label.grid()
+        value_entry.grid()
+
+        def on_cancel_btn_click():
+            self.params_options_window.destroy()
+            self.params_options_window = None
+            self.params_options_frame = None
+
+        def on_ok_btn_click():
+            value = value_entry.get()
+
+            node_name = "/" + node_key + "/" + node_key
+
+            bashCommand = "ros2 param set " + node_name + " " + value
+            process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+            output, error = process.communicate()
+
+            self.node.get_logger().info(output)
+            self.node.get_logger().info(error)
+
+            self.params_options_window.destroy()
+            self.params_options_window = None
+            self.params_options_frame = None
+
+        ok_btn = tkinter.Button(
+            self.params_options_frame,
+            text="OK",
+            command=on_ok_btn_click
+        )
+
+        cancel_btn = tkinter.Button(
+            self.params_options_frame,
+            text="Cancel",
+            command=on_cancel_btn_click
+        )
+
+        ok_btn.grid()
+        cancel_btn.grid()
 
     def execute_action(self):
         self.action_options_window = Toplevel(self.root)

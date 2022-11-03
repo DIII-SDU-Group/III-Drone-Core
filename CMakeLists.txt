@@ -160,7 +160,6 @@ endfunction()
 
 custom_executable(img_3d_to_2d_proj)
 custom_executable(hough_transformer_SW)
-custom_executable(offboard_control_fly_to_line)
 custom_executable(img_decompress)
 
 

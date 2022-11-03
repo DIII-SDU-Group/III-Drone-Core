@@ -42,10 +42,6 @@ class HoughTFPub : public rclcpp::Node
 			this->declare_parameter<int>("canny_ratio", 4);
 			this->declare_parameter<int>("canny_kernel_size", 3);
 
-			this->get_parameter("canny_low_threshold", canny_low_threshold_);
-			this->get_parameter("canny_ratio", canny_ratio_);
-			this->get_parameter("canny_kernel_size", canny_kernel_size_);
-
 			cable_yaw_publisher_ = this->create_publisher<iii_interfaces::msg::PowerlineDirection>(
 				"cable_yaw_angle", 10);
 
@@ -107,6 +103,9 @@ void HoughTFPub::OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg){
 	cv::Mat img = cv_ptr->image;
 
 	cv::Mat edge;
+	this->get_parameter("canny_low_threshold", canny_low_threshold_);
+	this->get_parameter("canny_ratio", canny_ratio_);
+	this->get_parameter("canny_kernel_size", canny_kernel_size_);
 	cv::Canny(img, edge, canny_low_threshold_, canny_low_threshold_*canny_ratio_, canny_kernel_size_); // edge detection
 
 	// Standard Hough Line Transform

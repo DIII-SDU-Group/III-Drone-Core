@@ -14,9 +14,6 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(const std::string
     this->declare_parameter<float>("kf_r", 0.999);
     this->declare_parameter<float>("kf_q", 0.001);
 
-    this->get_parameter("kf_r", r_);
-    this->get_parameter("kf_q", q_);
-
     this->declare_parameter<int>("init_sleep_time_ms", 1000);
     this->declare_parameter<int>("odometry_callback_period_ms", 25);
 
@@ -147,6 +144,8 @@ void PowerlineDirectionComputerNode::plDirectionCallback(const iii_interfaces::m
 
 void PowerlineDirectionComputerNode::predict() {
 
+    this->get_parameter("kf_q", q_);
+
     quat_t inv_drone_quat = quatInv(drone_quat_);
     quat_t inv_last_drone_quat = quatInv(last_drone_quat_);
 
@@ -181,6 +180,8 @@ void PowerlineDirectionComputerNode::predict() {
 }
 
 void PowerlineDirectionComputerNode::update(float pl_angle) {
+
+    this->get_parameter("kf_r", r_);
 
     pl_angle = - pl_angle;
     // RCLCPP_INFO(this->get_logger(), "pl_angle = %f", pl_angle);
