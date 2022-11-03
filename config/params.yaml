@@ -38,6 +38,7 @@ pl_mapper:
       view_cone_slope_strict: 0.75
       init_sleep_time_ms: 1000
       odometry_callback_period_ms: 25
+      max_lines: 10
 
 mmwave:
   iwr6843_pcl_pub:

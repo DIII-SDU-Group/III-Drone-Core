@@ -26,7 +26,9 @@ Powerline::Powerline(rclcpp::Logger logger) : logger_(logger) {
 }
 
 void Powerline::SetParams(float r, float q, int alive_cnt_low_thresh, int alive_cnt_high_thresh, int alive_cnt_ceiling, float matching_line_max_dist,
-            std::string drone_frame_id, std::string mmwave_frame_id) {
+            std::string drone_frame_id, std::string mmwave_frame_id, int max_lines) {
+
+    max_lines_ = max_lines;
 
     r_ = r;
     q_ = q;
@@ -136,7 +138,7 @@ point_t Powerline::UpdateLine(point_t point) {
 
     int match_index = findMatchingLine(projected_point);
 
-    if (match_index == -1) {
+    if (match_index == -1 && lines_.size() < max_lines_) {
 
         //RCLCPP_INFO(logger_, "No matching line found");
 

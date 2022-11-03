@@ -63,6 +63,8 @@ private:
 
     std::string world_frame_id_, drone_frame_id_, mmwave_frame_id_;
 
+    int max_lines_;
+
     float r_, q_;
 
     int alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_;

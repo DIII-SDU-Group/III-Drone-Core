@@ -52,7 +52,10 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
     this->declare_parameter<int>("init_sleep_time_ms", 1000);
     this->declare_parameter<int>("odometry_callback_period_ms", 25);
 
-    powerline_.SetParams(r_, q_, alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_, matching_line_max_dist_, drone_frame_id_, mmwave_frame_id_);
+    this->declare_parameter<int>("max_lines", 10);
+    this->get_parameter("max_lines", max_lines_);
+
+    powerline_.SetParams(r_, q_, alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_, matching_line_max_dist_, drone_frame_id_, mmwave_frame_id_, max_lines_);
 
     pl_direction_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
         "/pl_dir_computer/powerline_direction", 10, std::bind(&PowerlineMapperNode::plDirectionCallback, this, std::placeholders::_1));

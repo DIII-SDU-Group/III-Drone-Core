@@ -34,7 +34,7 @@ public:
     Powerline(rclcpp::Logger logger);
 
     void SetParams(float r, float q, int alive_cnt_low_thresh, int alive_cnt_high_thresh, int alive_cnt_ceiling, float matching_line_max_dist,
-            std::string drone_frame_id, std::string mmwave_frame_id);
+            std::string drone_frame_id, std::string mmwave_frame_id, int max_lines);
 
     std::vector<SingleLine> GetVisibleLines();
     quat_t GetDirection();
@@ -93,6 +93,8 @@ private:
     quat_t last_quat_;
     plane_t projection_plane_;
     //orientation_t plane_orientation_;
+
+    int max_lines_;
 
     int alive_cnt_low_thresh_;
     int alive_cnt_high_thresh_;
