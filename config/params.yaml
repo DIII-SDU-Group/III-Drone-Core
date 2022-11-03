@@ -46,10 +46,10 @@ mmwave:
       data_port: /dev/ttyUSB1
 
 cable_camera:
-  cable_camera:
+  usb_cam:
     ros__parameters:
       video_device: "/dev/video0"
-      framerate: 30.0
+      framerate: 10.0
       io_method: "mmap"
       frame_id: "camera"
       pixel_format: "yuyv"
@@ -57,7 +57,6 @@ cable_camera:
       image_height: 480
       camera_name: "test_camera"
       camera_info_url: "package://usb_cam/config/camera_info.yaml"
-      cfg_path: "/home/mp4d/ros2_ws/src/iwr6843aop/cfg_files/30deg_Group_18m_30Hz.cfg"
 
 trajectory_controller:
   trajectory_controller:
@@ -151,5 +150,5 @@ tf:
     ros__parameters:
       drone_to_cable_drum: [-0.13, -0.01, -0.09, 3.1415, 0.0, 0.0]
       drone_to_cable_gripper: [0.0, 0.0, 0.13, 0.0, 0.0, 0.0]
-      drone_to_mmwave: [0.0, 0.0, 0.05, 3.1415, -1.57079632679, 0.0] 
+      drone_to_mmwave: [0.0375, -0.23, 0.0725, 0.0, 0.0, 1.57079632679] 
       
