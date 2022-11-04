@@ -18,8 +18,8 @@ class Publisher(Node):
         )
 
         self.sub = self.create_subscription(
-            "/mmwave/pcl",
             PointCloud2,
+            "/mmwave/pcl",
             self.callback,
             qos_profile=sub_qos
         )
@@ -31,8 +31,8 @@ class Publisher(Node):
         )
 
         self.pub = self.create_publisher(
-            "/republish/mmwave/pcl",
             PointCloud2,
+            "/republish/mmwave/pcl",
             qos_profile=pub_qos
         )
 
