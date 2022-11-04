@@ -183,6 +183,7 @@ install(PROGRAMS
   scripts/image_decompress.py
   scripts/draw_PL_IDs.py
   scripts/iii_gui.py
+  scripts/ground_link_republisher.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
