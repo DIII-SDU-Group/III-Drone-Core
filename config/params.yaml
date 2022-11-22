@@ -168,6 +168,6 @@ tf:
   real:
     ros__parameters:
       drone_to_cable_drum: [-0.13, -0.01, -0.09, 3.1415, 0.0, 0.0]
-      drone_to_cable_gripper: [0.0, 0.0, 0.13, 0.0, 0.0, 0.0]
+      drone_to_cable_gripper: [0.0, 0.0, 0.13, 1.57079632679, 0.0, 0.0]
       drone_to_mmwave: [0.0375, -0.23, 0.0725, 0.0, 0.0, 1.57079632679] 
       
