@@ -3,6 +3,25 @@ iii_gui:
     ros__parameters:
       config_file_path: "III-Drone-ROS2-pkg/config/params.yaml"
 
+perc_rc_node_launcher:
+  rc_node_launcher:
+    ros__parameters:
+      rc_channel_indexes: [7,8]
+      rc_channel_thresholds: [0.75, 0.75]
+      rc_channel_launch_files: ["sensors_real.launch.py", "pl_mapper_SW.launch.py"]
+      rc_channel_launch_packages: ["iii_drone", "iii_drone"]
+      rc_channel_terminate_all_idx: 11
+      rc_channel_terminate_all_threshold: 0.75
+
+ctrl_rc_node_launcher:
+  rc_node_launcher:
+    ros__parameters:
+      rc_channel_indexes: [6,9]
+      rc_channel_thresholds: [0.75, 0.75]
+      rc_channel_launch_files: ["tf_real.launch.py", "controller.launch.py"]
+      rc_channel_launch_packages: ["iii_drone", "iii_drone"]
+      rc_channel_terminate_all_idx: 11
+      rc_channel_terminate_all_threshold: 0.75
 
 hough_transformer:
   hough_transformer:

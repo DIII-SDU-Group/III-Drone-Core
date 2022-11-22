@@ -184,6 +184,7 @@ install(PROGRAMS
   scripts/draw_PL_IDs.py
   scripts/iii_gui.py
   scripts/ground_link_republisher.py
+  scripts/rc_node_launcher.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

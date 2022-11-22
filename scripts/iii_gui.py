@@ -15,6 +15,7 @@ from sensor_msgs.msg import Image, PointCloud2, PointField
 from geometry_msgs.msg import PoseStamped
 from iii_interfaces.msg import Powerline, PowerlineDirection, ControlState
 from iii_interfaces.action import Takeoff, Landing, FlyToPosition, FlyUnderCable, CableLanding, CableTakeoff
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 
 import cv2 as cv
 from cv_bridge import CvBridge
@@ -184,6 +185,13 @@ class IIIGuiNode(Node):
         config_file_path = self.get_parameter("config_file_path").value
 
         self.config_file_path = os.path.dirname(os.path.realpath(__file__)).replace("install/iii_drone/lib/iii_drone", "src/"+config_file_path) 
+
+        qos = QoSProfile(
+            depth=10,
+            durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_VOLATILE,
+            history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
+            reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT
+        )
         
         self.powerline_tuples_ = [] # (id, point)
         self.powerline_quat_ = None
@@ -198,25 +206,25 @@ class IIIGuiNode(Node):
         self.img_ = None
         self.control_state_ = "unknown"
 
-        self.takeoff_client = ActionClient(self, Takeoff, "/trajectory_controller/takeoff")
-        self.landing_client = ActionClient(self, Landing, "/trajectory_controller/landing")
-        self.fly_to_position_client = ActionClient(self, FlyToPosition, "/trajectory_controller/fly_to_position")
-        self.fly_under_cable_client = ActionClient(self, FlyUnderCable, "/trajectory_controller/fly_under_cable")
-        self.cable_landing_client = ActionClient(self, CableLanding, "/trajectory_controller/cable_landing")
-        self.cable_takeoff_client = ActionClient(self, CableTakeoff, "/trajectory_controller/cable_takeoff")
+        self.takeoff_client = ActionClient(self, Takeoff, "/trajectory_controller/takeoff",feedback_sub_qos_profile=qos)
+        self.landing_client = ActionClient(self, Landing, "/trajectory_controller/landing",feedback_sub_qos_profile=qos)
+        self.fly_to_position_client = ActionClient(self, FlyToPosition, "/trajectory_controller/fly_to_position",feedback_sub_qos_profile=qos)
+        self.fly_under_cable_client = ActionClient(self, FlyUnderCable, "/trajectory_controller/fly_under_cable",feedback_sub_qos_profile=qos)
+        self.cable_landing_client = ActionClient(self, CableLanding, "/trajectory_controller/cable_landing",feedback_sub_qos_profile=qos)
+        self.cable_takeoff_client = ActionClient(self, CableTakeoff, "/trajectory_controller/cable_takeoff",feedback_sub_qos_profile=qos)
         
         self.pl_sub_ = self.create_subscription(
             Powerline,
             "/pl_mapper/powerline",
             self.on_pl_msg,
-            10
+            qos_profile=qos
         )
 
         self.control_state_sub_ = self.create_subscription(
             ControlState,
             "/trajectory_controller/control_state",
             self.on_state_msg,
-            10
+            qos_profile=qos
         )
 
         self.current_action = "None"
