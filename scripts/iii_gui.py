@@ -13,9 +13,14 @@ from rclpy.action import ActionClient
 from std_msgs.msg import Int32
 from sensor_msgs.msg import Image, PointCloud2, PointField
 from geometry_msgs.msg import PoseStamped
+from nav_msgs.msg import Path
 from iii_interfaces.msg import Powerline, PowerlineDirection, ControlState
 from iii_interfaces.action import Takeoff, Landing, FlyToPosition, FlyUnderCable, CableLanding, CableTakeoff
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
+
+from tf2_ros import TransformException
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
 
 import cv2 as cv
 from cv_bridge import CvBridge
@@ -200,6 +205,8 @@ class IIIGuiNode(Node):
         self.img_lock_ = Lock()
         self.control_state_lock_ = Lock()
         self.action_status_lock_ = Lock()
+        self.target_lock_ = Lock()
+        self.traj_lock_ = Lock()
 
         self.future = None
         self.goal_handle = None
@@ -207,6 +214,8 @@ class IIIGuiNode(Node):
 
         self.img_ = None
         self.control_state_ = "unknown"
+        self.target = None
+        self.traj = None
 
         self.takeoff_client = ActionClient(self, Takeoff, "/trajectory_controller/takeoff",feedback_sub_qos_profile=qos)
         self.landing_client = ActionClient(self, Landing, "/trajectory_controller/landing",feedback_sub_qos_profile=qos)
@@ -214,6 +223,10 @@ class IIIGuiNode(Node):
         self.fly_under_cable_client = ActionClient(self, FlyUnderCable, "/trajectory_controller/fly_under_cable",feedback_sub_qos_profile=qos)
         self.cable_landing_client = ActionClient(self, CableLanding, "/trajectory_controller/cable_landing",feedback_sub_qos_profile=qos)
         self.cable_takeoff_client = ActionClient(self, CableTakeoff, "/trajectory_controller/cable_takeoff",feedback_sub_qos_profile=qos)
+
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+
         
         self.pl_sub_ = self.create_subscription(
             Powerline,
@@ -226,6 +239,20 @@ class IIIGuiNode(Node):
             ControlState,
             "/trajectory_controller/control_state",
             self.on_state_msg,
+            qos_profile=qos
+        )
+
+        self.planned_target_sub_ = self.create_subscription(
+            PoseStamped,
+            "/trajectory_controller/planned_target",
+            self.on_planned_target_msg,
+            qos_profile=qos
+        )
+
+        self.planned_trajectory_sub_ = self.create_subscription(
+            Path,
+            "/trajectory_controller/planned_trajectory",
+            self.on_planned_trajectory_msg,
             qos_profile=qos
         )
 
@@ -290,6 +317,16 @@ class IIIGuiNode(Node):
 
             self.control_state_lock_.release()
 
+    def on_planned_target_msg(self, msg: PoseStamped):
+        if self.target_lock_.acquire(blocking=True):
+            self.target = msg
+            self.target_lock_.release()
+
+    def on_planned_trajectory_msg(self, msg: Path):
+        if self.traj_lock_.acquire(blocking=True):
+            self.traj = msg
+            self.traj_lock_.release()
+
     def get_img(self):
         img = None
         
@@ -307,6 +344,47 @@ class IIIGuiNode(Node):
             self.control_state_lock_.release()
             
         return state
+
+    def get_target(self):
+        target = None
+        
+        if (self.target_lock_.acquire(blocking=True)):
+            drone_frame_id = self.get_parameter("drone_frame_id").value
+            world_frame_id = self.get_parameter("world_frame_id").value
+            tf = self.tf_buffer.lookup_transform(drone_frame_id, world_frame_id, rclpy.time.Time())
+
+            quat = np.array([tf.transform.rotation.w, tf.transform.rotation.x, tf.transform.rotation.y, tf.transform.rotation.z])
+            trans = np.array([tf.transform.translation.x, tf.transform.translation.y, tf.transform.translation.z])
+            rotm = quatToMat(quat)
+
+            target = np.array([self.target.pose.position.x, self.target.pose.position.y, self.target.pose.position.z])
+
+            target = np.matmul(rotm, target) + trans
+
+            self.target_lock_.release()
+            
+        return target
+
+    def get_trajectory(self):
+        traj = []
+        
+        if (self.traj_lock_.acquire(blocking=True)):
+            drone_frame_id = self.get_parameter("drone_frame_id").value
+            world_frame_id = self.get_parameter("world_frame_id").value
+            tf = self.tf_buffer.lookup_transform(drone_frame_id, world_frame_id, rclpy.time.Time())
+
+            quat = np.array([tf.transform.rotation.w, tf.transform.rotation.x, tf.transform.rotation.y, tf.transform.rotation.z])
+            trans = np.array([tf.transform.translation.x, tf.transform.translation.y, tf.transform.translation.z])
+            rotm = quatToMat(quat)
+
+            for i in range(len(self.traj.poses)):
+                p = np.array([self.traj.poses[i].pose.position.x, self.traj.poses[i].pose.position.y, self.traj.poses[i].pose.position.z])
+                p = np.matmul(rotm,p) + trans
+                traj.append(p)
+
+            self.traj_lock_.release()
+            
+        return traj
 
     def get_action_status(self):
         current_action, action_status = "None", "Idle"
@@ -1157,9 +1235,11 @@ class IIIGui():
 
         rotated_tuples = []
 
+        rotm = quatToMat(pl_quat).transpose()
+
         for tuple in pl_tuples:
             point = tuple[1]
-            point = np.matmul(quatToMat(pl_quat).transpose(), point)
+            point = np.matmul(rotm, point)
             new_tuple = (tuple[0], point)
             rotated_tuples.append(new_tuple)
 
@@ -1173,6 +1253,26 @@ class IIIGui():
 
         for i, txt in enumerate(points_id):
             ax.annotate(txt, (points_y[i], points_z[i]))
+
+
+
+        target = self.node.get_target()
+        if target is not None and (target[0]**2 + target[1]**2 + target[2]**2)**0.5 > 0.1:
+            target = np.matmul(rotm, target)
+            ax.scatter(target[1], target[2], linewidth=0.000001, color='blue', label='Target', marker='X')
+            ax.annotate("Target", (target[1], target[2]))
+
+
+        traj = self.node.get_trajectory()
+        if len(traj) > 0:
+            traj_y = []
+            traj_z = []
+            for point in traj:
+                point = np.matmul(rotm, point)
+                traj_y.append(point[1])
+                traj_z.append(point[2])
+            ax.plot(traj_y, traj_z, color='yellow', label='Trajectory')
+
 
         plt.axis('square')
 
