@@ -2,6 +2,8 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <px4_msgs/msg/vehicle_odometry.hpp>
 
+#include <rclcpp/qos.hpp>
+
 #include <image_transport/image_transport.hpp>
 #include <cv_bridge/cv_bridge.h>
 
@@ -45,9 +47,12 @@ class HoughTFPub : public rclcpp::Node
 			cable_yaw_publisher_ = this->create_publisher<iii_interfaces::msg::PowerlineDirection>(
 				"cable_yaw_angle", 10);
 
+			rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(10));
+			qos.best_effort();
+			qos.durability_volatile();
 
 			camera_subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
-				"/cable_camera/image_raw",	10,
+				"/cable_camera/image_raw",	qos,
 				std::bind(&HoughTFPub::OnCameraMsg, this, std::placeholders::_1));
 
 		}
