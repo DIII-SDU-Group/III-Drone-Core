@@ -202,6 +202,8 @@ class IIIGuiNode(Node):
         self.action_status_lock_ = Lock()
 
         self.future = None
+        self.goal_handle = None
+        self.action_client = None
 
         self.img_ = None
         self.control_state_ = "unknown"
@@ -353,6 +355,7 @@ class IIIGuiNode(Node):
         
         self.future = self.landing_client.send_goal_async(goal_msg)
         self.future.add_done_callback(self.goal_response_callback)
+        self.action_client = self.landing_client
 
     def send_fly_to_position_action_request(self, target_pose):
         print("Sending fly-to-position action request with target pose:", target_pose)
@@ -369,6 +372,7 @@ class IIIGuiNode(Node):
         
         self.future = self.fly_to_position_client.send_goal_async(goal_msg)
         self.future.add_done_callback(self.goal_response_callback)
+        self.action_client = self.fly_to_position_client
 
     def send_fly_under_cable_action_request(self, cable_id, target_distance):
         print("Sending fly-under-cable action request with cable id", cable_id, "and target distance", target_distance)
@@ -386,6 +390,7 @@ class IIIGuiNode(Node):
         
         self.future = self.fly_under_cable_client.send_goal_async(goal_msg)
         self.future.add_done_callback(self.goal_response_callback)
+        self.action_client = self.fly_under_cable_client
 
     def send_cable_landing_action_request(self, target_cable_id):
         print("Sending cable landing action request with target cable id:", target_cable_id)
@@ -402,6 +407,7 @@ class IIIGuiNode(Node):
         
         self.future = self.cable_landing_client.send_goal_async(goal_msg)
         self.future.add_done_callback(self.goal_response_callback)
+        self.action_client = self.cable_landing_client
 
     def send_cable_takeoff_action_request(self, target_cable_distance):
         print("Sending cable takeoff action request with target cable distance:", target_cable_distance)
@@ -418,11 +424,12 @@ class IIIGuiNode(Node):
         
         self.future = self.cable_takeoff_client.send_goal_async(goal_msg)
         self.future.add_done_callback(self.goal_response_callback)
+        self.action_client = self.cable_takeoff_client
 
     def goal_response_callback(self, future):
-        goal_handle = future.result()
+        self.goal_handle = future.result()
         self.action_status_lock_.acquire(blocking=True)
-        if not goal_handle.accepted:
+        if not self.goal_handle.accepted:
             self.action_status = "Cancelled"
             self.action_status_lock_.release()
             return
@@ -430,7 +437,7 @@ class IIIGuiNode(Node):
         self.action_status = "Executing"
         self.action_status_lock_.release()
 
-        self.future = goal_handle.get_result_async()
+        self.future = self.goal_handle.get_result_async()
         self.future.add_done_callback(self.get_result_callback)
 
     def get_result_callback(self, future):
@@ -446,7 +453,7 @@ class IIIGuiNode(Node):
         self.action_status_lock_.release()
 
     def cancel_action(self):
-        self.future.cancel()
+        self.action_client._cancel_goal(self.goal_handle)
 
 class IIIGui():
     def __init__(self):
