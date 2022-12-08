@@ -51,6 +51,7 @@
 #include "iii_interfaces/action/cable_landing.hpp"
 #include "iii_interfaces/action/cable_takeoff.hpp"
 #include "iii_interfaces/action/fly_under_cable.hpp"
+#include "iii_interfaces/action/fly_along_cable.hpp"
 
 #include "geometry.h"
 #include "blocking_queue.h"
@@ -91,7 +92,8 @@ enum state_t {
 	during_cable_landing,
 	on_cable_armed,
 	during_cable_takeoff,
-	hovering_under_cable
+	hovering_under_cable,
+	flying_along_cable
 };
 
 enum request_type_t {
@@ -101,7 +103,8 @@ enum request_type_t {
 	fly_to_position_request,
 	cable_landing_request,
 	cable_takeoff_request,
-	fly_under_cable_request
+	fly_under_cable_request,
+	fly_along_cable_request
 };
 
 struct takeoff_request_params_t {
@@ -123,6 +126,12 @@ struct cable_takeoff_request_params_t {
 struct fly_under_cable_request_params_t {
 	int cable_id;
 	float target_cable_distance;
+};
+
+struct fly_along_cable_request_params_t {
+	float distance;
+	float velocity;
+	bool inverse_direction;
 };
 
 struct request_t {
@@ -231,6 +240,9 @@ public:
 	using FlyUnderCable = iii_interfaces::action::FlyUnderCable;
 	using GoalHandleFlyUnderCable = rclcpp_action::ServerGoalHandle<FlyUnderCable>;
 
+	using FlyAlongCable = iii_interfaces::action::FlyAlongCable;
+	using GoalHandleFlyAlongCable = rclcpp_action::ServerGoalHandle<FlyAlongCable>;
+
 	using CableLanding = iii_interfaces::action::CableLanding;
 	using GoalHandleCableLanding = rclcpp_action::ServerGoalHandle<CableLanding>;
 
@@ -286,6 +298,17 @@ private:
 	rclcpp_action::CancelResponse handleCancelFlyUnderCable(const std::shared_ptr<GoalHandleFlyUnderCable> goal_handle);
 	void handleAcceptedFlyUnderCable(const std::shared_ptr<GoalHandleFlyUnderCable> goal_handle);
 	void followFlyUnderCableCompletion(const std::shared_ptr<GoalHandleFlyUnderCable> goal_handle);
+
+	// Fly along cable action:
+	rclcpp_action::Server<FlyAlongCable>::SharedPtr fly_along_cable_server_;
+
+	rclcpp_action::GoalResponse handleGoalFlyAlongCable(
+		const rclcpp_action::GoalUUID & uuid, 
+		std::shared_ptr<const FlyAlongCable::Goal> goal
+	);
+	rclcpp_action::CancelResponse handleCancelFlyAlongCable(const std::shared_ptr<GoalHandleFlyAlongCable> goal_handle);
+	void handleAcceptedFlyAlongCable(const std::shared_ptr<GoalHandleFlyAlongCable> goal_handle);
+	void followFlyAlongCableCompletion(const std::shared_ptr<GoalHandleFlyAlongCable> goal_handle);
 
 	// Cable landing action:
 	rclcpp_action::Server<CableLanding>::SharedPtr cable_landing_server_;
@@ -379,6 +402,7 @@ private:
 	double MPC_planned_traj_[120];
 
 	int MPC_N_;
+	bool MPC_use_state_feedback_;
 
 	// General member methods:
 	void stateMachineCallback();
@@ -415,8 +439,10 @@ private:
 	geometry_msgs::msg::PoseStamped loadPlannedTarget();
 	state4_t loadTargetCableState();
 	state4_t loadTargetUnderCableState();
+	state4_t loadTargetFlyAlongCableState(float velocity, float distance_left, 
+		bool inverse_direction, state4_t prev_fly_along_state, bool first);
 
-	state4_t stepMPC(state4_t vehicle_state, state4_t target_state, bool reset, MPC_mode_t mpc_mode);
+	state4_t stepMPC(state4_t vehicle_state, state4_t target_state, bool set_target, bool reset, MPC_mode_t mpc_mode);
 	void threadFunctionMPC(double *x, double *u, double *planned_traj, double *target, 
 		int reset_target, int reset_trajectory, int reset_bounds, int reset_weights, MPC_mode_t mpc_mode);
 

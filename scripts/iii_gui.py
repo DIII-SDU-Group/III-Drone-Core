@@ -15,7 +15,7 @@ from sensor_msgs.msg import Image, PointCloud2, PointField
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
 from iii_interfaces.msg import Powerline, PowerlineDirection, ControlState
-from iii_interfaces.action import Takeoff, Landing, FlyToPosition, FlyUnderCable, CableLanding, CableTakeoff
+from iii_interfaces.action import Takeoff, Landing, FlyToPosition, FlyUnderCable, CableLanding, CableTakeoff, FlyAlongCable
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 
 from tf2_ros import TransformException
@@ -223,6 +223,7 @@ class IIIGuiNode(Node):
         self.fly_under_cable_client = ActionClient(self, FlyUnderCable, "/trajectory_controller/fly_under_cable",feedback_sub_qos_profile=qos)
         self.cable_landing_client = ActionClient(self, CableLanding, "/trajectory_controller/cable_landing",feedback_sub_qos_profile=qos)
         self.cable_takeoff_client = ActionClient(self, CableTakeoff, "/trajectory_controller/cable_takeoff",feedback_sub_qos_profile=qos)
+        self.fly_along_cable_client = ActionClient(self, FlyAlongCable, "/trajectory_controller/fly_along_cable",feedback_sub_qos_profile=qos)
 
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -312,6 +313,8 @@ class IIIGuiNode(Node):
                 self.control_state_ = "during cable takeoff"
             elif msg.state == msg.CONTROL_STATE_HOVERING_UNDER_CABLE:
                 self.control_state_ = "hovering under cable"
+            elif msg.state == msg.CONTROL_STATE_FLYING_ALONG_CABLE:
+                self.control_state_ = "flying along cable"
             else:
                 self.control_state_ = "unknown"
 
@@ -504,6 +507,25 @@ class IIIGuiNode(Node):
         self.future.add_done_callback(self.goal_response_callback)
         self.action_client = self.cable_takeoff_client
 
+    def send_fly_along_cable_request(self, distance, velocity, inverse_direction):
+        print("Sending fly along cable action request with distance:", distance, "and velocity:", velocity, "and inverse direction:", inverse_direction)
+
+        if self.action_status_lock_.acquire(blocking=True):
+            self.current_action = "FlyAlongCable"
+            self.action_status = "Waiting for reply"
+            self.action_status_lock_.release()
+
+        goal_msg = FlyAlongCable.Goal()
+        goal_msg.distance = distance
+        goal_msg.velocity = velocity
+        goal_msg.inverse_direction = inverse_direction
+        
+        self.fly_along_cable_client.wait_for_server()
+        
+        self.future = self.fly_along_cable_client.send_goal_async(goal_msg)
+        self.future.add_done_callback(self.goal_response_callback)
+        self.action_client = self.fly_along_cable_client        
+
     def goal_response_callback(self, future):
         self.goal_handle = future.result()
         self.action_status_lock_.acquire(blocking=True)
@@ -558,6 +580,9 @@ class IIIGui():
         self.target_pose = PoseStamped()
         self.target_cable_id = 0
         self.target_cable_distance = 1.
+        self.flight_distance = 1.
+        self.flight_velocity = 1.
+        self.invert_flight_direction = False
 
         self.current_action = "None"
         self.action_status = "Idle"
@@ -584,7 +609,8 @@ class IIIGui():
             "FlyToPosition",
             "FlyUnderCable",
             "CableLanding",
-            "CableTakeoff"
+            "CableTakeoff",
+            "FlyAlongCable"
         ]
 
         self.action_stringvar = tkinter.StringVar(self.root)
@@ -1170,6 +1196,97 @@ class IIIGui():
             ct_label.grid()
             distance_label.grid()
             distance_entry.grid()
+            ok_btn.grid()
+            cancel_btn.grid()
+
+        elif action == "FlyAlongCable":
+            fac_label = tkinter.Label(
+                self.action_options_frame,
+                text="FlyAlongCable options"
+            )
+            dist_label = tkinter.Label(
+                self.action_options_frame,
+                text="Flight distance:"
+            )
+            dist_entry = tkinter.Entry(
+                self.action_options_frame,
+                validate="key",
+                validatecommand=vcmd_numeric
+            )
+            vel_label = tkinter.Label(
+                self.action_options_frame,
+                text="Flight velocity:"
+            )
+            vel_entry = tkinter.Entry(
+                self.action_options_frame,
+                validate="key",
+                validatecommand=vcmd_numeric
+            )
+            inv_label = tkinter.Label(
+                self.action_options_frame,
+                text="Invert flight direction:"
+            )
+            inv_dir = tkinter.BooleanVar(self.action_options_window)
+            inv_cb = tkinter.Checkbutton(
+                self.action_options_frame,
+                variable=inv_dir,
+                onvalue=True,
+                offvalue=False
+            )
+
+            def on_ok_btn_click():
+                fail = False
+
+                try:
+                    self.flight_distance = float(dist_entry.get())
+                except ValueError:
+                    dist_entry.configure(
+                        bg="red"
+                    )
+
+                    fail = True
+
+                try:
+                    self.flight_velocity = float(vel_entry.get())
+                except ValueError:
+                    vel_entry.configure(
+                        bg="red"
+                    )
+
+                    fail = True
+
+                if fail:
+                    return
+
+                invert_direction = inv_dir.get()
+
+                self.node.get_logger().info("Invert direction: {}".format(invert_direction))
+
+                self.node.send_fly_along_cable_request(self.flight_distance, self.flight_velocity, invert_direction)
+
+                self.action_options_window.destroy()
+                self.action_options_window = None
+                self.action_options_frame = None
+
+            ok_btn = tkinter.Button(
+                self.action_options_frame,
+                text="OK",
+                command=on_ok_btn_click
+            )
+
+            cancel_btn = tkinter.Button(
+                self.action_options_frame,
+                text="Cancel",
+                command=on_cancel_btn_click
+            )
+
+            fac_label.grid()
+            dist_label.grid()
+            dist_entry.grid()
+            vel_label.grid()
+            vel_entry.grid()
+            inv_label.grid()
+            inv_cb.grid()
             ok_btn.grid()
             cancel_btn.grid()
             
