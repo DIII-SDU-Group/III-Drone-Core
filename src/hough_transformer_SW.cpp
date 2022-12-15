@@ -132,6 +132,13 @@ void HoughTFPub::OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg){
 		pl_msg.angle = avg_theta_;
 		cable_yaw_publisher_->publish(pl_msg);
 
+		// RCLCPP debug published hough angle
+		RCLCPP_DEBUG(this->get_logger(), "Hough angle: %f", avg_theta_);
+
+	} else {
+
+		// RCLCPP debug no lines detected
+		RCLCPP_DEBUG(this->get_logger(), "No lines detected");
 	}
 }
 

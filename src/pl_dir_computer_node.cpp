@@ -102,6 +102,9 @@ void PowerlineDirectionComputerNode::odometryCallback() {
 
     if (!received_first_quat) {
 
+        // Print RCLCPP debug received first quat
+        RCLCPP_DEBUG(this->get_logger(), "Received first quaternion");
+
         received_first_quat = true;
         return;
 
@@ -109,12 +112,18 @@ void PowerlineDirectionComputerNode::odometryCallback() {
 
     if (!received_second_quat) {
 
+        // Print RCLCPP debug received second quat
+        RCLCPP_DEBUG(this->get_logger(), "Received second quaternion");
+
         received_second_quat = true;
         return;
 
     }
 
     if (!received_angle) {
+
+        // Print RCLCPP debug received first hough angle
+        RCLCPP_DEBUG(this->get_logger(), "Received first hough angle");
 
         return;
 
@@ -131,7 +140,7 @@ void PowerlineDirectionComputerNode::odometryCallback() {
 
 void PowerlineDirectionComputerNode::plDirectionCallback(const iii_interfaces::msg::PowerlineDirection::SharedPtr msg) {
 
-    //RCLCPP_INFO(this->get_logger(), "Received powerline direction message");
+    // RCLCPP_DEBUG(this->get_logger(), "Received powerline direction message");
 
     if (!received_first_quat) {
         return;
@@ -176,6 +185,9 @@ void PowerlineDirectionComputerNode::predict() {
         } kf_mutex_.unlock();
 
     } direction_mutex_.unlock();
+
+    // RCLCPP debug called predict step
+    RCLCPP_DEBUG(this->get_logger(), "Called predict step");
 
 }
 
@@ -315,6 +327,9 @@ void PowerlineDirectionComputerNode::update(float pl_angle) {
         } kf_mutex_.unlock();
 
     } direction_mutex_.unlock();
+
+    // RCLCPP debug called update step
+    RCLCPP_DEBUG(this->get_logger(), "Updated powerline direction");
 
 }
 

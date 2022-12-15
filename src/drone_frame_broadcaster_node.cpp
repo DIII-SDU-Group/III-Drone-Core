@@ -93,6 +93,9 @@ private:
         // Send the transformation
         tf_broadcaster_->sendTransform(t);
 
+        // RCLCPP debug published transform
+        RCLCPP_DEBUG(this->get_logger(), "Published transform: %s -> %s", t.header.frame_id.c_str(), t.child_frame_id.c_str());
+
     }
 
     rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr subscription_;

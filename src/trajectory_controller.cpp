@@ -225,6 +225,9 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	main_state_machine_timer_ = this->create_wall_timer(
 		std::chrono::milliseconds(controller_period_ms), std::bind(&TrajectoryController::stateMachineCallback, this));
 
+	// RCLCPP debug successfully initilized trajectory controller
+	RCLCPP_INFO(this->get_logger(), "Successfully initialized trajectory controller");
+
 }
 
 TrajectoryController::~TrajectoryController() {
@@ -248,11 +251,15 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalTakeoff(
 	this->get_parameter("min_target_altitude", min_target_altitude);
 
 	if (goal->target_altitude < min_target_altitude){
+		// debug target altitude too low
+		RCLCPP_DEBUG(this->get_logger(), "Target altitude %f too low", goal->target_altitude);
 		return rclcpp_action::GoalResponse::REJECT;
 	}
 
 
 	if (state_ != on_ground_non_offboard) {
+		// debug not in on ground non offboard state
+		RCLCPP_DEBUG(this->get_logger(), "Not in on ground non offboard state");
 		return rclcpp_action::GoalResponse::REJECT;
 	}
 
@@ -268,6 +275,8 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalTakeoff(
 	};
 
 	if (!request_queue_.Push(request, false)) {
+		// debug request queue full
+		RCLCPP_DEBUG(this->get_logger(), "Request queue full");
 		return rclcpp_action::GoalResponse::REJECT;
 	}
 
@@ -275,17 +284,25 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalTakeoff(
 
 	return_response = rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 
+	// debug takeoff goal accepted
+	RCLCPP_DEBUG(this->get_logger(), "Takeoff goal accepted");
+
 	return return_response;
 
 }
 
 rclcpp_action::CancelResponse TrajectoryController::handleCancelTakeoff(const std::shared_ptr<GoalHandleTakeoff> goal_handle) {
 
+	RCLCPP_DEBUG(this->get_logger(), "Received request to cancel takeoff, rejecting..");
+
 	return rclcpp_action::CancelResponse::REJECT;
 
 }
 
 void TrajectoryController::handleAcceptedTakeoff(const std::shared_ptr<GoalHandleTakeoff> goal_handle) {
+
+	// debug takeoff goal accepted, starting thread
+	RCLCPP_DEBUG(this->get_logger(), "Takeoff goal accepted, starting thread");
 
 	using namespace std::placeholders;
 
@@ -294,6 +311,9 @@ void TrajectoryController::handleAcceptedTakeoff(const std::shared_ptr<GoalHandl
 }
 
 void TrajectoryController::followTakeoffCompletion(const std::shared_ptr<GoalHandleTakeoff> goal_handle) {
+
+	// debug takeoff goal thread started
+	RCLCPP_DEBUG(this->get_logger(), "Takeoff goal thread started");
 
 	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)goal_handle->get_goal_id();
 
@@ -314,6 +334,24 @@ void TrajectoryController::followTakeoffCompletion(const std::shared_ptr<GoalHan
 
 			goal_handle->publish_feedback(feedback);
 
+			// debug waiting for takeoff completion, published feedback with vehicle state
+			RCLCPP_DEBUG(
+				this->get_logger(), 
+				"Waiting for takeoff completion, published feedback with vehicle state: %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f", 
+				vechicle_state(0), 
+				vechicle_state(1), 
+				vechicle_state(2), 
+				vechicle_state(3), 
+				vechicle_state(4), 
+				vechicle_state(5), 
+				vechicle_state(6), 
+				vechicle_state(7), 
+				vechicle_state(8), 
+				vechicle_state(9), 
+				vechicle_state(10), 
+				vechicle_state(11)
+			);
+
 			request_completion_poll_rate_.sleep();
 
 		}
@@ -325,11 +363,20 @@ void TrajectoryController::followTakeoffCompletion(const std::shared_ptr<GoalHan
 
 		default:
 		case cancel:
+			// debug takeoff goal cancelled
+			RCLCPP_DEBUG(this->get_logger(), "Takeoff goal cancelled");
 		case reject:
+			// debug takeoff goal rejected
+			RCLCPP_DEBUG(this->get_logger(), "Takeoff goal rejected");
 		case fail:
+			// debug takeoff goal failed
+			RCLCPP_DEBUG(this->get_logger(), "Takeoff goal failed");
 
 			result->success = false;
 			goal_handle->abort(result);
+
+			// debug takeoff goal aborted
+			RCLCPP_DEBUG(this->get_logger(), "Takeoff goal aborted");
 
 			return;
 			break;
@@ -339,6 +386,8 @@ void TrajectoryController::followTakeoffCompletion(const std::shared_ptr<GoalHan
 			break;
 
 		case success:
+			// debug takeoff goal succeeded, notifying success
+			RCLCPP_DEBUG(this->get_logger(), "Takeoff goal succeeded, notifying success");
 
 			result->success = true;
 			goal_handle->succeed(result);
@@ -359,8 +408,11 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalLanding(
 	
 	(void)uuid;
 
-	if (state_ != hovering && state_ != hovering_under_cable)
+	if (state_ != hovering && state_ != hovering_under_cable){
+		// debug landing goal rejected, not hovering
+		RCLCPP_DEBUG(this->get_logger(), "Landing goal rejected, not hovering");
 		return rclcpp_action::GoalResponse::REJECT;
+	}
 
 	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)uuid;
 
@@ -370,12 +422,18 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalLanding(
 		.request_params = NULL
 	};
 
-	if (!request_queue_.Push(request, false)) 
+	if (!request_queue_.Push(request, false))  {
+		// debug landing goal rejected, request queue full
+		RCLCPP_DEBUG(this->get_logger(), "Landing goal rejected, request queue full");
 		return rclcpp_action::GoalResponse::REJECT;
+	}
 
 	rclcpp_action::GoalResponse return_response;
 
 	return_response = rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+
+	// debug landing goal accepted
+	RCLCPP_DEBUG(this->get_logger(), "Landing goal accepted");
 
 	return return_response;
 
@@ -383,11 +441,16 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalLanding(
 
 rclcpp_action::CancelResponse TrajectoryController::handleCancelLanding(const std::shared_ptr<GoalHandleLanding> goal_handle) {
 
+	RCLCPP_DEBUG(this->get_logger(), "Received landing goal cancel request, rejecting");
+
 	return rclcpp_action::CancelResponse::REJECT;
 
 }
 
 void TrajectoryController::handleAcceptedLanding(const std::shared_ptr<GoalHandleLanding> goal_handle) {
+
+	// debug landing goal accepted, starting thread
+	RCLCPP_DEBUG(this->get_logger(), "Landing goal accepted, starting thread");
 
 	using namespace std::placeholders;
 
@@ -396,6 +459,9 @@ void TrajectoryController::handleAcceptedLanding(const std::shared_ptr<GoalHandl
 }
 
 void TrajectoryController::followLandingCompletion(const std::shared_ptr<GoalHandleLanding> goal_handle) {
+
+	// debug landing goal thread started
+	RCLCPP_DEBUG(this->get_logger(), "Landing goal thread started");
 
 	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)goal_handle->get_goal_id();
 
@@ -415,6 +481,22 @@ void TrajectoryController::followLandingCompletion(const std::shared_ptr<GoalHan
 			feedback->altitude = vechicle_state(2);
 
 			goal_handle->publish_feedback(feedback);
+		
+			// debug landing goal thread waiting for reply,	publishing feedback with vehicle state
+			RCLCPP_DEBUG(this->get_logger(), "Landing goal thread waiting for reply, publishing feedback with vehicle state: %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f", 
+				vechicle_state(0), 
+				vechicle_state(1), 
+				vechicle_state(2), 
+				vechicle_state(3), 
+				vechicle_state(4), 
+				vechicle_state(5), 
+				vechicle_state(6), 
+				vechicle_state(7), 
+				vechicle_state(8), 
+				vechicle_state(9), 
+				vechicle_state(10), 
+				vechicle_state(11)
+			);
 
 			request_completion_poll_rate_.sleep();
 
@@ -427,8 +509,14 @@ void TrajectoryController::followLandingCompletion(const std::shared_ptr<GoalHan
 
 		default:
 		case cancel:
+			// debug landing goal cancelled
+			RCLCPP_DEBUG(this->get_logger(), "Landing goal cancelled");
 		case reject:
+			// debug landing goal rejected
+			RCLCPP_DEBUG(this->get_logger(), "Landing goal rejected");
 		case fail:
+			// debug landing goal failed
+			RCLCPP_DEBUG(this->get_logger(), "Landing goal failed");
 
 			result->success = false;
 			goal_handle->abort(result);
@@ -441,6 +529,8 @@ void TrajectoryController::followLandingCompletion(const std::shared_ptr<GoalHan
 			break;
 
 		case success:
+			// debug landing goal succeeded
+			RCLCPP_DEBUG(this->get_logger(), "Landing goal succeeded, noitifying success");
 
 			result->success = true;
 			goal_handle->succeed(result);
@@ -457,16 +547,16 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalFlyToPosition(
 	std::shared_ptr<const FlyToPosition::Goal> goal
 ) {
 
-	// //LOG_INFO("a");
-
+	// debug received fly to position goal request
 	RCLCPP_DEBUG(this->get_logger(), "Received fly to position goal request");
 	
 	(void)uuid;
 
-	if (state_ != hovering && state_ != hovering_under_cable)
+	if (state_ != hovering && state_ != hovering_under_cable) {
+		// debug fly to position goal rejected, not hovering
+		RCLCPP_DEBUG(this->get_logger(), "Fly to position goal rejected, not hovering");
 		return rclcpp_action::GoalResponse::REJECT;
-
-	// //LOG_INFO("b");
+	}
 
 	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)uuid;
 
@@ -476,8 +566,6 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalFlyToPosition(
 	target_pose.header.frame_id = goal->target_pose.header.frame_id;
 	target_pose.pose = goal->target_pose.pose;
 	target_pose = tf_buffer_->transform(target_pose, "world");
-
-	// //LOG_INFO("c");
 
 	quat_t quat(
 		target_pose.pose.orientation.w,
@@ -496,18 +584,20 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalFlyToPosition(
 
 	params->target_position = target_position;
 
-	// //LOG_INFO("d");
-
 	request_t request = {
 		.action_id = action_id,
 		.request_type = fly_to_position_request,
 		.request_params = (void *)params
 	};
 
-	if (!request_queue_.Push(request, false)) 
+	if (!request_queue_.Push(request, false)) {
+		// debug fly to position goal rejected, request queue full
+		RCLCPP_DEBUG(this->get_logger(), "Fly to position goal rejected, request queue full");
 		return rclcpp_action::GoalResponse::REJECT;
+	}
 
-	// //LOG_INFO("e");
+	// debug fly to position goal accepted
+	RCLCPP_DEBUG(this->get_logger(), "Fly to position goal accepted");
 
 	return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 
@@ -515,9 +605,7 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalFlyToPosition(
 
 rclcpp_action::CancelResponse TrajectoryController::handleCancelFlyToPosition(const std::shared_ptr<GoalHandleFlyToPosition> goal_handle) {
 
-	RCLCPP_INFO(this->get_logger(), "Received fly to position cancel request");
-
-	// //LOG_INFO("f");
+	RCLCPP_DEBUG(this->get_logger(), "Received fly to position cancel request");
 	
 	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)goal_handle->get_goal_id();
 
@@ -527,12 +615,13 @@ rclcpp_action::CancelResponse TrajectoryController::handleCancelFlyToPosition(co
 		.request_params = NULL
 	};
 
-	// //LOG_INFO("g");
-
-	if (!request_queue_.Push(request, false))
+	if (!request_queue_.Push(request, false)) {
+		// debug fly to position cancel rejected, request queue full
 		return rclcpp_action::CancelResponse::REJECT;
+	}
 
-	// //LOG_INFO("h");
+	// debug fly to position cancel accepted
+	RCLCPP_DEBUG(this->get_logger(), "Fly to position cancel accepted");
 
 	return rclcpp_action::CancelResponse::ACCEPT;
 
@@ -540,7 +629,8 @@ rclcpp_action::CancelResponse TrajectoryController::handleCancelFlyToPosition(co
 
 void TrajectoryController::handleAcceptedFlyToPosition(const std::shared_ptr<GoalHandleFlyToPosition> goal_handle) {
 
-	// //LOG_INFO("i");
+	// debug fly to position goal accepted
+	RCLCPP_DEBUG(this->get_logger(), "Fly to position goal accepted, starting thread");
 
 	using namespace std::placeholders;
 
@@ -550,7 +640,8 @@ void TrajectoryController::handleAcceptedFlyToPosition(const std::shared_ptr<Goa
 
 void TrajectoryController::followFlyToPositionCompletion(const std::shared_ptr<GoalHandleFlyToPosition> goal_handle) {
 
-	// //LOG_INFO("j");
+	// debug fly to position goal thread started
+	RCLCPP_DEBUG(this->get_logger(), "Fly to position goal thread started");
 
 	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)goal_handle->get_goal_id();
 
@@ -561,16 +652,10 @@ void TrajectoryController::followFlyToPositionCompletion(const std::shared_ptr<G
 	request_reply_t reply = {
 		.action_id = action_id
 	};
-
-	// //LOG_INFO("k");
 	
 	while(true) {
 
-		// //LOG_INFO("l");
-
 		while (!request_reply_queue_.Peak(reply, false) || reply.action_id != action_id) {
-
-			// //LOG_INFO("m");
 
 			geometry_msgs::msg::PoseStamped vehicle_pose = loadVehiclePose();
 			nav_msgs::msg::Path planned_path = loadPlannedPath();
@@ -580,27 +665,25 @@ void TrajectoryController::followFlyToPositionCompletion(const std::shared_ptr<G
 
 			goal_handle->publish_feedback(feedback);
 
-			// //LOG_INFO("n");
+			// debug fly to position goal thread waiting for reply, publishing feedback with vehicle pose and planned path
+			RCLCPP_DEBUG(this->get_logger(), "Fly to position goal thread waiting for reply, publishing feedback with vehicle pose: (%f, %f, %f) and planned path with %d poses", vehicle_pose.pose.position.x, vehicle_pose.pose.position.y, vehicle_pose.pose.position.z, planned_path.poses.size());
 
 			request_completion_poll_rate_.sleep();
 
 		}
 
-		// //LOG_INFO("o");
-
 		if(!request_reply_queue_.Pop(reply, false)) throw std::exception(); // The reply should still be in the queue
 
-		// //LOG_INFO("p");
-			
 		switch (reply.reply_type) {
 
 		default:
 		case cancel:
-
-		// //LOG_INFO("q");
+			// debug fly to position goal thread received cancel reply
+			RCLCPP_DEBUG(this->get_logger(), "Fly to position goal thread received cancel reply");
 
 			if (goal_handle->is_canceling()) {
-				// RCLCPP_INFO(this->get_logger(), "hej");
+				// debug fly to position goal thread canceling
+				RCLCPP_DEBUG(this->get_logger(), "Fly to position goal thread canceling");
 
 				result->success = false;
 				goal_handle->canceled(result);
@@ -611,10 +694,12 @@ void TrajectoryController::followFlyToPositionCompletion(const std::shared_ptr<G
 			}
 
 		case reject:
-		// //LOG_INFO("r");
+			// debug fly to position goal thread received reject reply
+			RCLCPP_DEBUG(this->get_logger(), "Fly to position goal thread received reject reply");
 		case fail:
+			// debug fly to position goal thread received fail reply
+			RCLCPP_DEBUG(this->get_logger(), "Fly to position goal thread received fail reply, aborting");
 
-		// //LOG_INFO("s");
 			result->success = false;
 			goal_handle->abort(result);
 
@@ -622,13 +707,11 @@ void TrajectoryController::followFlyToPositionCompletion(const std::shared_ptr<G
 			break;
 		
 		case accept:
-		// //LOG_INFO("t");
-
 			break;
 
 		case success:
-
-		// //LOG_INFO("u");
+			// debug fly to position goal thread received success reply
+			RCLCPP_DEBUG(this->get_logger(), "Fly to position goal thread received success reply, succeeding");
 
 			result->success = true;
 			goal_handle->succeed(result);
@@ -645,16 +728,15 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalFlyUnderCable(
 	std::shared_ptr<const FlyUnderCable::Goal> goal
 ) {
 
-	// //LOG_INFO("a");
-
 	RCLCPP_DEBUG(this->get_logger(), "Received fly under cable goal request");
 	
 	(void)uuid;
 
-	if (state_ != hovering && state_ != hovering_under_cable)
+	if (state_ != hovering && state_ != hovering_under_cable) {
+		// debug fly under cable goal rejected, not hovering
+		RCLCPP_DEBUG(this->get_logger(), "Fly under cable goal rejected, not hovering");
 		return rclcpp_action::GoalResponse::REJECT;
-
-	// //LOG_INFO("b");
+	}
 
 	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)uuid;
 
@@ -663,12 +745,18 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalFlyUnderCable(
 	int cable_id = goal->target_cable_id;
 	float cable_distance = goal->target_cable_distance;
 
-	if (cable_distance <= 0)
+	if (cable_distance <= 0) {
+		// debug fly under cable goal rejected, invalid cable distance
+		RCLCPP_DEBUG(this->get_logger(), "Fly under cable goal rejected, invalid cable distance");
 		return rclcpp_action::GoalResponse::REJECT;
+	}
 
 	state4_t veh_state = loadVehicleState();
 
 	if (!updateTargetCablePose(veh_state, cable_id)) {
+
+		// debug fly under cable goal rejected, cable with cable id %d not visible
+		RCLCPP_DEBUG(this->get_logger(), "Fly under cable goal rejected, cable with cable id %d not visible", cable_id);
 
 		clearTargetCable();
 
@@ -687,10 +775,13 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalFlyUnderCable(
 		.request_params = (void *)params
 	};
 
-	if (!request_queue_.Push(request, false)) 
+	if (!request_queue_.Push(request, false))  {
+		// debug fly under cable goal rejected, request queue full
 		return rclcpp_action::GoalResponse::REJECT;
+	}
 
-	// //LOG_INFO("e");
+	// debug fly under cable goal accepted
+	RCLCPP_DEBUG(this->get_logger(), "Fly under cable goal accepted");
 
 	return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 
@@ -699,8 +790,6 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalFlyUnderCable(
 rclcpp_action::CancelResponse TrajectoryController::handleCancelFlyUnderCable(const std::shared_ptr<GoalHandleFlyUnderCable> goal_handle) {
 
 	RCLCPP_INFO(this->get_logger(), "Received fly under cable cancel request");
-
-	// //LOG_INFO("f");
 	
 	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)goal_handle->get_goal_id();
 
@@ -710,12 +799,14 @@ rclcpp_action::CancelResponse TrajectoryController::handleCancelFlyUnderCable(co
 		.request_params = NULL
 	};
 
-	// //LOG_INFO("g");
-
-	if (!request_queue_.Push(request, false))
+	if (!request_queue_.Push(request, false)) {
+		// debug fly under cable cancel request rejected, request queue full
+		RCLCPP_DEBUG(this->get_logger(), "Fly under cable cancel request rejected, request queue full");
 		return rclcpp_action::CancelResponse::REJECT;
+	}
 
-	// //LOG_INFO("h");
+	// debug fly under cable cancel request accepted
+	RCLCPP_DEBUG(this->get_logger(), "Fly under cable cancel request accepted");
 
 	return rclcpp_action::CancelResponse::ACCEPT;
 
@@ -723,7 +814,8 @@ rclcpp_action::CancelResponse TrajectoryController::handleCancelFlyUnderCable(co
 
 void TrajectoryController::handleAcceptedFlyUnderCable(const std::shared_ptr<GoalHandleFlyUnderCable> goal_handle) {
 
-	// //LOG_INFO("i");
+	// debug fly under cable goal accepted, starting thread
+	RCLCPP_DEBUG(this->get_logger(), "Fly under cable goal accepted, starting thread");
 
 	using namespace std::placeholders;
 
@@ -733,7 +825,8 @@ void TrajectoryController::handleAcceptedFlyUnderCable(const std::shared_ptr<Goa
 
 void TrajectoryController::followFlyUnderCableCompletion(const std::shared_ptr<GoalHandleFlyUnderCable> goal_handle) {
 
-	// //LOG_INFO("j");
+	// debug fly under cable goal thread started
+	RCLCPP_DEBUG(this->get_logger(), "Fly under cable goal thread started");
 
 	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)goal_handle->get_goal_id();
 
@@ -744,16 +837,10 @@ void TrajectoryController::followFlyUnderCableCompletion(const std::shared_ptr<G
 	request_reply_t reply = {
 		.action_id = action_id
 	};
-
-	// //LOG_INFO("k");
 	
 	while(true) {
 
-		// //LOG_INFO("l");
-
 		while (!request_reply_queue_.Peak(reply, false) || reply.action_id != action_id) {
-
-			// //LOG_INFO("m");
 
 			geometry_msgs::msg::PoseStamped vehicle_pose = loadVehiclePose();
 			nav_msgs::msg::Path planned_path = loadPlannedPath();
@@ -793,27 +880,36 @@ void TrajectoryController::followFlyUnderCableCompletion(const std::shared_ptr<G
 
 			goal_handle->publish_feedback(feedback);
 
-			// //LOG_INFO("n");
+			// debug fly under cable goal thread waiting for reply, publish feedback with vehicle pose: %f, %f, %f, %f, target pose: %f, %f, %f, %f, distance: %f, planned path size: %d
+			RCLCPP_DEBUG(this->get_logger(), "Fly under cable goal thread waiting for reply, publish feedback with vehicle pose: %f, %f, %f, %f, target pose: %f, %f, %f, %f, distance: %f, planned path size: %d",
+				vehicle_pose.pose.position.x,
+				vehicle_pose.pose.position.y,
+				vehicle_pose.pose.position.z,
+				veh_eul(2),
+				target.pose.position.x,
+				target.pose.position.y,
+				target.pose.position.z,
+				target_eul(2),
+				feedback->distance_vehicle_to_target,
+				planned_path.poses.size()
+			);
 
 			request_completion_poll_rate_.sleep();
 
 		}
 
-		// //LOG_INFO("o");
-
 		if(!request_reply_queue_.Pop(reply, false)) throw std::exception(); // The reply should still be in the queue
-
-		// //LOG_INFO("p");
 			
 		switch (reply.reply_type) {
 
 		default:
 		case cancel:
-
-		// //LOG_INFO("q");
+			// debug fly under cable goal thread received cancel reply
+			RCLCPP_DEBUG(this->get_logger(), "Fly under cable goal thread received cancel reply");
 
 			if (goal_handle->is_canceling()) {
-				// RCLCPP_INFO(this->get_logger(), "hej");
+				// debug fly under cable goal thread cancel request accepted
+				RCLCPP_DEBUG(this->get_logger(), "Fly under cable goal thread cancel request accepted");
 
 				result->success = false;
 				goal_handle->canceled(result);
@@ -824,10 +920,12 @@ void TrajectoryController::followFlyUnderCableCompletion(const std::shared_ptr<G
 			}
 
 		case reject:
-		// //LOG_INFO("r");
+			// debug fly under cable goal thread received reject reply
+			RCLCPP_DEBUG(this->get_logger(), "Fly under cable goal thread received reject reply");
 		case fail:
+			// debug fly under cable goal thread received fail reply
+			RCLCPP_DEBUG(this->get_logger(), "Fly under cable goal thread received fail reply, aborting");
 
-		// //LOG_INFO("s");
 			result->success = false;
 			goal_handle->abort(result);
 
@@ -835,13 +933,11 @@ void TrajectoryController::followFlyUnderCableCompletion(const std::shared_ptr<G
 			break;
 		
 		case accept:
-		// //LOG_INFO("t");
-
 			break;
 
 		case success:
-
-		// //LOG_INFO("u");
+			//	debug fly under cable goal thread received success reply
+			RCLCPP_DEBUG(this->get_logger(), "Fly under cable goal thread received success reply, notifying success");
 
 			result->success = true;
 			goal_handle->succeed(result);
@@ -896,6 +992,9 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalFlyAlongCable(
 		RCLCPP_ERROR(this->get_logger(), "Failed to push request to queue");
 		return rclcpp_action::GoalResponse::REJECT;
 	}
+
+	// debug fly along cable goal request accepted
+	RCLCPP_DEBUG(this->get_logger(), "Fly along cable goal request accepted");
 
 	return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 
@@ -957,6 +1056,9 @@ void TrajectoryController::followFlyAlongCableCompletion(const std::shared_ptr<G
 
 			goal_handle->publish_feedback(feedback);
 
+			// debug fly along cable goal thread waiting for reply, publishing feedback woth vehicle pose: %s
+			RCLCPP_DEBUG(this->get_logger(), "Fly along cable goal thread waiting for reply, publishing feedback woth vehicle pose: %s", vehicle_pose.pose.position);
+
 			request_completion_poll_rate_.sleep();
 
 		}
@@ -967,8 +1069,13 @@ void TrajectoryController::followFlyAlongCableCompletion(const std::shared_ptr<G
 
 		default:
 		case cancel:
+			// debug fly along cable goal thread received cancel reply
+			RCLCPP_DEBUG(this->get_logger(), "Fly along cable goal thread received cancel reply");
 
 			if (goal_handle->is_canceling()) {
+				// debug fly along cable goal thread received cancel reply and goal is canceling
+				RCLCPP_DEBUG(this->get_logger(), "Fly along cable goal thread received cancel reply and goal is canceling");
+
 				result->success = false;
 				goal_handle->canceled(result);
 
@@ -979,6 +1086,8 @@ void TrajectoryController::followFlyAlongCableCompletion(const std::shared_ptr<G
 
 		case reject:
 		case fail:
+			// debug fly along cable goal thread received reject or fail reply
+			RCLCPP_DEBUG(this->get_logger(), "Fly along cable goal thread received reject or fail reply");
 
 			result->success = false;
 			goal_handle->abort(result);
@@ -991,6 +1100,9 @@ void TrajectoryController::followFlyAlongCableCompletion(const std::shared_ptr<G
 			break;
 
 		case success:
+
+			// debug fly along cable goal thread received success reply
+			RCLCPP_DEBUG(this->get_logger(), "Fly along cable goal thread received success reply, notifying success");
 
 			result->success = true;
 			goal_handle->succeed(result);
@@ -1011,17 +1123,24 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalCableLanding(
 	
 	(void)uuid;
 
-	if (state_ != hovering_under_cable)
+	if (state_ != hovering_under_cable) {
+		RCLCPP_ERROR(this->get_logger(), "Received cable landing goal request while not hovering under cable");
 		return rclcpp_action::GoalResponse::REJECT;
+	}
 
 	int cable_id = goal->target_cable_id;
 
-	if (cable_id != target_cable_id_)
+	if (cable_id != target_cable_id_) {
+		RCLCPP_ERROR(this->get_logger(), "Received cable landing goal request for cable %d while target cable is %d", cable_id, target_cable_id_);
 		return rclcpp_action::GoalResponse::REJECT;
+	}
 
 	state4_t veh_state = loadVehicleState();
 
 	if (!updateTargetCablePose(veh_state, cable_id)) {
+
+		// debug failed to update target cable pose, cable with id %d not visible, rejecting cable landing goal
+		RCLCPP_DEBUG(this->get_logger(), "Failed to update target cable pose, cable with id %d not visible, rejecting cable landing goal", cable_id);
 
 		clearTargetCable();
 
@@ -1043,11 +1162,17 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalCableLanding(
 
 	if (!request_queue_.Push(request, false))  {
 
+		// debug failed to push cable landing request to request queue, rejecting cable landing goal
+		RCLCPP_DEBUG(this->get_logger(), "Failed to push cable landing request to request queue, rejecting cable landing goal");
+
 		clearTargetCable();
 
 		return rclcpp_action::GoalResponse::REJECT;
 
 	}
+
+	// debug cable landing goal accepted
+	RCLCPP_DEBUG(this->get_logger(), "Cable landing goal accepted");
 
 	return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 
@@ -1065,14 +1190,20 @@ rclcpp_action::CancelResponse TrajectoryController::handleCancelCableLanding(con
 		.request_params = NULL
 	};
 
-	if (!request_queue_.Push(request, false))
+	if (!request_queue_.Push(request, false)) {
+		// debug failed to push cable landing cancel request to request queue, rejecting cancel request
+		RCLCPP_DEBUG(this->get_logger(), "Failed to push cable landing cancel request to request queue, rejecting cancel request");
 		return rclcpp_action::CancelResponse::REJECT;
+	}
 
 	return rclcpp_action::CancelResponse::ACCEPT;
 
 }
 
 void TrajectoryController::handleAcceptedCableLanding(const std::shared_ptr<GoalHandleCableLanding> goal_handle) {
+
+	// debug cable landing goal accepted
+	RCLCPP_DEBUG(this->get_logger(), "Cable landing goal accepted, starting thread to follow completion");
 
 	using namespace std::placeholders;
 
@@ -1081,6 +1212,9 @@ void TrajectoryController::handleAcceptedCableLanding(const std::shared_ptr<Goal
 }
 
 void TrajectoryController::followCableLandingCompletion(const std::shared_ptr<GoalHandleCableLanding> goal_handle) {
+
+	// debug following cable landing completion
+	RCLCPP_DEBUG(this->get_logger(), "Following cable landing completion");
 
 	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)goal_handle->get_goal_id();
 
@@ -1115,6 +1249,8 @@ void TrajectoryController::followCableLandingCompletion(const std::shared_ptr<Go
 
 			goal_handle->publish_feedback(feedback);
 
+			// debug waiting for cable landing completion, publishing feedback with vehicle pose (%f, %f, %f), planned path with %d poses, planned macro path with %d poses, distance to cable %f
+
 			request_completion_poll_rate_.sleep();
 
 		}
@@ -1125,8 +1261,13 @@ void TrajectoryController::followCableLandingCompletion(const std::shared_ptr<Go
 
 		default:
 		case cancel:
+			// debug cable landing goal canceled
+			RCLCPP_DEBUG(this->get_logger(), "Cable landing goal canceled");
 
 			if (goal_handle->is_canceling()) {
+
+				// debug cable landing goal canceled, sending cancel reply
+				RCLCPP_DEBUG(this->get_logger(), "Cable landing goal canceled, sending cancel reply");
 
 				result->success = false;
 				goal_handle->canceled(result);
@@ -1138,6 +1279,8 @@ void TrajectoryController::followCableLandingCompletion(const std::shared_ptr<Go
 
 		case reject:
 		case fail:
+			// debug cable landing goal failed
+			RCLCPP_DEBUG(this->get_logger(), "Cable landing goal failed");
 
 			result->success = false;
 			goal_handle->abort(result);
@@ -1150,6 +1293,8 @@ void TrajectoryController::followCableLandingCompletion(const std::shared_ptr<Go
 			break;
 
 		case success:
+			// debug cable landing goal succeeded
+			RCLCPP_DEBUG(this->get_logger(), "Cable landing goal succeeded");
 
 			result->success = true;
 			goal_handle->succeed(result);
@@ -1170,13 +1315,19 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalCableTakeoff(
 	
 	(void)uuid;
 
-	if (state_ != on_cable_armed)
+	if (state_ != on_cable_armed) {
+		// debug cable takeoff goal rejected, not on cable armed
+		RCLCPP_DEBUG(this->get_logger(), "Cable takeoff goal rejected, not on cable armed");
 		return rclcpp_action::GoalResponse::REJECT;
+	}
 
 	float target_cable_distance = goal->target_cable_distance;
 
-	if (target_cable_distance < 1.) 
+	if (target_cable_distance < 1.) {
+		// debug cable takeoff goal rejected, target cable distance too small
+		RCLCPP_DEBUG(this->get_logger(), "Cable takeoff goal rejected, target cable distance too small");
 		return rclcpp_action::GoalResponse::REJECT;
+	}
 
 	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)uuid;
 
@@ -1190,8 +1341,15 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalCableTakeoff(
 		.request_params = (void *)params
 	};
 
-	if (!request_queue_.Push(request, false))
+	if (!request_queue_.Push(request, false)) {
+		// debug cable takeoff goal rejected, request queue full
+		RCLCPP_DEBUG(this->get_logger(), "Cable takeoff goal rejected, request queue full");
+
 		return rclcpp_action::GoalResponse::REJECT;
+	}
+
+	// debug cable takeoff goal accepted
+	RCLCPP_DEBUG(this->get_logger(), "Cable takeoff goal accepted");
 
 	return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 
@@ -1199,11 +1357,16 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalCableTakeoff(
 
 rclcpp_action::CancelResponse TrajectoryController::handleCancelCableTakeoff(const std::shared_ptr<GoalHandleCableTakeoff> goal_handle) {
 
+	RCLCPP_DEBUG(this->get_logger(), "Received cable takeoff cancel request, rejecting");
+
 	return rclcpp_action::CancelResponse::REJECT;
 
 }
 
 void TrajectoryController::handleAcceptedCableTakeoff(const std::shared_ptr<GoalHandleCableTakeoff> goal_handle) {
+
+	// debug cable takeoff goal accepted
+	RCLCPP_DEBUG(this->get_logger(), "Cable takeoff goal accepted, starting thread");
 
 	using namespace std::placeholders;
 
@@ -1212,6 +1375,9 @@ void TrajectoryController::handleAcceptedCableTakeoff(const std::shared_ptr<Goal
 }
 
 void TrajectoryController::followCableTakeoffCompletion(const std::shared_ptr<GoalHandleCableTakeoff> goal_handle) {
+
+	// debug cable takeoff goal thread started
+	RCLCPP_DEBUG(this->get_logger(), "Cable takeoff goal thread started");
 
 	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)goal_handle->get_goal_id();
 
@@ -1243,6 +1409,9 @@ void TrajectoryController::followCableTakeoffCompletion(const std::shared_ptr<Go
 
 			goal_handle->publish_feedback(feedback);
 
+			// debug cable takeoff goal thread waiting for completion, publish feedback
+			RCLCPP_DEBUG(this->get_logger(), "Cable takeoff goal thread waiting for completion, publish feedback");
+
 			request_completion_poll_rate_.sleep();
 
 		}
@@ -1253,8 +1422,12 @@ void TrajectoryController::followCableTakeoffCompletion(const std::shared_ptr<Go
 
 		default:
 		case cancel:
+			// debug cable takeoff goal thread waiting for completion, cancel
+			RCLCPP_DEBUG(this->get_logger(), "Cable takeoff goal thread waiting for completion, cancel");
 
 			if (goal_handle->is_canceling()) {
+				// debug cable takeoff goal thread waiting for completion, cancel, goal handle canceling
+				RCLCPP_DEBUG(this->get_logger(), "Cable takeoff goal thread waiting for completion, cancel, goal handle canceling");
 
 				result->success = false;
 				goal_handle->canceled(result);
@@ -1266,6 +1439,8 @@ void TrajectoryController::followCableTakeoffCompletion(const std::shared_ptr<Go
 
 		case reject:
 		case fail:
+			// debug cable takeoff goal thread waiting for completion, fail
+			RCLCPP_DEBUG(this->get_logger(), "Cable takeoff goal thread waiting for completion, fail");
 
 			result->success = false;
 			goal_handle->abort(result);
@@ -1278,6 +1453,8 @@ void TrajectoryController::followCableTakeoffCompletion(const std::shared_ptr<Go
 			break;
 
 		case success:
+			// debug cable takeoff goal thread waiting for completion, success
+			RCLCPP_DEBUG(this->get_logger(), "Cable takeoff goal thread waiting for completion, success");
 
 			result->success = true;
 			goal_handle->succeed(result);
@@ -1347,16 +1524,6 @@ void TrajectoryController::stateMachineCallback() {
 
 	bool offboard = isOffboard();
 	bool armed = isArmed();
-
-	// if (offboard)
-	// 	LOG_INFO("offboard");
-	// else
-	// 	LOG_INFO("not offboard");
-
-	//if (armed)
-	//	//LOG_INFO("armed");
-	//else
-	//	//LOG_INFO("not armed");
 
 	auto notifyCurrentRequest = [&](request_reply_type_t reply_type) -> bool {
 
@@ -1634,15 +1801,27 @@ void TrajectoryController::stateMachineCallback() {
 	case init:
 	default:
 
+		// debug in state init
+		RCLCPP_DEBUG(this->get_logger(), "state: init");
+
 		if (!offboard && veh_state(2) < landed_altitude_threshold) {
+
+			// debug not offboard and under landed altitude threshold
+			RCLCPP_DEBUG(this->get_logger(), "not offboard and under landed altitude threshold");
 
 			state_ = on_ground_non_offboard;
 
 		} else if(!offboard && veh_state(2) >= landed_altitude_threshold) {
 
+			// debug not offboard and over landed altitude threshold
+			RCLCPP_DEBUG(this->get_logger(), "not offboard and over landed altitude threshold");
+
 			state_ = in_flight_non_offboard;
 
 		} else if (offboard && veh_state(2) < landed_altitude_threshold) {
+
+			// debug offboard and under landed altitude threshold, landing
+			RCLCPP_DEBUG(this->get_logger(), "offboard and under landed altitude threshold, landing");
 
 			set_point = setNanVelocity(veh_state);
 
@@ -1651,6 +1830,9 @@ void TrajectoryController::stateMachineCallback() {
 			state_ = init;
 
 		} else if(offboard && veh_state(2) >= landed_altitude_threshold) {
+
+			// debug offboard and over landed altitude threshold
+			RCLCPP_DEBUG(this->get_logger(), "offboard and over landed altitude threshold");
 
 			fixed_reference = setZeroVelocity(veh_state);
 
@@ -1664,18 +1846,26 @@ void TrajectoryController::stateMachineCallback() {
 
 	case on_ground_non_offboard:
 
-		//RCLCPP_INFO(this->get_logger(), "State: %d", state_);
-		//RCLCPP_INFO(this->get_logger(), "z: %f", veh_state(2));
-		
+		// debug in state on_ground_non_offboard
+		RCLCPP_DEBUG(this->get_logger(), "state: on_ground_non_offboard");
+
 		if (!offboard && veh_state(2) >= landed_altitude_threshold && armed) {
+
+			// debug not offboard and over landed altitude threshold and armed
+			RCLCPP_DEBUG(this->get_logger(), "not offboard and over landed altitude threshold and armed");
 
 			state_ = in_flight_non_offboard;
 
 		} else if (offboard) {
+			// debug offboard
+			RCLCPP_DEBUG(this->get_logger(), "offboard");
 
 			state_ = init;
 
 		} else if(tryPendingRequest(takeoff_request, yes, yes)) {
+
+			// debug takeoff request, arming
+			RCLCPP_DEBUG(this->get_logger(), "takeoff request, arming");
 
 			arm();
 
@@ -1695,6 +1885,9 @@ void TrajectoryController::stateMachineCallback() {
 
 			state_ = arming;
 
+			// debug set trajectory target
+			RCLCPP_DEBUG(this->get_logger(), "set trajectory target: %f, %f, %f", fixed_reference(0), fixed_reference(1), fixed_reference(2));
+
 		} else {
 
 			set_point = setNanVelocity(veh_state);
@@ -1707,14 +1900,20 @@ void TrajectoryController::stateMachineCallback() {
 
 	case in_flight_non_offboard:
 
-		//RCLCPP_INFO(this->get_logger(), "State: %d", state_);
-		//RCLCPP_INFO(this->get_logger(), "z: %f", veh_state(2));
+		// debug in state in_flight_non_offboard
+		RCLCPP_DEBUG(this->get_logger(), "state: in_flight_non_offboard");
 		
 		if (!offboard && veh_state(2) < landed_altitude_threshold || !armed) {
+
+			// debug not offboard and under landed altitude threshold or not armed
+			RCLCPP_DEBUG(this->get_logger(), "not offboard and under landed altitude threshold or not armed");
 
 			state_ = on_ground_non_offboard;
 
 		} else if (offboard) {
+
+			// debug offboard
+			RCLCPP_DEBUG(this->get_logger(), "offboard");
 
 			fixed_reference = setZeroVelocity(veh_state);
 
@@ -1722,7 +1921,7 @@ void TrajectoryController::stateMachineCallback() {
 
 			state_ = hovering;
 
-		} else {
+		} else { 
 
 			set_point = setNanVelocity(veh_state);
 
@@ -1733,8 +1932,14 @@ void TrajectoryController::stateMachineCallback() {
 		break;
 	
 	case arming:
+
+		// debug in state arming
+		RCLCPP_DEBUG(this->get_logger(), "state: arming");
 		
 		if (arm_cnt == 0 && !armed) {
+
+			// debug arm count is zero and not armed, disarming
+			RCLCPP_DEBUG(this->get_logger(), "arm count is zero and not armed, disarming");
 
 			set_point = setNanVelocity(veh_state);
 
@@ -1747,6 +1952,9 @@ void TrajectoryController::stateMachineCallback() {
 			state_ = on_ground_non_offboard;
 
 		} else if(armed) {
+
+			// debug is armed
+			RCLCPP_DEBUG(this->get_logger(), "is armed");
 
 			set_point = setNanVelocity(veh_state);
 			
@@ -1766,7 +1974,13 @@ void TrajectoryController::stateMachineCallback() {
 
 	case setting_offboard:
 
+		// debug in state setting_offboard
+		RCLCPP_DEBUG(this->get_logger(), "state: setting_offboard");
+
 		if (offboard_cnt == 0 && !offboard) {
+
+			// debug offboard count is zero and not offboard, disarming
+			RCLCPP_DEBUG(this->get_logger(), "offboard count is zero and not offboard, disarming");
 
 			set_point = setNanVelocity(veh_state);
 
@@ -1779,6 +1993,9 @@ void TrajectoryController::stateMachineCallback() {
 			state_ = on_ground_non_offboard;
 
 		} else if (offboard) {
+
+			// debug is offboard, taking off
+			RCLCPP_DEBUG(this->get_logger(), "is offboard, taking off");
 
 			fixed_reference = fixed_reference;
 
@@ -1801,8 +2018,14 @@ void TrajectoryController::stateMachineCallback() {
 		break;
 
 	case taking_off:
+
+		// debug in state taking_off
+		RCLCPP_DEBUG(this->get_logger(), "state: taking_off");
 		
 		if (!offboard || !armed) {
+
+			// debug not offboard or not armed, going to init
+			RCLCPP_DEBUG(this->get_logger(), "not offboard or not armed, going to init");
 
 			notifyCurrentRequest(fail);
 			rejectPendingRequest();
@@ -1812,6 +2035,9 @@ void TrajectoryController::stateMachineCallback() {
 			state_ = init;
 
 		} else if (reachedPosition(veh_state, fixed_reference)) {
+
+			// debug reached position, takeoff successful
+			RCLCPP_DEBUG(this->get_logger(), "reached position, takeoff successful");
 
 			RCLCPP_INFO(this->get_logger(), "Takeoff successful");
 
@@ -1839,13 +2065,22 @@ void TrajectoryController::stateMachineCallback() {
 
 	case hovering:
 
+		// debug in state hovering
+		RCLCPP_DEBUG(this->get_logger(), "state: hovering");
+
 		if (!offboard || !armed) {
+
+			// debug not offboard or not armed, going to init
+			RCLCPP_DEBUG(this->get_logger(), "not offboard or not armed, going to init");
 
 			rejectPendingRequest();
 
 			state_ = init;
 
 		} else if (tryPendingRequest(landing_request, if_match, if_match)) {
+
+			// debug landing request, landing
+			RCLCPP_DEBUG(this->get_logger(), "landing request, landing");
 
 			land();
 
@@ -1856,6 +2091,9 @@ void TrajectoryController::stateMachineCallback() {
 			state_ = landing;
 
 		} else if (tryPendingRequest(fly_to_position_request, if_match, if_match)) {
+
+			// debug fly to position request, flying to position
+			RCLCPP_DEBUG(this->get_logger(), "fly to position request, flying to position");
 
 			fly_to_position_request_params_t *request_params = (fly_to_position_request_params_t *)request.request_params;
 			pos4_t target_position = request_params->target_position;
@@ -1869,11 +2107,17 @@ void TrajectoryController::stateMachineCallback() {
 			set_point = stepMPC(prev_veh_state, fixed_reference, true, true, positional);
 			//set_point = setZeroVelocity(fixed_reference);
 
+			// debug set point is
+			RCLCPP_DEBUG(this->get_logger(), "set point is: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+
 			offboard_cnt = 10;
 
 			state_ = in_positional_flight;
 
 		} else if (tryPendingRequest(fly_under_cable_request, if_match, if_match)) {
+
+			// debug fly under cable request, flying under cable
+			RCLCPP_DEBUG(this->get_logger(), "fly under cable request, flying under cable");
 
 			fly_under_cable_request_params_t *request_params = (fly_under_cable_request_params_t *)request.request_params;
 			cable_id = request_params->cable_id;
@@ -1891,6 +2135,9 @@ void TrajectoryController::stateMachineCallback() {
 
 			set_point = stepMPC(prev_veh_state, fixed_reference, true, true, positional);
 
+			// debug set point is
+			RCLCPP_DEBUG(this->get_logger(), "set point is: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+
 			offboard_cnt = 10;
 
 			state_ = in_positional_flight;
@@ -1907,7 +2154,13 @@ void TrajectoryController::stateMachineCallback() {
 
 	case landing:
 
+		// debug in state landing
+		RCLCPP_DEBUG(this->get_logger(), "state: landing");
+
 		if (!offboard || !armed) {
+
+			// debug not offboard or not armed, landing successful
+			RCLCPP_DEBUG(this->get_logger(), "not offboard or not armed, landing successful");
 
 			notifyCurrentRequest(success);
 
@@ -1916,6 +2169,9 @@ void TrajectoryController::stateMachineCallback() {
 			state_ = init;
 
 		} else if (land_cnt == 0) {
+
+			// debug land_cnt == 0, landing failed
+			RCLCPP_DEBUG(this->get_logger(), "land_cnt == 0, landing failed");
 
 			notifyCurrentRequest(fail);
 
@@ -1937,7 +2193,12 @@ void TrajectoryController::stateMachineCallback() {
 
 	case hovering_under_cable:
 
+		// debug in state hovering_under_cable
+		RCLCPP_DEBUG(this->get_logger(), "state: hovering_under_cable");
+
 		if (!offboard || !armed) {
+
+			// debug not offboard or not armed, going to init
 
 			rejectPendingRequest();
 
@@ -1947,6 +2208,8 @@ void TrajectoryController::stateMachineCallback() {
 			state_ = init;
 
 		} else if (target_cable_cnt == 0) {
+
+			// debug target_cable_cnt == 0, going to hovering
 
 			clearPlannedTrajectory();
 			clearTargetCable();
@@ -1958,6 +2221,8 @@ void TrajectoryController::stateMachineCallback() {
 			state_ = hovering;
 
 		} else if (tryPendingRequest(landing_request, if_match, if_match)) {
+
+			// debug landing request, going to landing
 
 			clearPlannedTrajectory();
 			clearTargetCable();
@@ -1972,6 +2237,9 @@ void TrajectoryController::stateMachineCallback() {
 
 		} else if (tryPendingRequest(fly_to_position_request, if_match, if_match)) {
 
+			// debug fly to position request, flying to position
+			RCLCPP_DEBUG(this->get_logger(), "fly to position request, flying to position");
+
 			fly_to_position_request_params_t *request_params = (fly_to_position_request_params_t *)request.request_params;
 			pos4_t target_position = request_params->target_position;
 
@@ -1981,17 +2249,25 @@ void TrajectoryController::stateMachineCallback() {
 
 			setTrajectoryTarget(fixed_reference);
 
-			if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold)
+			if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold) {
 				set_point = fixed_reference;
-			else
+				// debug within direct target setpoint dist threshold, setting direct target setpoint
+				RCLCPP_DEBUG(this->get_logger(), "within direct target setpoint dist threshold, setting direct target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+			} else {
 				set_point = stepMPC(prev_veh_state, fixed_reference, true, true, positional);
-			//set_point = setZeroVelocity(fixed_reference);
+
+				// debug set point is
+				RCLCPP_DEBUG(this->get_logger(), "set point is: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+			}
 
 			offboard_cnt = 10;
 
 			state_ = in_positional_flight;
 
 		} else if (tryPendingRequest(fly_under_cable_request, if_match, if_match)) {
+
+			// debug fly under cable request, flying under cable
+			RCLCPP_DEBUG(this->get_logger(), "fly under cable request, flying under cable");
 
 			fly_under_cable_request_params_t *request_params = (fly_under_cable_request_params_t *)request.request_params;
 			cable_id = request_params->cable_id;
@@ -2007,16 +2283,24 @@ void TrajectoryController::stateMachineCallback() {
 
 			setTrajectoryTarget(fixed_reference);
 
-			if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold)
+			if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold) {
+				// debug within direct target setpoint dist threshold, setting direct target setpoint: %f, %f, %f, %f
+				RCLCPP_DEBUG(this->get_logger(), "within direct target setpoint dist threshold, setting direct target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
 				set_point = fixed_reference;
-			else
+			} else {
 				set_point = stepMPC(prev_veh_state, fixed_reference, true, true, positional);
+				// debug set point is: %f, %f, %f, %f
+				RCLCPP_DEBUG(this->get_logger(), "set point is: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+			}
 
 			offboard_cnt = 10;
 
 			state_ = in_positional_flight;
 
-		} else if (tryPendingRequest(cable_landing_request, if_match, if_match)) {
+		} else if (tryPendingRequest(cable_landing_request, if_match, if_match)) { 
+
+			// debug cable landing request, landing on cable
+			RCLCPP_DEBUG(this->get_logger(), "cable landing request, landing on cable");
 
 			cable_landing_request_params_t *request_params = (cable_landing_request_params_t *)request.request_params;
 			cable_id = request_params->cable_id;
@@ -2031,15 +2315,27 @@ void TrajectoryController::stateMachineCallback() {
 
 			setTrajectoryTarget(fixed_reference);
 
-			if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold)
+			if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold) {
+				// debug within direct target setpoint dist threshold, setting direct target setpoint: %f, %f, %f, %f
+				RCLCPP_DEBUG(this->get_logger(), "within direct target setpoint dist threshold, setting direct target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+
 				set_point = fixed_reference;
-			else
+			} else {
 				set_point = stepMPC(veh_state, fixed_reference, true, true, cable_landing);
+				// debug set point is: %f, %f, %f, %f
+				RCLCPP_DEBUG(this->get_logger(), "set point is: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+			}
 			set_point = setPointSafetyMarginTruncate(set_point, veh_state, fixed_reference);
+
+			// Truncated set point is: %f, %f, %f, %f
+			RCLCPP_DEBUG(this->get_logger(), "Truncated set point is: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
 
 			state_ = during_cable_landing;
 
 		} else if (tryPendingRequest(fly_along_cable_request, if_match, if_match)) {
+
+			// debug fly along cable request, flying along cable
+			RCLCPP_DEBUG(this->get_logger(), "fly along cable request, flying along cable");
 
 			fly_along_cable_request_params_t *request_params = (fly_along_cable_request_params_t *)request.request_params;
 
@@ -2059,6 +2355,9 @@ void TrajectoryController::stateMachineCallback() {
 			);
 
 			set_point = fly_along_cable_state;
+
+			// debug set point is: %f, %f, %f, %f
+			RCLCPP_DEBUG(this->get_logger(), "set point is: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
 
 			state_ = flying_along_cable;
 
@@ -2081,11 +2380,13 @@ void TrajectoryController::stateMachineCallback() {
 
 	case in_positional_flight:
 
-		//LOG_INFO("1");
+		// debug in positional flight
+		RCLCPP_DEBUG(this->get_logger(), "in positional flight");
 
 		if ((!offboard || !armed) && --offboard_cnt == 0) {
 
-			//LOG_INFO("a1");
+			// debug offboard or armed is false, aborting request, going to state hovering
+			RCLCPP_DEBUG(this->get_logger(), "offboard or armed is false, aborting request, going to state hovering");
 
 			notifyCurrentRequest(fail);
 			rejectPendingRequest();
@@ -2097,7 +2398,7 @@ void TrajectoryController::stateMachineCallback() {
 
 		} else if (request.request_type == fly_under_cable_request && target_cable_cnt == 0) {
 
-			LOG_INFO("Target cable counter is zero, aborting request, going to state hovering");
+			RCLCPP_DEBUG(this->get_logger(), "Target cable counter is zero, aborting request, going to state hovering");
 
 			notifyCurrentRequest(fail);
 
@@ -2112,7 +2413,8 @@ void TrajectoryController::stateMachineCallback() {
 
 		 } else if (currentRequestIsCancelled(if_match, if_match)) {
 
-		 	//LOG_INFO("a2");
+			// debug current request is cancelled, aborting request, going to state hovering
+			RCLCPP_DEBUG(this->get_logger(), "current request is cancelled, aborting request, going to state hovering");
 
 		 	fixed_reference = setZeroVelocity(veh_state); // For explicability
 
@@ -2125,7 +2427,8 @@ void TrajectoryController::stateMachineCallback() {
 
 		} else if (reachedPosition(veh_state, fixed_reference)) {
 
-			//LOG_INFO("a3");
+			// debug reached position, going to state hovering
+			RCLCPP_DEBUG(this->get_logger(), "reached position, going to state hovering");
 
 			notifyCurrentRequest(success);
 
@@ -2157,8 +2460,6 @@ void TrajectoryController::stateMachineCallback() {
 
 		} else {
 
-			//LOG_INFO("2");
-
 			rejectPendingRequest();
 
 			bool set_target = false;
@@ -2175,12 +2476,15 @@ void TrajectoryController::stateMachineCallback() {
 
 			}
 
-			if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold)
+			if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold) {
 				set_point = fixed_reference;
-			else
+				// debug direct target setpoint: %f, %f, %f, %f
+				RCLCPP_DEBUG(this->get_logger(), "direct target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+			} else {
 				set_point = stepMPC(veh_state, fixed_reference, set_target, false, positional);
-			//set_point = setZeroVelocity(fixed_reference);
-			// set_point = fixed_reference;
+				// debug mpc target setpoint: %f, %f, %f, %f
+				RCLCPP_DEBUG(this->get_logger(), "mpc target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+			}
 
 		}
 
@@ -2188,7 +2492,12 @@ void TrajectoryController::stateMachineCallback() {
 
 	case flying_along_cable:
 
+		// debug in flying along cable
+		RCLCPP_DEBUG(this->get_logger(), "in flying along cable");
+
 		if (!offboard || !armed) {
+			// debug offboard or armed is false, aborting request, going to state hovering
+			RCLCPP_DEBUG(this->get_logger(), "offboard or armed is false, aborting request, going to state init");
 
 			notifyCurrentRequest(fail);
 			rejectPendingRequest();
@@ -2199,6 +2508,8 @@ void TrajectoryController::stateMachineCallback() {
 			state_ = init;
 
 		} else if (target_cable_cnt == 0) {
+			// debug Target cable counter is zero, aborting request, going to state hovering
+			RCLCPP_DEBUG(this->get_logger(), "Target cable counter is zero, aborting request, going to state hovering");
 
 			clearPlannedTrajectory();
 			clearTargetCable();
@@ -2210,6 +2521,9 @@ void TrajectoryController::stateMachineCallback() {
 			state_ = hovering;
 
 		} else if (fly_along_cable_distance <= 0) {
+
+			// debug fly along cable distance is zero, aborting request, going to state hovering under cable
+			RCLCPP_DEBUG(this->get_logger(), "fly along cable distance is zero, aborting request, going to state hovering under cable");
 
 			notifyCurrentRequest(success);
 
@@ -2227,6 +2541,9 @@ void TrajectoryController::stateMachineCallback() {
 
 		} else if (currentRequestIsCancelled(if_match, if_match)) {
 
+			// debug current request is cancelled, aborting request, going to state hovering under cable
+			RCLCPP_DEBUG(this->get_logger(), "current request is cancelled, aborting request, going to state hovering under cable");
+
 			clearPlannedTrajectory();
 
 			target_cable_cnt = updateTargetCablePose(veh_state) ? target_cable_cnt : target_cable_cnt-1;
@@ -2240,6 +2557,9 @@ void TrajectoryController::stateMachineCallback() {
 			state_ = hovering_under_cable;
 
 		} else {
+
+			// debug current request is not cancelled, continuing request
+			RCLCPP_DEBUG(this->get_logger(), "current request is not cancelled, continuing request");
 
 			rejectPendingRequest();
 
@@ -2266,14 +2586,12 @@ void TrajectoryController::stateMachineCallback() {
 				fly_along_cable_state(2)
 			);
 
-			RCLCPP_INFO(get_logger(), "p0: %f, %f, %f", p0(0), p0(1), p0(2));
-			RCLCPP_INFO(get_logger(), "p1: %f, %f, %f", p1(0), p1(1), p1(2));
-			
 			fly_along_cable_distance -= (p1-p0).norm();
 
-			RCLCPP_INFO(get_logger(), "fly_along_cable_distance: %f", fly_along_cable_distance);
-
 			set_point = fly_along_cable_state;
+
+			// debug fly along cable distance: %f, setpoint: %f, %f, %f, %f
+			RCLCPP_DEBUG(this->get_logger(), "fly along cable distance: %f, setpoint: %f, %f, %f, %f", fly_along_cable_distance, set_point(0), set_point(1), set_point(2), set_point(3));
 
 		}
 
@@ -2281,9 +2599,12 @@ void TrajectoryController::stateMachineCallback() {
 
 	case during_cable_landing:
 
+		// debug in during cable landing
+		RCLCPP_DEBUG(this->get_logger(), "in during cable landing");
+
 		if (!offboard || !armed) {
 
-			LOG_INFO("Going to init state because vehicle not in offboard");
+			RCLCPP_DEBUG(this->get_logger(), "Going to init state because vehicle not in offboard");
 
 			notifyCurrentRequest(fail);
 			rejectPendingRequest();
@@ -2292,7 +2613,7 @@ void TrajectoryController::stateMachineCallback() {
 
 		} else if (currentRequestIsCancelled(if_match, if_match)) {
 
-			LOG_INFO("Going to state hovering, goal was cancelled");
+			RCLCPP_DEBUG(this->get_logger(), "Going to state hovering, goal was cancelled");
 
 			fixed_reference = setZeroVelocity(veh_state); // For explicability
 
@@ -2307,7 +2628,7 @@ void TrajectoryController::stateMachineCallback() {
 
 		} else if (reachedPosition(veh_state, fixed_reference)) {
 
-			LOG_INFO("Reached cable, going to state on_cable_armed");
+			RCLCPP_DEBUG(this->get_logger(), "Reached cable, going to state on_cable_armed");
 
 			notifyCurrentRequest(success);
 
@@ -2321,7 +2642,7 @@ void TrajectoryController::stateMachineCallback() {
 
 		} else if (target_cable_cnt == 0) {
 
-			LOG_INFO("Target cable counter is zero, aborting request, going to state hovering");
+			RCLCPP_DEBUG(this->get_logger(), "Target cable counter is zero, aborting request, going to state hovering");
 
 			notifyCurrentRequest(fail);
 
@@ -2336,7 +2657,7 @@ void TrajectoryController::stateMachineCallback() {
 
 		} else {
 
-			LOG_INFO("Evaluating if within safety margins");
+			RCLCPP_DEBUG(this->get_logger(), "Evaluating if within safety margins");
 
 			rejectPendingRequest();
 
@@ -2346,21 +2667,27 @@ void TrajectoryController::stateMachineCallback() {
 
 			if (withinSafetyMargins(veh_state, target_cable)) {
 
-				LOG_INFO("Within safety margins, stepping MPC");
+				RCLCPP_DEBUG(this->get_logger(), "Within safety margins, stepping MPC");
 
 				fixed_reference = target_cable;
 
 				setTrajectoryTarget(fixed_reference);
 
-				if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold)
+				if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold) {
 					set_point = fixed_reference;
-				else
+					// debug direct target setpoint: %f, %f, %f, %f
+					RCLCPP_DEBUG(this->get_logger(), "direct target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+
+				} else {
 					set_point = stepMPC(veh_state, fixed_reference, true, false, cable_landing);
+					// debug target setpoint: %f, %f, %f, %f
+					RCLCPP_DEBUG(this->get_logger(), "target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+				}
 				//set_point = setPointSafetyMarginTruncate(set_point, veh_state, fixed_reference);
 
 			} else {
 
-				LOG_INFO("Not within safety margins, cancelling request");
+				RCLCPP_DEBUG(this->get_logger(), "Not within safety margins, cancelling request");
 
 				notifyCurrentRequest(cancel);
 
@@ -2380,13 +2707,20 @@ void TrajectoryController::stateMachineCallback() {
 
 	case on_cable_armed:
 
+		// debug in on cable armed
+		RCLCPP_DEBUG(this->get_logger(), "in on cable armed");
+
 		if (!offboard || !armed) {
+
+			RCLCPP_DEBUG(this->get_logger(), "Going to init state because vehicle not in offboard");
 
 			rejectPendingRequest();
 
 			state_ = init;
 
 		} else if (tryPendingRequest(cable_takeoff_request, if_match, if_match)) {
+
+			RCLCPP_DEBUG(this->get_logger(), "Going to state during cable takeoff");
 
 			cable_takeoff_request_params_t *request_params = (cable_takeoff_request_params_t *)request.request_params;
 			target_cable_distance = request_params->target_cable_distance;
@@ -2400,10 +2734,15 @@ void TrajectoryController::stateMachineCallback() {
 
 			state4_t target_cable = loadTargetCableState();
 
-			if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold)
+			if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold) {
 				set_point = fixed_reference;
-			else
+				// debug direct target setpoint: %f, %f, %f, %f
+				RCLCPP_DEBUG(this->get_logger(), "direct target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+			} else {
 				set_point = stepMPC(veh_state, fixed_reference, true, true, cable_takeoff);
+				// debug target setpoint: %f, %f, %f, %f
+				RCLCPP_DEBUG(this->get_logger(), "target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+			}
 			set_point = setPointSafetyMarginTruncate(set_point, veh_state, target_cable);
 
 			state_ = during_cable_takeoff;
@@ -2420,13 +2759,22 @@ void TrajectoryController::stateMachineCallback() {
 				set_point(i+8) = NAN;
 
 			}
+
+			// debug stay on cable, setpoint: %f, %f, %f, %f
+			RCLCPP_DEBUG(this->get_logger(), "stay on cable, setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
 		}
 
 		break;
 
 	case during_cable_takeoff:
 
+		// debug in during cable takeoff
+		RCLCPP_DEBUG(this->get_logger(), "in during cable takeoff");
+
 		if (!offboard || !armed) {
+
+			// debug Going to init state because vehicle not in offboard
+			RCLCPP_DEBUG(this->get_logger(), "Going to init state because vehicle not in offboard");
 
 			notifyCurrentRequest(fail);
 			rejectPendingRequest();
@@ -2434,6 +2782,9 @@ void TrajectoryController::stateMachineCallback() {
 			state_ = init;
 
 		} else if (currentRequestIsCancelled(if_match, if_match)) {
+
+			// debug Going to on cable armed state because request was cancelled
+			RCLCPP_DEBUG(this->get_logger(), "Going to on hovering state because request was cancelled");
 
 			fixed_reference = setZeroVelocity(veh_state); // For explicability
 
@@ -2448,6 +2799,9 @@ void TrajectoryController::stateMachineCallback() {
 
 		} else if (reachedPosition(veh_state, fixed_reference)) {
 
+			// debug Going to on hovering state because request was completed
+			RCLCPP_DEBUG(this->get_logger(), "Going to on hovering state because request was completed");
+
 			notifyCurrentRequest(success);
 
 			clearPlannedTrajectory();
@@ -2460,15 +2814,26 @@ void TrajectoryController::stateMachineCallback() {
 
 		} else {
 
+			// debug during cable takeoff
+			RCLCPP_DEBUG(this->get_logger(), "during cable takeoff");
+
 			rejectPendingRequest();
 
 			state4_t target_cable = loadTargetCableState();
 
-			if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold)
+			if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold) {
 				set_point = fixed_reference;
-			else
+				// debug direct target setpoint: %f, %f, %f, %f
+				RCLCPP_DEBUG(this->get_logger(), "direct target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+			} else {
 				set_point = stepMPC(veh_state, fixed_reference, true, false, cable_takeoff);
+				// debug target setpoint: %f, %f, %f, %f
+				RCLCPP_DEBUG(this->get_logger(), "target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+			}
 			set_point = setPointSafetyMarginTruncate(set_point, veh_state, target_cable);
+
+			// debug truncated setpoint: %f, %f, %f, %f
+			RCLCPP_DEBUG(this->get_logger(), "truncated setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
 
 		}
 
