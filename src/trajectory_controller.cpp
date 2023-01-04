@@ -31,7 +31,12 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 
 	this->declare_parameter<float>("max_acceleration", 1.);
 
-	this->declare_parameter<double>("MPC_dt", 0.2);
+	this->declare_parameter<double>("dt", 0.2);
+
+	this->declare_parameter<double>("cartesian_PID_Kp", 0.1);
+	this->declare_parameter<double>("cartesian_PID_Ki", 0.1);
+	this->declare_parameter<double>("cartesian_PID_Kd", 0.1);
+
 	this->declare_parameter<int>("MPC_N", 10);
 	this->declare_parameter<bool>("MPC_use_state_feedback", true);
 
@@ -1329,6 +1334,8 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalCableTakeoff(
 		return rclcpp_action::GoalResponse::REJECT;
 	}
 
+	target_cable_distance_ = target_cable_distance;
+
 	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)uuid;
 
 	cable_takeoff_request_params_t *params = new cable_takeoff_request_params_t;
@@ -1638,6 +1645,8 @@ void TrajectoryController::stateMachineCallback() {
 
 		}
 
+		return false;
+
 	};
 
 	auto setZeroVelocity = [](state4_t state) -> state4_t {
@@ -1669,6 +1678,19 @@ void TrajectoryController::stateMachineCallback() {
 		}
 
 		return state;
+
+	};
+
+	auto setVelocityControl = [](state4_t fixed_reference, vector_t vel_control) -> state4_t {
+
+		state4_t set_pt;
+
+		for (int i = 0; i < 3; i++) set_pt(i) = NAN;
+		set_pt(3) = fixed_reference(3);
+		for (int i = 0; i < 3; i++) set_pt(i+4) = vel_control(i);
+		for (int i = 7; i < 12; i++) set_pt(i) = NAN;
+
+		return set_pt;
 
 	};
 
@@ -1836,7 +1858,10 @@ void TrajectoryController::stateMachineCallback() {
 
 			fixed_reference = setZeroVelocity(veh_state);
 
-			set_point = fixed_reference;
+			setTrajectoryTarget(fixed_reference);
+
+			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+			set_point = setVelocityControl(fixed_reference, vel_control);
 
 			state_ = hovering;
 
@@ -1917,7 +1942,10 @@ void TrajectoryController::stateMachineCallback() {
 
 			fixed_reference = setZeroVelocity(veh_state);
 
-			set_point = fixed_reference;
+			setTrajectoryTarget(fixed_reference);
+
+			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+			set_point = setVelocityControl(fixed_reference, vel_control);
 
 			state_ = hovering;
 
@@ -1997,11 +2025,12 @@ void TrajectoryController::stateMachineCallback() {
 			// debug is offboard, taking off
 			RCLCPP_DEBUG(this->get_logger(), "is offboard, taking off");
 
-			fixed_reference = fixed_reference;
-
-			set_point = fixed_reference;
+			fixed_reference = setZeroVelocity(fixed_reference);
 
 			setTrajectoryTarget(fixed_reference);
+
+			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+			set_point = setVelocityControl(fixed_reference, vel_control);
 
 			state_ = taking_off;
 
@@ -2043,11 +2072,14 @@ void TrajectoryController::stateMachineCallback() {
 
 			notifyCurrentRequest(success);
 
+			clearPlannedTrajectory();
+
 			fixed_reference = fixed_reference; // For explicability
 
-			set_point = fixed_reference;
+			setTrajectoryTarget(fixed_reference);
 
-			clearPlannedTrajectory();
+			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+			set_point = setVelocityControl(fixed_reference, vel_control);
 
 			state_ = hovering;
 
@@ -2146,7 +2178,8 @@ void TrajectoryController::stateMachineCallback() {
 
 			rejectPendingRequest();
 
-			set_point = fixed_reference;
+			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, false);
+			set_point = setVelocityControl(fixed_reference, vel_control);
 
 		}
 
@@ -2214,9 +2247,12 @@ void TrajectoryController::stateMachineCallback() {
 			clearPlannedTrajectory();
 			clearTargetCable();
 
-			fixed_reference = setZeroVelocity(veh_state); // For explicability
+			fixed_reference = setZeroVelocity(veh_state);
 
-			set_point = fixed_reference;
+			setTrajectoryTarget(fixed_reference);
+
+			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+			set_point = setVelocityControl(fixed_reference, vel_control);
 
 			state_ = hovering;
 
@@ -2250,7 +2286,10 @@ void TrajectoryController::stateMachineCallback() {
 			setTrajectoryTarget(fixed_reference);
 
 			if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold) {
-				set_point = fixed_reference;
+				static bool first = true;
+				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, first);
+				set_point = setVelocityControl(fixed_reference, vel_control);
+				first = false;
 				// debug within direct target setpoint dist threshold, setting direct target setpoint
 				RCLCPP_DEBUG(this->get_logger(), "within direct target setpoint dist threshold, setting direct target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
 			} else {
@@ -2286,7 +2325,10 @@ void TrajectoryController::stateMachineCallback() {
 			if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold) {
 				// debug within direct target setpoint dist threshold, setting direct target setpoint: %f, %f, %f, %f
 				RCLCPP_DEBUG(this->get_logger(), "within direct target setpoint dist threshold, setting direct target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
-				set_point = fixed_reference;
+				static bool first = true;
+				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, first);
+				set_point = setVelocityControl(fixed_reference, vel_control);
+				first = false;
 			} else {
 				set_point = stepMPC(prev_veh_state, fixed_reference, true, true, positional);
 				// debug set point is: %f, %f, %f, %f
@@ -2367,11 +2409,12 @@ void TrajectoryController::stateMachineCallback() {
 
 			target_cable_cnt = updateTargetCablePose(veh_state) ? target_cable_cnt : target_cable_cnt-1;
 
-			fixed_reference = loadTargetUnderCableState();
+			fixed_reference = setZeroVelocity(loadTargetUnderCableState());
 
 			setTrajectoryTarget(fixed_reference);
 
-			set_point = fixed_reference;
+			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, false);
+			set_point = setVelocityControl(fixed_reference, vel_control);
 
 		}
 
@@ -2405,9 +2448,12 @@ void TrajectoryController::stateMachineCallback() {
 			clearPlannedTrajectory();
 			clearTargetCable();
 
-			fixed_reference = setZeroVelocity(veh_state); // For explicability
+			fixed_reference = setZeroVelocity(veh_state);
 
-			set_point = fixed_reference;
+			setTrajectoryTarget(fixed_reference);
+
+			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+			set_point = setVelocityControl(fixed_reference, vel_control);
 
 			state_ = hovering;
 
@@ -2416,12 +2462,15 @@ void TrajectoryController::stateMachineCallback() {
 			// debug current request is cancelled, aborting request, going to state hovering
 			RCLCPP_DEBUG(this->get_logger(), "current request is cancelled, aborting request, going to state hovering");
 
-		 	fixed_reference = setZeroVelocity(veh_state); // For explicability
+		 	fixed_reference = setZeroVelocity(veh_state);
 
 		 	clearPlannedTrajectory();
 			clearTargetCable();
 
-		 	set_point = fixed_reference;
+			setTrajectoryTarget(fixed_reference);
+
+			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+			set_point = setVelocityControl(fixed_reference, vel_control);
 
 		 	state_ = hovering;
 
@@ -2438,11 +2487,12 @@ void TrajectoryController::stateMachineCallback() {
 
 				target_cable_cnt = updateTargetCablePose(veh_state) ? target_cable_cnt : target_cable_cnt-1;
 
-				fixed_reference = loadTargetUnderCableState();
+				fixed_reference = setZeroVelocity(loadTargetUnderCableState());
 
 				setTrajectoryTarget(fixed_reference);
 
-				set_point = fixed_reference;
+				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+				set_point = setVelocityControl(fixed_reference, vel_control);
 				
 				state_ = hovering_under_cable;
 
@@ -2450,9 +2500,12 @@ void TrajectoryController::stateMachineCallback() {
 
 				clearPlannedTrajectory();
 
-				fixed_reference = setZeroVelocity(fixed_reference); // For explicability
+				fixed_reference = setZeroVelocity(fixed_reference);
 
-				set_point = fixed_reference;
+				setTrajectoryTarget(fixed_reference);
+
+				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+				set_point = setVelocityControl(fixed_reference, vel_control);
 
 				state_ = hovering;
 
@@ -2477,7 +2530,12 @@ void TrajectoryController::stateMachineCallback() {
 			}
 
 			if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold) {
-				set_point = fixed_reference;
+				static bool first_time = true;
+
+				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, first_time);
+				set_point = setVelocityControl(fixed_reference, vel_control);
+
+				first_time = false;
 				// debug direct target setpoint: %f, %f, %f, %f
 				RCLCPP_DEBUG(this->get_logger(), "direct target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
 			} else {
@@ -2514,9 +2572,12 @@ void TrajectoryController::stateMachineCallback() {
 			clearPlannedTrajectory();
 			clearTargetCable();
 
-			fixed_reference = setZeroVelocity(veh_state); // For explicability
+			fixed_reference = setZeroVelocity(veh_state);
 
-			set_point = fixed_reference;
+			setTrajectoryTarget(fixed_reference);
+
+			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+			set_point = setVelocityControl(fixed_reference, vel_control);
 
 			state_ = hovering;
 
@@ -2531,11 +2592,12 @@ void TrajectoryController::stateMachineCallback() {
 
 			target_cable_cnt = updateTargetCablePose(veh_state) ? target_cable_cnt : target_cable_cnt-1;
 
-			fixed_reference = loadTargetUnderCableState();
+			fixed_reference = setZeroVelocity(loadTargetUnderCableState());
 
 			setTrajectoryTarget(fixed_reference);
 
-			set_point = fixed_reference;
+			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+			set_point = setVelocityControl(fixed_reference, vel_control);
 			
 			state_ = hovering_under_cable;
 
@@ -2548,11 +2610,12 @@ void TrajectoryController::stateMachineCallback() {
 
 			target_cable_cnt = updateTargetCablePose(veh_state) ? target_cable_cnt : target_cable_cnt-1;
 
-			fixed_reference = loadTargetUnderCableState();
+			fixed_reference = setZeroVelocity(loadTargetUnderCableState());
 
 			setTrajectoryTarget(fixed_reference);
 
-			set_point = fixed_reference;
+			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+			set_point = setVelocityControl(fixed_reference, vel_control);
 			
 			state_ = hovering_under_cable;
 
@@ -2622,7 +2685,10 @@ void TrajectoryController::stateMachineCallback() {
 
 			fixed_reference = setZeroVelocity(veh_state);
 
-			set_point = fixed_reference;
+			setTrajectoryTarget(fixed_reference);
+
+			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+			set_point = setVelocityControl(fixed_reference, vel_control);
 
 			state_ = hovering;
 
@@ -2634,9 +2700,15 @@ void TrajectoryController::stateMachineCallback() {
 
 			clearPlannedTrajectory();
 
-			fixed_reference = setZeroVelocity(fixed_reference); // For explicability
+			fixed_reference = setZeroVelocity(fixed_reference);
 
-			set_point = fixed_reference;
+			for (int i = 0; i < 4; i++) {
+
+				set_point(i) = NAN;
+				set_point(i+4) = 0;
+				set_point(i+8) = NAN;
+
+			}
 
 			state_ = on_cable_armed;
 
@@ -2649,9 +2721,12 @@ void TrajectoryController::stateMachineCallback() {
 			clearPlannedTrajectory();
 			clearTargetCable();
 
-			fixed_reference = setZeroVelocity(veh_state); // For explicability
+			fixed_reference = setZeroVelocity(veh_state);
 
-			set_point = fixed_reference;
+			setTrajectoryTarget(fixed_reference);
+
+			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+			set_point = setVelocityControl(fixed_reference, vel_control);
 
 			state_ = hovering;
 
@@ -2669,7 +2744,7 @@ void TrajectoryController::stateMachineCallback() {
 
 				RCLCPP_DEBUG(this->get_logger(), "Within safety margins, stepping MPC");
 
-				fixed_reference = target_cable;
+				fixed_reference = setZeroVelocity(target_cable);
 
 				setTrajectoryTarget(fixed_reference);
 
@@ -2696,7 +2771,10 @@ void TrajectoryController::stateMachineCallback() {
 
 				fixed_reference = setZeroVelocity(veh_state);
 
-				set_point = fixed_reference;
+				setTrajectoryTarget(fixed_reference);
+
+				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+				set_point = setVelocityControl(fixed_reference, vel_control);
 
 				state_ = hovering;
 
@@ -2729,6 +2807,8 @@ void TrajectoryController::stateMachineCallback() {
 
 			fixed_reference = veh_state;
 			fixed_reference(2) -= target_cable_distance;
+
+			fixed_reference = setZeroVelocity(fixed_reference);
 
 			setTrajectoryTarget(fixed_reference);
 
@@ -2786,14 +2866,17 @@ void TrajectoryController::stateMachineCallback() {
 			// debug Going to on cable armed state because request was cancelled
 			RCLCPP_DEBUG(this->get_logger(), "Going to on hovering state because request was cancelled");
 
-			fixed_reference = setZeroVelocity(veh_state); // For explicability
+			fixed_reference = setNanVelocity(veh_state); // For explicability
 
 			clearPlannedTrajectory(); // Also clear macro trajectory
 			clearTargetCable();
 
 			fixed_reference = setZeroVelocity(veh_state);
 
-			set_point = fixed_reference;
+			setTrajectoryTarget(fixed_reference);
+
+			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+			set_point = setVelocityControl(fixed_reference, vel_control);
 
 			state_ = hovering;
 
@@ -2806,11 +2889,16 @@ void TrajectoryController::stateMachineCallback() {
 
 			clearPlannedTrajectory();
 
-			fixed_reference = setZeroVelocity(fixed_reference); // For explicability
+			target_cable_cnt = updateTargetCablePose(veh_state) ? target_cable_cnt : target_cable_cnt-1;
 
-			set_point = fixed_reference;
+			fixed_reference = setZeroVelocity(loadTargetUnderCableState());
 
-			state_ = hovering;
+			setTrajectoryTarget(fixed_reference);
+
+			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+			set_point = setVelocityControl(fixed_reference, vel_control);
+			
+			state_ = hovering_under_cable;
 
 		} else {
 
@@ -2822,7 +2910,8 @@ void TrajectoryController::stateMachineCallback() {
 			state4_t target_cable = loadTargetCableState();
 
 			if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold) {
-				set_point = fixed_reference;
+				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+				set_point = setVelocityControl(fixed_reference, vel_control);
 				// debug direct target setpoint: %f, %f, %f, %f
 				RCLCPP_DEBUG(this->get_logger(), "direct target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
 			} else {
@@ -3141,7 +3230,7 @@ void TrajectoryController::publishTrajectorySetpoint(state4_t set_point) const {
 	msg.yaw = yaw;
 	msg.yawspeed = yaw_rate;
 
-	RCLCPP_DEBUG(this->get_logger(),  "\n Publishing trajectory setpoint: \n x: %f, y: %f, z: %f, yaw: %f, vx: %f, vy: %f, vz: %f, yawspeed: %f",
+	RCLCPP_DEBUG(this->get_logger(),  "Publishing trajectory setpoint: \n x: %f, y: %f, z: %f, yaw: %f, vx: %f, vy: %f, vz: %f, yawspeed: %f",
 		pos(0), pos(1), pos(2), yaw, vel(0), vel(1), vel(2), yaw_rate);
 	//msg.acceleration	// in meters/sec^2
 	//msg.jerk			// in meters/sec^3
@@ -3163,7 +3252,8 @@ void TrajectoryController::publishPlannedTrajectory() {
 		target = loadVehiclePose();
 		path.poses.push_back(target);
 
-		if (state_ == arming || state_ == setting_offboard || state_ == taking_off || state_ == hovering_under_cable) {
+		if (state_ == arming || state_ == setting_offboard || state_ == taking_off || state_ == hovering_under_cable || state_ == flying_along_cable \
+			|| state_ == during_cable_takeoff || state_ == during_cable_landing || state_ == on_cable_armed || state_ == hovering) {
 
 			target = loadPlannedTarget();
 
@@ -3740,6 +3830,56 @@ state4_t TrajectoryController::loadTargetFlyAlongCableState(float velocity, floa
 
 }
 
+vector_t TrajectoryController::stepCartesianVelocityPID(state4_t vehicle_state, state4_t target_state, bool reset) {
+
+	// Variables:
+	static bool first = true;
+
+	static vector_t prev_error;
+
+	static vector_t integral_error;
+
+	static vector_t derivative_error;
+
+	static const vector_t zero_vec(0,0,0);
+
+	double dt;
+	this->get_parameter("dt", dt);
+
+	double Kp, Ki, Kd;
+	this->get_parameter("cartesian_PID_Kp", Kp);
+	this->get_parameter("cartesian_PID_Ki", Ki);
+	this->get_parameter("cartesian_PID_Kd", Kd);
+
+	// Init:
+	vector_t target = target_state.head(3);
+	vector_t pos = vehicle_state.head(3);
+
+	// Compute error:
+	vector_t error = target - pos;
+
+	if (first || reset) {
+		prev_error = error;
+		integral_error = zero_vec;
+		derivative_error = zero_vec;
+	}
+
+	integral_error += error*dt;
+	derivative_error = (error - prev_error)/dt;
+
+	// Compute control:
+	vector_t control = Kp*error + Ki*integral_error + Kd*derivative_error;
+
+	// Update:
+	prev_error = error;
+
+	first = false;
+
+	// Return:
+	return control;
+
+}
+
 state4_t TrajectoryController::stepMPC(state4_t vehicle_state, state4_t target_state, bool set_target, bool reset, MPC_mode_t mpc_mode) {
 
 	// Variables:
@@ -3797,7 +3937,7 @@ state4_t TrajectoryController::stepMPC(state4_t vehicle_state, state4_t target_s
 
 	if (reset_trajectory) {
 
-		this->get_parameter("position_MPC_dt", dt);
+		this->get_parameter("dt", dt);
 		this->get_parameter("MPC_use_state_feedback", use_state_feedback);
 
 	}
@@ -4024,7 +4164,7 @@ void TrajectoryController::threadFunctionMPC(double *x, double *u, double *plann
 
 void TrajectoryController::loadPeriodMPC(MPC_parameters_t &mpc_params, MPC_mode_t mpc_mode) {
 
-	this->get_parameter("MPC_dt", mpc_params.dt);
+	this->get_parameter("dt", mpc_params.dt);
 
 }
 

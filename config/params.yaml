@@ -93,7 +93,10 @@ trajectory_controller:
       target_cable_safety_margin_max_yaw_velocity: 1.570796327
       target_cable_set_point_truncate_distance_threshold: 0.25
       max_acceleration: 1.
-      MPC_dt: 0.2
+      dt: 0.2
+      cartesian_PID_Kp: 1.5
+      cartesian_PID_Ki: 0.2
+      cartesian_PID_Kd: 0.2
       MPC_N: 10
       MPC_use_state_feedback: false
       direct_target_setpoint_dist_threshold: 0.05

@@ -18,7 +18,8 @@ def generate_launch_description():
     trajectory_controller = Node(
         package="iii_drone",
         executable="trajectory_controller",
-        parameters=[config]
+        parameters=[config],
+        arguments=["--ros-args", "--log-level", "trajectory_controller.trajectory_controller:=debug"]
     )
 
     return LaunchDescription([

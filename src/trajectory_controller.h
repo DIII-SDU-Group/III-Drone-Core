@@ -442,6 +442,8 @@ private:
 	state4_t loadTargetFlyAlongCableState(float velocity, float distance_left, 
 		bool inverse_direction, state4_t prev_fly_along_state, bool first);
 
+	vector_t stepCartesianVelocityPID(state4_t vehicle_state, state4_t target_state, bool reset);
+
 	state4_t stepMPC(state4_t vehicle_state, state4_t target_state, bool set_target, bool reset, MPC_mode_t mpc_mode);
 	void threadFunctionMPC(double *x, double *u, double *planned_traj, double *target, 
 		int reset_target, int reset_trajectory, int reset_bounds, int reset_weights, MPC_mode_t mpc_mode);
