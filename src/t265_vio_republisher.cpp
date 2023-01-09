@@ -240,42 +240,40 @@ private:
 
         // quat_t q_NED = quatMultiply(q_NWU_to_NED, q_NWU);
 
-        rotation_matrix_t R_180_yaw = eulToR(orientation_t(0,0,M_PI));
+        rotation_matrix_t R_fmu_to_T265 = eulToR(orientation_t(0,M_PI,0));
 
-        vector_t pos_NED(
+        vector_t pos_FMU(
             odom.pose.pose.position.x,
-            -odom.pose.pose.position.y,
-            -odom.pose.pose.position.z
+            odom.pose.pose.position.y,
+            odom.pose.pose.position.z
         );
 
-        pos_NED = R_180_yaw * pos_NED;
+        pos_FMU = R_fmu_to_T265 * pos_FMU;
 
-        quat_t q_NWU(
+        quat_t q_FMU(
             odom.pose.pose.orientation.w,
             odom.pose.pose.orientation.x,
             odom.pose.pose.orientation.y,
             odom.pose.pose.orientation.z
         );
 
-        orientation_t eul_NWU = quatToEul(q_NWU);
+        q_FMU = matToQuat(R_fmu_to_T265) * q_FMU;
 
-        orientation_t eul_NED(-eul_NWU(0), eul_NWU(1), -eul_NWU(2));
-
-        quat_t q_NED = eulToQuat(eul_NED);
-
-        vector_t vel_NED(
+        vector_t vel_FMU(
             odom.twist.twist.linear.x,
-            -odom.twist.twist.linear.y,
-            -odom.twist.twist.linear.z
+            odom.twist.twist.linear.y,
+            odom.twist.twist.linear.z
         );
 
-        vel_NED = R_180_yaw * vel_NED;
+        vel_FMU = R_fmu_to_T265 * vel_FMU;
 
-        orientation_t ang_rate_NED(
-            -odom.twist.twist.angular.x,
+        orientation_t ang_rate_FMU(
+            odom.twist.twist.angular.x,
             odom.twist.twist.angular.y,
-            -odom.twist.twist.angular.z
+            odom.twist.twist.angular.z
         );
+
+        ang_rate_FMU = quatToEul(matToQuat(R_fmu_to_T265 * eulToR(ang_rate_FMU)));
 
         // Fill the message
 
@@ -284,26 +282,26 @@ private:
         msg_out.timestamp = timestamp_.load();
         msg_out.local_frame = px4_msgs::msg::VehicleVisualOdometry::LOCAL_FRAME_NED;
 
-        msg_out.x = pos_NED(0);
-        msg_out.y = pos_NED(1);
-        msg_out.z = pos_NED(2);
+        msg_out.x = pos_FMU(0);
+        msg_out.y = pos_FMU(1);
+        msg_out.z = pos_FMU(2);
 
-        msg_out.q[0] = q_NED(0);
-        msg_out.q[1] = q_NED(1);
-        msg_out.q[2] = q_NED(2);
-        msg_out.q[3] = q_NED(3);
+        msg_out.q[0] = q_FMU(0);
+        msg_out.q[1] = q_FMU(1);
+        msg_out.q[2] = q_FMU(2);
+        msg_out.q[3] = q_FMU(3);
 
         for (int i = 0; i < 21; i++) {
             msg_out.pose_covariance[i] = NAN;
         }
 
-        msg_out.vx = vel_NED(0);
-        msg_out.vy = vel_NED(1);
-        msg_out.vz = vel_NED(2);
+        msg_out.vx = vel_FMU(0);
+        msg_out.vy = vel_FMU(1);
+        msg_out.vz = vel_FMU(2);
 
-        msg_out.rollspeed = ang_rate_NED(0);
-        msg_out.pitchspeed = ang_rate_NED(1);
-        msg_out.yawspeed = ang_rate_NED(2);
+        msg_out.rollspeed = ang_rate_FMU(0);
+        msg_out.pitchspeed = ang_rate_FMU(1);
+        msg_out.yawspeed = ang_rate_FMU(2);
         
         for (int i = 0; i < 21; i++) {
             msg_out.velocity_covariance[i] = NAN;
