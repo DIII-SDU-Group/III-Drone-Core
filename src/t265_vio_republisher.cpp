@@ -4,6 +4,7 @@
 
 #include <px4_msgs/msg/vehicle_visual_odometry.hpp>
 #include <px4_msgs/msg/timesync.hpp>
+#include <px4_msgs/msg/vehicle_odometry.hpp>
 
 #include <nav_msgs/msg/odometry.hpp>
 
@@ -53,11 +54,20 @@ public:
         odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("odometry_out", 10);
 
         // get common timestamp
-        timesync_sub_ = this->create_subscription<px4_msgs::msg::Timesync>(
-            "/fmu/timesync/out",
+        // timesync_sub_ = this->create_subscription<px4_msgs::msg::Timesync>(
+        //     "/fmu/timesync/out",
+        //     10,
+        //     [this](const px4_msgs::msg::Timesync::UniquePtr msg) {
+        //         timestamp_.store(msg->timestamp);
+        //     }
+        // );
+
+        odom_sub_ = this->create_subscription<px4_msgs::msg::VehicleOdometry>(
+            "/fmu/vehicle_odometry/out",
             10,
-            [this](const px4_msgs::msg::Timesync::UniquePtr msg) {
+            [this](const px4_msgs::msg::VehicleOdometry::UniquePtr msg) {
                 timestamp_.store(msg->timestamp);
+                timestamp_sample_.store(msg->timestamp_sample);
             }
         );
 
@@ -280,6 +290,7 @@ private:
         px4_msgs::msg::VehicleVisualOdometry msg_out = px4_msgs::msg::VehicleVisualOdometry();
 
         msg_out.timestamp = timestamp_.load();
+        msg_out.timestamp_sample = timestamp_sample_.load();
         msg_out.local_frame = px4_msgs::msg::VehicleVisualOdometry::LOCAL_FRAME_NED;
 
         msg_out.x = pos_FMU(0);
@@ -319,12 +330,14 @@ private:
     // Subscriber
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr sub_;
 	rclcpp::Subscription<px4_msgs::msg::Timesync>::SharedPtr timesync_sub_;
+    rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr odom_sub_;
 
     // ROS2 tf members
     std::shared_ptr<tf2_ros::TransformListener> transform_listener_{nullptr};
     std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
 
 	std::atomic<uint64_t> timestamp_;   //!< common synced timestamped
+	std::atomic<uint64_t> timestamp_sample_;   //!< common synced timestamped
 
 };
 
