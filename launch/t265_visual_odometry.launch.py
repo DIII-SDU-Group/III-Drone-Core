@@ -42,6 +42,11 @@ def generate_launch_description():
         executable="static_transform_publisher",
         arguments=["0", "0", "0", "0", "0", "0", t265_world_frame_id, "odom_frame"]
     )
+
+    t265 = Node(
+        package="realsense2_camera",
+        executable="rs_launch.py"
+    )
     
 
     t265_vio_republisher = Node(
@@ -54,5 +59,6 @@ def generate_launch_description():
         tf_drone_to_t265,
         tf_world_to_t265_world,
         tf_t265_world_to_odom_frame,
+        t265,
         t265_vio_republisher
     ])
