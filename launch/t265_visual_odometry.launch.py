@@ -43,9 +43,10 @@ def generate_launch_description():
         arguments=["0", "0", "0", "0", "0", "0", t265_world_frame_id, "odom_frame"]
     )
 
-    t265 = Node(
-        package="realsense2_camera",
-        executable="rs_launch.py"
+    realsense_share_dir = get_package_share_directory('realsense2_camera')
+
+    t265 = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(PathJoinSubstitution([realsense_share_dir, 'launch', 'rs_launch.py'])),
     )
     
 
