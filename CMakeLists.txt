@@ -47,6 +47,7 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(image_transport REQUIRED)
+find_package(nav_msgs REQUIRED)
 
 add_executable(trajectory_controller 
   src/trajectory_controller.cpp
@@ -171,6 +172,22 @@ ament_target_dependencies(depth_cam_to_mmwave
   pcl_conversions
 )
 install(TARGETS depth_cam_to_mmwave DESTINATION lib/${PROJECT_NAME})
+
+add_executable(t265_vio_republisher 
+  src/t265_vio_republisher.cpp
+  src/geometry.cpp
+)
+ament_target_dependencies(t265_vio_republisher
+  rclcpp
+  sensor_msgs
+  geometry_msgs
+  nav_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  px4_msgs
+)
+install(TARGETS t265_vio_republisher DESTINATION lib/${PROJECT_NAME})
 
 ############
 # Install ##

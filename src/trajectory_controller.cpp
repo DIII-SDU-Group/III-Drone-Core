@@ -33,6 +33,8 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 
 	this->declare_parameter<double>("dt", 0.2);
 
+	this->declare_parameter<bool>("use_cartesian_PID", true);
+
 	this->declare_parameter<double>("cartesian_PID_Kp", 0.1);
 	this->declare_parameter<double>("cartesian_PID_Ki", 0.1);
 	this->declare_parameter<double>("cartesian_PID_Kd", 0.1);
@@ -1497,6 +1499,9 @@ void TrajectoryController::stateMachineCallback() {
 	float direct_target_setpoint_dist_threshold;
 	this->get_parameter("direct_target_setpoint_dist_threshold", direct_target_setpoint_dist_threshold);
 
+	bool use_cartesian_PID;
+	this->get_parameter("use_cartesian_PID", use_cartesian_PID);
+
 	static state4_t prev_veh_state;
 	static state4_t veh_state;
 	prev_veh_state = veh_state;
@@ -1860,8 +1865,16 @@ void TrajectoryController::stateMachineCallback() {
 
 			setTrajectoryTarget(fixed_reference);
 
-			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
-			set_point = setVelocityControl(fixed_reference, vel_control);
+			if (use_cartesian_PID) {
+
+				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+				set_point = setVelocityControl(fixed_reference, vel_control);
+
+			} else {
+
+				set_point = setNanVelocity(fixed_reference);
+
+			}
 
 			state_ = hovering;
 
@@ -1944,8 +1957,16 @@ void TrajectoryController::stateMachineCallback() {
 
 			setTrajectoryTarget(fixed_reference);
 
-			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
-			set_point = setVelocityControl(fixed_reference, vel_control);
+			if (use_cartesian_PID) {
+
+				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+				set_point = setVelocityControl(fixed_reference, vel_control);
+
+			} else {
+
+				set_point = setNanVelocity(fixed_reference);
+
+			}
 
 			state_ = hovering;
 
@@ -2029,8 +2050,16 @@ void TrajectoryController::stateMachineCallback() {
 
 			setTrajectoryTarget(fixed_reference);
 
-			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
-			set_point = setVelocityControl(fixed_reference, vel_control);
+			if (use_cartesian_PID) {
+
+				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+				set_point = setVelocityControl(fixed_reference, vel_control);
+
+			} else {
+
+				set_point = setNanVelocity(fixed_reference);
+
+			}
 
 			state_ = taking_off;
 
@@ -2078,8 +2107,16 @@ void TrajectoryController::stateMachineCallback() {
 
 			setTrajectoryTarget(fixed_reference);
 
-			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
-			set_point = setVelocityControl(fixed_reference, vel_control);
+			if (use_cartesian_PID) {
+
+				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+				set_point = setVelocityControl(fixed_reference, vel_control);
+
+			} else {
+
+				set_point = setNanVelocity(fixed_reference);
+
+			}
 
 			state_ = hovering;
 
@@ -2178,8 +2215,16 @@ void TrajectoryController::stateMachineCallback() {
 
 			rejectPendingRequest();
 
-			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, false);
-			set_point = setVelocityControl(fixed_reference, vel_control);
+			if (use_cartesian_PID) {
+
+				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, false);
+				set_point = setVelocityControl(fixed_reference, vel_control);
+
+			} else {
+
+				set_point = setNanVelocity(fixed_reference);
+
+			}
 
 		}
 
@@ -2251,8 +2296,16 @@ void TrajectoryController::stateMachineCallback() {
 
 			setTrajectoryTarget(fixed_reference);
 
-			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
-			set_point = setVelocityControl(fixed_reference, vel_control);
+			if (use_cartesian_PID) {
+
+				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+				set_point = setVelocityControl(fixed_reference, vel_control);
+
+			} else {
+
+				set_point = setNanVelocity(fixed_reference);
+
+			}
 
 			state_ = hovering;
 
@@ -2286,10 +2339,18 @@ void TrajectoryController::stateMachineCallback() {
 			setTrajectoryTarget(fixed_reference);
 
 			if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold) {
-				static bool first = true;
-				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, first);
-				set_point = setVelocityControl(fixed_reference, vel_control);
-				first = false;
+				
+				if (use_cartesian_PID) {
+
+					vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+					set_point = setVelocityControl(fixed_reference, vel_control);
+
+				} else {
+
+					set_point = setNanVelocity(fixed_reference);
+
+				}
+
 				// debug within direct target setpoint dist threshold, setting direct target setpoint
 				RCLCPP_DEBUG(this->get_logger(), "within direct target setpoint dist threshold, setting direct target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
 			} else {
@@ -2325,10 +2386,18 @@ void TrajectoryController::stateMachineCallback() {
 			if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold) {
 				// debug within direct target setpoint dist threshold, setting direct target setpoint: %f, %f, %f, %f
 				RCLCPP_DEBUG(this->get_logger(), "within direct target setpoint dist threshold, setting direct target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
-				static bool first = true;
-				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, first);
-				set_point = setVelocityControl(fixed_reference, vel_control);
-				first = false;
+				
+				if (use_cartesian_PID) {
+
+					vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+					set_point = setVelocityControl(fixed_reference, vel_control);
+
+				} else {
+
+					set_point = setNanVelocity(fixed_reference);
+
+				}
+
 			} else {
 				set_point = stepMPC(prev_veh_state, fixed_reference, true, true, positional);
 				// debug set point is: %f, %f, %f, %f
@@ -2413,8 +2482,16 @@ void TrajectoryController::stateMachineCallback() {
 
 			setTrajectoryTarget(fixed_reference);
 
-			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, false);
-			set_point = setVelocityControl(fixed_reference, vel_control);
+			if (use_cartesian_PID) {
+
+				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, false);
+				set_point = setVelocityControl(fixed_reference, vel_control);
+
+			} else {
+
+				set_point = setNanVelocity(fixed_reference);
+
+			}
 
 		}
 
@@ -2452,8 +2529,17 @@ void TrajectoryController::stateMachineCallback() {
 
 			setTrajectoryTarget(fixed_reference);
 
-			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
-			set_point = setVelocityControl(fixed_reference, vel_control);
+			if (use_cartesian_PID) {
+
+				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+				set_point = setVelocityControl(fixed_reference, vel_control);
+
+			} else {
+
+				set_point = setNanVelocity(fixed_reference);
+
+			}
+
 
 			state_ = hovering;
 
@@ -2469,8 +2555,16 @@ void TrajectoryController::stateMachineCallback() {
 
 			setTrajectoryTarget(fixed_reference);
 
-			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
-			set_point = setVelocityControl(fixed_reference, vel_control);
+			if (use_cartesian_PID) {
+
+				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+				set_point = setVelocityControl(fixed_reference, vel_control);
+
+			} else {
+
+				set_point = setNanVelocity(fixed_reference);
+
+			}
 
 		 	state_ = hovering;
 
@@ -2491,8 +2585,16 @@ void TrajectoryController::stateMachineCallback() {
 
 				setTrajectoryTarget(fixed_reference);
 
-				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
-				set_point = setVelocityControl(fixed_reference, vel_control);
+				if (use_cartesian_PID) {
+
+					vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+					set_point = setVelocityControl(fixed_reference, vel_control);
+
+				} else {
+
+					set_point = setNanVelocity(fixed_reference);
+
+				}
 				
 				state_ = hovering_under_cable;
 
@@ -2504,8 +2606,16 @@ void TrajectoryController::stateMachineCallback() {
 
 				setTrajectoryTarget(fixed_reference);
 
-				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
-				set_point = setVelocityControl(fixed_reference, vel_control);
+				if (use_cartesian_PID) {
+
+					vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+					set_point = setVelocityControl(fixed_reference, vel_control);
+
+				} else {
+
+					set_point = setNanVelocity(fixed_reference);
+
+				}
 
 				state_ = hovering;
 
@@ -2530,12 +2640,17 @@ void TrajectoryController::stateMachineCallback() {
 			}
 
 			if ((fixed_reference(0)-veh_state(0))*(fixed_reference(0)-veh_state(0)) + (fixed_reference(1)-veh_state(1))*(fixed_reference(1)-veh_state(1)) < direct_target_setpoint_dist_threshold) {
-				static bool first_time = true;
+				if (use_cartesian_PID) {
 
-				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, first_time);
-				set_point = setVelocityControl(fixed_reference, vel_control);
+					vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+					set_point = setVelocityControl(fixed_reference, vel_control);
 
-				first_time = false;
+				} else {
+
+					set_point = setNanVelocity(fixed_reference);
+
+				}
+
 				// debug direct target setpoint: %f, %f, %f, %f
 				RCLCPP_DEBUG(this->get_logger(), "direct target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
 			} else {
@@ -2576,8 +2691,16 @@ void TrajectoryController::stateMachineCallback() {
 
 			setTrajectoryTarget(fixed_reference);
 
-			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
-			set_point = setVelocityControl(fixed_reference, vel_control);
+			if (use_cartesian_PID) {
+
+				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+				set_point = setVelocityControl(fixed_reference, vel_control);
+
+			} else {
+
+				set_point = setNanVelocity(fixed_reference);
+
+			}
 
 			state_ = hovering;
 
@@ -2596,8 +2719,16 @@ void TrajectoryController::stateMachineCallback() {
 
 			setTrajectoryTarget(fixed_reference);
 
-			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
-			set_point = setVelocityControl(fixed_reference, vel_control);
+			if (use_cartesian_PID) {
+
+				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+				set_point = setVelocityControl(fixed_reference, vel_control);
+
+			} else {
+
+				set_point = setNanVelocity(fixed_reference);
+
+			}
 			
 			state_ = hovering_under_cable;
 
@@ -2614,8 +2745,16 @@ void TrajectoryController::stateMachineCallback() {
 
 			setTrajectoryTarget(fixed_reference);
 
-			vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
-			set_point = setVelocityControl(fixed_reference, vel_control);
+			if (use_cartesian_PID) {
+
+				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+				set_point = setVelocityControl(fixed_reference, vel_control);
+
+			} else {
+
+				set_point = setNanVelocity(fixed_reference);
+
+			}
 			
 			state_ = hovering_under_cable;
 

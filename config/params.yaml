@@ -94,6 +94,7 @@ trajectory_controller:
       target_cable_set_point_truncate_distance_threshold: 0.25
       max_acceleration: 1.
       dt: 0.2
+      use_cartesian_PID: false
       cartesian_PID_Kp: 1.5
       cartesian_PID_Ki: 0.2
       cartesian_PID_Kd: 0.2
@@ -159,10 +160,13 @@ trajectory_controller:
   ros__parameters:
     world_frame_id: "world"
     drone_frame_id: "drone"
+    fmu_frame_id: "fmu"
     cable_drum_frame_id: "cable_drum"
     cable_gripper_frame_id: "cable_gripper"
     mmwave_frame_id: "mmwave"
     depth_cam_frame_id: "depth_cam"
+    t265_world_frame_id: "t265_world"
+    t265_camera_frame_id: "t265_camera"
 
 tf:
   sim:
@@ -176,4 +180,6 @@ tf:
       drone_to_cable_drum: [-0.13, -0.01, -0.09, 3.1415, 0.0, 0.0]
       drone_to_cable_gripper: [0.0, 0.0, 0.13, 1.57079632679, 0.0, 0.0]
       drone_to_mmwave: [0.0375, -0.23, 0.0725, 0.0, 0.0, 1.57079632679] 
+      drone_to_t265: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      world_to_t265_world: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
       
