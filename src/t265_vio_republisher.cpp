@@ -257,7 +257,7 @@ private:
             odom.pose.pose.orientation.z
         );
 
-        q_FMU = matToQuat(R_fmu_to_T265) * q_FMU;
+        q_FMU = quatMultiply(matToQuat(R_fmu_to_T265), q_FMU);
 
         vector_t vel_FMU(
             odom.twist.twist.linear.x,
