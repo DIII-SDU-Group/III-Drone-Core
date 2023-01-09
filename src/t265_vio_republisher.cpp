@@ -75,170 +75,204 @@ private:
     {
         RCLCPP_INFO(this->get_logger(), "Callback function called");
 
-        // Get t265_camera_frame_id parameter
-        std::string t265_camera_frame_id;
-        this->get_parameter("t265_camera_frame_id", t265_camera_frame_id);
+        // // Get t265_camera_frame_id parameter
+        // std::string t265_camera_frame_id;
+        // this->get_parameter("t265_camera_frame_id", t265_camera_frame_id);
 
-        // Get drone_frame_id parameter
-        std::string drone_frame_id;
-        this->get_parameter("drone_frame_id", drone_frame_id);
+        // // Get drone_frame_id parameter
+        // std::string drone_frame_id;
+        // this->get_parameter("drone_frame_id", drone_frame_id);
 
-        // Get world_frame_id parameter
-        std::string world_frame_id;
-        this->get_parameter("world_frame_id", world_frame_id);
+        // // Get world_frame_id parameter
+        // std::string world_frame_id;
+        // this->get_parameter("world_frame_id", world_frame_id);
 
-        // Get t265_world_frame_id parameter
-        std::string t265_world_frame_id;
-        this->get_parameter("t265_world_frame_id", t265_world_frame_id);
+        // // Get t265_world_frame_id parameter
+        // std::string t265_world_frame_id;
+        // this->get_parameter("t265_world_frame_id", t265_world_frame_id);
 
-        // Get transform from t265_camera_frame_id to drone_frame_id
-        geometry_msgs::msg::TransformStamped T_t265_to_drone;
-        try
-        {
-            T_t265_to_drone = tf_buffer_->lookupTransform(t265_camera_frame_id, drone_frame_id, tf2::TimePointZero);
-        }
-        catch (std::exception &ex)
+        // // Get transform from t265_camera_frame_id to drone_frame_id
+        // geometry_msgs::msg::TransformStamped T_t265_to_drone;
+        // try
+        // {
+        //     T_t265_to_drone = tf_buffer_->lookupTransform(t265_camera_frame_id, drone_frame_id, tf2::TimePointZero);
+        // }
+        // catch (std::exception &ex)
+        // // catch (tf2::LookupException &ex)
+        // {
+        //     RCLCPP_WARN(this->get_logger(), "Could not get transform from %s to %s: %s", drone_frame_id.c_str(), t265_camera_frame_id.c_str(), ex.what());
+        //     return;
+        // }
+
+        // nav_msgs::msg::Odometry odom_t265_world_to_t265_camera = *msg;
+
+        // nav_msgs::msg::Odometry odom_t265_world_to_drone = odom_t265_world_to_t265_camera;
+
+        // // Get transform world_frame_id to t265_world_frame_id
+        // geometry_msgs::msg::TransformStamped T_world_to_t265_world;
+        // try
+        // {
+        //     T_world_to_t265_world = tf_buffer_->lookupTransform(world_frame_id, t265_world_frame_id, rclcpp::Time(0));
+        // }
         // catch (tf2::LookupException &ex)
-        {
-            RCLCPP_WARN(this->get_logger(), "Could not get transform from %s to %s: %s", drone_frame_id.c_str(), t265_camera_frame_id.c_str(), ex.what());
-            return;
-        }
+        // {
+        //     RCLCPP_ERROR(this->get_logger(), "Could not get transform from %s to %s: %s", t265_world_frame_id.c_str(), world_frame_id.c_str(), ex.what());
+        //     return;
+        // }
 
-        nav_msgs::msg::Odometry odom_t265_world_to_t265_camera = *msg;
+        // odom_t265_world_to_drone.child_frame_id = drone_frame_id;
 
-        nav_msgs::msg::Odometry odom_t265_world_to_drone = odom_t265_world_to_t265_camera;
+        // odom_t265_world_to_drone.pose.pose.position.x = odom_t265_world_to_t265_camera.pose.pose.position.x + T_t265_to_drone.transform.translation.x;
+        // odom_t265_world_to_drone.pose.pose.position.y = odom_t265_world_to_t265_camera.pose.pose.position.y + T_t265_to_drone.transform.translation.y;
+        // odom_t265_world_to_drone.pose.pose.position.z = odom_t265_world_to_t265_camera.pose.pose.position.z + T_t265_to_drone.transform.translation.z;
 
-        // Get transform world_frame_id to t265_world_frame_id
-        geometry_msgs::msg::TransformStamped T_world_to_t265_world;
-        try
-        {
-            T_world_to_t265_world = tf_buffer_->lookupTransform(world_frame_id, t265_world_frame_id, rclcpp::Time(0));
-        }
-        catch (tf2::LookupException &ex)
-        {
-            RCLCPP_ERROR(this->get_logger(), "Could not get transform from %s to %s: %s", t265_world_frame_id.c_str(), world_frame_id.c_str(), ex.what());
-            return;
-        }
+        // quat_t q_t265_world_to_t265_camera(
+        //     odom_t265_world_to_t265_camera.pose.pose.orientation.w,
+        //     odom_t265_world_to_t265_camera.pose.pose.orientation.x,
+        //     odom_t265_world_to_t265_camera.pose.pose.orientation.y,
+        //     odom_t265_world_to_t265_camera.pose.pose.orientation.z
+        // );
 
-        odom_t265_world_to_drone.child_frame_id = drone_frame_id;
+        // quat_t q_t265_camera_to_drone(
+        //     T_t265_to_drone.transform.rotation.w,
+        //     T_t265_to_drone.transform.rotation.x,
+        //     T_t265_to_drone.transform.rotation.y,
+        //     T_t265_to_drone.transform.rotation.z
+        // );
 
-        odom_t265_world_to_drone.pose.pose.position.x = odom_t265_world_to_t265_camera.pose.pose.position.x + T_t265_to_drone.transform.translation.x;
-        odom_t265_world_to_drone.pose.pose.position.y = odom_t265_world_to_t265_camera.pose.pose.position.y + T_t265_to_drone.transform.translation.y;
-        odom_t265_world_to_drone.pose.pose.position.z = odom_t265_world_to_t265_camera.pose.pose.position.z + T_t265_to_drone.transform.translation.z;
+        // quat_t q_t265_world_to_drone = quatMultiply(q_t265_world_to_t265_camera, q_t265_camera_to_drone);
 
-        quat_t q_t265_world_to_t265_camera(
-            odom_t265_world_to_t265_camera.pose.pose.orientation.w,
-            odom_t265_world_to_t265_camera.pose.pose.orientation.x,
-            odom_t265_world_to_t265_camera.pose.pose.orientation.y,
-            odom_t265_world_to_t265_camera.pose.pose.orientation.z
-        );
+        // // odom_t265_world_to_drone.pose.pose.orientation.w = odom_t265_world_to_t265_camera.pose.pose.orientation.w * T_t265_to_drone.transform.rotation.w - odom_t265_world_to_t265_camera.pose.pose.orientation.x * T_t265_to_drone.transform.rotation.x - odom_t265_world_to_t265_camera.pose.pose.orientation.y * T_t265_to_drone.transform.rotation.y - odom_t265_world_to_t265_camera.pose.pose.orientation.z * T_t265_to_drone.transform.rotation.z;
+        // // odom_t265_world_to_drone.pose.pose.orientation.x = odom_t265_world_to_t265_camera.pose.pose.orientation.w * T_t265_to_drone.transform.rotation.x + odom_t265_world_to_t265_camera.pose.pose.orientation.x * T_t265_to_drone.transform.rotation.w + odom_t265_world_to_t265_camera.pose.pose.orientation.y * T_t265_to_drone.transform.rotation.z - odom_t265_world_to_t265_camera.pose.pose.orientation.z * T_t265_to_drone.transform.rotation.y;
+        // // odom_t265_world_to_drone.pose.pose.orientation.y = odom_t265_world_to_t265_camera.pose.pose.orientation.w * T_t265_to_drone.transform.rotation.y - odom_t265_world_to_t265_camera.pose.pose.orientation.x * T_t265_to_drone.transform.rotation.z + odom_t265_world_to_t265_camera.pose.pose.orientation.y * T_t265_to_drone.transform.rotation.w + odom_t265_world_to_t265_camera.pose.pose.orientation.z * T_t265_to_drone.transform.rotation.x;
+        // // odom_t265_world_to_drone.pose.pose.orientation.z = odom_t265_world_to_t265_camera.pose.pose.orientation.w * T_t265_to_drone.transform.rotation.z + odom_t265_world_to_t265_camera.pose.pose.orientation.x * T_t265_to_drone.transform.rotation.y - odom_t265_world_to_t265_camera.pose.pose.orientation.y * T_t265_to_drone.transform.rotation.x + odom_t265_world_to_t265_camera.pose.pose.orientation.z * T_t265_to_drone.transform.rotation.w;
 
-        quat_t q_t265_camera_to_drone(
-            T_t265_to_drone.transform.rotation.w,
-            T_t265_to_drone.transform.rotation.x,
-            T_t265_to_drone.transform.rotation.y,
-            T_t265_to_drone.transform.rotation.z
-        );
+        // odom_t265_world_to_drone.pose.pose.orientation.w = q_t265_world_to_drone(0);
+        // odom_t265_world_to_drone.pose.pose.orientation.x = q_t265_world_to_drone(1);
+        // odom_t265_world_to_drone.pose.pose.orientation.y = q_t265_world_to_drone(2);
+        // odom_t265_world_to_drone.pose.pose.orientation.z = q_t265_world_to_drone(3);
 
-        quat_t q_t265_world_to_drone = quatMultiply(q_t265_world_to_t265_camera, q_t265_camera_to_drone);
+        // // Transform odom_t265_world_to_drone twist to drone frame
+        // vector_t odom_t265_world_to_drone_twist_linear(
+        //     odom_t265_world_to_drone.twist.twist.linear.x,
+        //     odom_t265_world_to_drone.twist.twist.linear.y,
+        //     odom_t265_world_to_drone.twist.twist.linear.z
+        // );
 
-        // odom_t265_world_to_drone.pose.pose.orientation.w = odom_t265_world_to_t265_camera.pose.pose.orientation.w * T_t265_to_drone.transform.rotation.w - odom_t265_world_to_t265_camera.pose.pose.orientation.x * T_t265_to_drone.transform.rotation.x - odom_t265_world_to_t265_camera.pose.pose.orientation.y * T_t265_to_drone.transform.rotation.y - odom_t265_world_to_t265_camera.pose.pose.orientation.z * T_t265_to_drone.transform.rotation.z;
-        // odom_t265_world_to_drone.pose.pose.orientation.x = odom_t265_world_to_t265_camera.pose.pose.orientation.w * T_t265_to_drone.transform.rotation.x + odom_t265_world_to_t265_camera.pose.pose.orientation.x * T_t265_to_drone.transform.rotation.w + odom_t265_world_to_t265_camera.pose.pose.orientation.y * T_t265_to_drone.transform.rotation.z - odom_t265_world_to_t265_camera.pose.pose.orientation.z * T_t265_to_drone.transform.rotation.y;
-        // odom_t265_world_to_drone.pose.pose.orientation.y = odom_t265_world_to_t265_camera.pose.pose.orientation.w * T_t265_to_drone.transform.rotation.y - odom_t265_world_to_t265_camera.pose.pose.orientation.x * T_t265_to_drone.transform.rotation.z + odom_t265_world_to_t265_camera.pose.pose.orientation.y * T_t265_to_drone.transform.rotation.w + odom_t265_world_to_t265_camera.pose.pose.orientation.z * T_t265_to_drone.transform.rotation.x;
-        // odom_t265_world_to_drone.pose.pose.orientation.z = odom_t265_world_to_t265_camera.pose.pose.orientation.w * T_t265_to_drone.transform.rotation.z + odom_t265_world_to_t265_camera.pose.pose.orientation.x * T_t265_to_drone.transform.rotation.y - odom_t265_world_to_t265_camera.pose.pose.orientation.y * T_t265_to_drone.transform.rotation.x + odom_t265_world_to_t265_camera.pose.pose.orientation.z * T_t265_to_drone.transform.rotation.w;
+        // vector_t odom_t265_world_to_drone_twist_angular(
+        //     odom_t265_world_to_drone.twist.twist.angular.x,
+        //     odom_t265_world_to_drone.twist.twist.angular.y,
+        //     odom_t265_world_to_drone.twist.twist.angular.z
+        // );
 
-        odom_t265_world_to_drone.pose.pose.orientation.w = q_t265_world_to_drone(0);
-        odom_t265_world_to_drone.pose.pose.orientation.x = q_t265_world_to_drone(1);
-        odom_t265_world_to_drone.pose.pose.orientation.y = q_t265_world_to_drone(2);
-        odom_t265_world_to_drone.pose.pose.orientation.z = q_t265_world_to_drone(3);
+        // quat_t quat_t265_to_drone(
+        //     T_t265_to_drone.transform.rotation.w,
+        //     T_t265_to_drone.transform.rotation.x,
+        //     T_t265_to_drone.transform.rotation.y,
+        //     T_t265_to_drone.transform.rotation.z
+        // );
 
-        // Transform odom_t265_world_to_drone twist to drone frame
-        vector_t odom_t265_world_to_drone_twist_linear(
-            odom_t265_world_to_drone.twist.twist.linear.x,
-            odom_t265_world_to_drone.twist.twist.linear.y,
-            odom_t265_world_to_drone.twist.twist.linear.z
-        );
+        // rotation_matrix_t R_t265_to_drone = quatToMat(quat_t265_to_drone);
 
-        vector_t odom_t265_world_to_drone_twist_angular(
-            odom_t265_world_to_drone.twist.twist.angular.x,
-            odom_t265_world_to_drone.twist.twist.angular.y,
-            odom_t265_world_to_drone.twist.twist.angular.z
-        );
+        // rotation_matrix_t R_drone_to_t265 = R_t265_to_drone.transpose();
 
-        quat_t quat_t265_to_drone(
-            T_t265_to_drone.transform.rotation.w,
-            T_t265_to_drone.transform.rotation.x,
-            T_t265_to_drone.transform.rotation.y,
-            T_t265_to_drone.transform.rotation.z
-        );
+        // odom_t265_world_to_drone_twist_linear = R_drone_to_t265 * odom_t265_world_to_drone_twist_linear;
 
-        rotation_matrix_t R_t265_to_drone = quatToMat(quat_t265_to_drone);
-
-        rotation_matrix_t R_drone_to_t265 = R_t265_to_drone.transpose();
-
-        odom_t265_world_to_drone_twist_linear = R_drone_to_t265 * odom_t265_world_to_drone_twist_linear;
-
-        odom_t265_world_to_drone_twist_angular = R_drone_to_t265 * odom_t265_world_to_drone_twist_angular;
+        // odom_t265_world_to_drone_twist_angular = R_drone_to_t265 * odom_t265_world_to_drone_twist_angular;
 
 
-        odom_t265_world_to_drone.twist.twist.linear.x = odom_t265_world_to_drone_twist_linear(0);
-        odom_t265_world_to_drone.twist.twist.linear.y = odom_t265_world_to_drone_twist_linear(1);
-        odom_t265_world_to_drone.twist.twist.linear.z = odom_t265_world_to_drone_twist_linear(2);
+        // odom_t265_world_to_drone.twist.twist.linear.x = odom_t265_world_to_drone_twist_linear(0);
+        // odom_t265_world_to_drone.twist.twist.linear.y = odom_t265_world_to_drone_twist_linear(1);
+        // odom_t265_world_to_drone.twist.twist.linear.z = odom_t265_world_to_drone_twist_linear(2);
 
-        odom_t265_world_to_drone.twist.twist.angular.x = odom_t265_world_to_drone_twist_angular(0);
-        odom_t265_world_to_drone.twist.twist.angular.y = odom_t265_world_to_drone_twist_angular(1);
-        odom_t265_world_to_drone.twist.twist.angular.z = odom_t265_world_to_drone_twist_angular(2);
+        // odom_t265_world_to_drone.twist.twist.angular.x = odom_t265_world_to_drone_twist_angular(0);
+        // odom_t265_world_to_drone.twist.twist.angular.y = odom_t265_world_to_drone_twist_angular(1);
+        // odom_t265_world_to_drone.twist.twist.angular.z = odom_t265_world_to_drone_twist_angular(2);
 
-        nav_msgs::msg::Odometry odom_world_to_drone = odom_t265_world_to_drone;
+        // nav_msgs::msg::Odometry odom_world_to_drone = odom_t265_world_to_drone;
 
-        odom_world_to_drone.header.frame_id = world_frame_id;
+        // odom_world_to_drone.header.frame_id = world_frame_id;
 
-        // Transform odom_world_to_drone pose to world frame
-        odom_world_to_drone.pose.pose.position.x = odom_world_to_drone.pose.pose.position.x + T_world_to_t265_world.transform.translation.x;
-        odom_world_to_drone.pose.pose.position.y = odom_world_to_drone.pose.pose.position.y + T_world_to_t265_world.transform.translation.y;
-        odom_world_to_drone.pose.pose.position.z = odom_world_to_drone.pose.pose.position.z + T_world_to_t265_world.transform.translation.z;
+        // // Transform odom_world_to_drone pose to world frame
+        // odom_world_to_drone.pose.pose.position.x = odom_world_to_drone.pose.pose.position.x + T_world_to_t265_world.transform.translation.x;
+        // odom_world_to_drone.pose.pose.position.y = odom_world_to_drone.pose.pose.position.y + T_world_to_t265_world.transform.translation.y;
+        // odom_world_to_drone.pose.pose.position.z = odom_world_to_drone.pose.pose.position.z + T_world_to_t265_world.transform.translation.z;
 
-        // odom_world_to_drone.pose.pose.orientation.w = odom_world_to_drone.pose.pose.orientation.w * T_world_to_t265_world.transform.rotation.w - odom_world_to_drone.pose.pose.orientation.x * T_world_to_t265_world.transform.rotation.x - odom_world_to_drone.pose.pose.orientation.y * T_world_to_t265_world.transform.rotation.y - odom_world_to_drone.pose.pose.orientation.z * T_world_to_t265_world.transform.rotation.z;
-        // odom_world_to_drone.pose.pose.orientation.x = odom_world_to_drone.pose.pose.orientation.w * T_world_to_t265_world.transform.rotation.x + odom_world_to_drone.pose.pose.orientation.x * T_world_to_t265_world.transform.rotation.w + odom_world_to_drone.pose.pose.orientation.y * T_world_to_t265_world.transform.rotation.z - odom_world_to_drone.pose.pose.orientation.z * T_world_to_t265_world.transform.rotation.y;
-        // odom_world_to_drone.pose.pose.orientation.y = odom_world_to_drone.pose.pose.orientation.w * T_world_to_t265_world.transform.rotation.y - odom_world_to_drone.pose.pose.orientation.x * T_world_to_t265_world.transform.rotation.z + odom_world_to_drone.pose.pose.orientation.y * T_world_to_t265_world.transform.rotation.w + odom_world_to_drone.pose.pose.orientation.z * T_world_to_t265_world.transform.rotation.x;
-        // odom_world_to_drone.pose.pose.orientation.z = odom_world_to_drone.pose.pose.orientation.w * T_world_to_t265_world.transform.rotation.z + odom_world_to_drone.pose.pose.orientation.x * T_world_to_t265_world.transform.rotation.y - odom_world_to_drone.pose.pose.orientation.y * T_world_to_t265_world.transform.rotation.x + odom_world_to_drone.pose.pose.orientation.z * T_world_to_t265_world.transform.rotation.w;
+        // // odom_world_to_drone.pose.pose.orientation.w = odom_world_to_drone.pose.pose.orientation.w * T_world_to_t265_world.transform.rotation.w - odom_world_to_drone.pose.pose.orientation.x * T_world_to_t265_world.transform.rotation.x - odom_world_to_drone.pose.pose.orientation.y * T_world_to_t265_world.transform.rotation.y - odom_world_to_drone.pose.pose.orientation.z * T_world_to_t265_world.transform.rotation.z;
+        // // odom_world_to_drone.pose.pose.orientation.x = odom_world_to_drone.pose.pose.orientation.w * T_world_to_t265_world.transform.rotation.x + odom_world_to_drone.pose.pose.orientation.x * T_world_to_t265_world.transform.rotation.w + odom_world_to_drone.pose.pose.orientation.y * T_world_to_t265_world.transform.rotation.z - odom_world_to_drone.pose.pose.orientation.z * T_world_to_t265_world.transform.rotation.y;
+        // // odom_world_to_drone.pose.pose.orientation.y = odom_world_to_drone.pose.pose.orientation.w * T_world_to_t265_world.transform.rotation.y - odom_world_to_drone.pose.pose.orientation.x * T_world_to_t265_world.transform.rotation.z + odom_world_to_drone.pose.pose.orientation.y * T_world_to_t265_world.transform.rotation.w + odom_world_to_drone.pose.pose.orientation.z * T_world_to_t265_world.transform.rotation.x;
+        // // odom_world_to_drone.pose.pose.orientation.z = odom_world_to_drone.pose.pose.orientation.w * T_world_to_t265_world.transform.rotation.z + odom_world_to_drone.pose.pose.orientation.x * T_world_to_t265_world.transform.rotation.y - odom_world_to_drone.pose.pose.orientation.y * T_world_to_t265_world.transform.rotation.x + odom_world_to_drone.pose.pose.orientation.z * T_world_to_t265_world.transform.rotation.w;
 
-        quat_t q_world_to_t265_world(
-            T_world_to_t265_world.transform.rotation.w,
-            T_world_to_t265_world.transform.rotation.x,
-            T_world_to_t265_world.transform.rotation.y,
-            T_world_to_t265_world.transform.rotation.z
-        );
+        // quat_t q_world_to_t265_world(
+        //     T_world_to_t265_world.transform.rotation.w,
+        //     T_world_to_t265_world.transform.rotation.x,
+        //     T_world_to_t265_world.transform.rotation.y,
+        //     T_world_to_t265_world.transform.rotation.z
+        // );
 
-        quat_t q_world_to_drone = quatMultiply(q_world_to_t265_world, q_t265_world_to_drone);
+        // quat_t q_world_to_drone = quatMultiply(q_world_to_t265_world, q_t265_world_to_drone);
 
-        odom_world_to_drone.pose.pose.orientation = msg->pose.pose.orientation;
+        // odom_world_to_drone.pose.pose.orientation = msg->pose.pose.orientation;
 
-        odom_pub_->publish(odom_world_to_drone);
+        // odom_pub_->publish(odom_world_to_drone);
 
         // Create a message
-        orientation_t eul_NWU_to_NED(-M_PI,0,0);
-        rotation_matrix_t R_NWU_to_NED = eulToR(eul_NWU_to_NED);
-        quat_t q_NWU_to_NED = eulToQuat(eul_NWU_to_NED);
+        nav_msgs::msg::Odometry odom = *msg;
 
-        vector_t pos_NWU(
-            odom_world_to_drone.pose.pose.position.x,
-            odom_world_to_drone.pose.pose.position.y,
-            odom_world_to_drone.pose.pose.position.z
+        // orientation_t eul_NWU_to_NED(-M_PI,0,0);
+        // rotation_matrix_t R_NWU_to_NED = eulToR(eul_NWU_to_NED);
+        // quat_t q_NWU_to_NED = eulToQuat(eul_NWU_to_NED);
+
+        // vector_t pos_NWU(
+        //     odom.pose.pose.position.x,
+        //     odom.pose.pose.position.y,
+        //     odom.pose.pose.position.z
+        // );
+
+        // vector_t pos_NED = R_NWU_to_NED * pos_NWU;
+
+        // quat_t q_NWU(
+        //     odom.pose.pose.orientation.w,
+        //     odom.pose.pose.orientation.x,
+        //     odom.pose.pose.orientation.y,
+        //     odom.pose.pose.orientation.z
+        // );
+
+        // quat_t q_NED = quatMultiply(q_NWU_to_NED, q_NWU);
+
+        vector_t pos_NED(
+            odom.pose.pose.position.x,
+            -odom.pose.pose.position.y,
+            -odom.pose.pose.position.z
         );
-
-        vector_t pos_NED = R_NWU_to_NED * pos_NWU;
 
         quat_t q_NWU(
-            odom_world_to_drone.pose.pose.orientation.w,
-            odom_world_to_drone.pose.pose.orientation.x,
-            odom_world_to_drone.pose.pose.orientation.y,
-            odom_world_to_drone.pose.pose.orientation.z
+            odom.pose.pose.orientation.w,
+            odom.pose.pose.orientation.x,
+            odom.pose.pose.orientation.y,
+            odom.pose.pose.orientation.z
         );
 
-        quat_t q_NED = quatMultiply(q_NWU_to_NED, q_NWU);
+        orientation_t eul_NWU = quatToEul(q_NWU);
+
+        orientation_t eul_NED(eul_NWU(0), eul_NWU(1), eul_NWU(2));
+
+        quat_t q_NED = eulToQuat(eul_NED);
+
+        vector_t vel_NED(
+            odom.twist.twist.linear.x,
+            -odom.twist.twist.linear.y,
+            -odom.twist.twist.linear.z
+        );
+
+        orientation_t ang_rate_NED(
+            odom.twist.twist.angular.x,
+            -odom.twist.twist.angular.y,
+            -odom.twist.twist.angular.z
+        );
 
         // Fill the message
+
         px4_msgs::msg::VehicleVisualOdometry msg_out = px4_msgs::msg::VehicleVisualOdometry();
 
         msg_out.timestamp = timestamp_.load();
@@ -257,13 +291,13 @@ private:
             msg_out.pose_covariance[i] = NAN;
         }
 
-        msg_out.vx = NAN;
-        msg_out.vy = NAN;
-        msg_out.vz = NAN;
+        msg_out.vx = vel_NED(0);
+        msg_out.vy = vel_NED(1);
+        msg_out.vz = vel_NED(2);
 
-        msg_out.rollspeed = NAN;
-        msg_out.pitchspeed = NAN;
-        msg_out.yawspeed = NAN;
+        msg_out.rollspeed = ang_rate_NED(0);
+        msg_out.pitchspeed = ang_rate_NED(1);
+        msg_out.yawspeed = ang_rate_NED(2);
         
         for (int i = 0; i < 21; i++) {
             msg_out.velocity_covariance[i] = NAN;
