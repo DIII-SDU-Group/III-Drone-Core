@@ -240,11 +240,15 @@ private:
 
         // quat_t q_NED = quatMultiply(q_NWU_to_NED, q_NWU);
 
+        rotation_matrix_t R_180_yaw = eulToR(orientation_t(0,0,M_PI));
+
         vector_t pos_NED(
             odom.pose.pose.position.x,
             -odom.pose.pose.position.y,
             -odom.pose.pose.position.z
         );
+
+        pos_NED = R_180_yaw * pos_NED;
 
         quat_t q_NWU(
             odom.pose.pose.orientation.w,
@@ -255,7 +259,7 @@ private:
 
         orientation_t eul_NWU = quatToEul(q_NWU);
 
-        orientation_t eul_NED(eul_NWU(0), eul_NWU(1), eul_NWU(2));
+        orientation_t eul_NED(-eul_NWU(0), eul_NWU(1), -eul_NWU(2));
 
         quat_t q_NED = eulToQuat(eul_NED);
 
@@ -265,9 +269,11 @@ private:
             -odom.twist.twist.linear.z
         );
 
+        vel_NED = R_180_yaw * vel_NED;
+
         orientation_t ang_rate_NED(
-            odom.twist.twist.angular.x,
-            -odom.twist.twist.angular.y,
+            -odom.twist.twist.angular.x,
+            odom.twist.twist.angular.y,
             -odom.twist.twist.angular.z
         );
 
