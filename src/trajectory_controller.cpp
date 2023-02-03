@@ -1706,9 +1706,9 @@ void TrajectoryController::stateMachineCallback() {
 		for(int i=4;i<12;i++) target(i) = 0;
 		for(int i=8;i<12;i++) state(i) = 0;
 
-		RCLCPP_DEBUG(this->get_logger(), "Target: " + std::to_string(target(0)) + ", " + std::to_string(target(1)) + ", " + std::to_string(target(2)) + ", " + std::to_string(target(3)));
-		RCLCPP_DEBUG(this->get_logger(), "State: " + std::to_string(state(0)) + ", " + std::to_string(state(1)) + ", " + std::to_string(state(2)) + ", " + std::to_string(state(3)));
-		RCLCPP_DEBUG(this->get_logger(), "Reached position: " + std::to_string((state-target).norm()) + " < " + std::to_string(reached_pos_euc_dist_thresh) + " ?");
+		RCLCPP_DEBUG(this->get_logger(), "Target: %s, %s, %s, %s", std::to_string(target(0)), std::to_string(target(1)), std::to_string(target(2)), std::to_string(target(3)));
+		RCLCPP_DEBUG(this->get_logger(), "State: %s, %s, %s, %s", std::to_string(state(0)), std::to_string(state(1)), std::to_string(state(2)), std::to_string(state(3)));
+		RCLCPP_DEBUG(this->get_logger(), "Reached position: %s < %s ?", std::to_string((state-target).norm()), std::to_string(reached_pos_euc_dist_thresh));
 		
 
 		float norm = (state-target).norm();
