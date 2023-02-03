@@ -4216,7 +4216,7 @@ void TrajectoryController::threadFunctionMPC(double *x, double *u, double *plann
 
 	static MPC_parameters_t mpc_params;
 
-	const int N = 10;
+	const int N = 5;
 
 	static pos_MPC::struct10_T Info;
 	static pos_MPC::struct4_T mpcmovestate;
@@ -4244,7 +4244,7 @@ void TrajectoryController::threadFunctionMPC(double *x, double *u, double *plann
 
 		for(int i = 0; i < 81; i++) mpcmovestate.Covariance[i] = 0;
 		for(int i=0; i < 3; i++) mpcmovestate.Disturbance[i] = 0;
-		for(int i = 0; i < 120; i++) mpcmovestate.iA[i] = 0;
+		for(int i = 0; i < 6*2*N; i++) mpcmovestate.iA[i] = 0;
 		for(int i=0; i < 3; i++) mpcmovestate.LastMove[i] = 0;
 		for(int i=0; i < 6; i++) mpcmovestate.Plant[i] = x[i];
 
