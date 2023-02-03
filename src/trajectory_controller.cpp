@@ -4046,6 +4046,9 @@ state4_t TrajectoryController::stepMPC(state4_t vehicle_state, state4_t target_s
 
 		prev_vehicle_state = vehicle_state;
 
+
+		RCLCPP_INFO(this->get_logger(), "\n\n");
+
 	}
 
 	// Initialization:
@@ -4191,6 +4194,8 @@ state4_t TrajectoryController::stepMPC(state4_t vehicle_state, state4_t target_s
 void TrajectoryController::threadFunctionMPC(double *x, double *u, double *planned_traj, double *target, 
 		int reset_target, int reset_trajectory, int reset_bounds, int reset_weights, MPC_mode_t mpc_mode) {
 
+	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
 	static MPC_parameters_t mpc_params;
 
 	const int N = 10;
@@ -4299,6 +4304,11 @@ void TrajectoryController::threadFunctionMPC(double *x, double *u, double *plann
 	// }
 
 	// RCLCPP_INFO(this->get_logger(), "\n\n");
+
+	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+
+	RCLCPP_INFO(this->get_logger(), "%d", std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count());
+
 }
 
 void TrajectoryController::loadPeriodMPC(MPC_parameters_t &mpc_params, MPC_mode_t mpc_mode) {
