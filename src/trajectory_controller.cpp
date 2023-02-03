@@ -1490,6 +1490,11 @@ void TrajectoryController::setYawServiceCallback(const std::shared_ptr<iii_inter
 
 void TrajectoryController::stateMachineCallback() {
 
+	std::chrono::steady_clock::time_point begin_timing = std::chrono::steady_clock::now();
+	std::chrono::steady_clock::time_point end_timing = std::chrono::steady_clock::now();
+
+
+
 	float landed_altitude_threshold;
 	this->get_parameter("landed_altitude_threshold", landed_altitude_threshold);
 
@@ -2185,6 +2190,8 @@ void TrajectoryController::stateMachineCallback() {
 
 		} else if (tryPendingRequest(fly_under_cable_request, if_match, if_match)) {
 
+			begin_timing = std::chrono::steady_clock::now();
+
 			// debug fly under cable request, flying under cable
 			RCLCPP_DEBUG(this->get_logger(), "fly under cable request, flying under cable");
 
@@ -2365,6 +2372,8 @@ void TrajectoryController::stateMachineCallback() {
 			state_ = in_positional_flight;
 
 		} else if (tryPendingRequest(fly_under_cable_request, if_match, if_match)) {
+
+			begin_timing = std::chrono::steady_clock::now();
 
 			// debug fly under cable request, flying under cable
 			RCLCPP_DEBUG(this->get_logger(), "fly under cable request, flying under cable");
@@ -2576,6 +2585,11 @@ void TrajectoryController::stateMachineCallback() {
 			notifyCurrentRequest(success);
 
 			if (request.request_type == fly_under_cable_request) {
+
+				end_timing = std::chrono::steady_clock::now();
+
+				// debug time to reach target: %f
+				RCLCPP_INFO(this->get_logger(), "time to reach target: %d", std::chrono::duration_cast<std::chrono::milliseconds>(end_timing - begin_timing).count());
 
 				clearPlannedTrajectory();
 
