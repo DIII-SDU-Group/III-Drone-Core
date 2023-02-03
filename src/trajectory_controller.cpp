@@ -2593,7 +2593,7 @@ void TrajectoryController::stateMachineCallback() {
 				std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
 				// debug time to reach target: %f
-				RCLCPP_INFO(this->get_logger(), "time to reach target: %d", std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin_timing).count());
+				RCLCPP_INFO(this->get_logger(), "time to reach target: %u", std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin_timing).count());
 
 				clearPlannedTrajectory();
 
