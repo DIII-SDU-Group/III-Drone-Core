@@ -16,6 +16,13 @@
 
 // Type Definitions
 namespace pos_MPC {
+struct struct8_T {
+  double ymin[6];
+  double ymax[6];
+  double umin[3];
+  double umax[3];
+};
+
 struct struct10_T {
   double Uopt[33];
   double Yopt[66];
@@ -43,13 +50,6 @@ struct struct7_T {
   double y[6];
   double u[3];
   double du[3];
-};
-
-struct struct8_T {
-  double MVMax[3];
-  double MVMin[3];
-  double OutputMax[6];
-  double OutputMin[6];
 };
 
 struct struct5_T {

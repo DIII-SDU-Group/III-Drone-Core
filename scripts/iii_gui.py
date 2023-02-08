@@ -352,17 +352,18 @@ class IIIGuiNode(Node):
         target = None
         
         if (self.target_lock_.acquire(blocking=True)):
-            drone_frame_id = self.get_parameter("drone_frame_id").value
-            world_frame_id = self.get_parameter("world_frame_id").value
-            tf = self.tf_buffer.lookup_transform(drone_frame_id, world_frame_id, rclpy.time.Time())
+            if self.target is not None:
+                drone_frame_id = self.get_parameter("drone_frame_id").value
+                world_frame_id = self.get_parameter("world_frame_id").value
+                tf = self.tf_buffer.lookup_transform(drone_frame_id, world_frame_id, rclpy.time.Time())
 
-            quat = np.array([tf.transform.rotation.w, tf.transform.rotation.x, tf.transform.rotation.y, tf.transform.rotation.z])
-            trans = np.array([tf.transform.translation.x, tf.transform.translation.y, tf.transform.translation.z])
-            rotm = quatToMat(quat)
+                quat = np.array([tf.transform.rotation.w, tf.transform.rotation.x, tf.transform.rotation.y, tf.transform.rotation.z])
+                trans = np.array([tf.transform.translation.x, tf.transform.translation.y, tf.transform.translation.z])
+                rotm = quatToMat(quat)
 
-            target = np.array([self.target.pose.position.x, self.target.pose.position.y, self.target.pose.position.z])
+                target = np.array([self.target.pose.position.x, self.target.pose.position.y, self.target.pose.position.z])
 
-            target = np.matmul(rotm, target) + trans
+                target = np.matmul(rotm, target) + trans
 
             self.target_lock_.release()
             
@@ -372,18 +373,19 @@ class IIIGuiNode(Node):
         traj = []
         
         if (self.traj_lock_.acquire(blocking=True)):
-            drone_frame_id = self.get_parameter("drone_frame_id").value
-            world_frame_id = self.get_parameter("world_frame_id").value
-            tf = self.tf_buffer.lookup_transform(drone_frame_id, world_frame_id, rclpy.time.Time())
+            if self.traj is not None:
+                drone_frame_id = self.get_parameter("drone_frame_id").value
+                world_frame_id = self.get_parameter("world_frame_id").value
+                tf = self.tf_buffer.lookup_transform(drone_frame_id, world_frame_id, rclpy.time.Time())
 
-            quat = np.array([tf.transform.rotation.w, tf.transform.rotation.x, tf.transform.rotation.y, tf.transform.rotation.z])
-            trans = np.array([tf.transform.translation.x, tf.transform.translation.y, tf.transform.translation.z])
-            rotm = quatToMat(quat)
+                quat = np.array([tf.transform.rotation.w, tf.transform.rotation.x, tf.transform.rotation.y, tf.transform.rotation.z])
+                trans = np.array([tf.transform.translation.x, tf.transform.translation.y, tf.transform.translation.z])
+                rotm = quatToMat(quat)
 
-            for i in range(len(self.traj.poses)):
-                p = np.array([self.traj.poses[i].pose.position.x, self.traj.poses[i].pose.position.y, self.traj.poses[i].pose.position.z])
-                p = np.matmul(rotm,p) + trans
-                traj.append(p)
+                for i in range(len(self.traj.poses)):
+                    p = np.array([self.traj.poses[i].pose.position.x, self.traj.poses[i].pose.position.y, self.traj.poses[i].pose.position.z])
+                    p = np.matmul(rotm,p) + trans
+                    traj.append(p)
 
             self.traj_lock_.release()
             
