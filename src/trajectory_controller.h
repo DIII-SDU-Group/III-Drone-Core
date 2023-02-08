@@ -20,6 +20,7 @@
 
 #include <px4_msgs/msg/offboard_control_mode.hpp>
 #include <px4_msgs/msg/trajectory_setpoint.hpp>
+#include <px4_msgs/msg/position_setpoint.hpp>
 #include <px4_msgs/msg/timesync.hpp>
 #include <px4_msgs/msg/vehicle_command.hpp>
 #include <px4_msgs/msg/vehicle_control_mode.hpp>
@@ -191,7 +192,8 @@ enum request_queue_action_t {
 enum MPC_mode_t {
 	positional,
 	cable_landing,
-	cable_takeoff
+	cable_takeoff,
+	fly_along_cable
 };
 
 struct MPC_parameters_t {
@@ -357,6 +359,10 @@ private:
 	std::vector<state4_t> planned_macro_trajectory_;
 	state4_t trajectory_target_;
 
+	float fly_along_cable_distance_;
+	float fly_along_cable_velocity_;
+	float fly_along_cable_inverse_direction_;
+
 	iii_interfaces::msg::Powerline powerline_;
 	int target_cable_id_ = -1;
 	geometry_msgs::msg::PoseStamped target_cable_pose_;
@@ -367,6 +373,8 @@ private:
 	std::mutex planned_trajectory_mutex_;
 	std::mutex powerline_mutex_;
 	std::mutex target_yaw_mutex_;
+
+	std::mutex fly_along_cable_mutex_;
 
     std::shared_ptr<tf2_ros::TransformListener> transform_listener_{nullptr};
     std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -395,6 +403,8 @@ private:
 	rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr planned_traj_pub_;
 	rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr planned_macro_traj_pub_;
 	rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr planned_target_pub_;
+
+	rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr setpoint_pose_pub_;
 
 	std::thread MPC_thread_;
 	double MPC_u_[3];
@@ -429,6 +439,7 @@ private:
 	void publishOffboardControlMode() const;
 	void publishControlState();
 	void publishTrajectorySetpoint(state4_t set_point) const;
+	void publishSetpointPose(state4_t set_point);
 
 	void publishPlannedTrajectory();
 
@@ -439,8 +450,11 @@ private:
 	geometry_msgs::msg::PoseStamped loadPlannedTarget();
 	state4_t loadTargetCableState();
 	state4_t loadTargetUnderCableState();
-	state4_t loadTargetFlyAlongCableState(float velocity, float distance_left, 
-		bool inverse_direction, state4_t prev_fly_along_state, bool first);
+	state4_t loadTargetFlyAlongCableState(bool first);
+	//state4_t loadTargetFlyAlongCableState(float velocity, float distance_left, 
+	//	bool inverse_direction, state4_t prev_fly_along_state, bool first);
+
+	void setFlyAlongCableParams(float distance, float velocity, float inverse_direction);
 
 	vector_t stepCartesianVelocityPID(state4_t vehicle_state, state4_t target_state, bool reset);
 

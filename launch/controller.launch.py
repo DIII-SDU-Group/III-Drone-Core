@@ -19,7 +19,7 @@ def generate_launch_description():
         package="iii_drone",
         executable="trajectory_controller",
         parameters=[config],
-        arguments=["--ros-args", "--log-level", "trajectory_controller.trajectory_controller:=debug"]
+        arguments=["--ros-args", "--log-level", "trajectory_controller.trajectory_controller:=info"]
     )
 
     return LaunchDescription([

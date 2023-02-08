@@ -52,6 +52,7 @@ find_package(nav_msgs REQUIRED)
 add_executable(trajectory_controller 
   src/trajectory_controller.cpp
   src/matlab_MPC_5Hz_hp10/minOrMax.cpp
+  src/matlab_MPC_5Hz_hp10/mpcblock_optimizer.cpp
   src/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration.cpp
   src/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_data.cpp
   src/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_initialize.cpp
@@ -201,7 +202,9 @@ install(PROGRAMS
   scripts/draw_PL_IDs.py
   scripts/iii_gui.py
   scripts/ground_link_republisher.py
+  scripts/points_est_republisher.py
   scripts/rc_node_launcher.py
+  scripts/data_logger.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

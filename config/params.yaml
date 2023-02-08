@@ -104,21 +104,37 @@ trajectory_controller:
       position_MPC_vx_max: 0.5
       position_MPC_vy_max: 0.5
       position_MPC_vz_max: 0.5
-      position_MPC_ax_max: 1.0
-      position_MPC_ay_max: 1.0
-      position_MPC_az_max: 1.0
-      position_MPC_wx: 1.1
-      position_MPC_wy: 1.1
-      position_MPC_wz: 1.1
+      position_MPC_ax_max: 0.25
+      position_MPC_ay_max: 0.25
+      position_MPC_az_max: 0.25
+      position_MPC_wx: 1.0
+      position_MPC_wy: 1.0
+      position_MPC_wz: 1.0
       position_MPC_wvx: 1.0
       position_MPC_wvy: 1.0
       position_MPC_wvz: 1.0
-      position_MPC_wax: 0.01
-      position_MPC_way: 0.01
-      position_MPC_waz: 0.01
+      position_MPC_wax: 0.1
+      position_MPC_way: 0.1
+      position_MPC_waz: 0.1
       position_MPC_wjx: 0.1
       position_MPC_wjy: 0.1
       position_MPC_wjz: 0.1
+      fly_along_cable_MPC_vz_max: 0.5
+      fly_along_cable_MPC_ax_max: 1.0
+      fly_along_cable_MPC_ay_max: 1.0
+      fly_along_cable_MPC_az_max: 1.0
+      fly_along_cable_MPC_wx: 1.1
+      fly_along_cable_MPC_wy: 1.1
+      fly_along_cable_MPC_wz: 1.1
+      fly_along_cable_MPC_wvx: 1.0
+      fly_along_cable_MPC_wvy: 1.0
+      fly_along_cable_MPC_wvz: 1.0
+      fly_along_cable_MPC_wax: 0.01
+      fly_along_cable_MPC_way: 0.01
+      fly_along_cable_MPC_waz: 0.01
+      fly_along_cable_MPC_wjx: 0.1
+      fly_along_cable_MPC_wjy: 0.1
+      fly_along_cable_MPC_wjz: 0.1
       cable_landing_MPC_vx_max: 0.2
       cable_landing_MPC_vy_max: 0.2
       cable_landing_MPC_vz_max: 0.2
