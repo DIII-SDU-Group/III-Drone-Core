@@ -1379,13 +1379,13 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalCableTakeoff(
 	std::shared_ptr<const CableTakeoff::Goal> goal
 ) {
 
-	RCLCPP_DEBUG(this->get_logger(), "Received cable takeoff goal request");
+	RCLCPP_INFO(this->get_logger(), "Received cable takeoff goal request");
 	
 	(void)uuid;
 
 	if (state_ != on_cable_armed) {
 		// debug cable takeoff goal rejected, not on cable armed
-		RCLCPP_DEBUG(this->get_logger(), "Cable takeoff goal rejected, not on cable armed");
+		RCLCPP_INFO(this->get_logger(), "Cable takeoff goal rejected, not on cable armed");
 		return rclcpp_action::GoalResponse::REJECT;
 	}
 
@@ -1393,7 +1393,7 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalCableTakeoff(
 
 	if (target_cable_distance < 1.) {
 		// debug cable takeoff goal rejected, target cable distance too small
-		RCLCPP_DEBUG(this->get_logger(), "Cable takeoff goal rejected, target cable distance too small");
+		RCLCPP_INFO(this->get_logger(), "Cable takeoff goal rejected, target cable distance too small");
 		return rclcpp_action::GoalResponse::REJECT;
 	}
 
@@ -1413,13 +1413,13 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalCableTakeoff(
 
 	if (!request_queue_.Push(request, false)) {
 		// debug cable takeoff goal rejected, request queue full
-		RCLCPP_DEBUG(this->get_logger(), "Cable takeoff goal rejected, request queue full");
+		RCLCPP_INFO(this->get_logger(), "Cable takeoff goal rejected, request queue full");
 
 		return rclcpp_action::GoalResponse::REJECT;
 	}
 
 	// debug cable takeoff goal accepted
-	RCLCPP_DEBUG(this->get_logger(), "Cable takeoff goal accepted");
+	RCLCPP_INFO(this->get_logger(), "Cable takeoff goal accepted");
 
 	return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 
@@ -3391,11 +3391,13 @@ void TrajectoryController::stateMachineCallback() {
 
 			for (int i = 0; i < 4; i++) {
 
-				set_point(i) = NAN;
-				set_point(i+4) = NAN;
+				set_point(i) = fixed_reference(i);
+				set_point(i+4) = 0;
 				set_point(i+8) = NAN;
 
 			}
+
+			// set_point(6) = 0.01;
 
 			// debug stay on cable, setpoint: %f, %f, %f, %f
 			RCLCPP_DEBUG(this->get_logger(), "stay on cable, setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
@@ -3666,9 +3668,17 @@ void TrajectoryController::publishVehicleCommand(uint16_t command, float param1,
 void TrajectoryController::publishOffboardControlMode() const {
 	px4_msgs::msg::OffboardControlMode msg{};
 	msg.timestamp = timestamp_.load();
+	if (state_ == on_cable_armed) {
+		msg.position = false;
+		// msg.velocity = false;
+		msg.acceleration = false;
+	} else {
+		msg.position = true;
+		// msg.velocity = true;
+		msg.acceleration = true;
+	}
 	msg.position = true;
 	msg.velocity = true;
-	msg.acceleration = true;
 	msg.attitude = false;
 	msg.body_rate = false;	
 	offboard_control_mode_pub_->publish(msg);

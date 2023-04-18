@@ -242,14 +242,20 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
 
         while(true) {
 
-            if (trajectory_goal_response_ < 0)
+            if (trajectory_goal_response_ < 0) {
+                std::cout << "trajectory_goal_response_ < 0\n";
                 return false;
+            }
 
-            if (trajectory_goal_response_ > 0 && trajectory_goal_result_ < 0)
+            if (trajectory_goal_response_ > 0 && trajectory_goal_result_ < 0) {
+                std::cout << "trajectory_goal_response_ > 0 && trajectory_goal_result_ < 0\n";
                 return false;
+            }
 
-            if (trajectory_goal_response_ > 0 && trajectory_goal_result_ > 0)
+            if (trajectory_goal_response_ > 0 && trajectory_goal_result_ > 0) {
+                std::cout << "trajectory_goal_response_ > 0 && trajectory_goal_result_ > 0\n";
                 return true;
+            }
 
             rate.sleep();
 
@@ -364,6 +370,8 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
 
         }
 
+        RCLCPP_INFO(this->get_logger(), "e.1");
+
         trajectory_goal_response_ = 0;
         trajectory_goal_result_ = 0;
         cable_drum_goal_response_ = 0;
@@ -373,7 +381,7 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
         auto traj_goal_msg = CableTakeoff::Goal();
 
         float cable_takeoff_target_cable_distance;
-        this->get_parameter("cable_takeoff_target_cable_distance", cable_takeoff_target_cable_distance);
+        this->get_parameter("cable_takeoff_target_distance", cable_takeoff_target_cable_distance);
 
         traj_goal_msg.target_cable_distance = cable_takeoff_target_cable_distance;
 
@@ -382,6 +390,8 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
         traj_send_goal_options.goal_response_callback = std::bind(&DoubleCableLander::cableTakeoffGoalResponseCallback, this, _1);
         traj_send_goal_options.feedback_callback = std::bind(&DoubleCableLander::cableTakeoffFeedbackCallback, this, _1, _2);
         traj_send_goal_options.result_callback = std::bind(&DoubleCableLander::cableTakeoffResultCallback, this, _1);
+
+        RCLCPP_INFO(this->get_logger(), "e.2");
 
 
 
@@ -397,6 +407,8 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
         cable_drum_goal_msg.duty_cycle = cable_drum_manual_duty_cycle;
         cable_drum_goal_msg.seconds = cable_drum_manual_seconds;
 
+        RCLCPP_INFO(this->get_logger(), "e.3");
+
         auto drum_send_goal_options = rclcpp_action::Client<DrumManualRoll>::SendGoalOptions();
 
         drum_send_goal_options.goal_response_callback = std::bind(&DoubleCableLander::drumManualRollGoalResponseCallback, this, _1);
@@ -405,8 +417,13 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
 
 
 
+        RCLCPP_INFO(this->get_logger(), "e.4");
+
         this->cable_takeoff_client_->async_send_goal(traj_goal_msg, traj_send_goal_options);
         this->drum_manual_roll_client_->async_send_goal(cable_drum_goal_msg, drum_send_goal_options);
+
+
+        RCLCPP_INFO(this->get_logger(), "e.5");
 
         return trajectory_and_drum_goal_wait();
 
