@@ -81,7 +81,8 @@ public:
 	using DrumManualRoll = iii_interfaces::action::DrumManualRoll;
 	using GoalHandleDrumManualRoll = rclcpp_action::ClientGoalHandle<DrumManualRoll>;
 
-	DoubleCableLander(const std::string & node_name="double_cable_lander", 
+	DoubleCableLander(
+            const std::string & node_name="double_cable_lander", 
 			const std::string & node_namespace="/double_cable_lander", 
 			const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 	~DoubleCableLander();

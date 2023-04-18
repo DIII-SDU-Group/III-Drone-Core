@@ -52,7 +52,8 @@ public:
 	using DrumManualRoll = iii_interfaces::action::DrumManualRoll;
 	using GoalHandleDrumManualRoll = rclcpp_action::ServerGoalHandle<DrumManualRoll>;
 
-	CableDrumController(const std::string & node_name="cable_drum_controller", 
+	CableDrumController(
+            const std::string & node_name="cable_drum_controller", 
 			const std::string & node_namespace="/cable_drum_controller", 
 			const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 	~CableDrumController();

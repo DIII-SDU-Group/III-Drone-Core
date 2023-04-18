@@ -8,33 +8,44 @@
 // Implementation
 /*****************************************************************************/
 
-CableDrumController::CableDrumController(const std::string & node_name, 
+static bool sim_ = false;
+
+CableDrumController::CableDrumController(
+            const std::string & node_name, 
             const std::string & node_namespace, const rclcpp::NodeOptions & options) :
         Node(node_name, node_namespace, options) {
+
+    if (sim_) {
+        RCLCPP_INFO(this->get_logger(), "CableDrumController node started in simulation mode");
+    } else {
+        RCLCPP_INFO(this->get_logger(), "CableDrumController node started in real mode");
+    }
 
 	this->declare_parameter<uint8_t>("cable_drum_initial_gain", 15);
 	this->declare_parameter<uint8_t>("cable_drum_initial_reference", 0b1000);
 
     // FPGA init:
-    int status;
-    status = XCabledrumbridge_Initialize(&cdb_, "CableDrumBridge");
+    if (!sim_) {
+        int status;
+        status = XCabledrumbridge_Initialize(&cdb_, "CableDrumBridge");
 
-    if (status == XST_DEVICE_NOT_FOUND) {
+        if (status == XST_DEVICE_NOT_FOUND) {
 
-        RCLCPP_FATAL(this->get_logger(), "CableDrumBridge device not found!");
+            RCLCPP_FATAL(this->get_logger(), "CableDrumBridge device not found!");
 
-    } else if (status == XST_OPEN_DEVICE_FAILED) {
+        } else if (status == XST_OPEN_DEVICE_FAILED) {
 
-        RCLCPP_FATAL(this->get_logger(), "CableDrumBridge open device failed!");
+            RCLCPP_FATAL(this->get_logger(), "CableDrumBridge open device failed!");
 
-    } else if (status == XST_SUCCESS) {
+        } else if (status == XST_SUCCESS) {
 
-        RCLCPP_INFO(this->get_logger(), "CableDrumBridge device opened successfully");
+            RCLCPP_INFO(this->get_logger(), "CableDrumBridge device opened successfully");
 
-    } else {
+        } else {
 
-        RCLCPP_FATAL(this->get_logger(), "CableDrumBridge unknown error while initializing");
+            RCLCPP_FATAL(this->get_logger(), "CableDrumBridge unknown error while initializing");
 
+        }
     }
 
     mode_ = PARAM_MODE_OFF;
@@ -43,11 +54,13 @@ CableDrumController::CableDrumController(const std::string & node_name,
     this->get_parameter("cable_drum_initial_reference", reference_);
     this->get_parameter("cable_drum_initial_gain", gain_);
 
-    XCabledrumbridge_Set_mode_CPU(&cdb_, mode_);
-    XCabledrumbridge_Set_duty_cycle_CPU(&cdb_, duty_cycle_);
-    XCabledrumbridge_Set_man_dir_CPU(&cdb_, direction_);
-    XCabledrumbridge_Set_ref_flex_CPU(&cdb_, reference_);
-    XCabledrumbridge_Set_gain_CPU(&cdb_, gain_);
+    if (!sim_) {
+        XCabledrumbridge_Set_mode_CPU(&cdb_, mode_);
+        XCabledrumbridge_Set_duty_cycle_CPU(&cdb_, duty_cycle_);
+        XCabledrumbridge_Set_man_dir_CPU(&cdb_, direction_);
+        XCabledrumbridge_Set_ref_flex_CPU(&cdb_, reference_);
+        XCabledrumbridge_Set_gain_CPU(&cdb_, gain_);
+    }
 
 	// DrumManualRoll action:
 	this->drum_manual_roll_server_ = rclcpp_action::create_server<DrumManualRoll>(
@@ -77,9 +90,13 @@ CableDrumController::CableDrumController(const std::string & node_name,
 
 CableDrumController::~CableDrumController() {
 
-    XCabledrumbridge_Set_mode_CPU(&cdb_, 0);
+    if (!sim_) {
 
-    XCabledrumbridge_Release(&cdb_);
+        XCabledrumbridge_Set_mode_CPU(&cdb_, 0);
+
+        XCabledrumbridge_Release(&cdb_);
+
+    }
 
 }
 
@@ -128,6 +145,20 @@ void CableDrumController::followDrumManualRollCompletion(const std::shared_ptr<G
 	auto feedback = std::make_shared<DrumManualRoll::Feedback>();
 
 	auto result = std::make_shared<DrumManualRoll::Result>();
+
+    if (sim_) {
+
+        // Sleep for 1 second:
+        rclcpp::Rate rate(1000ms);
+        rate.sleep();
+
+        result->success = true;
+        goal_handle->succeed(result);
+
+        return;
+
+    }
+
 
     if(drum_manual_roll_mutex_.try_lock()) {
 
@@ -243,17 +274,21 @@ void CableDrumController::followDrumManualRollCompletion(const std::shared_ptr<G
 void CableDrumController::drumSetGainServiceCallback(const std::shared_ptr<iii_interfaces::srv::DrumSetGain::Request> request,
                                 std::shared_ptr<iii_interfaces::srv::DrumSetGain::Response> response) {
 
-    fpga_mutex_.lock(); {
+    if (!sim_) {
 
-        XCabledrumbridge_Set_gain_CPU(&cdb_, request->gain);
+        fpga_mutex_.lock(); {
 
-    } fpga_mutex_.unlock();
+            XCabledrumbridge_Set_gain_CPU(&cdb_, request->gain);
 
-    cable_drum_info_mutex_.lock(); {
+        } fpga_mutex_.unlock();
 
-        gain_ = request->gain;
+        cable_drum_info_mutex_.lock(); {
 
-    } cable_drum_info_mutex_.unlock();
+            gain_ = request->gain;
+
+        } cable_drum_info_mutex_.unlock();
+
+    }
 
     response->success = true;
 
@@ -276,36 +311,43 @@ void CableDrumController::drumSetModeServiceCallback(const std::shared_ptr<iii_i
         break;
     }
 
-    fpga_mutex_.lock(); {
+    if (!sim_) {
 
-        XCabledrumbridge_Set_mode_CPU(&cdb_, fpga_mode);
+        fpga_mutex_.lock(); {
 
-    } fpga_mutex_.unlock();
+            XCabledrumbridge_Set_mode_CPU(&cdb_, fpga_mode);
 
-    cable_drum_info_mutex_.lock(); {
+        } fpga_mutex_.unlock();
 
-        mode_ = fpga_mode;
+        cable_drum_info_mutex_.lock(); {
 
-    } cable_drum_info_mutex_.unlock();
+            mode_ = fpga_mode;
 
-    response->success = true;
+        } cable_drum_info_mutex_.unlock();
+
+        response->success = true;
+
+    }
 
 }
 
 void CableDrumController::drumSetReferenceServiceCallback(const std::shared_ptr<iii_interfaces::srv::DrumSetReference::Request> request,
                                 std::shared_ptr<iii_interfaces::srv::DrumSetReference::Response> response) {
 
-    fpga_mutex_.lock(); {
+    if (!sim_) {
+        fpga_mutex_.lock(); {
 
-        XCabledrumbridge_Set_ref_flex_CPU(&cdb_, request->reference);
+            XCabledrumbridge_Set_ref_flex_CPU(&cdb_, request->reference);
 
-    } fpga_mutex_.unlock();
+        } fpga_mutex_.unlock();
 
-    cable_drum_info_mutex_.lock(); {
+        cable_drum_info_mutex_.lock(); {
 
-        reference_ = request->reference;
+            reference_ = request->reference;
 
-    } cable_drum_info_mutex_.unlock();
+        } cable_drum_info_mutex_.unlock();
+
+    }
 
     response->success = true;
 
@@ -320,11 +362,15 @@ void CableDrumController::infoPublishTimerCallback() {
     uint8_t reference;
     uint8_t sensor_flex;
 
-    fpga_mutex_.lock(); {
+    if (!sim_) {
+        fpga_mutex_.lock(); {
 
-        sensor_flex = XCabledrumbridge_Get_sensor_flex_CPU(&cdb_);
+            sensor_flex = XCabledrumbridge_Get_sensor_flex_CPU(&cdb_);
 
-    } fpga_mutex_.unlock();
+        } fpga_mutex_.unlock();
+    } else {
+        sensor_flex = 0;
+    }
 
     cable_drum_info_mutex_.lock(); {
 
@@ -365,6 +411,12 @@ void CableDrumController::infoPublishTimerCallback() {
 
 int main(int argc, char* argv[]) {
 	 std::cout << "Starting cable drum controller node..." << std::endl;
+
+    if (argc > 0) {
+        if (strcmp(argv[1], "sim") == 0) {
+            sim_ = true;
+        }
+    }
 
 	setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 	rclcpp::init(argc, argv);
