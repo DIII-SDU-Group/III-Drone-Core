@@ -279,7 +279,7 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
     auto fly_to_under_cable_blocking = [this, trajectory_goal_wait, wait_for_client_timeout_ms_chrono](int target_cable_id) -> bool {
 
         float target_cable_distance;
-        this->get_parameter("target_cable_distance", target_cable_distance);
+        this->get_parameter("under_cable_target_distance", target_cable_distance);
 
         std::cout << "c.1\n";
 

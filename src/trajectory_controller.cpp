@@ -373,7 +373,8 @@ void TrajectoryController::followTakeoffCompletion(const std::shared_ptr<GoalHan
 	
 	while(true) {
 
-		while (!request_reply_queue_.Peak(reply, false) || reply.action_id != action_id) {
+		while (!request_reply_queue_.Pop(reply, false) || reply.action_id != action_id) {
+		// while (!request_reply_queue_.Peak(reply, false) || reply.action_id != action_id) {
 
 			state4_t vechicle_state = loadVehicleState();
 			feedback->altitude = vechicle_state(2);
@@ -402,7 +403,7 @@ void TrajectoryController::followTakeoffCompletion(const std::shared_ptr<GoalHan
 
 		}
 
-		if(!request_reply_queue_.Pop(reply, false)) throw std::exception(); // The reply should still be in the queue
+		// if(!request_reply_queue_.Pop(reply, false)) throw std::exception(); // The reply should still be in the queue
 			
 
 		switch (reply.reply_type) {
@@ -521,7 +522,8 @@ void TrajectoryController::followLandingCompletion(const std::shared_ptr<GoalHan
 	
 	while(true) {
 
-		while (!request_reply_queue_.Peak(reply, false) || reply.action_id != action_id) {
+		while (!request_reply_queue_.Pop(reply, false) || reply.action_id != action_id) {
+		// while (!request_reply_queue_.Peak(reply, false) || reply.action_id != action_id) {
 
 			state4_t vechicle_state = loadVehicleState();
 			feedback->altitude = vechicle_state(2);
@@ -548,7 +550,7 @@ void TrajectoryController::followLandingCompletion(const std::shared_ptr<GoalHan
 
 		}
 
-		if(!request_reply_queue_.Pop(reply, false)) throw std::exception(); // The reply should still be in the queue
+		// if(!request_reply_queue_.Pop(reply, false)) throw std::exception(); // The reply should still be in the queue
 			
 
 		switch (reply.reply_type) {
@@ -701,7 +703,8 @@ void TrajectoryController::followFlyToPositionCompletion(const std::shared_ptr<G
 	
 	while(true) {
 
-		while (!request_reply_queue_.Peak(reply, false) || reply.action_id != action_id) {
+		while (!request_reply_queue_.Pop(reply, false) || reply.action_id != action_id) {
+		// while (!request_reply_queue_.Peak(reply, false) || reply.action_id != action_id) {
 
 			geometry_msgs::msg::PoseStamped vehicle_pose = loadVehiclePose();
 			nav_msgs::msg::Path planned_path = loadPlannedPath();
@@ -718,7 +721,7 @@ void TrajectoryController::followFlyToPositionCompletion(const std::shared_ptr<G
 
 		}
 
-		if(!request_reply_queue_.Pop(reply, false)) throw std::exception(); // The reply should still be in the queue
+		// if(!request_reply_queue_.Pop(reply, false)) throw std::exception(); // The reply should still be in the queue
 
 		switch (reply.reply_type) {
 
@@ -886,7 +889,8 @@ void TrajectoryController::followFlyUnderCableCompletion(const std::shared_ptr<G
 	
 	while(true) {
 
-		while (!request_reply_queue_.Peak(reply, false) || reply.action_id != action_id) {
+		while (!request_reply_queue_.Pop(reply, false) || reply.action_id != action_id) {
+		// while (!request_reply_queue_.Peak(reply, false) || reply.action_id != action_id) {
 
 			geometry_msgs::msg::PoseStamped vehicle_pose = loadVehiclePose();
 			nav_msgs::msg::Path planned_path = loadPlannedPath();
@@ -944,7 +948,7 @@ void TrajectoryController::followFlyUnderCableCompletion(const std::shared_ptr<G
 
 		}
 
-		if(!request_reply_queue_.Pop(reply, false)) throw std::exception(); // The reply should still be in the queue
+		// if(!request_reply_queue_.Pop(reply, false)) throw std::exception(); // The reply should still be in the queue
 			
 		switch (reply.reply_type) {
 
@@ -1095,7 +1099,8 @@ void TrajectoryController::followFlyAlongCableCompletion(const std::shared_ptr<G
 
 	while(true) {
 
-		while(!request_reply_queue_.Peak(reply, false) || reply.action_id != action_id) {
+		while(!request_reply_queue_.Pop(reply, false) || reply.action_id != action_id) {
+		// while(!request_reply_queue_.Peak(reply, false) || reply.action_id != action_id) {
 			
 			geometry_msgs::msg::PoseStamped vehicle_pose = loadVehiclePose();
 			feedback->vehicle_pose = vehicle_pose;
@@ -1109,7 +1114,7 @@ void TrajectoryController::followFlyAlongCableCompletion(const std::shared_ptr<G
 
 		}
 
-		if (!request_reply_queue_.Pop(reply, false)) throw std::exception(); // The reply should still be in the queue
+		// if (!request_reply_queue_.Pop(reply, false)) throw std::exception(); // The reply should still be in the queue
 
 		switch (reply.reply_type) {
 
@@ -1274,7 +1279,8 @@ void TrajectoryController::followCableLandingCompletion(const std::shared_ptr<Go
 	
 	while(true) {
 
-		while (!request_reply_queue_.Peak(reply, false) || reply.action_id != action_id) {
+		while (!request_reply_queue_.Pop(reply, false) || reply.action_id != action_id) {
+		// while (!request_reply_queue_.Peak(reply, false) || reply.action_id != action_id) {
 
 			geometry_msgs::msg::PoseStamped vehicle_pose = loadVehiclePose();
 			nav_msgs::msg::Path planned_path = loadPlannedPath();
@@ -1301,7 +1307,7 @@ void TrajectoryController::followCableLandingCompletion(const std::shared_ptr<Go
 
 		}
 
-		if(!request_reply_queue_.Pop(reply, false)) throw std::exception(); // The reply should still be in the queue
+		// if(!request_reply_queue_.Pop(reply, false)) throw std::exception(); // The reply should still be in the queue
 	
 		switch (reply.reply_type) {
 
@@ -1439,7 +1445,8 @@ void TrajectoryController::followCableTakeoffCompletion(const std::shared_ptr<Go
 	
 	while(true) {
 
-		while (!request_reply_queue_.Peak(reply, false) || reply.action_id != action_id) {
+		while (!request_reply_queue_.Pop(reply, false) || reply.action_id != action_id) {
+		// while (!request_reply_queue_.Peak(reply, false) || reply.action_id != action_id) {
 
 			//geometry_msgs::msg::PoseStamped vehicle_pose = loadVehiclePose();
 			//nav_msgs::msg::Path planned_path = loadPlannedPath();
@@ -1464,7 +1471,7 @@ void TrajectoryController::followCableTakeoffCompletion(const std::shared_ptr<Go
 
 		}
 
-		if(!request_reply_queue_.Pop(reply, false)) throw std::exception(); // The reply should still be in the queue
+		// if(!request_reply_queue_.Pop(reply, false)) throw std::exception(); // The reply should still be in the queue
 	
 		switch (reply.reply_type) {
 
@@ -1600,6 +1607,10 @@ void TrajectoryController::stateMachineCallback() {
 
 		RCLCPP_DEBUG(this->get_logger(), "Push reply to queue");
 
+		request_reply_t dummy_reply;
+
+		while (request_reply_queue_.Pop(dummy_reply, false));
+
 		request_reply_queue_.Push(reply, true);
 
 		RCLCPP_DEBUG(this->get_logger(), "Reply pushed to queue");
@@ -1660,50 +1671,50 @@ void TrajectoryController::stateMachineCallback() {
 
 	auto currentRequestIsCancelled = [&](request_queue_action_t do_notify, request_queue_action_t do_pop) -> bool {
 
-		// //LOG_INFO("b1");
+		// LOG_INFO("b1");
 
 		request_t tmp_request;
 
 		bool result;
 
-		RCLCPP_DEBUG(this->get_logger(), "Dummy write");
+		// RCLCPP_DEBUG(this->get_logger(), "Dummy write");
 
 		if (do_pop == yes)
 			result = request_queue_.Pop(tmp_request, false);
 		else
 			result = request_queue_.Peak(tmp_request, false);
 
-		// //LOG_INFO("b3");
+		// LOG_INFO("b3");
 
 		if (result && tmp_request.action_id == request.action_id) {
 
-		// //LOG_INFO("b4");
+		// LOG_INFO("b4");
 
 			if (do_pop == if_match) {
 
-		// //LOG_INFO("b5");
+		// LOG_INFO("b5");
 
 				result = request_queue_.Pop(request, false);
 
-		// //LOG_INFO("b6");
+		// LOG_INFO("b6");
 
 				if (do_notify == yes || do_notify == if_match) notifyCurrentRequest(cancel);
 
-		// //LOG_INFO("b7");
+		// LOG_INFO("b7");
 
 			}
 
-		// //LOG_INFO("b8");
+		// LOG_INFO("b8");
 
 			return true;
 
 		} else if (result) {
 
-		// //LOG_INFO("b9");
+		// LOG_INFO("b9");
 
 			if (do_notify == yes && do_pop == yes) notifyCurrentRequest(reject);
 
-		////LOG_INFO("b10");
+		// LOG_INFO("b10");
 			return false;
 
 		}
@@ -3221,9 +3232,9 @@ void TrajectoryController::stateMachineCallback() {
 
 				setTrajectoryTarget(fixed_reference);
 
-			if (direct_target_setpoint || withinDirectTargetDistance(veh_state, fixed_reference)) {
+				if (direct_target_setpoint || withinDirectTargetDistance(veh_state, fixed_reference)) {
 
-				if (!direct_target_setpoint) RCLCPP_INFO(this->get_logger(), "Using direct target setpoint");
+					if (!direct_target_setpoint) RCLCPP_INFO(this->get_logger(), "Using direct target setpoint");
 
 					direct_target_setpoint = true;
 
@@ -3302,7 +3313,7 @@ void TrajectoryController::stateMachineCallback() {
 						// debug target setpoint: %f, %f, %f, %f
 						RCLCPP_DEBUG(this->get_logger(), "target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
 					}
-					set_point = setPointSafetyMarginTruncate(set_point, veh_state, target_cable);
+					// set_point = setPointSafetyMarginTruncate(set_point, veh_state, target_cable);
 
 					state_ = during_cable_takeoff;
 
@@ -3365,7 +3376,7 @@ void TrajectoryController::stateMachineCallback() {
 			for (int i = 0; i < 4; i++) {
 
 				set_point(i) = NAN;
-				set_point(i+4) = 0;
+				set_point(i+4) = NAN;
 				set_point(i+8) = NAN;
 
 			}
@@ -3439,7 +3450,7 @@ void TrajectoryController::stateMachineCallback() {
 		} else {
 
 			// debug during cable takeoff
-			RCLCPP_DEBUG(this->get_logger(), "during cable takeoff");
+			RCLCPP_INFO(this->get_logger(), "during cable takeoff");
 
 			rejectPendingRequest();
 
@@ -3451,6 +3462,9 @@ void TrajectoryController::stateMachineCallback() {
 
 			setTrajectoryTarget(fixed_reference);
 
+			RCLCPP_INFO(this->get_logger(), "State: %f, %f, %f", veh_state(0), veh_state(1), veh_state(2));
+			RCLCPP_INFO(this->get_logger(), "Fixed reference: %f, %f, %f", fixed_reference(0), fixed_reference(1), fixed_reference(2));
+
 			if (direct_target_setpoint || withinDirectTargetDistance(veh_state, fixed_reference)) {
 
 				direct_target_setpoint = true;
@@ -3460,11 +3474,12 @@ void TrajectoryController::stateMachineCallback() {
 				// debug direct target setpoint: %f, %f, %f, %f
 				RCLCPP_DEBUG(this->get_logger(), "direct target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
 			} else {
-				set_point = stepMPC(veh_state, fixed_reference, true, false, cable_takeoff);
+				// set_point = stepMPC(veh_state, fixed_reference, true, false, cable_takeoff);
+				set_point = setNanVelocity(fixed_reference);
 				// debug target setpoint: %f, %f, %f, %f
-				RCLCPP_DEBUG(this->get_logger(), "target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+				RCLCPP_INFO(this->get_logger(), "MPC target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
 			}
-			set_point = setPointSafetyMarginTruncate(set_point, veh_state, target_cable);
+			// set_point = setPointSafetyMarginTruncate(set_point, veh_state, target_cable);
 
 			// debug truncated setpoint: %f, %f, %f, %f
 			RCLCPP_DEBUG(this->get_logger(), "truncated setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
@@ -3787,7 +3802,7 @@ void TrajectoryController::publishTrajectorySetpoint(state4_t set_point) const {
 	msg.yaw = yaw;
 	msg.yawspeed = yaw_rate;
 
-	RCLCPP_DEBUG(this->get_logger(),  "Publishing trajectory setpoint: \n x: %f, y: %f, z: %f, yaw: %f, vx: %f, vy: %f, vz: %f, yawspeed: %f",
+	RCLCPP_INFO(this->get_logger(),  "Publishing trajectory setpoint: \n x: %f, y: %f, z: %f, yaw: %f, vx: %f, vy: %f, vz: %f, yawspeed: %f",
 		pos(0), pos(1), pos(2), yaw, vel(0), vel(1), vel(2), yaw_rate);
 	//msg.acceleration	// in meters/sec^2
 	//msg.jerk			// in meters/sec^3
@@ -4987,6 +5002,9 @@ void TrajectoryController::threadFunctionMPC(double *x, double *u, double *plann
 	}
 
 	if (reset_target) {
+
+		RCLCPP_INFO(this->get_logger(), "MPC Thread State: %f, %f, %f", x[0], x[1], x[2]);
+		RCLCPP_INFO(this->get_logger(), "MPC Thread Target: %f, %f, %f", target[0], target[1], target[2]);
 
 		for (int i = 0; i < 3; i++) {
 
