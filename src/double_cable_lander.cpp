@@ -19,6 +19,7 @@ DoubleCableLander::DoubleCableLander(const std::string & node_name,
     this->declare_parameter<uint8_t>("cable_drum_manual_seconds", 5);
     this->declare_parameter<uint8_t>("cable_drum_tracking_gain", 15);
     this->declare_parameter<uint8_t>("cable_drum_tracking_reference", 7);
+    this->declare_parameter<int>("wait_for_client_timeout_ms", 100);
 
 	// tf
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
@@ -137,6 +138,11 @@ void DoubleCableLander::handleAcceptedDoubleCableLanding(const std::shared_ptr<G
 }
 
 void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr<GoalHandleDoubleCableLanding> goal_handle) {
+
+    int wait_for_client_timeout_ms;
+    this->get_parameter("wait_for_client_timeout_ms", wait_for_client_timeout_ms);
+
+    std::chrono::milliseconds wait_for_client_timeout_ms_chrono(wait_for_client_timeout_ms);
 
     std::cout << "starting\n";
 
@@ -270,14 +276,14 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
         }
     };
 
-    auto fly_to_under_cable_blocking = [this, trajectory_goal_wait](int target_cable_id) -> bool {
+    auto fly_to_under_cable_blocking = [this, trajectory_goal_wait, wait_for_client_timeout_ms_chrono](int target_cable_id) -> bool {
 
         float target_cable_distance;
         this->get_parameter("target_cable_distance", target_cable_distance);
 
         std::cout << "c.1\n";
 
-        if (!this->fly_under_cable_client_->wait_for_action_server()) {
+        if (!this->fly_under_cable_client_->wait_for_action_server(wait_for_client_timeout_ms_chrono)) {
 
             std::cout << "c.2\n";
 
@@ -309,11 +315,11 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
 
     };
 
-    auto land_on_cable_blocking = [this, trajectory_goal_wait](int cable_id) -> bool {
+    auto land_on_cable_blocking = [this, trajectory_goal_wait, wait_for_client_timeout_ms_chrono](int cable_id) -> bool {
 
         std::cout << "d.1\n";
 
-        if (!this->cable_landing_client_->wait_for_action_server()) {
+        if (!this->cable_landing_client_->wait_for_action_server(wait_for_client_timeout_ms_chrono)) {
 
         std::cout << "d.2\n";
 
@@ -350,9 +356,9 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
 
     };
 
-    auto leave_cable_blocking = [this, trajectory_and_drum_goal_wait]() -> bool {
+    auto leave_cable_blocking = [this, trajectory_and_drum_goal_wait, wait_for_client_timeout_ms_chrono]() -> bool {
 
-        if(!this->cable_takeoff_client_->wait_for_action_server()) {
+        if(!this->cable_takeoff_client_->wait_for_action_server(wait_for_client_timeout_ms_chrono)) {
 
             return false;
 
@@ -407,7 +413,7 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
     };
 
 
-    auto set_cable_drum_tracking = [this]() -> bool {
+    auto set_cable_drum_tracking = [this, wait_for_client_timeout_ms_chrono]() -> bool {
 
         uint8_t cable_drum_tracking_gain;
         this->get_parameter("cable_drum_tracking_gain", cable_drum_tracking_gain);
@@ -415,7 +421,7 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
         auto gain_request = std::make_shared<iii_interfaces::srv::DrumSetGain::Request>();
         gain_request->gain = cable_drum_tracking_gain;
 
-        while(!this->drum_set_gain_client_->wait_for_service(100ms)) {
+        while(!this->drum_set_gain_client_->wait_for_service(wait_for_client_timeout_ms_chrono)) {
 
             if (!rclcpp::ok()) {
 
@@ -444,7 +450,7 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
         auto reference_request = std::make_shared<iii_interfaces::srv::DrumSetReference::Request>();
         reference_request->reference = cable_drum_tracking_reference;
 
-        while(!this->drum_set_reference_client_->wait_for_service(100ms)) {
+        while(!this->drum_set_reference_client_->wait_for_service(wait_for_client_timeout_ms_chrono)) {
 
             if (!rclcpp::ok()) {
 
@@ -470,7 +476,7 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
         auto mode_request = std::make_shared<iii_interfaces::srv::DrumSetMode::Request>();
         mode_request->mode = iii_interfaces::srv::DrumSetMode::Request::MODE_REF_TRACK;
 
-        while(!this->drum_set_mode_client_->wait_for_service(100ms)) {
+        while(!this->drum_set_mode_client_->wait_for_service(wait_for_client_timeout_ms_chrono)) {
 
             if (!rclcpp::ok()) {
 
@@ -491,12 +497,12 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
 
     };
 
-    auto set_cable_drum_manual = [this]() -> bool {
+    auto set_cable_drum_manual = [this, wait_for_client_timeout_ms_chrono]() -> bool {
 
         auto mode_request = std::make_shared<iii_interfaces::srv::DrumSetMode::Request>();
         mode_request->mode = iii_interfaces::srv::DrumSetMode::Request::MODE_MANUAL;
 
-        while(!this->drum_set_mode_client_->wait_for_service(100ms)) {
+        while(!this->drum_set_mode_client_->wait_for_service(wait_for_client_timeout_ms_chrono)) {
 
             if (!rclcpp::ok()) {
 
@@ -517,12 +523,12 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
 
     };
 
-    auto set_cable_drum_off = [this]() -> bool {
+    auto set_cable_drum_off = [this, wait_for_client_timeout_ms_chrono]() -> bool {
 
         auto mode_request = std::make_shared<iii_interfaces::srv::DrumSetMode::Request>();
         mode_request->mode = iii_interfaces::srv::DrumSetMode::Request::MODE_OFF;
 
-        while(!this->drum_set_mode_client_->wait_for_service(100ms)) {
+        while(!this->drum_set_mode_client_->wait_for_service(wait_for_client_timeout_ms_chrono)) {
 
             if (!rclcpp::ok()) {
 
@@ -543,7 +549,7 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
 
     };
 
-    auto set_general_target_yaw = [this](iii_interfaces::msg::Powerline powerline, int first_cable_id, int second_cable_id) -> bool {
+    auto set_general_target_yaw = [this, wait_for_client_timeout_ms_chrono](iii_interfaces::msg::Powerline powerline, int first_cable_id, int second_cable_id) -> bool {
 
         std::cout << "a.1\n";
 
@@ -649,7 +655,7 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
 
         auto target_yaw_client = this->create_client<iii_interfaces::srv::SetGeneralTargetYaw>("/trajectory_controller/set_general_target_yaw");
 
-        while(!target_yaw_client->wait_for_service(100ms)) {
+        while(!target_yaw_client->wait_for_service(wait_for_client_timeout_ms_chrono)) {
 
         std::cout << "a.13\n";
 

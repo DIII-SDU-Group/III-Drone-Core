@@ -15,7 +15,7 @@ from sensor_msgs.msg import Image, PointCloud2, PointField
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
 from iii_interfaces.msg import Powerline, PowerlineDirection, ControlState
-from iii_interfaces.action import Takeoff, Landing, FlyToPosition, FlyUnderCable, CableLanding, CableTakeoff, FlyAlongCable
+from iii_interfaces.action import Takeoff, Landing, FlyToPosition, FlyUnderCable, CableLanding, CableTakeoff, FlyAlongCable, DoubleCableLanding
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 
 from tf2_ros import TransformException
@@ -224,6 +224,7 @@ class IIIGuiNode(Node):
         self.cable_landing_client = ActionClient(self, CableLanding, "/trajectory_controller/cable_landing",feedback_sub_qos_profile=qos)
         self.cable_takeoff_client = ActionClient(self, CableTakeoff, "/trajectory_controller/cable_takeoff",feedback_sub_qos_profile=qos)
         self.fly_along_cable_client = ActionClient(self, FlyAlongCable, "/trajectory_controller/fly_along_cable",feedback_sub_qos_profile=qos)
+        self.double_cable_landing_client = ActionClient(self, DoubleCableLanding, "/double_cable_lander/double_cable_landing",feedback_sub_qos_profile=qos)
 
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -528,6 +529,24 @@ class IIIGuiNode(Node):
         self.future.add_done_callback(self.goal_response_callback)
         self.action_client = self.fly_along_cable_client        
 
+    def send_double_cable_landing_action_request(self, first_cable_id, second_cable_id):
+        print("Sending double cable landing action request with first cable id:", first_cable_id, "and second cable id:", second_cable_id)
+
+        if self.action_status_lock_.acquire(blocking=True):
+            self.current_action = "DoubleCableLanding"
+            self.action_status = "Waiting for reply"
+            self.action_status_lock_.release()
+
+        goal_msg = DoubleCableLanding.Goal()
+        goal_msg.first_cable_id = first_cable_id
+        goal_msg.second_cable_id = second_cable_id
+
+        self.double_cable_landing_client.wait_for_server()
+
+        self.future = self.double_cable_landing_client.send_goal_async(goal_msg)
+        self.future.add_done_callback(self.goal_response_callback)
+        self.action_client = self.double_cable_landing_client
+
     def goal_response_callback(self, future):
         self.goal_handle = future.result()
         self.action_status_lock_.acquire(blocking=True)
@@ -612,7 +631,8 @@ class IIIGui():
             "FlyUnderCable",
             "CableLanding",
             "CableTakeoff",
-            "FlyAlongCable"
+            "FlyAlongCable",
+            "DoubleCableLanding",
         ]
 
         self.action_stringvar = tkinter.StringVar(self.root)
@@ -1291,6 +1311,92 @@ class IIIGui():
             inv_cb.grid()
             ok_btn.grid()
             cancel_btn.grid()
+
+        elif action == "DoubleCableLanding":
+            cl_label = tkinter.Label(
+                self.action_options_frame,
+                text="DoubleCableLanding options"
+            )
+
+            cable_ids = self.node.get_cable_ids()
+
+            first_id_label = tkinter.Label(
+                self.action_options_frame,
+                text="First cable ID:"
+            )
+            first_cable_id_stringvar = tkinter.StringVar(self.action_options_window)
+            first_cable_id_stringvar.set(cable_ids[0])
+            first_cable_id_optionmenu = tkinter.OptionMenu(
+                self.action_options_frame,
+                first_cable_id_stringvar,
+                *cable_ids
+            )
+
+            second_id_label = tkinter.Label(
+                self.action_options_frame,
+                text="Second cable ID:"
+            )
+            second_cable_id_stringvar = tkinter.StringVar(self.action_options_window)
+            second_cable_id_stringvar.set(cable_ids[0])
+            second_cable_id_optionmenu = tkinter.OptionMenu(
+                self.action_options_frame,
+                second_cable_id_stringvar,
+                *cable_ids
+            )
+
+            first_cable_id = None
+            second_cable_id = None
+
+            def on_ok_btn_click():
+                fail = False
+
+                try:
+                    first_cable_id = int(first_cable_id_stringvar.get())
+                except ValueError:
+                    first_cable_id_optionmenu.configure(
+                        bg="red"
+                    )
+
+                    fail = True
+
+                try:
+                    second_cable_id = int(second_cable_id_stringvar.get())
+                except ValueError:
+                    second_cable_id_optionmenu.configure(
+                        bg="red"
+                    )
+
+                    fail = True
+
+                if fail:
+                    return
+
+                self.action_options_window.destroy()
+                self.action_options_window = None
+                self.action_options_frame = None
+
+                self.node.send_double_cable_landing_action_request(first_cable_id, second_cable_id)
+
+            ok_btn = tkinter.Button(
+                self.action_options_frame,
+                text="OK",
+                command=on_ok_btn_click
+            )
+
+            cancel_btn = tkinter.Button(
+                self.action_options_frame,
+                text="Cancel",
+                command=on_cancel_btn_click
+            )
+
+            cl_label.grid()
+            first_id_label.grid()
+            first_cable_id_optionmenu.grid()
+            second_id_label.grid()
+            second_cable_id_optionmenu.grid()
+            ok_btn.grid()
+            cancel_btn.grid()
+
             
     def cancel_action(self):
         self.node.cancel_action()
