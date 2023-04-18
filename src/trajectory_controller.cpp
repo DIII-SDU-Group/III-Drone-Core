@@ -1591,12 +1591,18 @@ void TrajectoryController::stateMachineCallback() {
 
 	auto notifyCurrentRequest = [&](request_reply_type_t reply_type) -> bool {
 
+		RCLCPP_DEBUG(this->get_logger(), "Notify current request");
+
 		request_reply_t reply = {
 			.action_id = request.action_id,
 			.reply_type = reply_type
 		};
 
+		RCLCPP_DEBUG(this->get_logger(), "Push reply to queue");
+
 		request_reply_queue_.Push(reply, true);
+
+		RCLCPP_DEBUG(this->get_logger(), "Reply pushed to queue");
 
 		return true;
 
@@ -3239,6 +3245,8 @@ void TrajectoryController::stateMachineCallback() {
 				notifyCurrentRequest(cancel);
 
 				if (!hover_under_cable_on_aborted_cable_landing) {
+
+					RCLCPP_DEBUG(this->get_logger(), "Going to state hovering");
 
 					clearPlannedTrajectory();
 					clearTargetCable();
