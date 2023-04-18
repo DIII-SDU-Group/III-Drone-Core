@@ -44,7 +44,7 @@
 
 #include "iii_interfaces/action/drum_manual_roll.hpp"
 
-#include "iii_interfaces/action/fly_to_position.hpp"
+#include "iii_interfaces/action/fly_under_cable.hpp"
 #include "iii_interfaces/action/cable_landing.hpp"
 #include "iii_interfaces/action/cable_takeoff.hpp"
 
@@ -69,8 +69,8 @@ public:
     using DoubleCableLanding = iii_interfaces::action::DoubleCableLanding;
     using GoalHandleDoubleCableLanding = rclcpp_action::ServerGoalHandle<DoubleCableLanding>;
 
-	using FlyToPosition = iii_interfaces::action::FlyToPosition;
-	using GoalHandleFlyToPosition = rclcpp_action::ClientGoalHandle<FlyToPosition>;
+	using FlyUnderCable = iii_interfaces::action::FlyUnderCable;
+	using GoalHandleFlyUnderCable = rclcpp_action::ClientGoalHandle<FlyUnderCable>;
 
 	using CableLanding = iii_interfaces::action::CableLanding;
 	using GoalHandleCableLanding = rclcpp_action::ClientGoalHandle<CableLanding>;
@@ -81,8 +81,7 @@ public:
 	using DrumManualRoll = iii_interfaces::action::DrumManualRoll;
 	using GoalHandleDrumManualRoll = rclcpp_action::ClientGoalHandle<DrumManualRoll>;
 
-	DoubleCableLander(
-            const std::string & node_name="double_cable_lander", 
+	DoubleCableLander(const std::string & node_name="double_cable_lander", 
 			const std::string & node_namespace="/double_cable_lander", 
 			const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 	~DoubleCableLander();
@@ -100,7 +99,7 @@ private:
 	void followDoubleCableLandingCompletion(const std::shared_ptr<GoalHandleDoubleCableLanding> goal_handle);
 
     // Fly to position action client:
-    rclcpp_action::Client<FlyToPosition>::SharedPtr fly_to_position_client_;
+    rclcpp_action::Client<FlyUnderCable>::SharedPtr fly_under_cable_client_;
 
     // Cable landing action client:
     rclcpp_action::Client<CableLanding>::SharedPtr cable_landing_client_;
@@ -135,6 +134,7 @@ private:
     std::mutex powerline_mutex_;
 
     quat_t target_quat_;
+    float target_yaw_;
 
     void powerlineCallback(iii_interfaces::msg::Powerline::SharedPtr msg);
 
@@ -161,9 +161,9 @@ private:
     int trajectory_goal_result_ = 0;
     int cable_drum_goal_result_ = 0;
 
-    void flyToPositionGoalResponseCallback(std::shared_future<GoalHandleFlyToPosition::SharedPtr> future);
-    void flyToPositionFeedbackCallback(GoalHandleFlyToPosition::SharedPtr, const std::shared_ptr<const FlyToPosition::Feedback> feedback);
-    void flyToPositionResultCallback(const GoalHandleFlyToPosition::WrappedResult &result);
+    void flyUnderCableGoalResponseCallback(std::shared_future<GoalHandleFlyUnderCable::SharedPtr> future);
+    void flyUnderCableFeedbackCallback(GoalHandleFlyUnderCable::SharedPtr, const std::shared_ptr<const FlyUnderCable::Feedback> feedback);
+    void flyUnderCableResultCallback(const GoalHandleFlyUnderCable::WrappedResult &result);
 
     void cableLandingGoalResponseCallback(std::shared_future<GoalHandleCableLanding::SharedPtr> future);
     void cableLandingFeedbackCallback(GoalHandleCableLanding::SharedPtr, const std::shared_ptr<const CableLanding::Feedback> feedback);
