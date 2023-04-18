@@ -319,15 +319,15 @@ void CableDrumController::drumSetModeServiceCallback(const std::shared_ptr<iii_i
 
         } fpga_mutex_.unlock();
 
-        cable_drum_info_mutex_.lock(); {
-
-            mode_ = fpga_mode;
-
-        } cable_drum_info_mutex_.unlock();
-
-        response->success = true;
-
     }
+
+    cable_drum_info_mutex_.lock(); {
+
+        mode_ = fpga_mode;
+
+    } cable_drum_info_mutex_.unlock();
+
+    response->success = true;
 
 }
 

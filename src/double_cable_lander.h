@@ -118,6 +118,7 @@ private:
 
     // Subsciptions:
 	rclcpp::Subscription<iii_interfaces::msg::Powerline>::SharedPtr powerline_sub_;
+    rclcpp::Subscription<iii_interfaces::msg::ControlState>::SharedPtr control_state_sub_;
 
     // Publishers:
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr state_pub_;
@@ -133,10 +134,18 @@ private:
 
     std::mutex powerline_mutex_;
 
+    // Control state:
+    iii_interfaces::msg::ControlState control_state_;
+    iii_interfaces::msg::ControlState getControlState();
+    void setControlState(iii_interfaces::msg::ControlState control_state);
+
+    std::mutex control_state_mutex_;
+
     quat_t target_quat_;
     float target_yaw_;
 
     void powerlineCallback(iii_interfaces::msg::Powerline::SharedPtr msg);
+    void controlStateCallback(iii_interfaces::msg::ControlState::SharedPtr msg);
 
     // State:
     enum state_t {

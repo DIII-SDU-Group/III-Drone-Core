@@ -20,6 +20,8 @@ DoubleCableLander::DoubleCableLander(const std::string & node_name,
     this->declare_parameter<uint8_t>("cable_drum_tracking_gain", 15);
     this->declare_parameter<uint8_t>("cable_drum_tracking_reference", 7);
     this->declare_parameter<int>("wait_for_client_timeout_ms", 100);
+    this->declare_parameter<int>("first_cable_landing_max_retries", 3);
+    this->declare_parameter<int>("second_cable_landing_max_retries", 3);
 
 	// tf
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
@@ -32,6 +34,10 @@ DoubleCableLander::DoubleCableLander(const std::string & node_name,
 	powerline_sub_ = this->create_subscription<iii_interfaces::msg::Powerline>(
 		"/pl_mapper/powerline", 10,
 		std::bind(&DoubleCableLander::powerlineCallback, this, std::placeholders::_1));
+
+    control_state_sub_ = this->create_subscription<iii_interfaces::msg::ControlState>(
+        "/trajectory_controller/control_state", 10,
+        std::bind(&DoubleCableLander::controlStateCallback, this, std::placeholders::_1));
 
     // Action clients:
     this->fly_under_cable_client_ = rclcpp_action::create_client<FlyUnderCable>(
@@ -144,6 +150,14 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
 
     std::chrono::milliseconds wait_for_client_timeout_ms_chrono(wait_for_client_timeout_ms);
 
+    int first_cable_landing_max_retries;
+    this->get_parameter("first_cable_landing_max_retries", first_cable_landing_max_retries);
+
+    int second_cable_landing_max_retries;
+    this->get_parameter("second_cable_landing_max_retries", second_cable_landing_max_retries);
+
+    int cnt;
+
     std::cout << "starting\n";
 
     // this->target_yaw_client_ = this->create_client<iii_interfaces::srv::SetGeneralTargetYaw>("/trajectory_controller/set_general_target_yaw");
@@ -236,9 +250,9 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
 
     // };
 
-    auto trajectory_goal_wait = [this]() -> bool {
+    auto trajectory_goal_wait = [this, wait_for_client_timeout_ms_chrono]() -> bool {
 
-        rclcpp::Rate rate(100ms);
+        rclcpp::Rate rate(wait_for_client_timeout_ms_chrono);
 
         while(true) {
 
@@ -262,20 +276,26 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
         }
     };
 
-    auto trajectory_and_drum_goal_wait = [this]() -> bool {
+    auto trajectory_and_drum_goal_wait = [this, wait_for_client_timeout_ms_chrono]() -> bool {
 
-        rclcpp::Rate rate(100ms);
+        rclcpp::Rate rate(wait_for_client_timeout_ms_chrono);
 
         while(true) {
 
-            if (trajectory_goal_response_ < 0 || cable_drum_goal_response_ < 0)
+            if (trajectory_goal_response_ < 0 || cable_drum_goal_response_ < 0) {
+                std::cout << "trajectory_goal_response_ < 0 || cable_drum_goal_response_ < 0\n";
                 return false;
+            }
 
-            if (trajectory_goal_response_ > 0 && trajectory_goal_result_ < 0 || cable_drum_goal_response_ > 0 && cable_drum_goal_result_ < 0)
+            if (trajectory_goal_response_ > 0 && trajectory_goal_result_ < 0 || cable_drum_goal_response_ > 0 && cable_drum_goal_result_ < 0) {
+                std::cout << "trajectory_goal_response_ > 0 && trajectory_goal_result_ < 0 || cable_drum_goal_response_ > 0 && cable_drum_goal_result_ < 0\n";
                 return false;
+            }
 
-            if (trajectory_goal_response_ > 0 && trajectory_goal_result_ > 0 && cable_drum_goal_response_ > 0 && cable_drum_goal_result_ > 0)
+            if (trajectory_goal_response_ > 0 && trajectory_goal_result_ > 0 && cable_drum_goal_response_ > 0 && cable_drum_goal_result_ > 0) {
+                std::cout << "trajectory_goal_response_ > 0 && trajectory_goal_result_ > 0 && cable_drum_goal_response_ > 0 && cable_drum_goal_result_ > 0\n";
                 return true;
+            }
 
             rate.sleep();
 
@@ -711,6 +731,7 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
 
     };
 
+
     while(!exit) {
 
         std::cout << "1\n";
@@ -775,21 +796,64 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
 
         std::cout << "4\n";
 
-            if (land_on_cable_blocking(first_cable_id_)) {
+            cnt = 0;
+
+            while(!land_on_cable_blocking(first_cable_id_)) {
 
                 std::cout << "4.1\n";
 
-                set_cable_drum_manual();
+                if (cnt++ >= first_cable_landing_max_retries) {
 
-                state_ = leave_first_cable;
+                    std::cout << "4.2\n";
 
-            } else {
+                    abort_goal();
 
-                std::cout << "4.2\n";
+                    break;
 
-                abort_goal();
+                }
+
+                iii_interfaces::msg::ControlState control_state = getControlState();
+
+                // INitialize rate:
+                rclcpp::Rate rate(500ms);
+
+                // Poll control state until the drone is hovering under cable, sleep 100ms between polls:
+                while (control_state.state != iii_interfaces::msg::ControlState::CONTROL_STATE_HOVERING_UNDER_CABLE) {
+
+                    rate.sleep();
+
+                    std::cout << "4.2.1\n";
+
+                    control_state = getControlState();
+
+                    std::cout << "4.2.2\n";
+
+
+                }
 
             }
+
+            std::cout << "4.3\n";
+
+            set_cable_drum_manual();
+
+            state_ = leave_first_cable;
+
+            // if (land_on_cable_blocking(first_cable_id_)) {
+
+            //     std::cout << "4.1\n";
+
+            //     set_cable_drum_manual();
+
+            //     state_ = leave_first_cable;
+
+            // } else {
+
+            //     std::cout << "4.2\n";
+
+            //     abort_goal();
+
+            // }
 
             break;
 
@@ -839,25 +903,75 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
 
         case land_on_second_cable:
 
-        std::cout << "7\n";
+            std::cout << "7\n";
 
-            if (land_on_cable_blocking(second_cable_id_)) {
+            cnt = 0;
 
-                set_cable_drum_off();
+            while(!land_on_cable_blocking(second_cable_id_)) {
 
-                state_ = on_second_cable;
+                std::cout << "7.1\n";
 
-                result->success = true;
+                if (cnt++ >= second_cable_landing_max_retries) {
 
-                goal_handle->succeed(result);
+                    std::cout << "7.2\n";
 
-                exit = true;
+                    abort_goal();
 
-            } else {
+                    break;
 
-                abort_goal();
+                }
+
+
+                iii_interfaces::msg::ControlState control_state = getControlState();
+
+                // INitialize rate:
+                rclcpp::Rate rate(500ms);
+
+                // Poll control state until the drone is hovering under cable, sleep 100ms between polls:
+                while (control_state.state != iii_interfaces::msg::ControlState::CONTROL_STATE_HOVERING_UNDER_CABLE) {
+
+                    rate.sleep();
+
+                    std::cout << "7.2.1\n";
+
+                    control_state = getControlState();
+
+                    std::cout << "7.2.2\n";
+
+
+                }
 
             }
+
+            std::cout << "7.3\n";
+
+            set_cable_drum_off();
+
+            state_ = on_second_cable;
+
+            result->success = true;
+
+            goal_handle->succeed(result);
+
+            exit = true;
+
+            // if (land_on_cable_blocking(second_cable_id_)) {
+
+            //     set_cable_drum_off();
+
+            //     state_ = on_second_cable;
+
+            //     result->success = true;
+
+            //     goal_handle->succeed(result);
+
+            //     exit = true;
+
+            // } else {
+
+            //     abort_goal();
+
+            // }
 
             break;
 
@@ -892,6 +1006,36 @@ void DoubleCableLander::setPowerline(iii_interfaces::msg::Powerline powerline) {
 void DoubleCableLander::powerlineCallback(iii_interfaces::msg::Powerline::SharedPtr msg) {
 
     setPowerline(*msg);
+
+}
+
+void DoubleCableLander::controlStateCallback(iii_interfaces::msg::ControlState::SharedPtr msg) {
+
+    setControlState(*msg);
+
+}
+
+void DoubleCableLander::setControlState(iii_interfaces::msg::ControlState control_state) {
+
+    control_state_mutex_.lock(); {
+
+        control_state_ = control_state;
+
+    } control_state_mutex_.unlock();
+
+}
+
+iii_interfaces::msg::ControlState DoubleCableLander::getControlState() {
+
+    iii_interfaces::msg::ControlState control_state;
+
+    control_state_mutex_.lock(); {
+
+        control_state = control_state_;
+
+    } control_state_mutex_.unlock();
+
+    return control_state;
 
 }
 
