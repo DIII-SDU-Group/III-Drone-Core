@@ -35,7 +35,7 @@ DoubleCableLander::DoubleCableLander(const std::string & node_name,
 
     // Action clients:
     this->fly_under_cable_client_ = rclcpp_action::create_client<FlyUnderCable>(
-       this, "/trajectory_controller/fly_to_position"
+       this, "/trajectory_controller/fly_under_cable"
     );
     this->cable_landing_client_ = rclcpp_action::create_client<CableLanding>(
        this, "/trajectory_controller/cable_landing"
