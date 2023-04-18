@@ -11,10 +11,13 @@ import os
 def generate_launch_description():
     share_dir = get_package_share_directory('iii_drone')
 
-    tf = IncludeLaunchDescription(PythonLaunchDescriptionSource(share_dir + "/launch/tf_real.launch.py"))
+    tf = IncludeLaunchDescription(PythonLaunchDescriptionSource(share_dir + "/launch/tf_sim.launch.py"))
+    # tf = IncludeLaunchDescription(PythonLaunchDescriptionSource(share_dir + "/launch/tf_real.launch.py"))
     controller = IncludeLaunchDescription(PythonLaunchDescriptionSource(share_dir + "/launch/controller.launch.py"))
+    double_cable_lander = IncludeLaunchDescription(PythonLaunchDescriptionSource(share_dir + "/launch/double_cable_lander.launch.py"))
 
     return LaunchDescription([
         controller,
-        tf
+        tf,
+        double_cable_lander
     ])

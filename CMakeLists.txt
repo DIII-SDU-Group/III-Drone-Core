@@ -25,6 +25,9 @@ link_directories(src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src)
 include_directories(src/matlab_MPC_5Hz_hp10)
 link_directories(src/matlab_MPC_5Hz_hp10)
 
+include_directories(src/CableDrumBridge/src)
+link_directories(src/CableDrumBridge/src)
+
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
@@ -82,6 +85,35 @@ ament_target_dependencies(trajectory_controller
   tf2_geometry_msgs
 )
 install(TARGETS trajectory_controller DESTINATION lib/${PROJECT_NAME})
+
+add_executable(cable_drum_controller
+  src/cable_drum_controller.cpp
+  src/CableDrumBridge/src/xcabledrumbridge.c
+  src/CableDrumBridge/src/xcabledrumbridge_linux.c
+)
+ament_target_dependencies(cable_drum_controller
+  rclcpp
+  iii_interfaces
+  std_msgs
+  tf2
+  tf2_ros
+)
+install(TARGETS cable_drum_controller DESTINATION lib/${PROJECT_NAME})
+
+add_executable(double_cable_lander
+  src/double_cable_lander.cpp
+  src/geometry.cpp
+)
+ament_target_dependencies(double_cable_lander
+  rclcpp
+  iii_interfaces
+  std_msgs
+  geometry_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+)
+install(TARGETS double_cable_lander DESTINATION lib/${PROJECT_NAME})
 
 #add_executable(hough_transformer_HW
 #  src/hough_transformer_HW.cpp
