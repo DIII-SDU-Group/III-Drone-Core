@@ -9,11 +9,12 @@ import os
 import yaml
 
 def generate_launch_description():
-    config = os.path.join(
-        get_package_share_directory('iii_drone'),
-        'config',
-        'params.yaml'
-    )
+    config = "/home/mp4d/config.yaml"
+    #config = os.path.join(
+    #    get_package_share_directory('iii_drone'),
+    #    'config',
+    #    'params.yaml'
+    #)
 
     config_dict = yaml.safe_load(open(config,"r").read())
 
@@ -21,6 +22,7 @@ def generate_launch_description():
     drone_frame_id = config_dict["/**"]["ros__parameters"]["drone_frame_id"]
     cable_drum_frame_id = config_dict["/**"]["ros__parameters"]["cable_drum_frame_id"]
     cable_gripper_frame_id = config_dict["/**"]["ros__parameters"]["cable_gripper_frame_id"]
+    cable_guard_frame_id = config_dict["/**"]["ros__parameters"]["cable_guard_frame_id"]
     mmwave_frame_id = config_dict["/**"]["ros__parameters"]["mmwave_frame_id"]
     depth_cam_frame_id = config_dict["/**"]["ros__parameters"]["depth_cam_frame_id"]
 
@@ -33,6 +35,13 @@ def generate_launch_description():
 
     args = [str(val) for val in config_dict["tf"]["real"]["ros__parameters"]["drone_to_cable_gripper"]] + [drone_frame_id, cable_gripper_frame_id]
     tf_drone_to_cable_gripper = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        arguments=args
+    )
+
+    args = [str(val) for val in config_dict["tf"]["real"]["ros__parameters"]["drone_to_cable_guard"]] + [drone_frame_id, cable_guard_frame_id]
+    tf_drone_to_cable_guard = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
         arguments=args
@@ -55,6 +64,7 @@ def generate_launch_description():
     return LaunchDescription([
         tf_drone_to_cable_drum,
         tf_drone_to_cable_gripper,
+        tf_drone_to_cable_guard,
         tf_drone_to_iwr,
         world_to_drone
     ])

@@ -82,7 +82,7 @@ trajectory_controller:
     ros__parameters:
       controller_period_ms: 200
       landed_altitude_threshold: 0.1
-      reached_position_euclidean_distance_threshold: 0.1
+      reached_position_euclidean_distance_threshold: 0.25
       min_target_altitude: 1.
       target_cable_fixed_position_distance_threshold: 0.5
       target_cable_safety_margin_distance_threshold: 0.25
@@ -195,7 +195,7 @@ tf:
     ros__parameters:
       drone_to_cable_drum: [-0.13, -0.01, -0.09, 3.1415, 0.0, 0.0]
       drone_to_cable_gripper: [0.0, 0.0, 0.13, 1.57079632679, 0.0, 0.0]
-      drone_to_mmwave: [0.0375, -0.23, 0.0725, 0.0, 0.0, 1.57079632679] 
+      drone_to_mmwave: [-0.0375, -0.2, 0.04, 3.1415, 0.0, 1.57079632679] 
       drone_to_t265: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
       world_to_t265_world: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
       

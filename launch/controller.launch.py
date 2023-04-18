@@ -9,11 +9,13 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 def generate_launch_description():
-    config = os.path.join(
-        get_package_share_directory('iii_drone'),
-        'config',
-        'params.yaml'
-    )
+    #config = os.path.join(
+    #    get_package_share_directory('iii_drone'),
+    #    'config',
+    #    'params.yaml'
+    #)
+
+    config = "/home/mp4d/config.yaml"
 
     trajectory_controller = Node(
         package="iii_drone",
