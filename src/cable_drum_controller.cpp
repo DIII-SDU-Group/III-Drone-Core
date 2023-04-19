@@ -412,7 +412,7 @@ void CableDrumController::infoPublishTimerCallback() {
 int main(int argc, char* argv[]) {
 	 std::cout << "Starting cable drum controller node..." << std::endl;
 
-    if (argc > 0) {
+    if (argc > 1) {
         if (strcmp(argv[1], "sim") == 0) {
             sim_ = true;
         }
