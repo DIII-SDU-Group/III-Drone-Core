@@ -17,11 +17,17 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(const std::string
     this->declare_parameter<int>("init_sleep_time_ms", 1000);
     this->declare_parameter<int>("odometry_callback_period_ms", 25);
 
+    this->declare_parameter<float>("min_point_dist", 0.2);
+    this->declare_parameter<float>("max_point_dist", 18.);
+    this->declare_parameter<float>("view_cone_slope", 0.75);
+
     this->declare_parameter<std::string>("world_frame_id", "world");
     this->declare_parameter<std::string>("drone_frame_id", "drone");
+    this->declare_parameter<std::string>("mmwave_frame_id", "mmwave");
 
     this->get_parameter("world_frame_id", world_frame_id_);
     this->get_parameter("drone_frame_id", drone_frame_id_);
+    this->get_parameter("mmwave_frame_id", mmwave_frame_id_);
 
     for (int i = 0; i < 3; i++) { pl_angle_est[i].state_est = 0; pl_angle_est[i].var_est = 1; }
 
@@ -44,6 +50,10 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(const std::string
     //     "/hough_transformer/cable_yaw_angle", 10, std::bind(&PowerlineDirectionComputerNode::plDirectionCallback, this, std::placeholders::_1));
     pl_direction_sub_ = this->create_subscription<iii_interfaces::msg::PowerlineDirection>(
         "/hough_transformer/cable_yaw_angle", 10, std::bind(&PowerlineDirectionComputerNode::plDirectionCallback, this, std::placeholders::_1));
+
+    // INiti pl_sub:
+    pl_sub_ = this->create_subscription<iii_interfaces::msg::Powerline>(
+        "/pl_mapper/powerline", 10, std::bind(&PowerlineDirectionComputerNode::plCallback, this, std::placeholders::_1));
 
     pl_direction_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("powerline_direction", 10);
 
@@ -151,6 +161,16 @@ void PowerlineDirectionComputerNode::plDirectionCallback(const iii_interfaces::m
     update(pl_angle);
 }
 
+void PowerlineDirectionComputerNode::plCallback(const iii_interfaces::msg::Powerline::SharedPtr msg) {
+
+    pl_mutex_.lock(); {
+
+        pl_ = *msg;
+
+    } pl_mutex_.unlock();
+
+}
+
 void PowerlineDirectionComputerNode::predict() {
 
     this->get_parameter("kf_q", q_);
@@ -192,6 +212,15 @@ void PowerlineDirectionComputerNode::predict() {
 }
 
 void PowerlineDirectionComputerNode::update(float pl_angle) {
+
+    RCLCPP_INFO(this->get_logger(), "Updating powerline direction");
+
+    if (!anyCableInFOV()) {
+
+        RCLCPP_INFO(this->get_logger(), "No cable in FOV, not updating");
+        return;
+
+    }
 
     this->get_parameter("kf_r", r_);
 
@@ -445,6 +474,68 @@ float PowerlineDirectionComputerNode::mapAngle2(float curr_angle, float new_angl
     //file << "Best candidate: " << std::to_string(best_angle) << std::endl;
 
     return best_angle;
+
+}
+
+bool PowerlineDirectionComputerNode::anyCableInFOV() {
+
+    float min_point_dist, max_point_dist, view_cone_slope;
+
+    // Get parameters
+    this->get_parameter("min_point_dist", min_point_dist);
+    this->get_parameter("max_point_dist", max_point_dist);
+    this->get_parameter("view_cone_slope", view_cone_slope);
+
+    if (pl_.count == 0) {
+        RCLCPP_INFO(this->get_logger(), "No powerlines detected, returning FOV true");
+        return true;
+    }
+
+    // Loop through all cables in pl_ and check if any of them are in the FOV
+    for (int i = 0; i < pl_.count; i++) {
+
+        geometry_msgs::msg::PoseStamped cable_pose = pl_.poses[i];
+
+        // Transform to drone frame:
+        geometry_msgs::msg::PoseStamped mmwave_pose_stamped = tf_buffer_->transform(cable_pose, mmwave_frame_id_);
+
+        // //RCLCPP_INFO(logger_, "b3");
+
+        point_t mmwave_point(
+            mmwave_pose_stamped.pose.position.x,
+            mmwave_pose_stamped.pose.position.y,
+            mmwave_pose_stamped.pose.position.z
+        );
+
+        bool in_FOV = true;
+
+        float dist = mmwave_point.norm();
+
+        in_FOV &= dist <= max_point_dist;
+        in_FOV &= dist >= min_point_dist;
+
+        float yz_dist = sqrt(mmwave_point(1)*mmwave_point(1)+mmwave_point(2)*mmwave_point(2));
+        in_FOV &= mmwave_point(0) > view_cone_slope*yz_dist;
+
+        if (in_FOV) {
+            // Log the cable position:
+
+            RCLCPP_INFO(this->get_logger(), "Cable %d in FOV", i);
+            RCLCPP_INFO(this->get_logger(), "x = %f", mmwave_point(0));
+            RCLCPP_INFO(this->get_logger(), "y = %f", mmwave_point(1));
+            RCLCPP_INFO(this->get_logger(), "z = %f", mmwave_point(2));
+            RCLCPP_INFO(this->get_logger(), "dist = %f", dist);
+            RCLCPP_INFO(this->get_logger(), "yz_dist = %f", yz_dist);
+            RCLCPP_INFO(this->get_logger(), "view_cone_slope = %f", view_cone_slope);
+
+
+
+            
+            return true;
+        }
+    }
+
+    return false;
 
 }
 

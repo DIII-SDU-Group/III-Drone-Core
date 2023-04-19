@@ -141,6 +141,7 @@ ament_target_dependencies(pl_dir_computer
   geometry_msgs
   tf2
   tf2_ros
+  tf2_geometry_msgs
 )
 install(TARGETS pl_dir_computer DESTINATION lib/${PROJECT_NAME})
 
