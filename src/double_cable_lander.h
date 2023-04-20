@@ -144,6 +144,8 @@ private:
     quat_t target_quat_;
     float target_yaw_;
 
+    bool dont_set_yaw_ = false;
+
     void powerlineCallback(iii_interfaces::msg::Powerline::SharedPtr msg);
     void controlStateCallback(iii_interfaces::msg::ControlState::SharedPtr msg);
 

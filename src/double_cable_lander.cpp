@@ -23,6 +23,10 @@ DoubleCableLander::DoubleCableLander(const std::string & node_name,
     this->declare_parameter<int>("first_cable_landing_max_retries", 3);
     this->declare_parameter<int>("second_cable_landing_max_retries", 3);
 
+    this->declare_parameter<bool>("dont_set_yaw", false);
+
+    this->get_parameter("dont_set_yaw", dont_set_yaw_);
+
 	// tf
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
@@ -760,7 +764,7 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
 
             std::cout << "2.1\n";
 
-            if (set_general_target_yaw(powerline, first_cable_id_, second_cable_id_)) {
+            if (dont_set_yaw_ || set_general_target_yaw(powerline, first_cable_id_, second_cable_id_)) {
 
                 std::cout << "2.2\n";
                 
