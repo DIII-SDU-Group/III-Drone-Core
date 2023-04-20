@@ -824,6 +824,14 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
                 // Poll control state until the drone is hovering under cable, sleep 100ms between polls:
                 while (control_state.state != iii_interfaces::msg::ControlState::CONTROL_STATE_HOVERING_UNDER_CABLE) {
 
+                    if (control_state.state == iii_interfaces::msg::ControlState::CONTROL_STATE_IN_FLIGHT_NON_OFFBOARD) {
+
+                        abort_goal();
+
+                        break;
+
+                    }
+
                     rate.sleep();
 
                     std::cout << "4.2.1\n";
@@ -933,6 +941,15 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
 
                 // Poll control state until the drone is hovering under cable, sleep 100ms between polls:
                 while (control_state.state != iii_interfaces::msg::ControlState::CONTROL_STATE_HOVERING_UNDER_CABLE) {
+
+                    if (control_state.state == iii_interfaces::msg::ControlState::CONTROL_STATE_IN_FLIGHT_NON_OFFBOARD) {
+
+                        abort_goal();
+
+                        break;
+
+                    }
+
 
                     rate.sleep();
 
