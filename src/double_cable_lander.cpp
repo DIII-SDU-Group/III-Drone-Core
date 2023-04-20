@@ -19,6 +19,7 @@ DoubleCableLander::DoubleCableLander(const std::string & node_name,
     this->declare_parameter<uint8_t>("cable_drum_manual_seconds", 5);
     this->declare_parameter<uint8_t>("cable_drum_tracking_gain", 15);
     this->declare_parameter<uint8_t>("cable_drum_tracking_reference", 7);
+    this->declare_parameter<bool>("cable_drum_use_only_reference_tracking", true);
     this->declare_parameter<int>("wait_for_client_timeout_ms", 100);
     this->declare_parameter<int>("first_cable_landing_max_retries", 3);
     this->declare_parameter<int>("second_cable_landing_max_retries", 3);
@@ -26,6 +27,7 @@ DoubleCableLander::DoubleCableLander(const std::string & node_name,
     this->declare_parameter<bool>("dont_set_yaw", false);
 
     this->get_parameter("dont_set_yaw", dont_set_yaw_);
+    this->get_parameter("cable_drum_use_only_reference_tracking", cable_drum_use_only_reference_tracking_);
 
 	// tf
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
@@ -735,6 +737,12 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
 
     };
 
+    if (cable_drum_use_only_reference_tracking_) {
+
+        if (!set_cable_drum_tracking()) abort_goal();
+
+    }
+
 
     while(!exit) {
 
@@ -847,7 +855,7 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
 
             std::cout << "4.3\n";
 
-            set_cable_drum_manual();
+            if (!cable_drum_use_only_reference_tracking_) set_cable_drum_manual();
 
             state_ = leave_first_cable;
 
@@ -877,7 +885,7 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
 
                 std::cout << "5.1\n";
 
-                set_cable_drum_tracking();
+                if (!cable_drum_use_only_reference_tracking_) set_cable_drum_tracking();
 
                 std::cout << "5.2\n";
 
@@ -966,7 +974,7 @@ void DoubleCableLander::followDoubleCableLandingCompletion(const std::shared_ptr
 
             std::cout << "7.3\n";
 
-            set_cable_drum_off();
+            if (!cable_drum_use_only_reference_tracking_) set_cable_drum_off();
 
             state_ = on_second_cable;
 

@@ -146,6 +146,8 @@ private:
 
     bool dont_set_yaw_ = false;
 
+    bool cable_drum_use_only_reference_tracking_ = false;
+
     void powerlineCallback(iii_interfaces::msg::Powerline::SharedPtr msg);
     void controlStateCallback(iii_interfaces::msg::ControlState::SharedPtr msg);
 
