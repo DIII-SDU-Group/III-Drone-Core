@@ -43,14 +43,16 @@ vector_t rotateVector(rotation_matrix_t R, vector_t v) {
 
 point_t projectPointOnPlane(point_t point, plane_t plane) {
 
-    line_t l = {
-        .p = point,
-        .v = plane.normal
-    };
+    // line_t l = {
+    //     .p = point,
+    //     .v = plane.normal
+    // };
 
-    float t = - plane.normal.dot(l.p) / plane.normal.dot(plane.normal);
+    // float t = - plane.normal.dot(l.p) / plane.normal.dot(plane.normal);
+    float t = (plane.normal.dot(plane.p) - plane.normal.dot(point)) / plane.normal.dot(plane.normal);
 
-    point_t proj_point = l.p + (point_t)(t*l.v);
+    // point_t proj_point = l.p + (point_t)(t*l.v);
+    point_t proj_point = point + (point_t)(t*plane.normal);
 
     return proj_point;
 

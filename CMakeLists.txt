@@ -22,6 +22,12 @@ endif()
 include_directories(src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src)
 link_directories(src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src)
 
+include_directories(src/matlab_MPC_5Hz_hp10)
+link_directories(src/matlab_MPC_5Hz_hp10)
+
+include_directories(src/CableDrumBridge/src)
+link_directories(src/CableDrumBridge/src)
+
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
@@ -44,20 +50,84 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(image_transport REQUIRED)
+find_package(nav_msgs REQUIRED)
 
-add_executable(hough_interfacer
-  src/hough_interfacer_node.cpp
-  src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel_linux.c
-  src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel.c
+add_executable(trajectory_controller 
+  src/trajectory_controller.cpp
+  src/matlab_MPC_5Hz_hp10/minOrMax.cpp
+  src/matlab_MPC_5Hz_hp10/mpcblock_optimizer.cpp
+  src/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration.cpp
+  src/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_data.cpp
+  src/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_initialize.cpp
+  src/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_rtwutil.cpp
+  src/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_terminate.cpp
+  src/matlab_MPC_5Hz_hp10/norm.cpp
+  src/matlab_MPC_5Hz_hp10/qpkwik.cpp
+  src/matlab_MPC_5Hz_hp10/rtGetInf.cpp
+  src/matlab_MPC_5Hz_hp10/rtGetNaN.cpp
+  src/matlab_MPC_5Hz_hp10/rt_nonfinite.cpp
+  src/matlab_MPC_5Hz_hp10/trisolve.cpp
+  src/matlab_MPC_5Hz_hp10/xgerc.cpp
+  src/matlab_MPC_5Hz_hp10/xnrm2.cpp
+  src/matlab_MPC_5Hz_hp10/xpotrf.cpp
+  src/geometry.cpp
 )
-ament_target_dependencies(hough_interfacer
+ament_target_dependencies(trajectory_controller
   rclcpp
-  sensor_msgs
-  OpenCV
-  cv_bridge
+  Eigen3
   iii_interfaces
+  sensor_msgs
+  px4_msgs
+  geometry_msgs
+  std_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
 )
-install(TARGETS hough_interfacer DESTINATION lib/${PROJECT_NAME})
+install(TARGETS trajectory_controller DESTINATION lib/${PROJECT_NAME})
+
+add_executable(cable_drum_controller
+  src/cable_drum_controller.cpp
+  src/CableDrumBridge/src/xcabledrumbridge.c
+  src/CableDrumBridge/src/xcabledrumbridge_linux.c
+)
+ament_target_dependencies(cable_drum_controller
+  rclcpp
+  iii_interfaces
+  std_msgs
+  tf2
+  tf2_ros
+)
+install(TARGETS cable_drum_controller DESTINATION lib/${PROJECT_NAME})
+
+add_executable(double_cable_lander
+  src/double_cable_lander.cpp
+  src/geometry.cpp
+)
+ament_target_dependencies(double_cable_lander
+  rclcpp
+  iii_interfaces
+  std_msgs
+  geometry_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+)
+install(TARGETS double_cable_lander DESTINATION lib/${PROJECT_NAME})
+
+#add_executable(hough_transformer_HW
+#  src/hough_transformer_HW.cpp
+#  src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel_linux.c
+#  src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel.c
+#)
+#ament_target_dependencies(hough_transformer_HW
+#  rclcpp
+#  sensor_msgs
+#  OpenCV
+#  cv_bridge
+#  iii_interfaces
+#)
+#install(TARGETS hough_transformer_HW DESTINATION lib/${PROJECT_NAME})
 
 add_executable(pl_dir_computer
   src/pl_dir_computer_node.cpp
@@ -71,6 +141,7 @@ ament_target_dependencies(pl_dir_computer
   geometry_msgs
   tf2
   tf2_ros
+  tf2_geometry_msgs
 )
 install(TARGETS pl_dir_computer DESTINATION lib/${PROJECT_NAME})
 
@@ -123,8 +194,7 @@ endfunction()
 
 
 custom_executable(img_3d_to_2d_proj)
-custom_executable(hough_pub)
-custom_executable(offboard_control_fly_to_line)
+custom_executable(hough_transformer_SW)
 custom_executable(img_decompress)
 
 
@@ -137,6 +207,22 @@ ament_target_dependencies(depth_cam_to_mmwave
 )
 install(TARGETS depth_cam_to_mmwave DESTINATION lib/${PROJECT_NAME})
 
+add_executable(t265_vio_republisher 
+  src/t265_vio_republisher.cpp
+  src/geometry.cpp
+)
+ament_target_dependencies(t265_vio_republisher
+  rclcpp
+  sensor_msgs
+  geometry_msgs
+  nav_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  px4_msgs
+)
+install(TARGETS t265_vio_republisher DESTINATION lib/${PROJECT_NAME})
+
 ############
 # Install ##
 ############
@@ -147,6 +233,11 @@ install(PROGRAMS
   scripts/image_drawer.py
   scripts/image_decompress.py
   scripts/draw_PL_IDs.py
+  scripts/iii_gui.py
+  scripts/ground_link_republisher.py
+  scripts/points_est_republisher.py
+  scripts/rc_node_launcher.py
+  scripts/data_logger.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

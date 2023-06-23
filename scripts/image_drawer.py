@@ -104,7 +104,7 @@ class ImageDrawer(Node):
 
         self.lock_ = Lock()
 
-        super().__init__("image_drawer")
+        super().__init__("image_drawer", "image_drawer")
         self.camera_sub_ = self.create_subscription(
             Image,
             "/cable_camera/image_raw",
@@ -142,7 +142,7 @@ class ImageDrawer(Node):
 
         self.drawn_img_pub_ = self.create_publisher(
             Image,
-            "/drawn_image",
+            "drawn_image",
             10
         )
 

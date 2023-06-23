@@ -9,30 +9,29 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 def generate_launch_description():
-    config = os.path.join(
-        get_package_share_directory('iii_drone'),
-        'config',
-        'params.yaml'
-    )
+    #config = os.path.join(
+    #    get_package_share_directory('iii_drone'),
+    #    'config',
+    #    'params.yaml'
+    #)
+    config = "/home/mp4d/config.yaml"
 
     hough = Node(
         package="iii_drone",
-        executable="hough_interfacer",
-        remappings=[
-            ("/cable_yaw_angle", "/hough_transformer/cable_yaw_angle"),
-            ("/image_raw", "/cable_camera/image_raw")
-        ],
+        executable="hough_transformer_HW",
         parameters=[config]
     )
 
     pl_dir_computer = Node(
         package="iii_drone",
-        executable="pl_dir_computer"
+        executable="pl_dir_computer",
+        parameters=[config]
     )
 
     pl_mapper = Node(
         package="iii_drone",
-        executable="pl_mapper"
+        executable="pl_mapper",
+        parameters=[config]
     )
 
     return LaunchDescription([

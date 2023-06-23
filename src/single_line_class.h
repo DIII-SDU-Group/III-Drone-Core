@@ -45,7 +45,8 @@ class SingleLine
 {
 public:
     SingleLine(int id, point_t initial_point, float r, float q, 
-    rclcpp::Logger logger, int alive_cnt_low_thresh, int alive_cnt_high_thresh, int alive_cnt_ceiling);
+    rclcpp::Logger logger, int alive_cnt_low_thresh, int alive_cnt_high_thresh, int alive_cnt_ceiling,
+    std::string drone_frame_id, std::string mmwave_frame_id);
 
     SingleLine GetCopy();
     point_t GetPoint();
@@ -66,6 +67,8 @@ private:
     kf_est_t estimates[3];
 
     point_t projected_point_;
+
+    std::string drone_frame_id_, mmwave_frame_id_;
 
     int id_;
 

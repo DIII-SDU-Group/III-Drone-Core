@@ -34,18 +34,6 @@ from sshkeyboard import listen_keyboard
 
 
 ###############################################################################
-#  Defines
-###############################################################################
-global image_width
-image_width  = 640 #1920
-global image_height
-image_height  = 480 #1080
-global img_dims
-img_dims = (image_width, image_height)
-
-
-
-###############################################################################
 # Class
 ###############################################################################
 
@@ -70,7 +58,7 @@ class IdDrawer(Node):
         self.pressed_keys = []
         self.typed_ID = -1
 
-        super().__init__("image_drawer")
+        super().__init__("image_drawer", "image_drawer")
         self.pl_sub_ = self.create_subscription(
             Powerline,
             "/pl_mapper/powerline",	
@@ -87,13 +75,13 @@ class IdDrawer(Node):
 
         self.drawn_img_pub_ = self.create_publisher(
             Image,
-            "/ID_image",
+            "ID_image",
             10
         )
 
         self.ID_pub_ = self.create_publisher(
             Int32,
-            "/typed_ID",
+            "/offboard_control/typed_ID",
             10
         )
 

@@ -40,11 +40,17 @@ class DepthCamToMmwave : public rclcpp::Node
 {
 
 	public:
-		DepthCamToMmwave() : Node("depth_cam_to_mmwave_converter") {
-			depth_cam_to_mmwave_pcl_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/iwr6843_pcl", 10);
-			filtered_points_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/mmwave_converter/filtered_points", 10);
-			received_points_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/mmwave_converter/received_points", 10);
-			clustered_points_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/mmwave_converter/clustered_points", 10);
+		DepthCamToMmwave() : Node("depth_cam_to_mmwave_converter", "/mmwave_converter") {
+      this->declare_parameter<std::string>("depth_cam_frame_id", "depth_cam");
+      this->declare_parameter<std::string>("mmwave_frame_id", "mmwave");
+
+      this->get_parameter("depth_cam_frame_id", depth_cam_frame_id_);
+      this->get_parameter("mmwave_frame_id", mmwave_frame_id_);
+
+			depth_cam_to_mmwave_pcl_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/mmwave/pcl", 10);
+			filtered_points_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("filtered_points", 10);
+			received_points_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("received_points", 10);
+			clustered_points_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("clustered_points", 10);
 
 			subscription_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
 			"/depth_camera/points",	10,
@@ -71,8 +77,8 @@ class DepthCamToMmwave : public rclcpp::Node
 		pcl::PointCloud<pcl::PointXYZ>::Ptr eucClustering(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
 
 		void publishPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub, std::string frame_id);
-
-
+    std::string depth_cam_frame_id_;
+    std::string mmwave_frame_id_;
 };
 
 
@@ -117,7 +123,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr DepthCamToMmwave::eucClustering(pcl::PointCl
 {
   std::cout << "PointCloud before filtering has: " << cloud->size () << " data points." << std::endl; //*
 
-  publishPoints(cloud, received_points_publisher_, "depth_cam");
+  publishPoints(cloud, received_points_publisher_, depth_cam_frame_id_);
 
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_f (new pcl::PointCloud<pcl::PointXYZ>);
@@ -143,7 +149,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr DepthCamToMmwave::eucClustering(pcl::PointCl
 
   std::cout << "PointCloud after filtering has: " << cloud_filtered->size ()  << " data points." << std::endl; //*
 
-  publishPoints(cloud_filtered, filtered_points_publisher_, "depth_cam");
+  publishPoints(cloud_filtered, filtered_points_publisher_, depth_cam_frame_id_);
 
   // Creating the KdTree object for the search method of the extraction
   pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
@@ -196,7 +202,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr DepthCamToMmwave::eucClustering(pcl::PointCl
     j++;
   }
 
-  publishPoints(pl_points, clustered_points_publisher_, "depth_cam");
+  publishPoints(pl_points, clustered_points_publisher_, depth_cam_frame_id_);
 
   pcl::PointCloud<pcl::PointXYZ>::Ptr pl_noise_points (new pcl::PointCloud<pcl::PointXYZ>);
 
@@ -227,7 +233,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr DepthCamToMmwave::eucClustering(pcl::PointCl
 
   }
 
-  publishPoints(pl_noise_points, depth_cam_to_mmwave_pcl_publisher_, "iwr6843_frame");
+  publishPoints(pl_noise_points, depth_cam_to_mmwave_pcl_publisher_, mmwave_frame_id_);
 
   return cloud;
 }

@@ -25,7 +25,7 @@ public:
 	ImageDecompress() : Node("image_decompressor") {
 
 		compress_img_sub_ = create_subscription<sensor_msgs::msg::CompressedImage>(
-			"/image_raw/compressed",
+			"/cable_camera/image_raw/compressed",
 			10,
 
 			// [this](sensor_msgs::msg::CompressedImage::ConstSharedPtr msg) {
