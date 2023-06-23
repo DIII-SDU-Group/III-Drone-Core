@@ -15,7 +15,7 @@ from sensor_msgs.msg import Image, PointCloud2, PointField
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
 from iii_interfaces.msg import Powerline, PowerlineDirection, ControlState
-from iii_interfaces.action import Takeoff, Landing, FlyToPosition, FlyUnderCable, CableLanding, CableTakeoff, FlyAlongCable, DoubleCableLanding
+from iii_interfaces.action import Takeoff, Landing, FlyToPosition, FlyUnderCable, CableLanding, CableTakeoff, FlyAlongCable, DoubleCableLanding, DisarmOnCable, ArmOnCable
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 
 from tf2_ros import TransformException
@@ -225,6 +225,8 @@ class IIIGuiNode(Node):
         self.cable_takeoff_client = ActionClient(self, CableTakeoff, "/trajectory_controller/cable_takeoff",feedback_sub_qos_profile=qos)
         self.fly_along_cable_client = ActionClient(self, FlyAlongCable, "/trajectory_controller/fly_along_cable",feedback_sub_qos_profile=qos)
         self.double_cable_landing_client = ActionClient(self, DoubleCableLanding, "/double_cable_lander/double_cable_landing",feedback_sub_qos_profile=qos)
+        self.disarm_on_cable_client = ActionClient(self, DisarmOnCable, "/trajectory_controller/disarm_on_cable",feedback_sub_qos_profile=qos)
+        self.arm_on_cable_client = ActionClient(self, ArmOnCable, "/trajectory_controller/arm_on_cable",feedback_sub_qos_profile=qos)
 
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -547,6 +549,38 @@ class IIIGuiNode(Node):
         self.future.add_done_callback(self.goal_response_callback)
         self.action_client = self.double_cable_landing_client
 
+    def send_disarm_on_cable_action_request(self):
+        print("Sending disarm on cable action request")
+
+        if self.action_status_lock_.acquire(blocking=True):
+            self.current_action = "DisarmOnCable"
+            self.action_status = "Waiting for reply"
+            self.action_status_lock_.release()
+
+        goal_msg = DisarmOnCable.Goal()
+
+        self.disarm_on_cable_client.wait_for_server()
+
+        self.future = self.disarm_on_cable_client.send_goal_async(goal_msg)
+        self.future.add_done_callback(self.goal_response_callback)
+        self.action_client = self.disarm_on_cable_client
+
+    def send_arm_on_cable_action_request(self):
+        print("Sending arm on cable action request")
+
+        if self.action_status_lock_.acquire(blocking=True):
+            self.current_action = "ArmOnCable"
+            self.action_status = "Waiting for reply"
+            self.action_status_lock_.release()
+
+        goal_msg = ArmOnCable.Goal()
+
+        self.arm_on_cable_client.wait_for_server()
+
+        self.future = self.arm_on_cable_client.send_goal_async(goal_msg)
+        self.future.add_done_callback(self.goal_response_callback)
+        self.action_client = self.arm_on_cable_client
+
     def goal_response_callback(self, future):
         self.goal_handle = future.result()
         self.action_status_lock_.acquire(blocking=True)
@@ -633,6 +667,8 @@ class IIIGui():
             "CableTakeoff",
             "FlyAlongCable",
             "DoubleCableLanding",
+            "DisarmOnCable",
+            "ArmOnCable"
         ]
 
         self.action_stringvar = tkinter.StringVar(self.root)
@@ -1397,6 +1433,63 @@ class IIIGui():
             ok_btn.grid()
             cancel_btn.grid()
 
+        elif action == "DisarmOnCable":
+            doc_label = tkinter.Label(
+                self.action_options_frame,
+                text="DisarmOnCable options"
+            )
+
+            def on_ok_btn_click():
+                self.action_options_window.destroy()
+                self.action_options_window = None
+                self.action_options_frame = None
+
+                self.node.send_disarm_on_cable_action_request()
+
+            ok_btn = tkinter.Button(
+                self.action_options_frame,
+                text="OK",
+                command=on_ok_btn_click
+            )
+
+            cancel_btn = tkinter.Button(
+                self.action_options_frame,
+                text="Cancel",
+                command=on_cancel_btn_click
+            )
+
+            doc_label.grid()
+            ok_btn.grid()
+            cancel_btn.grid()
+
+        elif action == "ArmOnCable":
+            aoc_label = tkinter.Label(
+                self.action_options_frame,
+                text="ArmOnCable options"
+            )
+
+            def on_ok_btn_click():
+                self.action_options_window.destroy()
+                self.action_options_window = None
+                self.action_options_frame = None
+
+                self.node.send_arm_on_cable_action_request()
+
+            ok_btn = tkinter.Button(
+                self.action_options_frame,
+                text="OK",
+                command=on_ok_btn_click
+            )
+
+            cancel_btn = tkinter.Button(
+                self.action_options_frame,
+                text="Cancel",
+                command=on_cancel_btn_click
+            )
+
+            aoc_label.grid()
+            ok_btn.grid()
+            cancel_btn.grid()
             
     def cancel_action(self):
         self.node.cancel_action()

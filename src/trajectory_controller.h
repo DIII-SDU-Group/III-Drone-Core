@@ -26,6 +26,7 @@
 #include <px4_msgs/msg/vehicle_control_mode.hpp>
 #include <px4_msgs/msg/vehicle_status.hpp>
 #include <px4_msgs/msg/vehicle_odometry.hpp>
+#include <px4_msgs/msg/home_position.hpp>
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
@@ -53,6 +54,8 @@
 #include "iii_interfaces/action/cable_takeoff.hpp"
 #include "iii_interfaces/action/fly_under_cable.hpp"
 #include "iii_interfaces/action/fly_along_cable.hpp"
+#include "iii_interfaces/action/disarm_on_cable.hpp"
+#include "iii_interfaces/action/arm_on_cable.hpp"
 
 #include "geometry.h"
 #include "blocking_queue.h"
@@ -94,7 +97,11 @@ enum state_t {
 	on_cable_armed,
 	during_cable_takeoff,
 	hovering_under_cable,
-	flying_along_cable
+	flying_along_cable,
+	disarming_on_cable,
+	on_cable_disarmed,
+	arming_on_cable,
+	setting_offboard_on_cable
 };
 
 enum request_type_t {
@@ -105,7 +112,9 @@ enum request_type_t {
 	cable_landing_request,
 	cable_takeoff_request,
 	fly_under_cable_request,
-	fly_along_cable_request
+	fly_along_cable_request,
+	disarm_on_cable_request,
+	arm_on_cable_request
 };
 
 struct takeoff_request_params_t {
@@ -251,6 +260,12 @@ public:
 	using CableTakeoff = iii_interfaces::action::CableTakeoff;
 	using GoalHandleCableTakeoff = rclcpp_action::ServerGoalHandle<CableTakeoff>;
 
+	using DisarmOnCable = iii_interfaces::action::DisarmOnCable;
+	using GoalHandleDisarmOnCable = rclcpp_action::ServerGoalHandle<DisarmOnCable>;
+
+	using ArmOnCable = iii_interfaces::action::ArmOnCable;
+	using GoalHandleArmOnCable = rclcpp_action::ServerGoalHandle<ArmOnCable>;
+
 	TrajectoryController(const std::string & node_name="trajectory_controller", 
 			const std::string & node_namespace="/trajectory_controller", 
 			const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
@@ -334,6 +349,28 @@ private:
 	void handleAcceptedCableTakeoff(const std::shared_ptr<GoalHandleCableTakeoff> goal_handle);
 	void followCableTakeoffCompletion(const std::shared_ptr<GoalHandleCableTakeoff> goal_handle);
 
+	// Disarm on cable action:
+	rclcpp_action::Server<DisarmOnCable>::SharedPtr disarm_on_cable_server_;
+
+	rclcpp_action::GoalResponse handleGoalDisarmOnCable(
+		const rclcpp_action::GoalUUID & uuid,
+		std::shared_ptr<const DisarmOnCable::Goal> goal
+	);
+	rclcpp_action::CancelResponse handleCancelDisarmOnCable(const std::shared_ptr<GoalHandleDisarmOnCable> goal_handle);
+	void handleAcceptedDisarmOnCable(const std::shared_ptr<GoalHandleDisarmOnCable> goal_handle);
+	void followDisarmOnCableCompletion(const std::shared_ptr<GoalHandleDisarmOnCable> goal_handle);
+
+	// Arm on cable action:
+	rclcpp_action::Server<ArmOnCable>::SharedPtr arm_on_cable_server_;
+
+	rclcpp_action::GoalResponse handleGoalArmOnCable(
+		const rclcpp_action::GoalUUID & uuid,
+		std::shared_ptr<const ArmOnCable::Goal> goal
+	);
+	rclcpp_action::CancelResponse handleCancelArmOnCable(const std::shared_ptr<GoalHandleArmOnCable> goal_handle);
+	void handleAcceptedArmOnCable(const std::shared_ptr<GoalHandleArmOnCable> goal_handle);
+	void followArmOnCableCompletion(const std::shared_ptr<GoalHandleArmOnCable> goal_handle);
+
     // Set yaw service:
     rclcpp::Service<iii_interfaces::srv::SetGeneralTargetYaw>::SharedPtr set_yaw_service_;
     void setYawServiceCallback(const std::shared_ptr<iii_interfaces::srv::SetGeneralTargetYaw::Request> request,
@@ -393,6 +430,8 @@ private:
 
 	rclcpp::Subscription<iii_interfaces::msg::Powerline>::SharedPtr powerline_sub_;
 
+	rclcpp::Subscription<px4_msgs::msg::HomePosition>::SharedPtr home_position_sub_;
+
 	rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr vehicle_command_pub_;
 	rclcpp::Publisher<px4_msgs::msg::TrajectorySetpoint>::SharedPtr trajectory_setpoint_pub_;
 
@@ -414,10 +453,18 @@ private:
 	int MPC_N_;
 	bool MPC_use_state_feedback_;
 
+	px4_msgs::msg::HomePosition home_position_;
+	std::mutex home_position_mutex_;
+	bool home_position_set_ = false;
+
 	// General member methods:
 	void stateMachineCallback();
 	void odometryCallback(px4_msgs::msg::VehicleOdometry::SharedPtr msg);
 	void powerlineCallback(iii_interfaces::msg::Powerline::SharedPtr msg);
+	void homePositionCallback(px4_msgs::msg::HomePosition::SharedPtr msg);
+
+	void setHomePosition(px4_msgs::msg::HomePosition new_home);
+	void setHomePositionIfChanged(px4_msgs::msg::HomePosition old_home, px4_msgs::msg::HomePosition new_home);
 
 	bool isOffboard();
 	bool isArmed();
@@ -428,6 +475,8 @@ private:
 
 	void arm();
 	void disarm();
+
+	void disarmOnCable();
 
 	void publishVehicleCommand(uint16_t command, float param1 = 0.0,
 					 float param2 = 0.0,

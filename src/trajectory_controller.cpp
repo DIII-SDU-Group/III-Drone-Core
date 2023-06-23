@@ -30,6 +30,17 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	this->declare_parameter<float>("target_cable_set_point_truncate_distance_threshold", 0.1);
 	this->declare_parameter<bool>("always_hover_in_offboard",false);
 
+	this->declare_parameter<float>("disarming_on_cable_max_descend_distance", 0.25);
+
+	this->declare_parameter<float>("arming_on_cable_upwards_velocity", 0.1);
+
+	this->declare_parameter<bool>("update_home_position", true);
+
+	this->declare_parameter<int>("arm_cnt_timout", 10);
+	this->declare_parameter<int>("offboard_cnt_timeout", 10);
+	this->declare_parameter<int>("land_cnt_timeout", 10);
+	this->declare_parameter<int>("target_cable_cnt_timeout", 10);
+
 	this->declare_parameter<float>("max_acceleration", 1.);
 
 	this->declare_parameter<double>("dt", 0.2);
@@ -232,6 +243,24 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 		std::bind(&TrajectoryController::handleAcceptedCableTakeoff, this, std::placeholders::_1)
 	);
 
+	// Arm on cable action:
+	this->arm_on_cable_server_ = rclcpp_action::create_server<ArmOnCable>(
+		this,
+		"arm_on_cable",
+		std::bind(&TrajectoryController::handleGoalArmOnCable, this, std::placeholders::_1, std::placeholders::_2),
+		std::bind(&TrajectoryController::handleCancelArmOnCable, this, std::placeholders::_1),
+		std::bind(&TrajectoryController::handleAcceptedArmOnCable, this, std::placeholders::_1)
+	);
+
+	// Disarm on cable action:
+	this->disarm_on_cable_server_ = rclcpp_action::create_server<DisarmOnCable>(
+		this,
+		"disarm_on_cable",
+		std::bind(&TrajectoryController::handleGoalDisarmOnCable, this, std::placeholders::_1, std::placeholders::_2),
+		std::bind(&TrajectoryController::handleCancelDisarmOnCable, this, std::placeholders::_1),
+		std::bind(&TrajectoryController::handleAcceptedDisarmOnCable, this, std::placeholders::_1)
+	);
+
 	// Set yaw service:
     set_yaw_service_ = this->create_service<iii_interfaces::srv::SetGeneralTargetYaw>("set_general_target_yaw", 
         std::bind(&TrajectoryController::setYawServiceCallback, this, std::placeholders::_1, std::placeholders::_2));
@@ -276,6 +305,10 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	odometry_sub_ = this->create_subscription<px4_msgs::msg::VehicleOdometry>(  ////
 		"/fmu/vehicle_odometry/out", 10,
 		std::bind(&TrajectoryController::odometryCallback, this, std::placeholders::_1));
+
+	home_position_sub_ = this->create_subscription<px4_msgs::msg::HomePosition>(
+		"/fmu/home_position/out", 10,
+		std::bind(&TrajectoryController::homePositionCallback, this, std::placeholders::_1));
 
 	powerline_sub_ = this->create_subscription<iii_interfaces::msg::Powerline>(
 		"/pl_mapper/powerline", 10,
@@ -1537,6 +1570,326 @@ void TrajectoryController::followCableTakeoffCompletion(const std::shared_ptr<Go
 	}
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+rclcpp_action::GoalResponse TrajectoryController::handleGoalDisarmOnCable(
+	const rclcpp_action::GoalUUID & uuid, 
+	std::shared_ptr<const DisarmOnCable::Goal> goal
+) {
+
+	RCLCPP_INFO(this->get_logger(), "Received disarm on cable goal request");
+	
+	(void)uuid;
+
+	if (state_ != on_cable_armed) {
+		// debug disarm on cable goal rejected, not on cable armed
+		RCLCPP_INFO(this->get_logger(), "Disarm on cable goal rejected, not on cable armed");
+		return rclcpp_action::GoalResponse::REJECT;
+	}
+
+	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)uuid;
+
+	request_t request = {
+		.action_id = action_id,
+		.request_type = disarm_on_cable_request,
+		.request_params = NULL
+	};
+
+	if (!request_queue_.Push(request, false)) {
+		// debug cable takeoff goal rejected, request queue full
+		RCLCPP_INFO(this->get_logger(), "Disarm on cable goal rejected, request queue full");
+
+		return rclcpp_action::GoalResponse::REJECT;
+	}
+
+	// debug cable takeoff goal accepted
+	RCLCPP_INFO(this->get_logger(), "Disarm on cable goal accepted");
+
+	return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+
+}
+
+rclcpp_action::CancelResponse TrajectoryController::handleCancelDisarmOnCable(const std::shared_ptr<GoalHandleDisarmOnCable> goal_handle) {
+
+	RCLCPP_DEBUG(this->get_logger(), "Received disarm on cable cancel request, rejecting");
+
+	return rclcpp_action::CancelResponse::REJECT;
+
+}
+
+void TrajectoryController::handleAcceptedDisarmOnCable(const std::shared_ptr<GoalHandleDisarmOnCable> goal_handle) {
+
+	// debug cable takeoff goal accepted
+	RCLCPP_DEBUG(this->get_logger(), "Disarm on cable goal accepted, starting thread");
+
+	using namespace std::placeholders;
+
+	std::thread{ std::bind(&TrajectoryController::followDisarmOnCableCompletion, this, _1), goal_handle}.detach();
+
+}
+
+void TrajectoryController::followDisarmOnCableCompletion(const std::shared_ptr<GoalHandleDisarmOnCable> goal_handle) {
+
+	RCLCPP_DEBUG(this->get_logger(), "Disarm on cable goal thread started");
+
+	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)goal_handle->get_goal_id();
+
+	auto feedback = std::make_shared<DisarmOnCable::Feedback>();
+
+	auto result = std::make_shared<DisarmOnCable::Result>();
+
+	request_reply_t reply = {
+		.action_id = action_id
+	};
+	
+	while(true) {
+
+		while (!request_reply_queue_.Pop(reply, false) || reply.action_id != action_id) {
+
+			geometry_msgs::msg::PoseStamped vehicle_pose = loadVehiclePose();
+
+			feedback->distance_vehicle_to_cable = 1;
+			feedback->vehicle_pose = vehicle_pose;
+
+			goal_handle->publish_feedback(feedback);
+
+			RCLCPP_DEBUG(this->get_logger(), "Disarm on cable goal thread waiting for completion, publish feedback");
+
+			request_completion_poll_rate_.sleep();
+
+		}
+
+		switch (reply.reply_type) {
+
+		default:
+		case cancel:
+			RCLCPP_DEBUG(this->get_logger(), "Disarm on cable goal thread waiting for completion, cancel");
+
+			if (goal_handle->is_canceling()) {
+				RCLCPP_DEBUG(this->get_logger(), "Disarm on cable goal thread waiting for completion, cancel, goal handle canceling");
+
+				result->success = false;
+				goal_handle->canceled(result);
+
+				return;
+				break;
+
+			}
+
+		case reject:
+		case fail:
+			RCLCPP_DEBUG(this->get_logger(), "Disarm on cable goal thread waiting for completion, fail");
+
+			result->success = false;
+			goal_handle->abort(result);
+
+			return;
+			break;
+	
+		case accept:
+
+			break;
+
+		case success:
+			RCLCPP_DEBUG(this->get_logger(), "Disarm on cable goal thread waiting for completion, success");
+
+			result->success = true;
+			goal_handle->succeed(result);
+
+			return;
+			break;
+
+		}
+	}
+}
+
+
+
+rclcpp_action::GoalResponse TrajectoryController::handleGoalArmOnCable(
+	const rclcpp_action::GoalUUID & uuid, 
+	std::shared_ptr<const ArmOnCable::Goal> goal
+) {
+
+	RCLCPP_INFO(this->get_logger(), "Received disarm on cable goal request");
+	
+	(void)uuid;
+
+	if (state_ != on_cable_armed) {
+		// debug disarm on cable goal rejected, not on cable armed
+		RCLCPP_INFO(this->get_logger(), "Arm on cable goal rejected, not on cable armed");
+		return rclcpp_action::GoalResponse::REJECT;
+	}
+
+	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)uuid;
+
+	request_t request = {
+		.action_id = action_id,
+		.request_type = disarm_on_cable_request,
+		.request_params = NULL
+	};
+
+	if (!request_queue_.Push(request, false)) {
+		// debug cable takeoff goal rejected, request queue full
+		RCLCPP_INFO(this->get_logger(), "Arm on cable goal rejected, request queue full");
+
+		return rclcpp_action::GoalResponse::REJECT;
+	}
+
+	// debug cable takeoff goal accepted
+	RCLCPP_INFO(this->get_logger(), "Arm on cable goal accepted");
+
+	return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+
+}
+
+rclcpp_action::CancelResponse TrajectoryController::handleCancelArmOnCable(const std::shared_ptr<GoalHandleArmOnCable> goal_handle) {
+
+	RCLCPP_DEBUG(this->get_logger(), "Received disarm on cable cancel request, rejecting");
+
+	return rclcpp_action::CancelResponse::REJECT;
+
+}
+
+void TrajectoryController::handleAcceptedArmOnCable(const std::shared_ptr<GoalHandleArmOnCable> goal_handle) {
+
+	// debug cable takeoff goal accepted
+	RCLCPP_DEBUG(this->get_logger(), "Arm on cable goal accepted, starting thread");
+
+	using namespace std::placeholders;
+
+	std::thread{ std::bind(&TrajectoryController::followArmOnCableCompletion, this, _1), goal_handle}.detach();
+
+}
+
+void TrajectoryController::followArmOnCableCompletion(const std::shared_ptr<GoalHandleArmOnCable> goal_handle) {
+
+	RCLCPP_DEBUG(this->get_logger(), "Arm on cable goal thread started");
+
+	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)goal_handle->get_goal_id();
+
+	auto feedback = std::make_shared<ArmOnCable::Feedback>();
+
+	auto result = std::make_shared<ArmOnCable::Result>();
+
+	request_reply_t reply = {
+		.action_id = action_id
+	};
+	
+	while(true) {
+
+		while (!request_reply_queue_.Pop(reply, false) || reply.action_id != action_id) {
+
+			geometry_msgs::msg::PoseStamped vehicle_pose = loadVehiclePose();
+
+			feedback->distance_vehicle_to_cable = 1;
+			feedback->vehicle_pose = vehicle_pose;
+
+			goal_handle->publish_feedback(feedback);
+
+			RCLCPP_DEBUG(this->get_logger(), "Arm on cable goal thread waiting for completion, publish feedback");
+
+			request_completion_poll_rate_.sleep();
+
+		}
+
+		switch (reply.reply_type) {
+
+		default:
+		case cancel:
+			RCLCPP_DEBUG(this->get_logger(), "Arm on cable goal thread waiting for completion, cancel");
+
+			if (goal_handle->is_canceling()) {
+				RCLCPP_DEBUG(this->get_logger(), "Arm on cable goal thread waiting for completion, cancel, goal handle canceling");
+
+				result->success = false;
+				goal_handle->canceled(result);
+
+				return;
+				break;
+
+			}
+
+		case reject:
+		case fail:
+			RCLCPP_DEBUG(this->get_logger(), "Arm on cable goal thread waiting for completion, fail");
+
+			result->success = false;
+			goal_handle->abort(result);
+
+			return;
+			break;
+	
+		case accept:
+
+			break;
+
+		case success:
+			RCLCPP_DEBUG(this->get_logger(), "Arm on cable goal thread waiting for completion, success");
+
+			result->success = true;
+			goal_handle->succeed(result);
+
+			return;
+			break;
+
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void TrajectoryController::setYawServiceCallback(const std::shared_ptr<iii_interfaces::srv::SetGeneralTargetYaw::Request> request,
                                 std::shared_ptr<iii_interfaces::srv::SetGeneralTargetYaw::Response> response) {
 
@@ -1608,6 +1961,9 @@ void TrajectoryController::stateMachineCallback() {
 
 	static state4_t prev_fly_along_cable_state;
 	static state4_t fly_along_cable_state;
+
+	static vector_t disarm_on_cable_initial_position;
+	static int disarm_on_cable_cnt;
 
 	bool offboard = isOffboard();
 	bool armed = isArmed();
@@ -2027,7 +2383,7 @@ void TrajectoryController::stateMachineCallback() {
 
 			set_point = setNanVelocity(veh_state);
 
-			arm_cnt = 10;
+			this->get_parameter("arm_cnt_timeout", arm_cnt);
 
 			state_ = arming;
 
@@ -2117,11 +2473,13 @@ void TrajectoryController::stateMachineCallback() {
 			
 			setModeOffboard();
 
-			offboard_cnt = 10;
+			this->get_parameter("offboard_cnt_timeout", offboard_cnt);
 
 			state_ = setting_offboard;
 
 		} else {
+
+			arm_cnt--;
 
 			rejectPendingRequest();		
 		
@@ -2263,7 +2621,7 @@ void TrajectoryController::stateMachineCallback() {
 
 			set_point = setNanVelocity(veh_state);
 
-			land_cnt = 100;
+			this->get_parameter("land_cnt_timeout", land_cnt);
 
 			state_ = landing;
 
@@ -2315,7 +2673,7 @@ void TrajectoryController::stateMachineCallback() {
 			// debug set point is
 			RCLCPP_DEBUG(this->get_logger(), "set point is: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
 
-			offboard_cnt = 10;
+			this->get_parameter("offboard_cnt_timeout", offboard_cnt);
 
 			state_ = in_positional_flight;
 
@@ -2334,7 +2692,7 @@ void TrajectoryController::stateMachineCallback() {
 
 			delete request.request_params;
 
-			target_cable_cnt = 10;
+			this->get_parameter("target_cable_cnt_timeout", target_cable_cnt);
 
 			target_cable_cnt = updateTargetCablePose(veh_state, cable_id) ? target_cable_cnt : target_cable_cnt-1;
 
@@ -2372,7 +2730,7 @@ void TrajectoryController::stateMachineCallback() {
 			// debug set point is
 			RCLCPP_DEBUG(this->get_logger(), "set point is: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
 
-			offboard_cnt = 10;
+			this->get_parameter("offboard_cnt_timeout", offboard_cnt);
 
 			state_ = in_positional_flight;
 
@@ -2487,7 +2845,7 @@ void TrajectoryController::stateMachineCallback() {
 
 			set_point = setNanVelocity(veh_state);
 
-			land_cnt = 100;
+			this->get_parameter("land_cnt_timeout", land_cnt);
 
 			state_ = landing;
 
@@ -2533,7 +2891,7 @@ void TrajectoryController::stateMachineCallback() {
 				RCLCPP_DEBUG(this->get_logger(), "set point is: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
 			}
 
-			offboard_cnt = 10;
+			this->get_parameter("offboard_cnt_timeout", offboard_cnt);
 
 			state_ = in_positional_flight;
 
@@ -2552,7 +2910,7 @@ void TrajectoryController::stateMachineCallback() {
 
 			delete request.request_params;
 
-			target_cable_cnt = 10;
+			this->get_parameter("target_cable_cnt_timeout", target_cable_cnt);
 
 			target_cable_cnt = updateTargetCablePose(veh_state, cable_id) ? target_cable_cnt : target_cable_cnt-1;
 
@@ -2584,7 +2942,7 @@ void TrajectoryController::stateMachineCallback() {
 				RCLCPP_DEBUG(this->get_logger(), "set point is: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
 			}
 
-			offboard_cnt = 10;
+			this->get_parameter("offboard_cnt_timeout", offboard_cnt);
 
 			state_ = in_positional_flight;
 
@@ -2600,7 +2958,7 @@ void TrajectoryController::stateMachineCallback() {
 			
 			delete request.request_params;
 
-			target_cable_cnt = 10;
+			this->get_parameter("target_cable_cnt_timeout", target_cable_cnt);
 
 			target_cable_cnt = updateTargetCablePose(veh_state, cable_id) ? target_cable_cnt : target_cable_cnt-1;
 
@@ -2682,7 +3040,7 @@ void TrajectoryController::stateMachineCallback() {
 				set_point = stepMPC(prev_veh_state, fixed_reference, true, true, fly_along_cable);
 			}
 
-			offboard_cnt = 10;
+			this->get_parameter("offboard_cnt_timeout", offboard_cnt);
 
 			// debug set point is: %f, %f, %f, %f
 			RCLCPP_DEBUG(this->get_logger(), "set point is: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
@@ -2888,7 +3246,7 @@ void TrajectoryController::stateMachineCallback() {
 				RCLCPP_DEBUG(this->get_logger(), "mpc target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
 			}
 
-			offboard_cnt = 10;
+			this->get_parameter("offboard_cnt_timeout", offboard_cnt);
 
 		}
 
@@ -3097,7 +3455,7 @@ void TrajectoryController::stateMachineCallback() {
 
 			set_point = setZeroVelocity(veh_state);
 
-			offboard_cnt = 10;
+			this->get_parameter("offboard_cnt_timeout", offboard_cnt);
 
 			// debug set point is: %f, %f, %f, %f
 			RCLCPP_DEBUG(this->get_logger(), "set point is: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
@@ -3384,6 +3742,29 @@ void TrajectoryController::stateMachineCallback() {
 
 			state_ = during_cable_takeoff;
 
+		} else if (tryPendingRequest(disarm_on_cable_request, if_match, if_match)) {
+
+			RCLCPP_DEBUG(this->get_logger(), "Going to state disarming on cable");
+
+			for (int i = 0; i < 3; i++) {
+
+				disarm_on_cable_initial_position(i) = veh_state(i);
+
+			}
+
+			for (int i = 0; i < 4; i++) {
+
+				set_point(i) = fixed_reference(i);
+				set_point(i+4) = 0;
+				set_point(i+8) = NAN;
+
+			}
+
+			this->get_parameter("land_cnt_timeout", land_cnt);
+
+			disarmOnCable();
+
+			state_ = disarming_on_cable;
 
 		} else {
 
@@ -3401,6 +3782,227 @@ void TrajectoryController::stateMachineCallback() {
 
 			// debug stay on cable, setpoint: %f, %f, %f, %f
 			RCLCPP_DEBUG(this->get_logger(), "stay on cable, setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+		}
+
+		break;
+
+	case disarming_on_cable:
+
+		// debug in disarming on cable
+		RCLCPP_DEBUG(this->get_logger(), "in disarming on cable state");
+
+		float disarming_on_cable_max_descend_distance;
+		this->get_parameter("disarming_on_cable_max_descend_distance", disarming_on_cable_max_descend_distance);
+
+		if (disarm_on_cable_initial_position(2) - veh_state(2) >= abs(disarming_on_cable_max_descend_distance)) {
+
+			RCLCPP_DEBUG(this->get_logger(), "Going to state during cable takeoff");
+
+			notifyCurrentRequest(fail);
+
+			target_cable_cnt = updateTargetCablePose(veh_state) ? target_cable_cnt : target_cable_cnt-1;
+
+			fixed_reference = loadTargetUnderCableState();
+
+			setTrajectoryTarget(fixed_reference);
+
+
+			// state4_t target_cable = loadTargetCableState();
+
+			// fixed_reference = target_cable;
+			// fixed_reference(2) -= target_cable_distance;
+
+			// fixed_reference = setZeroVelocity(fixed_reference);
+
+			// setTrajectoryTarget(fixed_reference);
+
+			direct_target_setpoint = false;
+
+			if (direct_target_setpoint || withinDirectTargetDistance(veh_state, fixed_reference)) {
+				direct_target_setpoint = true;
+				if (use_cartesian_PID) {
+
+					vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
+					set_point = setVelocityControl(fixed_reference, vel_control);
+
+				} else {
+
+					set_point = setNanVelocity(fixed_reference);
+
+				}
+				// debug direct target setpoint: %f, %f, %f, %f
+				RCLCPP_DEBUG(this->get_logger(), "direct target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+			} else {
+				set_point = stepMPC(setZeroVelocity(prev_veh_state), fixed_reference, true, true, positional);
+				// debug target setpoint: %f, %f, %f, %f
+				RCLCPP_DEBUG(this->get_logger(), "target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+			}
+			// set_point = setPointSafetyMarginTruncate(set_point, veh_state, target_cable);
+
+			state_ = during_cable_takeoff;
+
+		} else if (!offboard && !armed) {
+
+			// Debug going to state on cable disarmed
+			RCLCPP_DEBUG(this->get_logger(), "Going to state on cable disarmed");
+
+			notifyCurrentRequest(success);
+
+			state_ = on_cable_disarmed;
+
+		} else if (disarm_on_cable_cnt <= 0) {
+
+			RCLCPP_DEBUG(this->get_logger(), "Could not disarm, going to state on_cable_armed");
+
+			notifyCurrentRequest(fail);
+
+			clearPlannedTrajectory();
+
+			fixed_reference = setZeroVelocity(fixed_reference);
+
+			for (int i = 0; i < 4; i++) {
+
+				set_point(i) = NAN;
+				set_point(i+4) = 0;
+				set_point(i+8) = NAN;
+
+			}
+
+			state_ = on_cable_armed;
+
+		} else {
+			
+			rejectPendingRequest();
+
+			for (int i = 0; i < 4; i++) {
+
+				set_point(i) = fixed_reference(i);
+				set_point(i+4) = 0;
+				set_point(i+8) = NAN;
+
+			}
+
+			land_cnt--;
+
+			// set_point(6) = 0.01;
+
+			// debug disarming on cable, setpoint: %f, %f, %f, %f
+			RCLCPP_DEBUG(this->get_logger(), "disarming on cable, setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+		}
+
+		break;
+
+	case on_cable_disarmed:
+
+		// debug in on cable disarmed
+		RCLCPP_DEBUG(this->get_logger(), "in on cable disarmed state");
+
+		if (tryPendingRequest(arm_on_cable_request, if_match, if_match)) {
+
+			// Debug arm on cable request, going to state arming on cable
+			RCLCPP_DEBUG(this->get_logger(), "arm on cable request, going to state arming on cable");
+
+			arm();
+
+			setTrajectoryTarget(fixed_reference);
+
+			set_point = setNanVelocity(fixed_reference);
+
+			this->get_parameter("arm_cnt_timeout", arm_cnt);
+
+			state_ = arming_on_cable;
+
+			// debug set trajectory target: %f %f %f %f
+			RCLCPP_DEBUG(this->get_logger(), "set trajectory target: %f %f %f %f", fixed_reference(0), fixed_reference(1), fixed_reference(2), fixed_reference(3));
+
+		} else  {
+			
+			rejectPendingRequest();
+
+		}
+
+		break;
+
+	case arming_on_cable:
+
+		// debug in arming on cable
+		RCLCPP_DEBUG(this->get_logger(), "in arming on cable");
+
+		if (arm_cnt <= 0 && !armed) {
+
+			// debug arm cnt zero and not armed, going to state on cable disarmed
+			RCLCPP_DEBUG(this->get_logger(), "arm cnt zero and not armed, going to state on cable disarmed");
+
+			notifyCurrentRequest(fail);
+
+			state_ = on_cable_disarmed;
+
+		} else if (armed) {
+
+			// debug armed, going to state setting offboard on cable
+			RCLCPP_DEBUG(this->get_logger(), "armed, going to state setting offboard on cable");
+
+			set_point = setNanVelocity(fixed_reference);
+			this->get_parameter("arming_on_cable_upwards_velocity", set_point(6));
+
+			this->get_parameter("offboard_cnt_timeout", offboard_cnt);
+
+			state_ = setting_offboard_on_cable;
+
+		} else {
+
+			arm_cnt--;
+
+			rejectPendingRequest();
+
+		}
+
+		break;
+
+	case setting_offboard_on_cable:
+
+		// debug in setting offboard on cable
+		RCLCPP_DEBUG(this->get_logger(), "in setting offboard on cable");
+
+		if (offboard_cnt <= 0 && !offboard) {
+
+			// debug offboard cnt zero and not offboard, going to state on cable disarmed
+			RCLCPP_DEBUG(this->get_logger(), "offboard cnt zero and not offboard, going to state on cable disarmed");
+
+			notifyCurrentRequest(fail);
+
+			disarm();
+
+			state_ = on_cable_disarmed;
+
+		} else if (offboard) {
+
+			// debug offboard, going to state on cable armed
+			RCLCPP_DEBUG(this->get_logger(), "offboard, going to state on cable armed");
+
+			notifyCurrentRequest(success);
+
+			for (int i = 0; i < 4; i++) {
+
+				set_point(i) = fixed_reference(i);
+				set_point(i+4) = 0;
+				set_point(i+8) = NAN;
+
+			}
+
+			this->get_parameter("arming_on_cable_upwards_velocity", set_point(6));
+
+			state_ = on_cable_armed;
+
+		} else {
+
+			set_point = setNanVelocity(fixed_reference);
+			this->get_parameter("arming_on_cable_upwards_velocity", set_point(6));
+
+			offboard_cnt--;
+
+			rejectPendingRequest();
+
 		}
 
 		break;
@@ -3583,6 +4185,72 @@ void TrajectoryController::powerlineCallback(iii_interfaces::msg::Powerline::Sha
 
 }
 
+void TrajectoryController::homePositionCallback(px4_msgs::msg::HomePosition::SharedPtr msg) {
+
+	bool update_home;
+	this->get_parameter("update_home_position", update_home);
+
+	home_position_mutex_.lock(); {
+
+		if (!home_position_set_) {
+
+			RCLCPP_INFO(this->get_logger(), "Initiated home position");
+
+			home_position_ = *msg;
+
+			home_position_set_ = true;
+
+			if (update_home)
+				setHomePosition(home_position_);
+
+		} else {
+
+			if (update_home)
+				setHomePositionIfChanged(home_position_, *msg);
+
+		}
+
+	} home_position_mutex_.unlock();
+
+}
+
+void TrajectoryController::setHomePosition(px4_msgs::msg::HomePosition new_home) {
+
+	RCLCPP_INFO(this->get_logger(), "new home: %f, %f, %f, %f, %f, %f, %f", new_home.lat, new_home.lon, new_home.alt, new_home.x, new_home.y, new_home.z, new_home.yaw);
+
+	publishVehicleCommand(
+		px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_HOME,
+		0,
+		0,
+		0,
+		0,
+		new_home.lat,
+		new_home.lon,
+		new_home.alt
+	);
+
+}
+
+void TrajectoryController::setHomePositionIfChanged(px4_msgs::msg::HomePosition old_home, px4_msgs::msg::HomePosition new_home) {
+
+	bool home_different = false;
+
+	home_different |= old_home.lat != new_home.lat;
+	home_different |= old_home.lon != new_home.lon;
+	home_different |= old_home.alt != new_home.alt;
+
+	if (home_different) {
+
+		RCLCPP_INFO(this->get_logger(), "Home position changed, updating home position to old value");
+		// RCLCPP_INFO old home:
+		RCLCPP_INFO(this->get_logger(), "old home: %f, %f, %f, %f, %f, %f, %f", old_home.lat, old_home.lon, old_home.alt, old_home.x, old_home.y, old_home.z, old_home.yaw);
+		// RCLCPP_INFO new home:
+
+		setHomePosition(old_home);
+
+	}
+}
+
 bool TrajectoryController::isOffboard() {
 
 	return nav_state_ == px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_OFFBOARD;
@@ -3627,6 +4295,12 @@ void TrajectoryController::disarm() {
 	//armed = false;
 	publishVehicleCommand(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_COMPONENT_ARM_DISARM, 0.0);
 	RCLCPP_DEBUG(this->get_logger(), "Disarm command send");
+
+}
+
+void TrajectoryController::disarmOnCable() {
+
+	land();
 
 }
 
