@@ -15,7 +15,7 @@ def generate_launch_description():
     #    'params.yaml'
     #)
 
-    config = "/home/mp4d/config.yaml"
+    config = "~/config.yaml"
 
     trajectory_controller = Node(
         package="iii_drone",

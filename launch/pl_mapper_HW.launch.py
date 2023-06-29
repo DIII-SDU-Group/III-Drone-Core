@@ -14,7 +14,7 @@ def generate_launch_description():
     #    'config',
     #    'params.yaml'
     #)
-    config = "/home/mp4d/config.yaml"
+    config = "~/config.yaml"
 
     hough = Node(
         package="iii_drone",

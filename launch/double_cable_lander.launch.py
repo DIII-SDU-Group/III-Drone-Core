@@ -9,7 +9,7 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 def generate_launch_description():
-    config = "/home/mp4d/config.yaml"
+    config = "~/config.yaml"
 
     cable_drum_controller = Node(
         package="iii_drone",

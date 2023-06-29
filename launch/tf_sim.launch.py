@@ -15,7 +15,7 @@ def generate_launch_description():
     #    'params.yaml'
     #)
 
-    config = "/home/mp4d/config.yaml"
+    config = "~/config.yaml"
 
     config_dict = yaml.safe_load(open(config,"r").read())
 

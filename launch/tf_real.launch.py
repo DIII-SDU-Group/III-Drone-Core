@@ -9,7 +9,7 @@ import os
 import yaml
 
 def generate_launch_description():
-    config = "/home/mp4d/config.yaml"
+    config = "~/config.yaml"
     #config = os.path.join(
     #    get_package_share_directory('iii_drone'),
     #    'config',
