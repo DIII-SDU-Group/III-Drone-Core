@@ -14,7 +14,7 @@ from threading import Lock
 
 import serial
 
-import RPi.GPIO as GPIO
+import pigpio
 
 class ChargerGripperNode(Node):
     def __init__(
@@ -60,8 +60,10 @@ class ChargerGripperNode(Node):
             self.declare_parameter("charger_gripper_rpi_gpio_pin", 18)
             self.charger_gripper_rpi_gpio_pin_ = self.get_parameter("charger_gripper_rpi_gpio_pin").value
 
-            GPIO.setmode(GPIO.BOARD)
-            GPIO.setup(self.charger_gripper_rpi_gpio_pin_, GPIO.OUT, initial=GPIO.LOW)
+            self.pi_gpio_ = pigpio.pi()
+
+            self.pi_gpio_.set_mode(self.charger_gripper_rpi_gpio_pin_, pigpio.OUTPUT)
+            self.pi_gpio_.write(self.charger_gripper_rpi_gpio_pin_, 0 if self.gripper_open_command_ == 0x00 else 1)
 
         if not self.gripper_command_only_:
             self.declare_parameter("status_timer_period_ms", 10)
@@ -225,8 +227,8 @@ class ChargerGripperNode(Node):
 
     def open_gripper(self):
         if self.gripper_command_interface_ == "gpio":
-            gpio_output = GPIO.LOW if self.gripper_open_command_ == 0x00 else GPIO.HIGH
-            GPIO.output(self.charger_gripper_rpi_gpio_pin_, gpio_output)
+            gpio_output = 0 if self.gripper_open_command_ == 0x00 else 1
+            self.pi_gpio_.write(self.charger_gripper_rpi_gpio_pin_, gpio_output)
 
         elif self.gripper_command_interface_ == "serial":
             self.ser_.write(bytes([self.gripper_open_command_]))
@@ -236,8 +238,8 @@ class ChargerGripperNode(Node):
 
     def close_gripper(self):
         if self.gripper_command_interface_ == "gpio":
-            gpio_output = GPIO.LOW if self.gripper_close_command_ == 0x00 else GPIO.HIGH
-            GPIO.output(self.charger_gripper_rpi_gpio_pin_, gpio_output)
+            gpio_output = 0 if self.gripper_close_command_ == 0x00 else 1
+            self.pi_gpio_.write(self.charger_gripper_rpi_gpio_pin_, gpio_output)
 
         elif self.gripper_command_interface_ == "serial":
             self.ser_.write(bytes([self.gripper_close_command_]))
