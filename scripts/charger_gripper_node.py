@@ -212,6 +212,8 @@ class ChargerGripperNode(Node):
         self.gripper_status_pub_.publish(gripper_status_msg)
 
     def gripper_command_srv_callback(self, request: GripperCommand.Request, response: GripperCommand.Response):
+        self.get_logger().info("Received gripper command: " + str(request.gripper_command))
+
         gripper_command = request.gripper_command
 
         if (gripper_command == GripperCommand.Request.GRIPPER_COMMAND_OPEN):
@@ -229,10 +231,12 @@ class ChargerGripperNode(Node):
 
     def open_gripper(self):
         if self.gripper_command_interface_ == "gpio":
+            self.get_logger().info("Opening gripper using GPIO.")
             gpio_output = 0 if self.gripper_open_command_ == 0x00 else 1
             self.pi_gpio_.write(self.charger_gripper_rpi_gpio_pin_, gpio_output)
 
         elif self.gripper_command_interface_ == "serial":
+            self.get_logger().info("Opening gripper using serial.")
             self.ser_.write(bytes([self.gripper_open_command_]))
 
         else:
@@ -240,10 +244,12 @@ class ChargerGripperNode(Node):
 
     def close_gripper(self):
         if self.gripper_command_interface_ == "gpio":
+            self.get_logger().info("Closing gripper using GPIO.")
             gpio_output = 0 if self.gripper_close_command_ == 0x00 else 1
             self.pi_gpio_.write(self.charger_gripper_rpi_gpio_pin_, gpio_output)
 
         elif self.gripper_command_interface_ == "serial":
+            self.get_logger().info("Closing gripper using serial.")
             self.ser_.write(bytes([self.gripper_close_command_]))
 
         else:
