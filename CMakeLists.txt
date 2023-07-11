@@ -238,6 +238,7 @@ install(PROGRAMS
   scripts/points_est_republisher.py
   scripts/rc_node_launcher.py
   scripts/data_logger.py
+  scripts/charger_gripper_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
