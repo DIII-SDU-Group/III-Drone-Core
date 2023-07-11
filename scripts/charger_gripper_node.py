@@ -24,6 +24,8 @@ class ChargerGripperNode(Node):
         ):
         super().__init__(node_name, namespace=node_namespace)
 
+        self.get_logger().info("Initializing Charger Gripper Node...")
+
         self.declare_parameter("gripper_command_only", False)
         self.gripper_command_only_ = self.get_parameter("gripper_command_only").value
 
