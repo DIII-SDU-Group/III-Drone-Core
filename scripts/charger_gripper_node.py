@@ -210,11 +210,11 @@ class ChargerGripperNode(Node):
     def gripper_command_srv_callback(self, request: GripperCommand.Request, response: GripperCommand.Response):
         gripper_command = request.gripper_command
 
-        if (gripper_command == GripperCommand.GRIPPER_COMMAND_OPEN):
+        if (gripper_command == GripperCommand.Request.GRIPPER_COMMAND_OPEN):
             self.open_gripper()
             response.gripper_command_response = GripperCommand.Response.GRIPPER_COMMAND_RESPONSE_SUCCESS
 
-        elif (gripper_command == GripperCommand.GRIPPER_COMMAND_CLOSE):
+        elif (gripper_command == GripperCommand.Request.GRIPPER_COMMAND_CLOSE):
             self.close_gripper()
             response.gripper_command_response = GripperCommand.Response.GRIPPER_COMMAND_RESPONSE_SUCCESS
 
