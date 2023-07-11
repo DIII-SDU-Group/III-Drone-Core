@@ -254,14 +254,14 @@ def main(args=None):
 
     node = ChargerGripperNode()
 
+    node.get_logger().info("Charger gripper node started.")
+
     rclpy.spin(node)
 
     # Destroy the node explicitly
     # (optional - otherwise it will be done automatically
     # when the garbage collector destroys the node object)
     node.destroy_node()
-
-    GPIO.cleanup()
 
     rclpy.shutdown()
 
