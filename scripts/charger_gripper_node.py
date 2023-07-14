@@ -26,8 +26,14 @@ class ChargerGripperNode(Node):
 
         self.get_logger().info("Initializing Charger Gripper Node...")
 
+        self.declare_parameter("simulation", False)
+        self.simulation_ = self.get_parameter("simulation").value
+
+        if self.simulation_:
+            raise NotImplementedError("Simulation mode is not implemented yet.")
+
         self.declare_parameter("gripper_command_only", False)
-        self.gripper_command_only_ = self.get_parameter("gripper_command_only").value
+        self.gripper_command_only_ = self.get_parameter("gripper_command_only").value | self.simulation_
 
         self.declare_parameter("gripper_command_interface", "serial")
         self.gripper_command_interface_ = self.get_parameter("gripper_command_interface").value
@@ -158,10 +164,10 @@ class ChargerGripperNode(Node):
         gripper_status = self.received_data_[self.status_message_gripper_status_index_]
 
         battery_voltage_msg = Float32()
-        battery_voltage_msg.data = battery_voltage / 1000.0
+        battery_voltage_msg.data = battery_voltage / 100.0
 
         charging_power_msg = Float32()
-        charging_power_msg.data = charging_power / 1000.0
+        charging_power_msg.data = charging_power / 10.0
 
         charger_status_msg = ChargerStatus()
         if (charger_status == ChargerStatus.CHARGER_STATUS_DISABLED):
