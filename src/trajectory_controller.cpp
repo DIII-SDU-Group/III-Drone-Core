@@ -59,6 +59,8 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 
 	this->declare_parameter<bool>("hover_under_cable_on_aborted_cable_landing", true);
 
+	this->declare_parameter<float>("cable_landing_target_upwards_velocity", 0.1);
+
 	this->declare_parameter<double>("position_MPC_vx_max", 10.);
 	this->declare_parameter<double>("position_MPC_vy_max", 10.);
 	this->declare_parameter<double>("position_MPC_vz_max", 10.);
@@ -1855,41 +1857,6 @@ void TrajectoryController::followArmOnCableCompletion(const std::shared_ptr<Goal
 	}
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void TrajectoryController::setYawServiceCallback(const std::shared_ptr<iii_interfaces::srv::SetGeneralTargetYaw::Request> request,
                                 std::shared_ptr<iii_interfaces::srv::SetGeneralTargetYaw::Response> response) {
 
@@ -2232,20 +2199,51 @@ void TrajectoryController::stateMachineCallback() {
 			0
 		);
 
-		if ((target_vec-veh).norm() < target_cable_safety_margin_distance_threshold && 
-				((target_xy - veh_xy).norm() > target_cable_safety_margin_max_euc_distance || 
-				veh_vel_xy.norm() > target_cable_safety_margin_max_euc_velocity ||
-				veh_acc_xy.norm() > target_cable_safety_margin_max_euc_acceleration ||
-				abs(veh_state(3) - target(3)) > target_cable_safety_margin_max_yaw_distance ||
-				veh_state(7) > target_cable_safety_margin_max_yaw_velocity)) {
-			
-			return false;
+		if ((target_vec-veh).norm() < target_cable_safety_margin_distance_threshold) {
 
-		} else {
+			if ((target_xy - veh_xy).norm() > target_cable_safety_margin_max_euc_distance) {
 
-			return true;
+				RCLCPP_WARN(this->get_logger(), "Target cable safety margin max euclidean distance exceeded: %f > %f", (target_xy - veh_xy).norm(), target_cable_safety_margin_max_euc_distance);
+
+				return false;
+
+			} 
+
+			if (veh_vel_xy.norm() > target_cable_safety_margin_max_euc_velocity) {
+
+				RCLCPP_WARN(this->get_logger(), "Target cable safety margin max euclidean velocity exceeded: %f > %f", veh_vel_xy.norm(), target_cable_safety_margin_max_euc_velocity);
+
+				return false;
+
+			}
+
+			if (veh_acc_xy.norm() > target_cable_safety_margin_max_euc_acceleration) {
+
+				RCLCPP_WARN(this->get_logger(), "Target cable safety margin max euclidean acceleration exceeded: %f > %f", veh_acc_xy.norm(), target_cable_safety_margin_max_euc_acceleration);
+
+				return false;
+
+			}
+
+			if (abs(veh_state(3) - target(3)) > target_cable_safety_margin_max_yaw_distance) {
+
+				RCLCPP_WARN(this->get_logger(), "Target cable safety margin max yaw distance exceeded: %f > %f", abs(veh_state(3) - target(3)), target_cable_safety_margin_max_yaw_distance);
+
+				return false;
+
+			}
+
+			if (veh_state(7) > target_cable_safety_margin_max_yaw_velocity) {
+
+				RCLCPP_WARN(this->get_logger(), "Target cable safety margin max yaw velocity exceeded: %f > %f", veh_state(7), target_cable_safety_margin_max_yaw_velocity);
+
+				return false;
+			}
 
 		}
+
+		return true;
+
 	};
 
 	auto setPointSafetyMarginTruncate = [this](state4_t set_point, state4_t veh_state, state4_t target_cable) -> state4_t {
@@ -2964,6 +2962,11 @@ void TrajectoryController::stateMachineCallback() {
 
 			fixed_reference = loadTargetCableState();
 
+			float cable_landing_target_upwards_velocity;
+			this->get_parameter("cable_landing_target_upwards_velocity", cable_landing_target_upwards_velocity);
+
+			fixed_reference(6) = cable_landing_target_upwards_velocity;
+
 			setTrajectoryTarget(fixed_reference);
 
 			if (direct_target_setpoint || withinDirectTargetDistance(veh_state, fixed_reference)) {
@@ -3505,7 +3508,7 @@ void TrajectoryController::stateMachineCallback() {
 
 			} else {
 
-				RCLCPP_INFO(this->get_logger(), "Going to state during cable takeoff!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+				RCLCPP_INFO(this->get_logger(), "Going to state during cable takeoff");
 
 
 				target_cable_cnt = updateTargetCablePose(veh_state) ? target_cable_cnt : target_cable_cnt-1;
@@ -4070,7 +4073,7 @@ void TrajectoryController::stateMachineCallback() {
 		} else {
 
 			// debug during cable takeoff
-			RCLCPP_INFO(this->get_logger(), "during cable takeoff");
+			RCLCPP_DEBUG(this->get_logger(), "during cable takeoff");
 
 			rejectPendingRequest();
 
@@ -4082,8 +4085,8 @@ void TrajectoryController::stateMachineCallback() {
 
 			setTrajectoryTarget(fixed_reference);
 
-			RCLCPP_INFO(this->get_logger(), "State: %f, %f, %f", veh_state(0), veh_state(1), veh_state(2));
-			RCLCPP_INFO(this->get_logger(), "Fixed reference: %f, %f, %f", fixed_reference(0), fixed_reference(1), fixed_reference(2));
+			RCLCPP_DEBUG(this->get_logger(), "State: %f, %f, %f", veh_state(0), veh_state(1), veh_state(2));
+			RCLCPP_DEBUG(this->get_logger(), "Fixed reference: %f, %f, %f", fixed_reference(0), fixed_reference(1), fixed_reference(2));
 
 			if (direct_target_setpoint || withinDirectTargetDistance(veh_state, fixed_reference)) {
 
@@ -4097,7 +4100,7 @@ void TrajectoryController::stateMachineCallback() {
 				set_point = stepMPC(veh_state, fixed_reference, true, false, positional);
 				// set_point = setNanVelocity(fixed_reference);
 				// debug target setpoint: %f, %f, %f, %f
-				RCLCPP_INFO(this->get_logger(), "MPC target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+				RCLCPP_DEBUG(this->get_logger(), "MPC target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
 			}
 			// set_point = setPointSafetyMarginTruncate(set_point, veh_state, target_cable);
 
@@ -4216,7 +4219,7 @@ void TrajectoryController::homePositionCallback(px4_msgs::msg::HomePosition::Sha
 
 void TrajectoryController::setHomePosition(px4_msgs::msg::HomePosition new_home) {
 
-	RCLCPP_INFO(this->get_logger(), "new home: %f, %f, %f, %f, %f, %f, %f", new_home.lat, new_home.lon, new_home.alt, new_home.x, new_home.y, new_home.z, new_home.yaw);
+	RCLCPP_DEBUG(this->get_logger(), "new home: %f, %f, %f, %f, %f, %f, %f", new_home.lat, new_home.lon, new_home.alt, new_home.x, new_home.y, new_home.z, new_home.yaw);
 
 	publishVehicleCommand(
 		px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_HOME,
@@ -4243,7 +4246,7 @@ void TrajectoryController::setHomePositionIfChanged(px4_msgs::msg::HomePosition 
 
 		RCLCPP_INFO(this->get_logger(), "Home position changed, updating home position to old value");
 		// RCLCPP_INFO old home:
-		RCLCPP_INFO(this->get_logger(), "old home: %f, %f, %f, %f, %f, %f, %f", old_home.lat, old_home.lon, old_home.alt, old_home.x, old_home.y, old_home.z, old_home.yaw);
+		RCLCPP_DEBUG(this->get_logger(), "old home: %f, %f, %f, %f, %f, %f, %f", old_home.lat, old_home.lon, old_home.alt, old_home.x, old_home.y, old_home.z, old_home.yaw);
 		// RCLCPP_INFO new home:
 
 		setHomePosition(old_home);
@@ -5315,7 +5318,7 @@ state4_t TrajectoryController::stepMPC(state4_t vehicle_state, state4_t target_s
 	static double x[6];
 	static double u[3];
 
-	static double target[3];
+	static double target[6];
 
 	static int reset_target;
 	static int reset_trajectory;
@@ -5328,7 +5331,7 @@ state4_t TrajectoryController::stepMPC(state4_t vehicle_state, state4_t target_s
 
 	if (set_target) {
 
-		RCLCPP_INFO(this->get_logger(), "Setting target state to: %f, %f, %f, %f", target_state(0), target_state(1), target_state(2), target_state(3));
+		RCLCPP_DEBUG(this->get_logger(), "Setting target state to: %f, %f, %f, %f", target_state(0), target_state(1), target_state(2), target_state(3));
 
 		ref_target_state = target_state;
 
@@ -5410,10 +5413,16 @@ state4_t TrajectoryController::stepMPC(state4_t vehicle_state, state4_t target_s
 		// target[1] = transformed_target(1);
 		// target[2] = transformed_target(2);
 
-		target[0] = ref_target_state(0);
-		target[1] = ref_target_state(1);
-		target[2] = ref_target_state(2);
+		// target[0] = ref_target_state(0);
+		// target[1] = ref_target_state(1);
+		// target[2] = ref_target_state(2);
 
+		for (int i = 0; i < 3; i++) {
+
+			target[i] = target_state(i);
+			target[i+3] = target_state(i+4);
+
+		}
 	}
 
 	// Step:
@@ -5713,14 +5722,15 @@ void TrajectoryController::threadFunctionMPC(double *x, double *u, double *plann
 
 	if (reset_target) {
 
-		RCLCPP_INFO(this->get_logger(), "MPC resettign Target");
-		RCLCPP_INFO(this->get_logger(), "MPC Thread State: %f, %f, %f", x[0], x[1], x[2]);
-		RCLCPP_INFO(this->get_logger(), "MPC Thread Target: %f, %f, %f", target[0], target[1], target[2]);
+		RCLCPP_DEBUG(this->get_logger(), "MPC resetting Target");
+		RCLCPP_DEBUG(this->get_logger(), "MPC Thread State: %f, %f, %f", x[0], x[1], x[2]);
+		RCLCPP_DEBUG(this->get_logger(), "MPC Thread Target: %f, %f, %f", target[0], target[1], target[2]);
 
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < 6; i++) {
+		// for (int i = 0; i < 3; i++) {
 
 			mpconlinedata.signals.ref[i] = target[i];
-			mpconlinedata.signals.ref[i+3] = 0;
+			// mpconlinedata.signals.ref[i+3] = 0;
 
 		}
 
@@ -5747,10 +5757,10 @@ void TrajectoryController::threadFunctionMPC(double *x, double *u, double *plann
 	for(int i = 0; i < 6; i++) mpconlinedata.signals.ym[i] = x[i];
 
 	if (mpc_mode == cable_takeoff) {
-		RCLCPP_INFO(this->get_logger(), "MPC Thread Target stored: %f, %f, %f", mpconlinedata.signals.ref[0], mpconlinedata.signals.ref[1], mpconlinedata.signals.ref[2]);
-		RCLCPP_INFO(this->get_logger(), "MPC Thread State stored: %f, %f, %f", mpconlinedata.signals.ym[0], mpconlinedata.signals.ym[1], mpconlinedata.signals.ym[2]);
-		RCLCPP_INFO(this->get_logger(), "MPC Thread wxyz stored: %f, %f, %f, %f", mpconlinedata.weights.y[0], mpconlinedata.weights.y[1], mpconlinedata.weights.y[2]);
-		RCLCPP_INFO(this->get_logger(), "MPC Thread wvxyz stored: %f, %f, %f, %f", mpconlinedata.weights.y[3], mpconlinedata.weights.y[4], mpconlinedata.weights.y[5]);
+		RCLCPP_DEBUG(this->get_logger(), "MPC Thread Target stored: %f, %f, %f", mpconlinedata.signals.ref[0], mpconlinedata.signals.ref[1], mpconlinedata.signals.ref[2]);
+		RCLCPP_DEBUG(this->get_logger(), "MPC Thread State stored: %f, %f, %f", mpconlinedata.signals.ym[0], mpconlinedata.signals.ym[1], mpconlinedata.signals.ym[2]);
+		RCLCPP_DEBUG(this->get_logger(), "MPC Thread wxyz stored: %f, %f, %f, %f", mpconlinedata.weights.y[0], mpconlinedata.weights.y[1], mpconlinedata.weights.y[2]);
+		RCLCPP_DEBUG(this->get_logger(), "MPC Thread wvxyz stored: %f, %f, %f, %f", mpconlinedata.weights.y[3], mpconlinedata.weights.y[4], mpconlinedata.weights.y[5]);
 	}
 
 	pos_MPC::coder::mpcmoveCodeGeneration(&mpcmovestate, &mpconlinedata, u, &Info);

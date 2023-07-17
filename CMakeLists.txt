@@ -84,6 +84,9 @@ ament_target_dependencies(trajectory_controller
   tf2_ros
   tf2_geometry_msgs
 )
+target_include_directories(trajectory_controller PRIVATE
+  src/matlab_MPC_5Hz_hp10
+)
 install(TARGETS trajectory_controller DESTINATION lib/${PROJECT_NAME})
 
 add_executable(cable_drum_controller
@@ -233,7 +236,7 @@ install(PROGRAMS
   scripts/image_drawer.py
   scripts/image_decompress.py
   scripts/draw_PL_IDs.py
-  scripts/iii_gui.py
+  # scripts/iii_gui.py
   scripts/ground_link_republisher.py
   scripts/points_est_republisher.py
   scripts/rc_node_launcher.py
