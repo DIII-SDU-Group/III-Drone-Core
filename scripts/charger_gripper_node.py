@@ -79,10 +79,10 @@ class ChargerGripperNode(Node):
             depth=1
         )
 
-        if not self.gripper_command_only_:
-            self.declare_parameter("status_timer_period_ms", 10)
-            self.status_timer_period_ms_ = self.get_parameter("status_timer_period_ms").value
+        self.declare_parameter("status_timer_period_ms", 10)
+        self.status_timer_period_ms_ = self.get_parameter("status_timer_period_ms").value
 
+        if not self.gripper_command_only_:
             self.declare_parameter("status_message_first_byte", 0xFA)
             self.status_message_first_byte_ = self.get_parameter("status_message_first_byte").value
 
