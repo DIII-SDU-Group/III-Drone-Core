@@ -26,8 +26,14 @@ class ChargerGripperNode(Node):
 
         self.get_logger().info("Initializing Charger Gripper Node...")
 
+        self.declare_parameter("simulation", False)
+        self.simulation_ = self.get_parameter("simulation").value
+
+        if self.simulation_:
+            raise NotImplementedError("Simulation mode is not implemented yet.")
+
         self.declare_parameter("gripper_command_only", False)
-        self.gripper_command_only_ = self.get_parameter("gripper_command_only").value
+        self.gripper_command_only_ = self.get_parameter("gripper_command_only").value | self.simulation_
 
         self.declare_parameter("gripper_command_interface", "serial")
         self.gripper_command_interface_ = self.get_parameter("gripper_command_interface").value
@@ -67,6 +73,12 @@ class ChargerGripperNode(Node):
             self.pi_gpio_.set_mode(self.charger_gripper_rpi_gpio_pin_, pigpio.OUTPUT)
             self.pi_gpio_.write(self.charger_gripper_rpi_gpio_pin_, 0 if self.gripper_open_command_ == 0x00 else 1)
 
+        pub_qos = QoSProfile(
+            reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT,
+            history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
+            depth=1
+        )
+
         if not self.gripper_command_only_:
             self.declare_parameter("status_timer_period_ms", 10)
             self.status_timer_period_ms_ = self.get_parameter("status_timer_period_ms").value
@@ -100,12 +112,6 @@ class ChargerGripperNode(Node):
 
             self.declare_parameter("status_message_gripper_status_index", 7)
             self.status_message_gripper_status_index_ = self.get_parameter("status_message_gripper_status_index").value
-        
-            pub_qos = QoSProfile(
-                reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT,
-                history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
-                depth=1
-            )
 
             self.battery_voltage_pub_ = self.create_publisher(Float32, "battery_voltage", pub_qos)
             self.charging_power_pub_ = self.create_publisher(Float32, "charging_power", pub_qos)
@@ -113,14 +119,16 @@ class ChargerGripperNode(Node):
             self.charger_operating_mode_pub_ = self.create_publisher(ChargerOperatingMode, "charger_operating_mode", pub_qos)
             self.charger_status_pub_ = self.create_publisher(ChargerStatus, "charger_status", pub_qos)
 
-            self.gripper_status_pub_ = self.create_publisher(GripperStatus, "gripper_status", pub_qos)
-
             self.received_data_ = bytearray()
 
-            self.status_timer_ = self.create_timer(
-                self.status_timer_period_ms_ / 1000,
-                self.status_timer_callback
-            )
+        self.gripper_status_pub_ = self.create_publisher(GripperStatus, "gripper_status", pub_qos)
+
+        self.status_timer_ = self.create_timer(
+            self.status_timer_period_ms_ / 1000,
+            self.status_timer_callback
+        )
+
+        self.last_gripper_command_ = "open"
 
         self.gripper_command_srv_ = self.create_service(
             GripperCommand,
@@ -129,26 +137,33 @@ class ChargerGripperNode(Node):
         )
 
     def status_timer_callback(self):
-        if (self.ser_.in_waiting > 0):
-            if (len(self.received_data_) >= self.status_message_length_):
-                self.get_logger().error("Received data is too long. Discarding.")
-                self.received_data_.clear()
+        if not self.gripper_command_only_:
+            if (self.ser_.in_waiting > 0):
+                if (len(self.received_data_) >= self.status_message_length_):
+                    self.get_logger().error("Received data is too long. Discarding.")
+                    self.received_data_.clear()
 
-            if (len(self.received_data_) == 0):
-                if (self.ser_.read(1) == self.status_message_first_byte_):
-                    self.received_data_.append(self.status_message_first_byte_)
+                if (len(self.received_data_) == 0):
+                    if (self.ser_.read(1) == self.status_message_first_byte_):
+                        self.received_data_.append(self.status_message_first_byte_)
 
-                    return
+                        return
 
-            self.received_data_.append(self.ser_.read(1))
+                self.received_data_.append(self.ser_.read(1))
 
-            if (len(self.received_data_) == self.status_message_length_):
-                if (self.received_data_[self.status_message_length_ - 1] == self.status_message_last_byte_):
-                    self.parse_and_publish_data()
-                else:
-                    self.get_logger().warn("Received wrong status message last byte. Discarding.")
+                if (len(self.received_data_) == self.status_message_length_):
+                    if (self.received_data_[self.status_message_length_ - 1] == self.status_message_last_byte_):
+                        self.parse_and_publish_data()
+                    else:
+                        self.get_logger().warn("Received wrong status message last byte. Discarding.")
 
-                self.received_data_.clear()
+                    self.received_data_.clear()
+
+            else:
+                gripper_status_msg = GripperStatus()
+                gripper_status_msg.gripper_status = GripperStatus.GRIPPER_STATUS_CLOSED if self.last_gripper_command_ == "close" else GripperStatus.GRIPPER_STATUS_OPEN
+
+                self.gripper_status_pub_.publish(gripper_status_msg)
 
     def parse_and_publish_data(self):
         battery_voltage = self.received_data_[self.status_message_battery_voltage_start_index_] * 256 + self.received_data_[self.status_message_battery_voltage_start_index_ + self.status_message_battery_voltage_length_ - 1]
@@ -158,10 +173,10 @@ class ChargerGripperNode(Node):
         gripper_status = self.received_data_[self.status_message_gripper_status_index_]
 
         battery_voltage_msg = Float32()
-        battery_voltage_msg.data = battery_voltage / 1000.0
+        battery_voltage_msg.data = battery_voltage / 100.0
 
         charging_power_msg = Float32()
-        charging_power_msg.data = charging_power / 1000.0
+        charging_power_msg.data = charging_power / 10.0
 
         charger_status_msg = ChargerStatus()
         if (charger_status == ChargerStatus.CHARGER_STATUS_DISABLED):
@@ -219,10 +234,12 @@ class ChargerGripperNode(Node):
         if (gripper_command == GripperCommand.Request.GRIPPER_COMMAND_OPEN):
             self.open_gripper()
             response.gripper_command_response = GripperCommand.Response.GRIPPER_COMMAND_RESPONSE_SUCCESS
+            self.last_gripper_command_ = "open"
 
         elif (gripper_command == GripperCommand.Request.GRIPPER_COMMAND_CLOSE):
             self.close_gripper()
             response.gripper_command_response = GripperCommand.Response.GRIPPER_COMMAND_RESPONSE_SUCCESS
+            self.last_gripper_command_ = "close"
 
         else:
             response.gripper_command_response = GripperCommand.Response.GRIPPER_COMMAND_RESPONSE_INVALID_COMMAND

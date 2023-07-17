@@ -213,7 +213,7 @@ void PowerlineDirectionComputerNode::predict() {
 
 void PowerlineDirectionComputerNode::update(float pl_angle) {
 
-    RCLCPP_INFO(this->get_logger(), "Updating powerline direction");
+    RCLCPP_DEBUG(this->get_logger(), "Updating powerline direction");
 
     if (!anyCableInFOV()) {
 
@@ -520,13 +520,13 @@ bool PowerlineDirectionComputerNode::anyCableInFOV() {
         if (in_FOV) {
             // Log the cable position:
 
-            RCLCPP_INFO(this->get_logger(), "Cable %d in FOV", i);
-            RCLCPP_INFO(this->get_logger(), "x = %f", mmwave_point(0));
-            RCLCPP_INFO(this->get_logger(), "y = %f", mmwave_point(1));
-            RCLCPP_INFO(this->get_logger(), "z = %f", mmwave_point(2));
-            RCLCPP_INFO(this->get_logger(), "dist = %f", dist);
-            RCLCPP_INFO(this->get_logger(), "yz_dist = %f", yz_dist);
-            RCLCPP_INFO(this->get_logger(), "view_cone_slope = %f", view_cone_slope);
+            RCLCPP_DEBUG(this->get_logger(), "Cable %d in FOV", i);
+            RCLCPP_DEBUG(this->get_logger(), "x = %f", mmwave_point(0));
+            RCLCPP_DEBUG(this->get_logger(), "y = %f", mmwave_point(1));
+            RCLCPP_DEBUG(this->get_logger(), "z = %f", mmwave_point(2));
+            RCLCPP_DEBUG(this->get_logger(), "dist = %f", dist);
+            RCLCPP_DEBUG(this->get_logger(), "yz_dist = %f", yz_dist);
+            RCLCPP_DEBUG(this->get_logger(), "view_cone_slope = %f", view_cone_slope);
 
 
 
