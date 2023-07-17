@@ -159,11 +159,11 @@ class ChargerGripperNode(Node):
 
                     self.received_data_.clear()
 
-            else:
-                gripper_status_msg = GripperStatus()
-                gripper_status_msg.gripper_status = GripperStatus.GRIPPER_STATUS_CLOSED if self.last_gripper_command_ == "close" else GripperStatus.GRIPPER_STATUS_OPEN
+        else:
+            gripper_status_msg = GripperStatus()
+            gripper_status_msg.gripper_status = GripperStatus.GRIPPER_STATUS_CLOSED if self.last_gripper_command_ == "close" else GripperStatus.GRIPPER_STATUS_OPEN
 
-                self.gripper_status_pub_.publish(gripper_status_msg)
+            self.gripper_status_pub_.publish(gripper_status_msg)
 
     def parse_and_publish_data(self):
         battery_voltage = self.received_data_[self.status_message_battery_voltage_start_index_] * 256 + self.received_data_[self.status_message_battery_voltage_start_index_ + self.status_message_battery_voltage_length_ - 1]
