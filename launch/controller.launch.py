@@ -15,7 +15,8 @@ def generate_launch_description():
     #    'params.yaml'
     #)
 
-    config = "~/config.yaml"
+    user = os.getenv("USER")
+    config = "/home/" + user + "/config.yaml"
 
     trajectory_controller = Node(
         package="iii_drone",
