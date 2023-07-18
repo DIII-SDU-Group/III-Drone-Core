@@ -284,6 +284,9 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	control_state_pub_ = 
 		this->create_publisher<iii_interfaces::msg::ControlState>("control_state", 10);
 
+	target_cable_id_pub_ = 
+		this->create_publisher<std_msgs::msg::Int16>("target_cable_id", 10);
+
 	// check nav_state if in offboard (14)
 	// VehicleStatus: https://github.com/PX4/px4_msgs/blob/master/msg/VehicleStatus.msg
 	vehicle_status_sub_ = create_subscription<px4_msgs::msg::VehicleStatus>(
@@ -2861,6 +2864,8 @@ void TrajectoryController::stateMachineCallback() {
 
 			delete request.request_params;
 
+			clearTargetCable();
+
 			fixed_reference = appendZeroVelocity(target_position);
 
 			setTrajectoryTarget(fixed_reference);
@@ -4115,6 +4120,7 @@ void TrajectoryController::stateMachineCallback() {
 
 	publishControlState();
 	publishPlannedTrajectory();
+	publishTargetCableId();
 
 	publishOffboardControlMode();
 	if (offboard && always_hover_in_offboard && state_ != hovering)
@@ -4567,6 +4573,37 @@ void TrajectoryController::publishPlannedTrajectory() {
 	planned_traj_pub_->publish(path);
 	planned_macro_traj_pub_->publish(macro_path);
 	planned_target_pub_->publish(target);
+
+}
+
+void TrajectoryController::publishTargetCableId() {
+
+	auto msg = std::make_unique<std_msgs::msg::Int16>();
+
+	// switch (state_) {
+
+	// 	case in_positional_flight:
+	// 		if (target_cable_id_ < 0)
+	// 			break;
+	// 	case hovering_under_cable:
+	// 	case during_cable_landing:
+	// 	case on_cable_armed:
+	// 	case disarming_on_cable:
+	// 	case on_cable_disarmed:
+	// 	case arming_on_cable:
+	// 	case setting_offboard_on_cable:
+	// 	case during_cable_takeoff:
+	// 		msg->data = target_cable_id_;
+	// 		target_cable_id_pub_->publish(std::move(msg));
+	// 		break;
+
+	// 	default:
+	// 		break;
+
+	// }
+
+	msg->data = target_cable_id_;
+	target_cable_id_pub_->publish(std::move(msg));
 
 }
 

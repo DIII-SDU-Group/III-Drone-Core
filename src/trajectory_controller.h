@@ -42,6 +42,8 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 
+#include <std_msgs/msg/int16.hpp>
+
 #include "iii_interfaces/msg/control_state.hpp"
 #include "iii_interfaces/msg/powerline.hpp"
 
@@ -445,6 +447,8 @@ private:
 
 	rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr setpoint_pose_pub_;
 
+	rclcpp::Publisher<std_msgs::msg::Int16>::SharedPtr target_cable_id_pub_;
+
 	std::thread MPC_thread_;
 	double MPC_u_[3];
 	double MPC_x_[6];
@@ -487,6 +491,7 @@ private:
 					 float param7 = 0.0) const;
 	void publishOffboardControlMode() const;
 	void publishControlState();
+	void publishTargetCableId();
 	void publishTrajectorySetpoint(state4_t set_point) const;
 	void publishSetpointPose(state4_t set_point);
 
