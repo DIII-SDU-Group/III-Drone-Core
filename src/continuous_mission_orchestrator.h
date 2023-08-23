@@ -326,8 +326,8 @@ private:
         wait_for_target_line,
         flying_under_cable,
         inspecting,
-        closing_gripper,
         landing_on_cable,
+        closing_gripper,
         disarming_on_cable,
         charging,
         arming_on_cable,
@@ -348,8 +348,8 @@ private:
     void stateMachineWaitForTargetLine();
     void stateMachineFlyingUnderCable();
     void stateMachineInspecting();
-    void stateMachineClosingGripper();
     void stateMachineLandingOnCable();
+    void stateMachineClosingGripper();
     void stateMachineDisarmingOnCable();
     void stateMachineCharging();
     void stateMachineArmingOnCable();

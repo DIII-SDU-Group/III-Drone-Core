@@ -58,10 +58,20 @@ class ChargerGripperNode(Node):
             self.declare_parameter("charger_gripper_serial_timeout", 0.1)
             self.charger_gripper_serial_timeout_ = self.get_parameter("charger_gripper_serial_timeout").value
 
+            self.declare_parameter("gripper_command_serial_period_ms", 500)
+            self.gripper_command_serial_period_ms_ = self.get_parameter("gripper_command_serial_period_ms").value
+
+            self.ser_lock_ = Lock()
+
             self.ser_ = serial.Serial(
                 port=self.charger_gripper_serial_port_,
                 baudrate=self.charger_gripper_serial_baudrate_,
                 timeout=self.charger_gripper_serial_timeout_
+            )
+
+            self.serial_gripper_cmd_timer_ = self.create_timer(
+                timer_period_sec=self.gripper_command_serial_period_ms_ / 1000.0,
+                callback=self.send_serial_gripper_cmd_callback
             )
 
         if self.gripper_command_interface_ == "gpio":
@@ -138,6 +148,8 @@ class ChargerGripperNode(Node):
 
     def status_timer_callback(self):
         if not self.gripper_command_only_:
+            self.ser_lock_.acquire()
+
             if (self.ser_.in_waiting > 0):
                 if (len(self.received_data_) >= self.status_message_length_):
                     self.get_logger().error("Received data is too long. Discarding.")
@@ -146,6 +158,8 @@ class ChargerGripperNode(Node):
                 if (len(self.received_data_) == 0):
                     if (self.ser_.read(1) == self.status_message_first_byte_):
                         self.received_data_.append(self.status_message_first_byte_)
+
+                        self.ser_lock_.release()
 
                         return
 
@@ -164,6 +178,31 @@ class ChargerGripperNode(Node):
             gripper_status_msg.gripper_status = GripperStatus.GRIPPER_STATUS_CLOSED if self.last_gripper_command_ == "close" else GripperStatus.GRIPPER_STATUS_OPEN
 
             self.gripper_status_pub_.publish(gripper_status_msg)
+
+        self.ser_lock_.release()
+
+    def send_serial_gripper_cmd_callback(self):
+        gripper_cmd = None
+
+        if self.last_gripper_command_ == "open":
+            gripper_cmd = self.gripper_open_command_
+
+            self.get_logger().info("Opening gripper using serial.")
+
+        elif self.last_gripper_command_ == "close":
+            gripper_cmd = self.gripper_close_command_
+
+            self.get_logger().info("Closing gripper using serial.")
+
+        else:
+            self.get_logger().error("Invalid gripper command.")
+            return
+
+        self.ser_lock_.acquire()
+
+        self.ser_.write(bytes([gripper_cmd]))
+
+        self.ser_lock_.release()
 
     def parse_and_publish_data(self):
         battery_voltage = self.received_data_[self.status_message_battery_voltage_start_index_] * 256 + self.received_data_[self.status_message_battery_voltage_start_index_ + self.status_message_battery_voltage_length_ - 1]
@@ -253,8 +292,11 @@ class ChargerGripperNode(Node):
             self.pi_gpio_.write(self.charger_gripper_rpi_gpio_pin_, gpio_output)
 
         elif self.gripper_command_interface_ == "serial":
-            self.get_logger().info("Opening gripper using serial.")
-            self.ser_.write(bytes([self.gripper_open_command_]))
+            pass
+            # self.ser_lock_.acquire()
+
+            # self.get_logger().info("Opening gripper using serial.")
+            # self.ser_.write(bytes([self.gripper_open_command_]))
 
         else:
             self.get_logger().error("Unknown gripper command interface. Not opening gripper.")
@@ -266,8 +308,9 @@ class ChargerGripperNode(Node):
             self.pi_gpio_.write(self.charger_gripper_rpi_gpio_pin_, gpio_output)
 
         elif self.gripper_command_interface_ == "serial":
-            self.get_logger().info("Closing gripper using serial.")
-            self.ser_.write(bytes([self.gripper_close_command_]))
+            pass
+            # self.get_logger().info("Closing gripper using serial.")
+            # self.ser_.write(bytes([self.gripper_close_command_]))
 
         else:
             self.get_logger().error("Unknown gripper command interface. Not closing gripper.")

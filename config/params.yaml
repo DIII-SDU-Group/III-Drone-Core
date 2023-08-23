@@ -191,6 +191,7 @@ charger_gripper:
       charger_gripper_serial_port: "/dev/ttyUSB0"
       charger_gripper_serial_baudrate: 115200
       charger_gripper_serial_timeout: 0.1
+      gripper_command_serial_period_ms: 500
       charger_gripper_rpi_gpio_pin: 17
       status_timer_period_ms: 10
       status_message_first_byte: 0xFA
