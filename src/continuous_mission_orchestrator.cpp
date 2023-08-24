@@ -1708,7 +1708,7 @@ void ContinuousMissionOrchestrator::stateMachineFlyingUnderCable() {
 
         if (!action_timer_started) {
 
-            RCLCPP_INFO(get_logger(), "ContinuousMissionOrchestrator::stateMachineFlyingUnderCable(): FlyUnderCable action succeeded but vehicle is not hovering under cable, starting action timer");
+            RCLCPP_WARN(get_logger(), "ContinuousMissionOrchestrator::stateMachineFlyingUnderCable(): FlyUnderCable action succeeded but vehicle is not hovering under cable, starting action timer");
 
             action_timer_started = true;
 
