@@ -147,6 +147,11 @@ class ChargerGripperNode(Node):
         )
 
     def status_timer_callback(self):
+        #if (self.ser_.in_waiting > 0):
+        #    print(self.ser_.read(1))
+
+        #return
+
         if not self.gripper_command_only_:
             self.ser_lock_.acquire()
 
@@ -156,14 +161,15 @@ class ChargerGripperNode(Node):
                     self.received_data_.clear()
 
                 if (len(self.received_data_) == 0):
-                    if (self.ser_.read(1) == self.status_message_first_byte_):
+                    if (self.ser_.read(1)[0] == self.status_message_first_byte_):
                         self.received_data_.append(self.status_message_first_byte_)
 
-                        self.ser_lock_.release()
+                    self.ser_lock_.release()
+                    return
 
-                        return
-
-                self.received_data_.append(self.ser_.read(1))
+                #data = self.ser_.read(1)
+                #self.received_data_.append(data)
+                self.received_data_.append(self.ser_.read(1)[0])
 
                 if (len(self.received_data_) == self.status_message_length_):
                     if (self.received_data_[self.status_message_length_ - 1] == self.status_message_last_byte_):
@@ -205,11 +211,11 @@ class ChargerGripperNode(Node):
         self.ser_lock_.release()
 
     def parse_and_publish_data(self):
-        battery_voltage = self.received_data_[self.status_message_battery_voltage_start_index_] * 256 + self.received_data_[self.status_message_battery_voltage_start_index_ + self.status_message_battery_voltage_length_ - 1]
-        charging_power = self.received_data_[self.status_message_charging_power_start_index_] * 256 + self.received_data_[self.status_message_charging_power_start_index_ + self.status_message_charging_power_length_ - 1]
-        charger_status = self.received_data_[self.status_message_charger_status_index_]
-        charger_operating_mode = self.received_data_[self.status_message_charger_operating_mode_index_]
-        gripper_status = self.received_data_[self.status_message_gripper_status_index_]
+        battery_voltage = int(self.received_data_[self.status_message_battery_voltage_start_index_]) * 256 + int(self.received_data_[self.status_message_battery_voltage_start_index_ + self.status_message_battery_voltage_length_ - 1])
+        charging_power = int(self.received_data_[self.status_message_charging_power_start_index_]) * 256 + int(self.received_data_[self.status_message_charging_power_start_index_ + self.status_message_charging_power_length_ - 1])
+        charger_status = int(self.received_data_[self.status_message_charger_status_index_])
+        charger_operating_mode = int(self.received_data_[self.status_message_charger_operating_mode_index_])
+        gripper_status = int(self.received_data_[self.status_message_gripper_status_index_])
 
         battery_voltage_msg = Float32()
         battery_voltage_msg.data = battery_voltage / 100.0
@@ -244,8 +250,24 @@ class ChargerGripperNode(Node):
         elif (charger_operating_mode == ChargerOperatingMode.OPERATING_MODE_3):
             charger_operating_mode_msg.operating_mode = ChargerOperatingMode.OPERATING_MODE_3
 
+        elif (charger_operating_mode == ChargerOperatingMode.OPERATING_MODE_4):
+            charger_operating_mode_msg.operating_mode = ChargerOperatingMode.OPERATING_MODE_4
+
+        elif (charger_operating_mode == ChargerOperatingMode.OPERATING_MODE_5):
+            charger_operating_mode_msg.operating_mode = ChargerOperatingMode.OPERATING_MODE_5
+
+        elif (charger_operating_mode == ChargerOperatingMode.OPERATING_MODE_6):
+            charger_operating_mode_msg.operating_mode = ChargerOperatingMode.OPERATING_MODE_6
+
+        elif (charger_operating_mode == ChargerOperatingMode.OPERATING_MODE_7):
+            charger_operating_mode_msg.operating_mode = ChargerOperatingMode.OPERATING_MODE_7
+
+        elif (charger_operating_mode == ChargerOperatingMode.OPERATING_MODE_8):
+            charger_operating_mode_msg.operating_mode = ChargerOperatingMode.OPERATING_MODE_8
+
         else:
             self.get_logger().warn("Received unknown charger operating mode. Publishing anyways.")
+            print("Op mode:", charger_operating_mode)
             charger_operating_mode_msg.operating_mode = charger_operating_mode
 
         gripper_status_msg = GripperStatus()
