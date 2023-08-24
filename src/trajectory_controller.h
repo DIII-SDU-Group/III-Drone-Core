@@ -27,6 +27,8 @@
 #include <px4_msgs/msg/vehicle_status.hpp>
 #include <px4_msgs/msg/vehicle_odometry.hpp>
 #include <px4_msgs/msg/home_position.hpp>
+#include <px4_msgs/msg/vehicle_thrust_setpoint.hpp>
+#include <px4_msgs/msg/vehicle_torque_setpoint.hpp>
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
@@ -436,6 +438,8 @@ private:
 
 	rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr vehicle_command_pub_;
 	rclcpp::Publisher<px4_msgs::msg::TrajectorySetpoint>::SharedPtr trajectory_setpoint_pub_;
+	rclcpp::Publisher<px4_msgs::msg::VehicleThrustSetpoint>::SharedPtr thrust_setpoint_pub_;
+	rclcpp::Publisher<px4_msgs::msg::VehicleTorqueSetpoint>::SharedPtr torque_setpoint_pub_;
 
 	rclcpp::Publisher<iii_interfaces::msg::ControlState>::SharedPtr control_state_pub_;
 
@@ -482,6 +486,10 @@ private:
 
 	void disarmOnCable();
 
+	double disarm_on_cable_thrust_;
+	rclcpp::Time disarm_on_cable_thrust_start_time_;
+	bool is_disarming_on_cable_by_thrust_ = false;
+
 	void publishVehicleCommand(uint16_t command, float param1 = 0.0,
 					 float param2 = 0.0,
 					 float param3 = 0.0,
@@ -489,8 +497,9 @@ private:
 					 float param5 = 0.0,
 					 float param6 = 0.0,
 					 float param7 = 0.0) const;
-	void publishOffboardControlMode() const;
+	void publishOffboardControlMode();
 	void publishControlState();
+	void publishActuatorSetpoints();
 	void publishTargetCableId();
 	void publishTrajectorySetpoint(state4_t set_point) const;
 	void publishSetpointPose(state4_t set_point);

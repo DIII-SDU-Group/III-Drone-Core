@@ -30,7 +30,11 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	this->declare_parameter<float>("target_cable_set_point_truncate_distance_threshold", 0.1);
 	this->declare_parameter<bool>("always_hover_in_offboard",false);
 
-	this->declare_parameter<float>("disarming_on_cable_max_descend_distance", 0.25);
+	this->declare_parameter<double>("disarming_on_cable_max_descend_distance", 0.25);
+	this->declare_parameter<std::string>("disarm_on_cable_mode", "land");
+	this->declare_parameter<double>("disarm_on_cable_thrust_decrease_time_s", 5.);
+	this->declare_parameter<double>("disarm_on_cable_thrust_wait_for_disarm_time_s", 5.0);
+	this->declare_parameter<double>("disarm_on_cable_thrust_initial", 0.75);
 
 	this->declare_parameter<float>("arming_on_cable_upwards_velocity", 0.1);
 
@@ -280,6 +284,12 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 		this->create_publisher<px4_msgs::msg::TrajectorySetpoint>("/fmu/trajectory_setpoint/in", 10);
 	vehicle_command_pub_ =
 		this->create_publisher<px4_msgs::msg::VehicleCommand>("/fmu/vehicle_command/in", 10);
+
+	thrust_setpoint_pub_ =
+		this->create_publisher<px4_msgs::msg::VehicleThrustSetpoint>("/fmu/vehicle_thrust_setpoint/in", 10);
+
+	torque_setpoint_pub_ =
+		this->create_publisher<px4_msgs::msg::VehicleTorqueSetpoint>("/fmu/vehicle_torque_setpoint/in", 10);
 
 	control_state_pub_ = 
 		this->create_publisher<iii_interfaces::msg::ControlState>("control_state", 10);
@@ -3849,7 +3859,7 @@ void TrajectoryController::stateMachineCallback() {
 
 			state_ = during_cable_takeoff;
 
-		} else if (!offboard && !armed) {
+		} else if (!armed) {
 
 			// Debug going to state on cable disarmed
 			RCLCPP_DEBUG(this->get_logger(), "Going to state on cable disarmed");
@@ -3858,44 +3868,69 @@ void TrajectoryController::stateMachineCallback() {
 
 			state_ = on_cable_disarmed;
 
-		} else if (disarm_on_cable_cnt <= 0) {
-
-			RCLCPP_DEBUG(this->get_logger(), "Could not disarm, going to state on_cable_armed");
-
-			notifyCurrentRequest(fail);
-
-			clearPlannedTrajectory();
-
-			fixed_reference = setZeroVelocity(fixed_reference);
-
-			for (int i = 0; i < 4; i++) {
-
-				set_point(i) = NAN;
-				set_point(i+4) = 0;
-				set_point(i+8) = NAN;
-
-			}
-
-			state_ = on_cable_armed;
-
 		} else {
-			
-			rejectPendingRequest();
 
-			for (int i = 0; i < 4; i++) {
+			bool disarm_on_cable_timeout = false;
 
-				set_point(i) = fixed_reference(i);
-				set_point(i+4) = 0;
-				set_point(i+8) = NAN;
+			if (is_disarming_on_cable_by_thrust_) {
+
+				double seconds_elapsed = (rclcpp::Clock().now() - disarm_on_cable_thrust_start_time_).seconds();
+
+				double disarm_on_cable_thrust_decrease_time_s, disarm_on_cable_thrust_wait_for_disarm_time_s;
+
+				this->get_parameter("disarm_on_cable_thrust_decrease_time_s", disarm_on_cable_thrust_decrease_time_s);
+				this->get_parameter("disarm_on_cable_thrust_wait_for_disarm_time_s", disarm_on_cable_thrust_wait_for_disarm_time_s);
+
+				disarm_on_cable_timeout = seconds_elapsed > disarm_on_cable_thrust_decrease_time_s + disarm_on_cable_thrust_wait_for_disarm_time_s;
+
+			} else {
+
+				disarm_on_cable_timeout = disarm_on_cable_cnt <= 0;
 
 			}
 
-			land_cnt--;
 
-			// set_point(6) = 0.01;
+			// if (disarm_on_cable_cnt <= 0) {
+			if (disarm_on_cable_timeout) {
 
-			// debug disarming on cable, setpoint: %f, %f, %f, %f
-			RCLCPP_DEBUG(this->get_logger(), "disarming on cable, setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+				RCLCPP_DEBUG(this->get_logger(), "Could not disarm, going to state on_cable_armed");
+
+				notifyCurrentRequest(fail);
+
+				clearPlannedTrajectory();
+
+				fixed_reference = setZeroVelocity(fixed_reference);
+
+				for (int i = 0; i < 4; i++) {
+
+					set_point(i) = NAN;
+					set_point(i+4) = 0;
+					set_point(i+8) = NAN;
+
+				}
+
+				state_ = on_cable_armed;
+
+			} else {
+				
+				rejectPendingRequest();
+
+				for (int i = 0; i < 4; i++) {
+
+					set_point(i) = fixed_reference(i);
+					set_point(i+4) = 0;
+					set_point(i+8) = NAN;
+
+				}
+
+				land_cnt--;
+
+				// set_point(6) = 0.01;
+
+				// debug disarming on cable, setpoint: %f, %f, %f, %f
+				RCLCPP_DEBUG(this->get_logger(), "disarming on cable, setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
+
+			}
 		}
 
 		break;
@@ -4126,7 +4161,15 @@ void TrajectoryController::stateMachineCallback() {
 	if (offboard && always_hover_in_offboard && state_ != hovering)
 		set_point = always_hover_state;
 
-	publishTrajectorySetpoint(set_point);
+	if (is_disarming_on_cable_by_thrust_) {
+
+		publishActuatorSetpoints();
+
+	} else {
+
+		publishTrajectorySetpoint(set_point);
+
+	}
 
 	publishSetpointPose(set_point);
 
@@ -4309,6 +4352,22 @@ void TrajectoryController::disarm() {
 
 void TrajectoryController::disarmOnCable() {
 
+	std::string disarm_on_cable_mode;
+	this->get_parameter("disarm_on_cable_mode", disarm_on_cable_mode);
+
+	if (disarm_on_cable_mode == "thrust") {
+
+		disarm_on_cable_thrust_start_time_ = this->get_clock()->now();
+		is_disarming_on_cable_by_thrust_ = true;
+
+		return;
+
+	} else if (disarm_on_cable_mode != "land") {
+
+		RCLCPP_ERROR(this->get_logger(), "Invalid disarm on cable mode: %s, falling back to disarming by issuing land command", disarm_on_cable_mode.c_str());
+
+	}
+
 	land();
 
 }
@@ -4348,23 +4407,42 @@ void TrajectoryController::publishVehicleCommand(uint16_t command, float param1,
  * @brief Publish the offboard control mode.
  *        For this example, only position and altitude controls are active.
  */
-void TrajectoryController::publishOffboardControlMode() const {
+void TrajectoryController::publishOffboardControlMode() {
 	px4_msgs::msg::OffboardControlMode msg{};
 	msg.timestamp = timestamp_.load();
-	if (state_ == on_cable_armed) {
+
+	if (is_disarming_on_cable_by_thrust_ && state_ == disarming_on_cable) {
+
 		msg.position = false;
-		// msg.velocity = false;
+		msg.velocity = false;
 		msg.acceleration = false;
+		msg.attitude = false;
+		msg.body_rate = false;	
+		msg.actuator = true;
+
 	} else {
+
+		is_disarming_on_cable_by_thrust_ = false;
+
+		if (state_ == on_cable_armed) {
+			msg.position = false;
+			// msg.velocity = false;
+			msg.acceleration = false;
+		} else {
+			msg.position = true;
+			// msg.velocity = true;
+			msg.acceleration = true;
+		}
 		msg.position = true;
-		// msg.velocity = true;
-		msg.acceleration = true;
+		msg.velocity = true;
+		msg.attitude = false;
+		msg.body_rate = false;	
+		msg.actuator = false;
+
 	}
-	msg.position = true;
-	msg.velocity = true;
-	msg.attitude = false;
-	msg.body_rate = false;	
+
 	offboard_control_mode_pub_->publish(msg);
+
 }
 
 void TrajectoryController::publishControlState() {
@@ -4518,6 +4596,48 @@ void TrajectoryController::publishTrajectorySetpoint(state4_t set_point) const {
 	//msg.thrust		// normalized thrust vector in NED
 
 	trajectory_setpoint_pub_->publish(msg);
+
+}
+
+void TrajectoryController::publishActuatorSetpoints() {
+
+	double disarm_on_cable_thrust_initial, disarm_on_cable_thrust_decrease_time_s;
+	this->get_parameter("disarm_on_cable_thrust_initial", disarm_on_cable_thrust_initial);
+	this->get_parameter("disarm_on_cable_thrust_decrease_time_s", disarm_on_cable_thrust_decrease_time_s);
+
+	double a = -disarm_on_cable_thrust_initial / disarm_on_cable_thrust_decrease_time_s;
+
+	double seconds_elapsed = (this->get_clock()->now() - disarm_on_cable_thrust_start_time_).seconds();
+
+	double thrust = a * seconds_elapsed + disarm_on_cable_thrust_initial;
+
+	if (thrust > 1) {
+
+		thrust = 1;
+
+	} else if (thrust < 0) {
+
+		thrust = 0;
+
+	}
+
+	px4_msgs::msg::VehicleThrustSetpoint thrust_msg{};
+	thrust_msg.timestamp_sample = timestamp_.load();
+	thrust_msg.timestamp = timestamp_.load();
+	thrust_msg.xyz[0] = 0;
+	thrust_msg.xyz[1] = 0;
+	thrust_msg.xyz[2] = -thrust;
+
+	px4_msgs::msg::VehicleTorqueSetpoint torque_msg{};
+	torque_msg.timestamp_sample = timestamp_.load();
+	torque_msg.timestamp = timestamp_.load();
+	torque_msg.xyz[0] = 0;
+	torque_msg.xyz[1] = 0;
+	torque_msg.xyz[2] = 0;
+
+	thrust_setpoint_pub_->publish(thrust_msg);
+	torque_setpoint_pub_->publish(torque_msg);
+
 
 }
 
