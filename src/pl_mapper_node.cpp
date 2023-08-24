@@ -10,10 +10,15 @@
 
 PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const std::string & node_namespace) : 
         rclcpp::Node(node_name, node_namespace),
-        powerline_(this->get_logger()) {
+        powerline_(this->get_logger(), simulation_) {
             // first val = r = mmW variance 5
             // second val = q = odo variance 0.005
             // last three values indicate alive_cnt_low_thresh=0, alive_cnt_high_thresh=60, alive_cnt_ceiling=90
+
+    this->declare_parameter<bool>("simulation", false);
+    this->get_parameter("simulation", simulation_);
+
+    powerline_.SetSimulation(simulation_);
 
     this->declare_parameter<float>("kf_r", 1.);
     this->declare_parameter<float>("kf_q", 0.25);
@@ -237,7 +242,7 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
         ptr += POINT_STEP;
 
         // filter points based on diagonal distance
-        if( !SingleLine(1, point, 1, 1, this->get_logger(), 1, 1, 1, "", "").IsInFOV(point, min_point_dist, max_point_dist, view_cone_slope) ) {
+        if( !SingleLine(1, point, 1, 1, this->get_logger(), 1, 1, 1, "", "", simulation_).IsInFOV(point, min_point_dist, max_point_dist, view_cone_slope) ) {
             // RCLCPP_INFO(this->get_logger(), "Point filtered away: [%f , %f , %f]", point(0), point(1), point(2));
             continue;
         }

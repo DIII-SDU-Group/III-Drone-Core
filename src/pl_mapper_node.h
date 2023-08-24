@@ -49,6 +49,8 @@ explicit
     PowerlineMapperNode(const std::string & node_name="pl_mapper", const std::string & node_namespace="/pl_mapper");
 
 private:
+    bool simulation_;
+
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pl_direction_sub_;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr mmwave_sub_;
 

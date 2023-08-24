@@ -31,7 +31,7 @@
 class Powerline
 {
 public:
-    Powerline(rclcpp::Logger logger);
+    Powerline(rclcpp::Logger logger, bool simulation);
 
     void SetParams(float r, float q, int alive_cnt_low_thresh, int alive_cnt_high_thresh, int alive_cnt_ceiling, float matching_line_max_dist,
             std::string drone_frame_id, std::string mmwave_frame_id, int max_lines);
@@ -64,7 +64,11 @@ public:
 
     }
 
+    void SetSimulation(bool simulation);
+
 private:
+    bool simulation_;
+
     struct inter_line_positions_t {
 
         int line_id_1;

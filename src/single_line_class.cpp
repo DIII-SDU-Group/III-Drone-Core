@@ -10,7 +10,9 @@
 
 SingleLine::SingleLine(int id, point_t initial_point, float r, float q, 
     rclcpp::Logger logger, int alive_cnt_low_thresh, int alive_cnt_high_thresh, int alive_cnt_ceiling,
-    std::string drone_frame_id, std::string mmwave_frame_id) : logger_(logger) {
+    std::string drone_frame_id, std::string mmwave_frame_id, bool simulation) : logger_(logger) {
+
+    simulation_ = simulation;
 
     id_ = id;
 
@@ -51,7 +53,7 @@ int SingleLine::GetId() {
 SingleLine SingleLine::GetCopy() {
 
     SingleLine sl(id_, pl_point_, r_, q_, 
-        logger_, alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_, drone_frame_id_, mmwave_frame_id_);
+        logger_, alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_, drone_frame_id_, mmwave_frame_id_, simulation_);
 
     return sl;
 
@@ -100,8 +102,17 @@ bool SingleLine::IsInFOV(point_t point, float min_point_dist, float max_point_di
     in_FOV &= dist <= max_point_dist;
     in_FOV &= dist >= min_point_dist;
 
-    float yz_dist = sqrt(point(1)*point(1)+point(2)*point(2));
-    in_FOV &= point(0) > view_cone_slope*yz_dist;
+    if (simulation_) {
+
+        float yz_dist = sqrt(point(1)*point(1)+point(2)*point(2));
+        in_FOV &= point(0) > view_cone_slope*yz_dist;
+
+    } else {
+
+        float xz_dist = sqrt(point(0)*point(0)+point(2)*point(2));
+        in_FOV &= point(1) > view_cone_slope*xz_dist;
+
+    }
 
     return in_FOV;
 

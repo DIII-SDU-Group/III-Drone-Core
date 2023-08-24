@@ -8,7 +8,9 @@
 // Implementation
 /*****************************************************************************/
 
-Powerline::Powerline(rclcpp::Logger logger) : logger_(logger) {
+Powerline::Powerline(rclcpp::Logger logger, bool simulation) : logger_(logger) {
+
+    simulation_ = simulation;
 
     direction_ = quat_t(1,0,0,0);
     //last_global_input_direction_ = 0;
@@ -150,7 +152,7 @@ point_t Powerline::UpdateLine(point_t point) {
 
             auto new_line = SingleLine(new_id, projected_point, r_, q_, 
                     logger_, alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_,
-                    drone_frame_id_, mmwave_frame_id_);
+                    drone_frame_id_, mmwave_frame_id_, simulation_);
 
             for (int i = 0; i < lines_.size(); i++) {
                 // //RCLCPP_INFO(logger_, "Creating inter line position");
@@ -756,5 +758,19 @@ void Powerline::predictLines(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float 
         //RCLCPP_INFO(logger_, "lines_.size(): %d", lines_.size());
 
     } lines_mutex_.unlock();
+
+}
+
+void Powerline::SetSimulation(bool simulation) {
+
+    if (lines_.size() > 0) {
+
+        RCLCPP_FATAL(logger_, "Cannot change simulation mode after lines have been created");
+        
+        exit(1);
+
+    }
+
+    simulation_ = simulation;
 
 }
