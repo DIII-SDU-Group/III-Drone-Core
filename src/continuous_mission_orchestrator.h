@@ -223,9 +223,7 @@ private:
     bool charging_power_low_ = false;
     std::mutex charging_power_mutex_;
     float getChargingPower();
-    void setChargingPower(float power);
     bool chargingPowerLow();
-    void setChargingPowerLow(bool low);
 
     rclcpp::Subscription<iii_interfaces::msg::ChargerOperatingMode>::SharedPtr charger_operating_mode_sub_;
     void chargerOperatingModeCallback(iii_interfaces::msg::ChargerOperatingMode::SharedPtr msg);

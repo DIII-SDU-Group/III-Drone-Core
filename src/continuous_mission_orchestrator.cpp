@@ -946,6 +946,14 @@ float ContinuousMissionOrchestrator::getChargingPower() {
 
 }
 
+bool ContinuousMissionOrchestrator::chargingPowerLow() {
+
+    std::lock_guard<std::mutex> lock(charging_power_mutex_);
+
+    return charging_power_low_;
+
+}
+
 void ContinuousMissionOrchestrator::chargerOperatingModeCallback(const iii_interfaces::msg::ChargerOperatingMode::SharedPtr msg) {
 
     std::lock_guard<std::mutex> lock(charger_operating_mode_mutex_);
@@ -1333,6 +1341,14 @@ void ContinuousMissionOrchestrator::evaluateChargingStatus() {
     bool start_charging_flag = false;
     bool stop_charging_flag = false;
 
+    int charging_minimum_duration_s;
+    int charging_maximum_duration_s;
+    bool use_charger_gripper_info;
+    bool simulation;
+    float charging_duration_s;
+    bool has_charged_minimum_seconds;
+    bool has_charged_maximum_seconds;
+
     // Get state:
     state_t state = getState();
 
@@ -1371,25 +1387,25 @@ void ContinuousMissionOrchestrator::evaluateChargingStatus() {
 
             stop_charging_flag = false;
 
-            int charging_minimum_duration_s;
+            charging_minimum_duration_s;
             this->get_parameter("charging_minimum_duration_s", charging_minimum_duration_s);
 
-            int charging_maximum_duration_s;
+            charging_maximum_duration_s;
             this->get_parameter("charging_maximum_duration_s", charging_maximum_duration_s);
 
-            bool use_charger_gripper_info;
+            use_charger_gripper_info;
             this->get_parameter("use_charger_gripper_info", use_charger_gripper_info);
 
-            bool simulation;
+            simulation;
             this->get_parameter("simulation", simulation);
 
             use_charger_gripper_info &= !simulation;
 
-            float charging_duration_s = (this->get_clock()->now() - charging_start_time_).seconds();
+            charging_duration_s = (this->get_clock()->now() - charging_start_time_).seconds();
 
-            bool has_charged_minimum_seconds = (charging_minimum_duration_s < 0) || (charging_duration_s >= charging_minimum_duration_s);
+            has_charged_minimum_seconds = (charging_minimum_duration_s < 0) || (charging_duration_s >= charging_minimum_duration_s);
 
-            bool has_charged_maximum_seconds = (charging_maximum_duration_s > 0) && (charging_duration_s >= charging_maximum_duration_s);
+            has_charged_maximum_seconds = (charging_maximum_duration_s > 0) && (charging_duration_s >= charging_maximum_duration_s);
 
             if (!prolongChargingUntilInterrupted()) {
 
@@ -1413,9 +1429,8 @@ void ContinuousMissionOrchestrator::evaluateChargingStatus() {
 
             break;
 
-        case error:
         default:
-
+        case error:
             start_charging_flag = false;
             stop_charging_flag = false;
 
@@ -1424,6 +1439,7 @@ void ContinuousMissionOrchestrator::evaluateChargingStatus() {
             clearProlongCharging();
 
             break;
+
     }
 
     if (start_charging_flag) {
