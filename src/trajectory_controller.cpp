@@ -18,6 +18,7 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 
 	this->declare_parameter<int>("controller_period_ms", 100);
 	this->declare_parameter<float>("landed_altitude_threshold", 0.15);
+	this->declare_parameter<bool>("use_ground_altitude_offset", true);
 	this->declare_parameter<float>("reached_position_euclidean_distance_threshold", 0.1);
 	this->declare_parameter<float>("minimum_target_altitude", 1);
 	this->declare_parameter<float>("target_cable_fixed_position_distance_threshold", 0.25);
@@ -1948,6 +1949,20 @@ void TrajectoryController::stateMachineCallback() {
 	bool offboard = isOffboard();
 	bool armed = isArmed();
 
+	static bool has_determined_ground_altitude_offset = false;
+	static float ground_altitude_offset = 0.;
+
+	bool use_ground_altitude_offset;
+	this->get_parameter("use_ground_altitude_offset", use_ground_altitude_offset);
+
+	if (use_ground_altitude_offset) {
+		if (state_ != disarming_on_cable && state_ != on_cable_disarmed && state_ != arming_on_cable && state_ != setting_offboard_on_cable) {
+			if (!offboard && !armed) {
+				ground_altitude_offset = veh_state(2);
+			}
+		}
+	}
+
 	auto notifyCurrentRequest = [&](request_reply_type_t reply_type) -> bool {
 
 		RCLCPP_DEBUG(this->get_logger(), "Notify current request");
@@ -2306,7 +2321,7 @@ void TrajectoryController::stateMachineCallback() {
 		// debug in state init
 		RCLCPP_DEBUG(this->get_logger(), "state: init");
 
-		if (!offboard && veh_state(2) < landed_altitude_threshold) {
+		if (!offboard && veh_state(2) < landed_altitude_threshold + ground_altitude_offset) {
 
 			// debug not offboard and under landed altitude threshold
 			RCLCPP_DEBUG(this->get_logger(), "not offboard and under landed altitude threshold");

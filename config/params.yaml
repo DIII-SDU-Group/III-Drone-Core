@@ -83,6 +83,7 @@ trajectory_controller:
     ros__parameters:
       controller_period_ms: 200
       landed_altitude_threshold: 0.1
+      use_ground_altitude_offset: true
       reached_position_euclidean_distance_threshold: 0.20
       min_target_altitude: 1.
       target_cable_fixed_position_distance_threshold: 0.5

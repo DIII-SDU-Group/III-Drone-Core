@@ -89,6 +89,24 @@ target_include_directories(trajectory_controller PRIVATE
 )
 install(TARGETS trajectory_controller DESTINATION lib/${PROJECT_NAME})
 
+add_executable(continuous_mission_orchestrator
+  src/continuous_mission_orchestrator.cpp
+  src/geometry.cpp
+)
+ament_target_dependencies(continuous_mission_orchestrator
+  rclcpp
+  Eigen3
+  iii_interfaces
+  sensor_msgs
+  px4_msgs
+  geometry_msgs
+  std_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+)
+install(TARGETS continuous_mission_orchestrator DESTINATION lib/${PROJECT_NAME})
+
 add_executable(cable_drum_controller
   src/cable_drum_controller.cpp
   src/CableDrumBridge/src/xcabledrumbridge.c
