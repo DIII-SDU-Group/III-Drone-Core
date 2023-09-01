@@ -45,7 +45,7 @@ ContinuousMissionOrchestrator::ContinuousMissionOrchestrator(const std::string &
 
     // Gripper command client:
     this->gripper_command_client_ = this->create_client<iii_interfaces::srv::GripperCommand>(
-        "/gripper/gripper_command"
+        "/charger_gripper/gripper_command"
     );
 
     // Target cable service:
@@ -56,19 +56,19 @@ ContinuousMissionOrchestrator::ContinuousMissionOrchestrator(const std::string &
 
     // Charger/gripper status:
     battery_voltage_sub_ = this->create_subscription<std_msgs::msg::Float32>(
-        "/battery_voltage", 10,
+        "/charger_gripper/battery_voltage", 10,
         std::bind(&ContinuousMissionOrchestrator::batteryVoltageCallback, this, std::placeholders::_1));
     charging_power_sub_ = this->create_subscription<std_msgs::msg::Float32>(
-        "/charging_power", 10,
+        "/charger_gripper/charging_power", 10,
         std::bind(&ContinuousMissionOrchestrator::chargingPowerCallback, this, std::placeholders::_1));
     charger_operating_mode_sub_ = this->create_subscription<iii_interfaces::msg::ChargerOperatingMode>(
-        "/charger_operating_mode", 10,
+        "/charger_gripper/charger_operating_mode", 10,
         std::bind(&ContinuousMissionOrchestrator::chargerOperatingModeCallback, this, std::placeholders::_1));
     charger_status_sub_ = this->create_subscription<iii_interfaces::msg::ChargerStatus>(
-        "/charger_status", 10,
+        "/charger_gripper/charger_status", 10,
         std::bind(&ContinuousMissionOrchestrator::chargerStatusCallback, this, std::placeholders::_1));
     gripper_status_sub_ = this->create_subscription<iii_interfaces::msg::GripperStatus>(
-        "/gripper_status", 10,
+        "/charger_gripper/gripper_status", 10,
         std::bind(&ContinuousMissionOrchestrator::gripperStatusCallback, this, std::placeholders::_1));
 
     // Charging:
