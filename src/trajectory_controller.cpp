@@ -335,7 +335,7 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 
 	powerline_sub_ = this->create_subscription<iii_interfaces::msg::Powerline>(
 		"/pl_mapper/powerline", 
-		sub_qos,
+		10,
 		std::bind(&TrajectoryController::powerlineCallback, this, std::placeholders::_1));
 
 	int controller_period_ms;
@@ -4396,10 +4396,11 @@ void TrajectoryController::disarmOnCable() {
 void TrajectoryController::publishVehicleCommand(uint16_t command, float param1,
 					      float param2, float param3, float param4,
 					      float param5, float param6,
-					      float param7) const {
+					      float param7) {
 
 	px4_msgs::msg::VehicleCommand msg{};
-	msg.timestamp = timestamp_.load();
+	// msg.timestamp = timestamp_.load();
+	msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
 	msg.param1 = param1;
 	msg.param2 = param2;
 	msg.param3 = param3;
@@ -4424,7 +4425,8 @@ void TrajectoryController::publishVehicleCommand(uint16_t command, float param1,
  */
 void TrajectoryController::publishOffboardControlMode() {
 	px4_msgs::msg::OffboardControlMode msg{};
-	msg.timestamp = timestamp_.load();
+	// msg.timestamp = timestamp_.load();
+	msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
 
 	if (is_disarming_on_cable_by_thrust_ && state_ == disarming_on_cable) {
 
@@ -4540,7 +4542,7 @@ void TrajectoryController::publishControlState() {
 /**
  * @brief Publish a trajectory setpoint
  */
-void TrajectoryController::publishTrajectorySetpoint(state4_t set_point) const {
+void TrajectoryController::publishTrajectorySetpoint(state4_t set_point) {
 
 	static rotation_matrix_t R_NED_to_body_frame = eulToR(orientation_t(M_PI, 0, 0));
 
@@ -4576,7 +4578,8 @@ void TrajectoryController::publishTrajectorySetpoint(state4_t set_point) const {
 
 	px4_msgs::msg::TrajectorySetpoint msg{};
 
-	msg.timestamp = timestamp_.load();
+	// msg.timestamp = timestamp_.load();
+	msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
 	for (int i = 0; i < 3; i++) {
 
 		//msg.position[i] = pos(i);
@@ -4637,15 +4640,19 @@ void TrajectoryController::publishActuatorSetpoints() {
 	}
 
 	px4_msgs::msg::VehicleThrustSetpoint thrust_msg{};
-	thrust_msg.timestamp_sample = timestamp_.load();
-	thrust_msg.timestamp = timestamp_.load();
+	// thrust_msg.timestamp_sample = timestamp_.load();
+	thrust_msg.timestamp_sample = this->get_clock()->now().nanoseconds() / 1000;
+	// thrust_msg.timestamp = timestamp_.load();
+	thrust_msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
 	thrust_msg.xyz[0] = 0;
 	thrust_msg.xyz[1] = 0;
 	thrust_msg.xyz[2] = -thrust;
 
 	px4_msgs::msg::VehicleTorqueSetpoint torque_msg{};
-	torque_msg.timestamp_sample = timestamp_.load();
-	torque_msg.timestamp = timestamp_.load();
+	// torque_msg.timestamp_sample = timestamp_.load();
+	torque_msg.timestamp_sample = this->get_clock()->now().nanoseconds() / 1000;
+	// torque_msg.timestamp = timestamp_.load();
+	torque_msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
 	torque_msg.xyz[0] = 0;
 	torque_msg.xyz[1] = 0;
 	torque_msg.xyz[2] = 0;
