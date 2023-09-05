@@ -1959,6 +1959,7 @@ void TrajectoryController::stateMachineCallback() {
 		if (state_ != disarming_on_cable && state_ != on_cable_disarmed && state_ != arming_on_cable && state_ != setting_offboard_on_cable) {
 			if (!offboard && !armed) {
 				ground_altitude_offset = veh_state(2);
+				has_determined_ground_altitude_offset = true;
 			}
 		}
 	}
