@@ -298,11 +298,16 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	target_cable_id_pub_ = 
 		this->create_publisher<std_msgs::msg::Int16>("target_cable_id", 10);
 
+	rclcpp::QoS sub_qos(rclcpp::KeepLast(1));
+	sub_qos.transient_local();
+	sub_qos.best_effort();
+
+
 	// check nav_state if in offboard (14)
 	// VehicleStatus: https://github.com/PX4/px4_msgs/blob/master/msg/VehicleStatus.msg
 	vehicle_status_sub_ = create_subscription<px4_msgs::msg::VehicleStatus>(
 		"/fmu/out/vehicle_status",
-		10,
+		sub_qos,
 		[this](px4_msgs::msg::VehicleStatus::ConstSharedPtr msg) {
 			arming_state_ = msg->arming_state;
 			nav_state_ = msg->nav_state;
@@ -312,22 +317,25 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	// get common timestamp
 	timesync_sub_ = this->create_subscription<px4_msgs::msg::TimesyncStatus>(
 		"/fmu/out/timesync_status",
-		10,
+		sub_qos,
 		[this](const px4_msgs::msg::TimesyncStatus::UniquePtr msg) {
 			timestamp_.store(msg->timestamp);
 		}
 	);
 
 	odometry_sub_ = this->create_subscription<px4_msgs::msg::VehicleOdometry>(  ////
-		"/fmu/out/vehicle_odometry", 10,
+		"/fmu/out/vehicle_odometry", 
+		sub_qos,
 		std::bind(&TrajectoryController::odometryCallback, this, std::placeholders::_1));
 
 	home_position_sub_ = this->create_subscription<px4_msgs::msg::HomePosition>(
-		"/fmu/out/home_position", 10,
+		"/fmu/out/home_position", 
+		sub_qos,
 		std::bind(&TrajectoryController::homePositionCallback, this, std::placeholders::_1));
 
 	powerline_sub_ = this->create_subscription<iii_interfaces::msg::Powerline>(
-		"/pl_mapper/powerline", 10,
+		"/pl_mapper/powerline", 
+		sub_qos,
 		std::bind(&TrajectoryController::powerlineCallback, this, std::placeholders::_1));
 
 	int controller_period_ms;

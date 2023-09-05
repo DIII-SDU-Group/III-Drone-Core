@@ -44,8 +44,13 @@ explicit
 
         std::ostringstream stream;
 
+        rclcpp::QoS sub_qos(rclcpp::KeepLast(1));
+        sub_qos.transient_local();
+        sub_qos.best_effort();
+
         subscription_ = this->create_subscription<px4_msgs::msg::VehicleOdometry>(
-            "/fmu/out/vehicle_odometry", 10,
+            "/fmu/out/vehicle_odometry", 
+            sub_qos,
             std::bind(&DroneFrameBroadcasterNode::odometryCallback, this, std::placeholders::_1));
 
         R_NED_to_body_frame = eulToR(orientation_t(M_PI, 0, 0));
