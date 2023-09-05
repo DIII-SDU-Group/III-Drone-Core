@@ -106,11 +106,9 @@ ContinuousMissionOrchestrator::ContinuousMissionOrchestrator(const std::string &
 
 // FlyUnderCable action:
 
-void ContinuousMissionOrchestrator::flyUnderCableGoalResponseCallback(std::shared_future<GoalHandleFlyUnderCable::SharedPtr> future) {
+void ContinuousMissionOrchestrator::flyUnderCableGoalResponseCallback(const GoalHandleFlyUnderCable::SharedPtr & goal_handle) {
     
     bool goal_accepted = false;
-
-    auto goal_handle = future.get();
 
     if (!goal_handle) {
 
@@ -233,11 +231,9 @@ void ContinuousMissionOrchestrator::cancelFlyUnderCable() {
 
 // CableLanding action:
 
-void ContinuousMissionOrchestrator::cableLandingGoalResponseCallback(std::shared_future<GoalHandleCableLanding::SharedPtr> future) {
+void ContinuousMissionOrchestrator::cableLandingGoalResponseCallback(const GoalHandleCableLanding::SharedPtr & goal_handle) {
     
     bool goal_accepted = false;
-
-    auto goal_handle = future.get();
 
     if (!goal_handle) {
 
@@ -357,11 +353,9 @@ void ContinuousMissionOrchestrator::cancelCableLanding() {
 
 // DisarmOnCable action:
 
-void ContinuousMissionOrchestrator::disarmOnCableGoalResponseCallback(std::shared_future<GoalHandleDisarmOnCable::SharedPtr> future) {
+void ContinuousMissionOrchestrator::disarmOnCableGoalResponseCallback(const GoalHandleDisarmOnCable::SharedPtr & goal_handle) {
     
     bool goal_accepted = false;
-
-    auto goal_handle = future.get();
 
     if (!goal_handle) {
 
@@ -480,11 +474,9 @@ void ContinuousMissionOrchestrator::cancelDisarmOnCable() {
 
 // ArmOnCable action:
 
-void ContinuousMissionOrchestrator::armOnCableGoalResponseCallback(std::shared_future<GoalHandleArmOnCable::SharedPtr> future) {
+void ContinuousMissionOrchestrator::armOnCableGoalResponseCallback(const GoalHandleArmOnCable::SharedPtr & goal_handle) {
     
     bool goal_accepted = false;
-
-    auto goal_handle = future.get();
 
     if (!goal_handle) {
 
@@ -603,11 +595,9 @@ void ContinuousMissionOrchestrator::cancelArmOnCable() {
 
 // CableTakeoff action:
 
-void ContinuousMissionOrchestrator::cableTakeoffGoalResponseCallback(std::shared_future<GoalHandleCableTakeoff::SharedPtr> future) {
+void ContinuousMissionOrchestrator::cableTakeoffGoalResponseCallback(const GoalHandleCableTakeoff::SharedPtr & goal_handle) {
     
     bool goal_accepted = false;
-
-    auto goal_handle = future.get();
 
     if (!goal_handle) {
 

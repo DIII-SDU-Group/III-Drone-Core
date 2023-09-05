@@ -15,7 +15,7 @@ def generate_launch_description():
     #    'params.yaml'
     #)
 
-    config = "/home/" + os.getenv("USER") + "/config.yaml"
+    config = "/home/" + os.getenv("USER") + "/.config/iii_drone/params.yaml"
 
     config_dict = yaml.safe_load(open(config,"r").read())
 

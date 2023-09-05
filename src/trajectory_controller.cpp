@@ -280,17 +280,17 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	setpoint_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("setpoint_pose", 10);
 
 	offboard_control_mode_pub_ =
-		this->create_publisher<px4_msgs::msg::OffboardControlMode>("/fmu/offboard_control_mode/in", 10);
+		this->create_publisher<px4_msgs::msg::OffboardControlMode>("/fmu/in/offboard_control_mode", 10);
 	trajectory_setpoint_pub_ =
-		this->create_publisher<px4_msgs::msg::TrajectorySetpoint>("/fmu/trajectory_setpoint/in", 10);
+		this->create_publisher<px4_msgs::msg::TrajectorySetpoint>("/fmu/in/trajectory_setpoint", 10);
 	vehicle_command_pub_ =
-		this->create_publisher<px4_msgs::msg::VehicleCommand>("/fmu/vehicle_command/in", 10);
+		this->create_publisher<px4_msgs::msg::VehicleCommand>("/fmu/in/vehicle_command", 10);
 
 	thrust_setpoint_pub_ =
-		this->create_publisher<px4_msgs::msg::VehicleThrustSetpoint>("/fmu/vehicle_thrust_setpoint/in", 10);
+		this->create_publisher<px4_msgs::msg::VehicleThrustSetpoint>("/fmu/in/vehicle_thrust_setpoint", 10);
 
 	torque_setpoint_pub_ =
-		this->create_publisher<px4_msgs::msg::VehicleTorqueSetpoint>("/fmu/vehicle_torque_setpoint/in", 10);
+		this->create_publisher<px4_msgs::msg::VehicleTorqueSetpoint>("/fmu/in/vehicle_torque_setpoint", 10);
 
 	control_state_pub_ = 
 		this->create_publisher<iii_interfaces::msg::ControlState>("control_state", 10);
@@ -301,7 +301,7 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	// check nav_state if in offboard (14)
 	// VehicleStatus: https://github.com/PX4/px4_msgs/blob/master/msg/VehicleStatus.msg
 	vehicle_status_sub_ = create_subscription<px4_msgs::msg::VehicleStatus>(
-		"/fmu/vehicle_status/out",
+		"/fmu/out/vehicle_status",
 		10,
 		[this](px4_msgs::msg::VehicleStatus::ConstSharedPtr msg) {
 			arming_state_ = msg->arming_state;
@@ -310,20 +310,20 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	);
 
 	// get common timestamp
-	timesync_sub_ = this->create_subscription<px4_msgs::msg::Timesync>(
-		"/fmu/timesync/out",
+	timesync_sub_ = this->create_subscription<px4_msgs::msg::TimesyncStatus>(
+		"/fmu/out/timesync_status",
 		10,
-		[this](const px4_msgs::msg::Timesync::UniquePtr msg) {
+		[this](const px4_msgs::msg::TimesyncStatus::UniquePtr msg) {
 			timestamp_.store(msg->timestamp);
 		}
 	);
 
 	odometry_sub_ = this->create_subscription<px4_msgs::msg::VehicleOdometry>(  ////
-		"/fmu/vehicle_odometry/out", 10,
+		"/fmu/out/vehicle_odometry", 10,
 		std::bind(&TrajectoryController::odometryCallback, this, std::placeholders::_1));
 
 	home_position_sub_ = this->create_subscription<px4_msgs::msg::HomePosition>(
-		"/fmu/home_position/out", 10,
+		"/fmu/out/home_position", 10,
 		std::bind(&TrajectoryController::homePositionCallback, this, std::placeholders::_1));
 
 	powerline_sub_ = this->create_subscription<iii_interfaces::msg::Powerline>(
@@ -4201,30 +4201,21 @@ void TrajectoryController::odometryCallback(px4_msgs::msg::VehicleOdometry::Shar
 	);
 
 	vector_t ang_vel(
-		//msg->angular_velocity[0],
-		//msg->angular_velocity[1],
-		//msg->angular_velocity[2]
-		msg->rollspeed,
-		msg->pitchspeed,
-		msg->yawspeed
+		msg->angular_velocity[0],
+		msg->angular_velocity[1],
+		msg->angular_velocity[2]
 	);
 
 	vector_t pos(
-		//msg->position[0],
-		//msg->position[1],
-		//msg->position[2]
-		msg->x,
-		msg->y,
-		msg->z
+		msg->position[0],
+		msg->position[1],
+		msg->position[2]
 	);
 
 	vector_t vel(
-		//msg->velocity[0],
-		//msg->velocity[1],
-		//msg->velocity[2]
-		msg->vx,
-		msg->vy,
-		msg->vz
+		msg->velocity[0],
+		msg->velocity[1],
+		msg->velocity[2]
 	);
 
 	int controller_period_ms;
@@ -4588,16 +4579,16 @@ void TrajectoryController::publishTrajectorySetpoint(state4_t set_point) const {
 
 	}
 
-	msg.x = pos(0);
-	msg.y = pos(1);
-	msg.z = pos(2);
+	msg.position[0] = pos(0);
+	msg.position[1] = pos(1);
+	msg.position[2] = pos(2);
 	// msg.x = NAN;
 	// msg.y = NAN;
 	// msg.z = NAN;
 
-	msg.vx = vel(0);
-	msg.vy = vel(1);
-	msg.vz = vel(2);
+	msg.velocity[0] = vel(0);
+	msg.velocity[1] = vel(1);
+	msg.velocity[2] = vel(2);
 	// msg.vx = NAN;
 	// msg.vy = NAN;
 	// msg.vz = NAN;

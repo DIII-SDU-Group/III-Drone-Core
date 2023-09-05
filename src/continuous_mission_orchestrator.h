@@ -90,7 +90,7 @@ public:
 private:
     // Fly under cable action client:
     rclcpp_action::Client<FlyUnderCable>::SharedPtr fly_under_cable_client_;
-    void flyUnderCableGoalResponseCallback(std::shared_future<GoalHandleFlyUnderCable::SharedPtr> future);
+    void flyUnderCableGoalResponseCallback(const GoalHandleFlyUnderCable::SharedPtr & goal_handle);
     void flyUnderCableFeedbackCallback(GoalHandleFlyUnderCable::SharedPtr, const std::shared_ptr<const FlyUnderCable::Feedback> feedback);
     void flyUnderCableResultCallback(const GoalHandleFlyUnderCable::WrappedResult &result);
 
@@ -107,7 +107,7 @@ private:
 
     // Cable landing action client:
     rclcpp_action::Client<CableLanding>::SharedPtr cable_landing_client_;
-    void cableLandingGoalResponseCallback(std::shared_future<GoalHandleCableLanding::SharedPtr> future);
+    void cableLandingGoalResponseCallback(const GoalHandleCableLanding::SharedPtr & goal_handle);
     void cableLandingFeedbackCallback(GoalHandleCableLanding::SharedPtr, const std::shared_ptr<const CableLanding::Feedback> feedback);
     void cableLandingResultCallback(const GoalHandleCableLanding::WrappedResult &result);
 
@@ -126,7 +126,7 @@ private:
 
     // Disarm on cable action client:
     rclcpp_action::Client<DisarmOnCable>::SharedPtr disarm_on_cable_client_;
-    void disarmOnCableGoalResponseCallback(std::shared_future<GoalHandleDisarmOnCable::SharedPtr> future);
+    void disarmOnCableGoalResponseCallback(const GoalHandleDisarmOnCable::SharedPtr & goal_handle);
     void disarmOnCableFeedbackCallback(GoalHandleDisarmOnCable::SharedPtr, const std::shared_ptr<const DisarmOnCable::Feedback> feedback);
     void disarmOnCableResultCallback(const GoalHandleDisarmOnCable::WrappedResult &result);
 
@@ -143,7 +143,7 @@ private:
 
     // Arm on cable action client:
     rclcpp_action::Client<ArmOnCable>::SharedPtr arm_on_cable_client_;
-    void armOnCableGoalResponseCallback(std::shared_future<GoalHandleArmOnCable::SharedPtr> future);
+    void armOnCableGoalResponseCallback(const GoalHandleArmOnCable::SharedPtr & goal_handle);
     void armOnCableFeedbackCallback(GoalHandleArmOnCable::SharedPtr, const std::shared_ptr<const ArmOnCable::Feedback> feedback);
     void armOnCableResultCallback(const GoalHandleArmOnCable::WrappedResult &result);
 
@@ -160,7 +160,7 @@ private:
 
     // Cable takeoff action client:
     rclcpp_action::Client<CableTakeoff>::SharedPtr cable_takeoff_client_;
-    void cableTakeoffGoalResponseCallback(std::shared_future<GoalHandleCableTakeoff::SharedPtr> future);
+    void cableTakeoffGoalResponseCallback(const GoalHandleCableTakeoff::SharedPtr & goal_handle);
     void cableTakeoffFeedbackCallback(GoalHandleCableTakeoff::SharedPtr, const std::shared_ptr<const CableTakeoff::Feedback> feedback);
     void cableTakeoffResultCallback(const GoalHandleCableTakeoff::WrappedResult &result);
 

@@ -21,7 +21,7 @@
 #include <px4_msgs/msg/offboard_control_mode.hpp>
 #include <px4_msgs/msg/trajectory_setpoint.hpp>
 #include <px4_msgs/msg/position_setpoint.hpp>
-#include <px4_msgs/msg/timesync.hpp>
+#include <px4_msgs/msg/timesync_status.hpp>
 #include <px4_msgs/msg/vehicle_command.hpp>
 #include <px4_msgs/msg/vehicle_control_mode.hpp>
 #include <px4_msgs/msg/vehicle_status.hpp>
@@ -429,7 +429,7 @@ private:
 	rclcpp::TimerBase::SharedPtr main_state_machine_timer_;
 
 	rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr vehicle_status_sub_;
-	rclcpp::Subscription<px4_msgs::msg::Timesync>::SharedPtr timesync_sub_;
+	rclcpp::Subscription<px4_msgs::msg::TimesyncStatus>::SharedPtr timesync_sub_;
 	rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr odometry_sub_;
 
 	rclcpp::Subscription<iii_interfaces::msg::Powerline>::SharedPtr powerline_sub_;
