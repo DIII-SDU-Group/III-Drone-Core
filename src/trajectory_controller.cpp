@@ -2455,7 +2455,7 @@ void TrajectoryController::stateMachineCallback() {
 
 			iii_interfaces::msg::Powerline powerline;
 
-			powerline_mutex_.lock() {
+			powerline_mutex_.lock(); {
 
 				powerline = powerline_;
 
@@ -2491,7 +2491,7 @@ void TrajectoryController::stateMachineCallback() {
 
 				// Load transform from frame drone to frame cable_gripper
 				geometry_msgs::msg::TransformStamped tf;
-				tf = tf_buffer_.lookupTransform("cable_gripper", "drone", rclcpp::Time(0));
+				tf = tf_buffer_->lookupTransform("cable_gripper", "drone", tf2::TimePointZero);
 
 				vector_t gripper_pos(
 					tf.transform.translation.x,
@@ -3918,9 +3918,7 @@ void TrajectoryController::stateMachineCallback() {
 
 			}
 
-			this->get_parameter("on_cable_upwards_velocity", set_point(6)			this->get_parameter("on_cable_upwards_velocity", set_point(6));
 			this->get_parameter("on_cable_upwards_velocity", set_point(6));
-);
 
 			// debug stay on cable, setpoint: %f, %f, %f, %f
 			RCLCPP_DEBUG(this->get_logger(), "stay on cable, setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
