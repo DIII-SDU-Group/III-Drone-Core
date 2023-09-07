@@ -14,7 +14,7 @@ from threading import Lock
 
 import serial
 
-import pigpio
+#import pigpio
 
 class ChargerGripperNode(Node):
     def __init__(

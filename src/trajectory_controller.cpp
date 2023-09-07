@@ -3820,7 +3820,8 @@ void TrajectoryController::stateMachineCallback() {
 
 			}
 
-			// set_point(6) = 0.01;
+			
+			this->get_parameter("arming_on_cable_upwards_velocity", set_point(6));
 
 			// debug stay on cable, setpoint: %f, %f, %f, %f
 			RCLCPP_DEBUG(this->get_logger(), "stay on cable, setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
