@@ -490,6 +490,8 @@ private:
 	rclcpp::Time disarm_on_cable_thrust_start_time_;
 	bool is_disarming_on_cable_by_thrust_ = false;
 
+	bool is_on_cable_armed_using_thrust_control_ = false;
+
 	void publishVehicleCommand(uint16_t command, float param1 = 0.0,
 					 float param2 = 0.0,
 					 float param3 = 0.0,

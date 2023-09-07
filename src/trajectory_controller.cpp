@@ -29,15 +29,20 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	this->declare_parameter<float>("target_cable_safety_margin_max_yaw_distance", M_PI/10);
 	this->declare_parameter<float>("target_cable_safety_margin_max_yaw_velocity", M_PI_2);
 	this->declare_parameter<float>("target_cable_set_point_truncate_distance_threshold", 0.1);
+
+	this->declare_parameter<float>("landed_on_powerline_non_offboard_max_euc_distance", 0.1);
+
 	this->declare_parameter<bool>("always_hover_in_offboard",false);
+
+	this->declare_parameter<std::string>("on_cable_control_mode", "position");
+
+	this->declare_parameter<double>("on_cable_upwards_thrust", 0.75);
+	this->declare_parameter<float>("on_cable_upwards_velocity", 0.1);
 
 	this->declare_parameter<double>("disarming_on_cable_max_descend_distance", 0.25);
 	this->declare_parameter<std::string>("disarm_on_cable_mode", "land");
 	this->declare_parameter<double>("disarm_on_cable_thrust_decrease_time_s", 5.);
 	this->declare_parameter<double>("disarm_on_cable_thrust_wait_for_disarm_time_s", 5.0);
-	this->declare_parameter<double>("disarm_on_cable_thrust_initial", 0.75);
-
-	this->declare_parameter<float>("arming_on_cable_upwards_velocity", 0.1);
 
 	this->declare_parameter<bool>("update_home_position", true);
 
@@ -45,6 +50,7 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	this->declare_parameter<int>("offboard_cnt_timeout", 10);
 	this->declare_parameter<int>("land_cnt_timeout", 10);
 	this->declare_parameter<int>("target_cable_cnt_timeout", 10);
+	this->declare_parameter<int>("disarm_on_cable_cnt_timeout", 10);
 
 	this->declare_parameter<float>("max_acceleration", 1.);
 
@@ -63,8 +69,6 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	this->declare_parameter<float>("direct_target_setpoint_dist_threshold", 0.25);
 
 	this->declare_parameter<bool>("hover_under_cable_on_aborted_cable_landing", true);
-
-	this->declare_parameter<float>("cable_landing_target_upwards_velocity", 0.1);
 
 	this->declare_parameter<double>("position_MPC_vx_max", 10.);
 	this->declare_parameter<double>("position_MPC_vy_max", 10.);
@@ -2386,7 +2390,7 @@ void TrajectoryController::stateMachineCallback() {
 		// debug in state on_ground_non_offboard
 		RCLCPP_DEBUG(this->get_logger(), "state: on_ground_non_offboard");
 
-		if (!offboard && veh_state(2) >= landed_altitude_threshold && armed) {
+		if (!offboard && veh_state(2) >= landed_altitude_threshold + ground_altitude_offset && armed) {
 
 			// debug not offboard and over landed altitude threshold and armed
 			RCLCPP_DEBUG(this->get_logger(), "not offboard and over landed altitude threshold and armed");
@@ -2440,12 +2444,87 @@ void TrajectoryController::stateMachineCallback() {
 		// debug in state in_flight_non_offboard
 		RCLCPP_DEBUG(this->get_logger(), "state: in_flight_non_offboard");
 		
-		if (!offboard && veh_state(2) < landed_altitude_threshold || !armed) {
+		if ((!offboard || !armed) && veh_state(2) < landed_altitude_threshold + ground_altitude_offset) {
 
 			// debug not offboard and under landed altitude threshold or not armed
-			RCLCPP_DEBUG(this->get_logger(), "not offboard and under landed altitude threshold or not armed");
+			RCLCPP_DEBUG(this->get_logger(), "not offboard or not armed and under landed altitude threshold");
 
 			state_ = on_ground_non_offboard;
+
+		} else if (!armed && veh_state(2) > landed_altitude_threshold + ground_altitude_offset) {
+
+			iii_interfaces::msg::Powerline powerline;
+
+			powerline_mutex_.lock() {
+
+				powerline = powerline_;
+
+			} powerline_mutex_.unlock();
+
+			if (powerline.count < 1) {
+
+				state_ = init;
+
+			}
+
+			double landed_on_powerline_non_offboard_max_euc_distance;
+			this->get_parameter("landed_on_powerline_non_offboard_max_euc_distance", landed_on_powerline_non_offboard_max_euc_distance);
+
+			for (int i = 0; i < powerline.count; i++) {
+
+				geometry_msgs::msg::PoseStamped pl_pose = powerline.poses[i];
+
+				// Transform pose to world coordinates:
+				pl_pose = tf_buffer_->transform(pl_pose, "world", tf2::durationFromSec(0.1));
+
+				vector_t pl_pos(
+					pl_pose.pose.position.x,
+					pl_pose.pose.position.y,
+					pl_pose.pose.position.z
+				);
+
+				vector_t veh_pos(
+					veh_state(0),
+					veh_state(1),
+					veh_state(2)
+				);
+
+				// Load transform from frame drone to frame cable_gripper
+				geometry_msgs::msg::TransformStamped tf;
+				tf = tf_buffer_.lookupTransform("cable_gripper", "drone", rclcpp::Time(0));
+
+				vector_t gripper_pos(
+					tf.transform.translation.x,
+					tf.transform.translation.y,
+					tf.transform.translation.z
+				);
+
+				gripper_pos += veh_pos;
+
+
+				if ((pl_pos - gripper_pos).norm() < landed_on_powerline_non_offboard_max_euc_distance) {
+
+					cable_id = powerline.ids[i];
+
+					this->get_parameter("target_cable_cnt_timeout", target_cable_cnt);
+					target_cable_cnt = updateTargetCablePose(veh_state, cable_id) ? target_cable_cnt : target_cable_cnt - 1;
+
+					fixed_reference = loadTargetCableState();
+
+					setTrajectoryTarget(fixed_reference);
+
+					state_ = on_cable_disarmed;
+
+					break;
+
+				}
+			}
+
+			if (state_ == in_flight_non_offboard) {
+
+				state_ = init;
+
+			}
 
 		} else if (offboard) {
 
@@ -3001,10 +3080,10 @@ void TrajectoryController::stateMachineCallback() {
 
 			fixed_reference = loadTargetCableState();
 
-			float cable_landing_target_upwards_velocity;
-			this->get_parameter("cable_landing_target_upwards_velocity", cable_landing_target_upwards_velocity);
+			float on_cable_upwards_velocity;
+			this->get_parameter("on_cable_upwards_velocity", on_cable_upwards_velocity);
 
-			fixed_reference(6) = cable_landing_target_upwards_velocity;
+			fixed_reference(6) = on_cable_upwards_velocity;
 
 			setTrajectoryTarget(fixed_reference);
 
@@ -3610,6 +3689,17 @@ void TrajectoryController::stateMachineCallback() {
 
 			}
 
+			this->get_parameter("on_cable_upwards_velocity", set_point(6));
+
+			std::string on_cable_control_mode;
+			this->get_parameter("on_cable_control_mode", on_cable_control_mode);
+
+			if (on_cable_control_mode == "thrust") {
+
+				is_on_cable_armed_using_thrust_control_ = true;
+
+			}
+
 			state_ = on_cable_armed;
 
 		} else if (target_cable_cnt == 0) {
@@ -3744,13 +3834,19 @@ void TrajectoryController::stateMachineCallback() {
 		// debug in on cable armed
 		RCLCPP_DEBUG(this->get_logger(), "in on cable armed");
 
-		if (!offboard || !armed) {
+		if (!offboard) {
 
 			RCLCPP_DEBUG(this->get_logger(), "Going to init state because vehicle not in offboard");
 
 			rejectPendingRequest();
 
 			state_ = init;
+
+		} else if (!armed) {
+
+			RCLCPP_DEBUG(this->get_logger(), "Disarmed, going to state on cable disarmed");
+
+			state_ = on_cable_disarmed;
 
 		} else if (tryPendingRequest(cable_takeoff_request, if_match, if_match)) {
 
@@ -3802,7 +3898,9 @@ void TrajectoryController::stateMachineCallback() {
 
 			}
 
-			this->get_parameter("land_cnt_timeout", land_cnt);
+			this->get_parameter("on_cable_upwards_velocity", set_point(6));
+
+			this->get_parameter("disarm_on_cable_cnt_timeout", disarm_on_cable_cnt);
 
 			disarmOnCable();
 
@@ -3820,7 +3918,7 @@ void TrajectoryController::stateMachineCallback() {
 
 			}
 
-			// set_point(6) = 0.01;
+			this->get_parameter("on_cable_upwards_velocity", set_point(6));
 
 			// debug stay on cable, setpoint: %f, %f, %f, %f
 			RCLCPP_DEBUG(this->get_logger(), "stay on cable, setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
@@ -3933,6 +4031,19 @@ void TrajectoryController::stateMachineCallback() {
 
 				}
 
+				this->get_parameter("on_cable_upwards_velocity", set_point(6));
+
+				std::string on_cable_control_mode;
+				this->get_parameter("on_cable_control_mode", on_cable_control_mode);
+
+				if (on_cable_control_mode == "thrust") {
+
+					is_on_cable_armed_using_thrust_control_ = true;
+
+				}
+
+				arm();
+
 				state_ = on_cable_armed;
 
 			} else {
@@ -3947,9 +4058,9 @@ void TrajectoryController::stateMachineCallback() {
 
 				}
 
-				land_cnt--;
+				this->get_parameter("on_cable_upwards_velocity", set_point(6));
 
-				// set_point(6) = 0.01;
+				disarm_on_cable_cnt--;
 
 				// debug disarming on cable, setpoint: %f, %f, %f, %f
 				RCLCPP_DEBUG(this->get_logger(), "disarming on cable, setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
@@ -3975,7 +4086,18 @@ void TrajectoryController::stateMachineCallback() {
 
 			set_point = setNanVelocity(fixed_reference);
 
+			this->get_parameter("on_cable_upwards_velocity", set_point(6));
+
 			this->get_parameter("arm_cnt_timeout", arm_cnt);
+
+			std::string on_cable_control_mode;
+			this->get_parameter("on_cable_control_mode", on_cable_control_mode);
+
+			if (on_cable_control_mode == "thrust") {
+
+				is_on_cable_armed_using_thrust_control_ = true;
+
+			}
 
 			state_ = arming_on_cable;
 
@@ -4010,7 +4132,8 @@ void TrajectoryController::stateMachineCallback() {
 			RCLCPP_DEBUG(this->get_logger(), "armed, going to state setting offboard on cable");
 
 			set_point = setNanVelocity(fixed_reference);
-			this->get_parameter("arming_on_cable_upwards_velocity", set_point(6));
+
+			this->get_parameter("on_cable_upwards_velocity", set_point(6));
 
 			this->get_parameter("offboard_cnt_timeout", offboard_cnt);
 
@@ -4019,6 +4142,12 @@ void TrajectoryController::stateMachineCallback() {
 		} else {
 
 			arm_cnt--;
+
+			setTrajectoryTarget(fixed_reference);
+
+			set_point = setNanVelocity(fixed_reference);
+
+			this->get_parameter("on_cable_upwards_velocity", set_point(6));
 
 			rejectPendingRequest();
 
@@ -4057,14 +4186,23 @@ void TrajectoryController::stateMachineCallback() {
 
 			}
 
-			this->get_parameter("arming_on_cable_upwards_velocity", set_point(6));
+			this->get_parameter("on_cable_upwards_velocity", set_point(6));
+
+			std::string on_cable_control_mode;
+			this->get_parameter("on_cable_control_mode", on_cable_control_mode);
+
+			if (on_cable_control_mode == "thrust") {
+
+				is_on_cable_armed_using_thrust_control_ = true;
+
+			}
 
 			state_ = on_cable_armed;
 
 		} else {
 
 			set_point = setNanVelocity(fixed_reference);
-			this->get_parameter("arming_on_cable_upwards_velocity", set_point(6));
+			this->get_parameter("on_cable_upwards_velocity", set_point(6));
 
 			offboard_cnt--;
 
@@ -4185,7 +4323,7 @@ void TrajectoryController::stateMachineCallback() {
 	if (offboard && always_hover_in_offboard && state_ != hovering)
 		set_point = always_hover_state;
 
-	if (is_disarming_on_cable_by_thrust_) {
+	if (is_disarming_on_cable_by_thrust_ || is_on_cable_armed_using_thrust_control_) {
 
 		publishActuatorSetpoints();
 
@@ -4426,7 +4564,20 @@ void TrajectoryController::publishOffboardControlMode() {
 	px4_msgs::msg::OffboardControlMode msg{};
 	msg.timestamp = timestamp_.load();
 
-	if (is_disarming_on_cable_by_thrust_ && state_ == disarming_on_cable) {
+	if (is_on_cable_armed_using_thrust_control_ && (state_ == on_cable_armed || state_ == arming_on_cable || state_ == setting_offboard_on_cable)) {
+
+		is_disarming_on_cable_by_thrust_ = false;
+
+		msg.position = false;
+		msg.velocity = false;
+		msg.acceleration = false;
+		msg.attitude = false;
+		msg.body_rate = false;	
+		msg.actuator = true;
+
+	} else if (is_disarming_on_cable_by_thrust_ && state_ == disarming_on_cable) {
+
+		is_on_cable_armed_using_thrust_control_ = false;
 
 		msg.position = false;
 		msg.velocity = false;
@@ -4437,6 +4588,7 @@ void TrajectoryController::publishOffboardControlMode() {
 
 	} else {
 
+		is_on_cable_armed_using_thrust_control_ = false;
 		is_disarming_on_cable_by_thrust_ = false;
 
 		if (state_ == on_cable_armed) {
@@ -4616,15 +4768,29 @@ void TrajectoryController::publishTrajectorySetpoint(state4_t set_point) const {
 
 void TrajectoryController::publishActuatorSetpoints() {
 
-	double disarm_on_cable_thrust_initial, disarm_on_cable_thrust_decrease_time_s;
-	this->get_parameter("disarm_on_cable_thrust_initial", disarm_on_cable_thrust_initial);
+	double on_cable_upwards_thrust, disarm_on_cable_thrust_decrease_time_s, a, seconds_elapsed, thrust;
+
+	this->get_parameter("on_cable_upwards_thrust", on_cable_upwards_thrust);
 	this->get_parameter("disarm_on_cable_thrust_decrease_time_s", disarm_on_cable_thrust_decrease_time_s);
 
-	double a = -disarm_on_cable_thrust_initial / disarm_on_cable_thrust_decrease_time_s;
+	if (is_disarming_on_cable_by_thrust_) {
 
-	double seconds_elapsed = (this->get_clock()->now() - disarm_on_cable_thrust_start_time_).seconds();
+		a = -on_cable_upwards_thrust / disarm_on_cable_thrust_decrease_time_s;
 
-	double thrust = a * seconds_elapsed + disarm_on_cable_thrust_initial;
+		seconds_elapsed = (this->get_clock()->now() - disarm_on_cable_thrust_start_time_).seconds();
+
+		thrust = a * seconds_elapsed + on_cable_upwards_thrust;
+
+	} else if (is_on_cable_armed_using_thrust_control_) {
+
+		thrust = on_cable_upwards_thrust;
+
+	} else {
+
+		RCLCPP_FATAL(this->get_logger(), "publishActuatorSetpoints called when not supposed to control by thrust");
+		exit(1);
+
+	}
 
 	if (thrust > 1) {
 
@@ -4652,7 +4818,6 @@ void TrajectoryController::publishActuatorSetpoints() {
 
 	thrust_setpoint_pub_->publish(thrust_msg);
 	torque_setpoint_pub_->publish(torque_msg);
-
 
 }
 
