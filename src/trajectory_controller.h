@@ -498,12 +498,12 @@ private:
 					 float param4 = 0.0,
 					 float param5 = 0.0,
 					 float param6 = 0.0,
-					 float param7 = 0.0) const;
+					 float param7 = 0.0);
 	void publishOffboardControlMode();
 	void publishControlState();
 	void publishActuatorSetpoints();
 	void publishTargetCableId();
-	void publishTrajectorySetpoint(state4_t set_point) const;
+	void publishTrajectorySetpoint(state4_t set_point) ;
 	void publishSetpointPose(state4_t set_point);
 
 	void publishPlannedTrajectory();
