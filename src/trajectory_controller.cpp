@@ -16,6 +16,7 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	request_reply_poll_rate_(50ms),
 	request_completion_poll_rate_(100ms) {
 
+	this->declare_parameter<bool>("always_armed_for_debug", false);
 	this->declare_parameter<int>("controller_period_ms", 100);
 	this->declare_parameter<float>("landed_altitude_threshold", 0.15);
 	this->declare_parameter<bool>("use_ground_altitude_offset", true);
@@ -341,7 +342,7 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 
 	powerline_sub_ = this->create_subscription<iii_interfaces::msg::Powerline>(
 		"/pl_mapper/powerline", 
-		sub_qos,
+		10,
 		std::bind(&TrajectoryController::powerlineCallback, this, std::placeholders::_1));
 
 	int controller_period_ms;
@@ -1763,7 +1764,7 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalArmOnCable(
 	
 	(void)uuid;
 
-	if (state_ != on_cable_armed) {
+	if (state_ != on_cable_disarmed) {
 		// debug disarm on cable goal rejected, not on cable armed
 		RCLCPP_INFO(this->get_logger(), "Arm on cable goal rejected, not on cable armed");
 		return rclcpp_action::GoalResponse::REJECT;
@@ -1773,7 +1774,7 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalArmOnCable(
 
 	request_t request = {
 		.action_id = action_id,
-		.request_type = disarm_on_cable_request,
+		.request_type = arm_on_cable_request,
 		.request_params = NULL
 	};
 
@@ -1966,6 +1967,11 @@ void TrajectoryController::stateMachineCallback() {
 	bool offboard = isOffboard();
 	bool armed = isArmed();
 
+	bool always_armed_for_debug;
+	this->get_parameter("always_armed_for_debug", always_armed_for_debug);
+	
+	armed |= always_armed_for_debug;
+
 	static bool has_determined_ground_altitude_offset = false;
 	static float ground_altitude_offset = 0.;
 
@@ -2155,8 +2161,9 @@ void TrajectoryController::stateMachineCallback() {
 
 	auto reachedPosition = [this, reached_pos_euc_dist_thresh](state4_t state, state4_t target) -> bool {
 
-		for(int i=4;i<12;i++) target(i) = 0;
+		for(int i=3;i<12;i++) target(i) = 0;
 		for(int i=8;i<12;i++) state(i) = 0;
+		state(3) = 0;
 
 		RCLCPP_DEBUG(this->get_logger(), "Target: %f, %f, %f, %f", target(0), target(1), target(2), target(3));
 		RCLCPP_DEBUG(this->get_logger(), "State: %f, %f, %f, %f", state(0), state(1), state(2), state(3));
@@ -2346,14 +2353,14 @@ void TrajectoryController::stateMachineCallback() {
 
 			state_ = on_ground_non_offboard;
 
-		} else if(!offboard && veh_state(2) >= landed_altitude_threshold) {
+		} else if(!offboard && veh_state(2) >= landed_altitude_threshold + ground_altitude_offset) {
 
 			// debug not offboard and over landed altitude threshold
 			RCLCPP_DEBUG(this->get_logger(), "not offboard and over landed altitude threshold");
 
 			state_ = in_flight_non_offboard;
 
-		} else if (offboard && veh_state(2) < landed_altitude_threshold) {
+		} else if (offboard && veh_state(2) < landed_altitude_threshold + ground_altitude_offset) {
 
 			// debug offboard and under landed altitude threshold, landing
 			RCLCPP_DEBUG(this->get_logger(), "offboard and under landed altitude threshold, landing");
@@ -2364,7 +2371,7 @@ void TrajectoryController::stateMachineCallback() {
 
 			state_ = init;
 
-		} else if(offboard && veh_state(2) >= landed_altitude_threshold) {
+		} else if(offboard && veh_state(2) >= landed_altitude_threshold + ground_altitude_offset) {
 
 			// debug offboard and over landed altitude threshold
 			RCLCPP_DEBUG(this->get_logger(), "offboard and over landed altitude threshold");
@@ -4731,7 +4738,28 @@ void TrajectoryController::publishControlState() {
 
 		msg.state = msg.CONTROL_STATE_FLYING_ALONG_CABLE;
 		break;
-	
+
+
+	case disarming_on_cable:
+
+		msg.state = msg.CONTROL_STATE_DISARMING_ON_CABLE;
+		break;
+
+	case on_cable_disarmed:
+
+		msg.state = msg.CONTROL_STATE_ON_CABLE_DISARMED;
+		break;
+
+	case arming_on_cable:
+
+		msg.state = msg.CONTROL_STATE_ARMING_ON_CABLE;
+		break;
+
+	case setting_offboard_on_cable:
+
+		msg.state = msg.CONTROL_STATE_SETTING_OFFBOARD_ON_CABLE;
+		// Dummy comment
+		break;	   
 	}
 
 	control_state_pub_->publish(msg);
