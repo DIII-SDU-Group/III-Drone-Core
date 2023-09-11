@@ -3916,8 +3916,8 @@ void TrajectoryController::stateMachineCallback() {
 
 			disarmOnCable();
 
-			has_started_disarm_on_cable_countdown_ = false;
-			disarm_on_cable_flight_has_been_terminated_ = false;
+			has_started_disarm_on_cable_countdown = false;
+			disarm_on_cable_flight_has_been_terminated = false;
 
 			state_ = disarming_on_cable;
 
