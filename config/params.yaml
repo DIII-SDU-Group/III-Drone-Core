@@ -105,8 +105,7 @@ trajectory_controller:
       disarm_on_cable_mode: "land" # "land" or "thrust"
       disarm_on_cable_thrust_decrease_time_s: 5.0
       disarm_on_cable_thrust_wait_for_disarm_time_s: 5.0
-      disarm_on_cable_thrust_initial: 0.75
-      arming_on_cable_upwards_velocity: 0.1
+      disarm_on_cable_flight_termination_timeout_s: -1
       disarm_on_cable_thrust_initial: 0.75
       arming_on_cable_upwards_velocity: 0.1
       update_home_position: true
