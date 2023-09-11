@@ -4102,11 +4102,11 @@ void TrajectoryController::stateMachineCallback() {
 
 						double seconds_elapsed = (rclcpp::Clock().now() - disarm_on_cable_start_time).seconds();
 
-						if (seconds_elapsed > disarm_on_cable_flight_termination_timeout_s && !disarm_on_cable_flight_has_been_terminated_) {
+						if (seconds_elapsed > disarm_on_cable_flight_termination_timeout_s && !disarm_on_cable_flight_has_been_terminated) {
 
 							RCLCPP_DEBUG(this->get_logger(), "Not offboard, during disarming on cable, flight termination timer elapsed, terminating flight");
 
-							disarm_on_cable_flight_has_been_terminated_ = true;
+							disarm_on_cable_flight_has_been_terminated = true;
 							disarm(force=true);
 
 						}
