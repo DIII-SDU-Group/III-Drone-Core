@@ -44,6 +44,8 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	this->declare_parameter<double>("disarm_on_cable_thrust_decrease_time_s", 5.);
 	this->declare_parameter<double>("disarm_on_cable_thrust_wait_for_disarm_time_s", 5.0);
 
+	this->declare_parameter<int>("disarm_on_cable_flight_termination_timeout_s", 5);
+
 	this->declare_parameter<bool>("update_home_position", true);
 
 	this->declare_parameter<int>("arm_cnt_timout", 10);
@@ -1957,6 +1959,9 @@ void TrajectoryController::stateMachineCallback() {
 
 	static vector_t disarm_on_cable_initial_position;
 	static int disarm_on_cable_cnt;
+	static rclcpp::Time disarm_on_cable_start_time;
+	static bool has_started_disarm_on_cable_countdown = false;
+	static bool disarm_on_cable_flight_has_been_terminated = false;
 
 	bool offboard = isOffboard();
 	bool armed = isArmed();
@@ -3904,6 +3909,9 @@ void TrajectoryController::stateMachineCallback() {
 
 			disarmOnCable();
 
+			has_started_disarm_on_cable_countdown_ = false;
+			disarm_on_cable_flight_has_been_terminated_ = false;
+
 			state_ = disarming_on_cable;
 
 		} else {
@@ -3934,11 +3942,13 @@ void TrajectoryController::stateMachineCallback() {
 		float disarming_on_cable_max_descend_distance;
 		this->get_parameter("disarming_on_cable_max_descend_distance", disarming_on_cable_max_descend_distance);
 
-		if (disarm_on_cable_initial_position(2) - veh_state(2) >= abs(disarming_on_cable_max_descend_distance)) {
+		if (disarm_on_cable_initial_position(2) - veh_state(2) >= abs(disarming_on_cable_max_descend_distance) && armed) {
 
-			RCLCPP_DEBUG(this->get_logger(), "Going to state during cable takeoff");
+			RCLCPP_DEBUG(this->get_logger(), "Descended too long distance, Going to state during cable takeoff");
 
 			notifyCurrentRequest(fail);
+
+			setModeOffboard();
 
 			target_cable_cnt = updateTargetCablePose(veh_state) ? target_cable_cnt : target_cable_cnt-1;
 
@@ -3984,7 +3994,7 @@ void TrajectoryController::stateMachineCallback() {
 		} else if (!armed) {
 
 			// Debug going to state on cable disarmed
-			RCLCPP_DEBUG(this->get_logger(), "Going to state on cable disarmed");
+			RCLCPP_DEBUG(this->get_logger(), "Not armed, Going to state on cable disarmed");
 
 			notifyCurrentRequest(success);
 
@@ -4065,6 +4075,38 @@ void TrajectoryController::stateMachineCallback() {
 				// debug disarming on cable, setpoint: %f, %f, %f, %f
 				RCLCPP_DEBUG(this->get_logger(), "disarming on cable, setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
 
+			}
+
+			int disarm_on_cable_flight_termination_timeout_s;
+			this->get_parameter("disarm_on_cable_flight_termination_timeout_s", disarm_on_cable_flight_termination_timeout_s);
+
+			if (disarm_on_cable_flight_termination_timeout_s > 0) {
+
+				if (!offboard) {
+		
+					if (!has_started_disarm_on_cable_countdown) {
+
+						RCLCPP_DEBUG(this->get_logger(), "Not offboard, during disarming on cable, starting start timer");
+
+						has_started_disarm_on_cable_countdown = true;
+						disarm_on_cable_start_time = rclcpp::Clock().now();
+
+					} else {
+
+						double seconds_elapsed = (rclcpp::Clock().now() - disarm_on_cable_start_time).seconds();
+
+						if (seconds_elapsed > disarm_on_cable_flight_termination_timeout_s && !disarm_on_cable_flight_has_been_terminated_) {
+
+							RCLCPP_DEBUG(this->get_logger(), "Not offboard, during disarming on cable, flight termination timer elapsed, terminating flight");
+
+							disarm_on_cable_flight_has_been_terminated_ = true;
+							disarm(force=true);
+
+						}
+					}
+
+
+				}
 			}
 		}
 
@@ -4495,11 +4537,16 @@ void TrajectoryController::arm() {
 /**
  * @brief Send a command to Disarm the vehicle
  */
-void TrajectoryController::disarm() {
+void TrajectoryController::disarm(bool force) {
 
 	//armed = false;
-	publishVehicleCommand(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_COMPONENT_ARM_DISARM, 0.0);
-	RCLCPP_DEBUG(this->get_logger(), "Disarm command send");
+	float force_param = force ? 21196 : 0.0;
+	publishVehicleCommand(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_COMPONENT_ARM_DISARM, 0.0, force_param);
+	if (!force) {
+		RCLCPP_DEBUG(this->get_logger(), "Disarm command send");
+	} else {
+		RCLCPP_DEBUG(this->get_logger(), "Force disarm command send");
+	}
 
 }
 

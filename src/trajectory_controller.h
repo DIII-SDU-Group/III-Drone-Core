@@ -482,7 +482,7 @@ private:
 	void land();
 
 	void arm();
-	void disarm();
+	void disarm(bool force=false);
 
 	void disarmOnCable();
 
