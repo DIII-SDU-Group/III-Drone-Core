@@ -82,6 +82,7 @@ cable_camera:
 trajectory_controller:
   trajectory_controller:
     ros__parameters:
+      always_armed_for_debug: false
       controller_period_ms: 200
       landed_altitude_threshold: 0.1
       use_ground_altitude_offset: true
@@ -104,6 +105,10 @@ trajectory_controller:
       disarm_on_cable_mode: "land" # "land" or "thrust"
       disarm_on_cable_thrust_decrease_time_s: 5.0
       disarm_on_cable_thrust_wait_for_disarm_time_s: 5.0
+      disarm_on_cable_thrust_initial: 0.75
+      arming_on_cable_upwards_velocity: 0.1
+      disarm_on_cable_thrust_initial: 0.75
+      arming_on_cable_upwards_velocity: 0.1
       update_home_position: true
       offboard_cnt_timeout: 10
       arm_cnt_timeout: 10
@@ -119,6 +124,7 @@ trajectory_controller:
       MPC_N: 10
       MPC_use_state_feedback: false
       direct_target_setpoint_dist_threshold: 0.05
+      cable_landing_target_upwards_velocity: 0.5
       position_MPC_vx_max: 0.5
       position_MPC_vy_max: 0.5
       position_MPC_vz_max: 0.5
