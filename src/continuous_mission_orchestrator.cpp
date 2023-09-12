@@ -1577,6 +1577,8 @@ void ContinuousMissionOrchestrator::setState(state_t state) {
 
 void ContinuousMissionOrchestrator::stateMachineCallback() {
 
+    evaluateChargingStatus();
+
     state_t state = getState();
 
     switch(state) {
