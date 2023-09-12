@@ -329,7 +329,39 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
     // //RCLCPP_INFO(this->get_logger(), "Now registered %d lines", powerline_.GetLinesCount());
 
-    powerline_.CleanupLines(tf_buffer_, min_point_dist_strict, max_point_dist_strict, view_cone_slope_strict);
+    // Get control state:
+    iii_interfaces::msg::ControlState control_state;
+    control_state_mutex_.lock(); {
+
+        control_state = control_state_;
+
+    } control_state_mutex_.unlock();
+
+    bool skip_predict_when_on_cable;
+    this->get_parameter("skip_predict_when_on_cable", skip_predict_when_on_cable);
+
+    if (!skip_predict_when_on_cable) {
+
+        powerline_.CleanupLines(tf_buffer_, min_point_dist_strict, max_point_dist_strict, view_cone_slope_strict);
+
+    } else {
+
+        switch(control_state.state) {
+
+            case iii_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_ARMED:
+            case iii_interfaces::msg::ControlState::CONTROL_STATE_DISARMING_ON_CABLE:
+            case iii_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_DISARMED:
+            case iii_interfaces::msg::ControlState::CONTROL_STATE_ARMING_ON_CABLE:
+            case iii_interfaces::msg::ControlState::CONTROL_STATE_SETTING_OFFBOARD_ON_CABLE:
+                break;
+
+            default:
+                powerline_.CleanupLines(tf_buffer_, min_point_dist_strict, max_point_dist_strict, view_cone_slope_strict);
+                break;
+
+        }
+
+    }
 
     // //RCLCPP_INFO(this->get_logger(), "Finished Cleanup, now registered %d lines", powerline_.GetLinesCount());
 
