@@ -221,6 +221,8 @@ charger_gripper:
       status_message_charger_status_index: 5
       status_message_charger_operating_mode_index: 6
       status_message_gripper_status_index: 7
+      battery_voltage_avg_filter_size: 10
+      charging_power_avg_filter_size: 10
 
 continuous_mission_orchestrator:
   continuous_mission_orchestrator:

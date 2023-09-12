@@ -132,6 +132,14 @@ class ChargerGripperNode(Node):
             self.battery_voltage_pub_ = self.create_publisher(Float32, "battery_voltage", pub_qos)
             self.charging_power_pub_ = self.create_publisher(Float32, "charging_power", pub_qos)
 
+            self.declare_parameter("battery_voltage_avg_filter_size", 10)
+            self.battery_voltage_avg_filter_size_ = self.get_parameter("battery_voltage_avg_filter_size").value
+            self.battery_voltage_buffer_ = []
+
+            self.declare_parameter("charging_power_avg_filter_size", 10)
+            self.charging_power_avg_filter_size_ = self.get_parameter("charging_power_avg_filter_size").value
+            self.charging_power_buffer_ = []
+
             self.charger_operating_mode_pub_ = self.create_publisher(ChargerOperatingMode, "charger_operating_mode", pub_qos)
             self.charger_status_pub_ = self.create_publisher(ChargerStatus, "charger_status", pub_qos)
 
@@ -220,7 +228,17 @@ class ChargerGripperNode(Node):
 
     def parse_and_publish_data(self):
         battery_voltage = int(self.received_data_[self.status_message_battery_voltage_start_index_]) * 256 + int(self.received_data_[self.status_message_battery_voltage_start_index_ + self.status_message_battery_voltage_length_ - 1])
+        self.battery_voltage_buffer_.append(battery_voltage)
+        if (len(self.battery_voltage_buffer_) > self.battery_voltage_avg_filter_size_):
+            self.battery_voltage_buffer_.pop(0)
+        battery_voltage = sum(self.battery_voltage_buffer_) / len(self.battery_voltage_buffer_)
+        
         charging_power = int(self.received_data_[self.status_message_charging_power_start_index_]) * 256 + int(self.received_data_[self.status_message_charging_power_start_index_ + self.status_message_charging_power_length_ - 1])
+        self.charging_power_buffer_.append(charging_power)
+        if (len(self.charging_power_buffer_) > self.charging_power_avg_filter_size_):
+            self.charging_power_buffer_.pop(0)
+        charging_power = sum(self.charging_power_buffer_) / len(self.charging_power_buffer_)
+
         charger_status = int(self.received_data_[self.status_message_charger_status_index_])
         charger_operating_mode = int(self.received_data_[self.status_message_charger_operating_mode_index_])
         gripper_status = int(self.received_data_[self.status_message_gripper_status_index_])
