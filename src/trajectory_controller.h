@@ -48,6 +48,7 @@
 
 #include "iii_interfaces/msg/control_state.hpp"
 #include "iii_interfaces/msg/powerline.hpp"
+#include "iii_interfaces/msg/gripper_status.hpp"
 
 #include "iii_interfaces/srv/set_general_target_yaw.hpp"
 
@@ -436,6 +437,8 @@ private:
 
 	rclcpp::Subscription<px4_msgs::msg::HomePosition>::SharedPtr home_position_sub_;
 
+	rclcpp::Subscription<iii_interfaces::msg::GripperStatus>::SharedPtr gripper_status_sub_;
+
 	rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr vehicle_command_pub_;
 	rclcpp::Publisher<px4_msgs::msg::TrajectorySetpoint>::SharedPtr trajectory_setpoint_pub_;
 	rclcpp::Publisher<px4_msgs::msg::VehicleThrustSetpoint>::SharedPtr thrust_setpoint_pub_;
@@ -465,11 +468,17 @@ private:
 	std::mutex home_position_mutex_;
 	bool home_position_set_ = false;
 
+	// gripper status member and mutex:
+	iii_interfaces::msg::GripperStatus gripper_status_;
+	std::mutex gripper_status_mutex_;
+
 	// General member methods:
 	void stateMachineCallback();
 	void odometryCallback(px4_msgs::msg::VehicleOdometry::SharedPtr msg);
 	void powerlineCallback(iii_interfaces::msg::Powerline::SharedPtr msg);
 	void homePositionCallback(px4_msgs::msg::HomePosition::SharedPtr msg);
+
+	void gripperStatusCallback(iii_interfaces::msg::GripperStatus::SharedPtr msg);
 
 	void setHomePosition(px4_msgs::msg::HomePosition new_home);
 	void setHomePositionIfChanged(px4_msgs::msg::HomePosition old_home, px4_msgs::msg::HomePosition new_home);

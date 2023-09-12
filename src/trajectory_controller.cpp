@@ -40,6 +40,8 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	this->declare_parameter<double>("on_cable_upwards_thrust", 0.75);
 	this->declare_parameter<float>("on_cable_upwards_velocity", 0.1);
 
+	this->declare_parameter<bool>("use_gripper_status_condition", true);
+
 	this->declare_parameter<double>("disarming_on_cable_max_descend_distance", 0.25);
 	this->declare_parameter<std::string>("disarm_on_cable_mode", "land");
 	this->declare_parameter<double>("disarm_on_cable_thrust_decrease_time_s", 5.);
@@ -344,6 +346,11 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 		"/pl_mapper/powerline", 
 		10,
 		std::bind(&TrajectoryController::powerlineCallback, this, std::placeholders::_1));
+
+	gripper_status_sub_ = this->create_subscription<iii_interfaces::msg::GripperStatus>(
+		"/charger_gripper/gripper_status", 
+		10,
+		std::bind(&TrajectoryController::gripperStatusCallback, this, std::placeholders::_1));
 
 	int controller_period_ms;
 	this->get_parameter("controller_period_ms", controller_period_ms);
@@ -1453,6 +1460,24 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalCableTakeoff(
 		return rclcpp_action::GoalResponse::REJECT;
 	}
 
+	// Check ROS2 parameter use_gripper_status_condition, and if true, check if gripper_status_ is open:
+	bool use_gripper_status_condition;
+	this->get_parameter("use_gripper_status_condition", use_gripper_status_condition);
+	if (use_gripper_status_condition) {
+		iii_interfaces::msg::GripperStatus gripper_status; {
+
+			std::lock_guard<std::mutex> lock(gripper_status_mutex_);
+			gripper_status = gripper_status_;
+			
+		}
+
+		if (gripper_status.gripper_status != iii_interfaces::msg::GripperStatus::GRIPPER_STATUS_OPEN) {
+			// debug cable takeoff goal rejected, gripper not open
+			RCLCPP_INFO(this->get_logger(), "Cable takeoff goal rejected, gripper not open");
+			return rclcpp_action::GoalResponse::REJECT;
+		}
+	}
+
 	float target_cable_distance = goal->target_cable_distance;
 
 	if (target_cable_distance < 1.) {
@@ -1632,10 +1657,29 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalDisarmOnCable(
 	(void)uuid;
 
 	if (state_ != on_cable_armed) {
-		// debug disarm on cable goal rejected, not on cable armed
 		RCLCPP_INFO(this->get_logger(), "Disarm on cable goal rejected, not on cable armed");
 		return rclcpp_action::GoalResponse::REJECT;
 	}
+
+	bool use_gripper_status_condition;
+	this->get_parameter("use_gripper_status_condition", use_gripper_status_condition);
+
+	if (use_gripper_status_condition) {
+
+		// Load gripper_status_:
+		iii_interfaces::msg::GripperStatus gripper_status;
+		{
+			std::lock_guard<std::mutex> lock(gripper_status_mutex_);
+			gripper_status = gripper_status_;
+		}
+
+		if (gripper_status.gripper_status != iii_interfaces::msg::GripperStatus::GRIPPER_STATUS_CLOSED) {
+			RCLCPP_INFO(this->get_logger(), "Disarm on cable goal rejected, gripper not closed");
+			return rclcpp_action::GoalResponse::REJECT;
+		}
+
+	}
+
 
 	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)uuid;
 
@@ -4436,6 +4480,16 @@ void TrajectoryController::powerlineCallback(iii_interfaces::msg::Powerline::Sha
 		powerline_ = *msg;
 
 	} powerline_mutex_.unlock();
+
+}
+
+void TrajectoryController::gripperStatusCallback(iii_interfaces::msg::GripperStatus::SharedPtr msg) {
+
+	gripper_status_mutex_.lock(); {
+
+		gripper_status_ = *msg;
+
+	} gripper_status_mutex_.unlock();
 
 }
 

@@ -44,6 +44,12 @@ class ChargerGripperNode(Node):
         self.declare_parameter("gripper_close_command", 0x01)
         self.gripper_close_command_ = self.get_parameter("gripper_close_command").value
 
+        self.declare_parameter("gripper_command_complete_poll_interval_ms", 100)
+        self.gripper_command_complete_poll_interval_ms_ = self.get_parameter("gripper_command_complete_poll_interval_ms").value
+
+        self.declare_parameter("gripper_command_complete_timeout_ms", 1000)
+        self.gripper_command_complete_timeout_ms_ = self.get_parameter("gripper_command_complete_timeout_ms").value
+
         if (self.gripper_command_interface_ != "serial" and self.gripper_command_interface_ != "gpio"):
             self.get_logger().fatal("Invalid gripper command interface: {}".format(self.gripper_command_interface_))
             exit(-1)
@@ -132,6 +138,7 @@ class ChargerGripperNode(Node):
             self.received_data_ = bytearray()
 
         self.gripper_status_pub_ = self.create_publisher(GripperStatus, "gripper_status", pub_qos)
+        self.gripper_status_msg_ = GripperStatus()
 
         self.status_timer_ = self.create_timer(
             self.status_timer_period_ms_ / 1000,
@@ -185,6 +192,7 @@ class ChargerGripperNode(Node):
             gripper_status_msg = GripperStatus()
             gripper_status_msg.gripper_status = GripperStatus.GRIPPER_STATUS_CLOSED if self.last_gripper_command_ == "close" else GripperStatus.GRIPPER_STATUS_OPEN
 
+            self.gripper_status_msg_ = gripper_status_msg
             self.gripper_status_pub_.publish(gripper_status_msg)
 
     def send_serial_gripper_cmd_callback(self):
@@ -281,6 +289,8 @@ class ChargerGripperNode(Node):
             self.get_logger().warn("Received unknown gripper status. Publishing anyways.")
             gripper_status_msg.gripper_status = gripper_status
 
+        self.gripper_status_msg_ = gripper_status_msg
+
         self.battery_voltage_pub_.publish(battery_voltage_msg)
         self.charging_power_pub_.publish(charging_power_msg)
         self.charger_status_pub_.publish(charger_status_msg)
@@ -291,6 +301,7 @@ class ChargerGripperNode(Node):
         self.get_logger().info("Received gripper command: " + str(request.gripper_command))
 
         gripper_command = request.gripper_command
+        previous_gripper_command = self.last_gripper_command_
 
         if (gripper_command == GripperCommand.Request.GRIPPER_COMMAND_OPEN):
             self.open_gripper()
@@ -304,8 +315,30 @@ class ChargerGripperNode(Node):
 
         else:
             response.gripper_command_response = GripperCommand.Response.GRIPPER_COMMAND_RESPONSE_INVALID_COMMAND
+            return response
+
+        if not self.gripper_command_only_:
+            start_time = self.get_clock().now()
+
+            while (self.get_clock().now() - start_time).nanoseconds / 1e6 < self.gripper_command_complete_timeout_ms_:
+                if (self.last_gripper_command_ == "open" and self.gripper_status_msg_.gripper_status == GripperStatus.GRIPPER_STATUS_OPEN) or (self.last_gripper_command_ == "close" and self.gripper_status_msg_.gripper_status == GripperStatus.GRIPPER_STATUS_CLOSED):
+                    response.gripper_command_response = GripperCommand.Response.GRIPPER_COMMAND_RESPONSE_SUCCESS
+                    return response
+
+            # Timeout
+            response.gripper_command_response = GripperCommand.Response.GRIPPER_COMMAND_RESPONSE_TIMEOUT
+            self.last_gripper_command_ = previous_gripper_command
+            if (previous_gripper_command == "open"):
+                self.open_gripper()
+
+            elif (previous_gripper_command == "close"):
+                self.close_gripper()
+
+            else:
+                self.get_logger().error("Invalid previous gripper command: {}".format(previous_gripper_command))
 
         return response
+
 
     def open_gripper(self):
         if self.gripper_command_interface_ == "gpio":
