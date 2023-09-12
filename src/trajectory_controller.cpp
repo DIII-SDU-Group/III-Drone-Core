@@ -4133,7 +4133,26 @@ void TrajectoryController::stateMachineCallback() {
 
 			if (disarm_on_cable_flight_termination_timeout_s > 0) {
 
-				if (!offboard) {
+				bool condition = !offboard;
+
+				bool use_gripper_status_condition;
+				this->get_parameter("use_gripper_status_condition", use_gripper_status_condition);
+
+				if (use_gripper_status_condition) {
+
+					iii_interfaces::msg::GripperStatus gripper_status; {
+
+						std::lock_guard<std::mutex> lock(gripper_status_mutex_);
+
+						gripper_status = gripper_status_;
+
+					}
+
+					condition = condition && gripper_status.gripper_status == iii_interfaces::msg::GripperStatus::GRIPPER_STATUS_CLOSED;
+
+				}
+
+				if (condition) {
 		
 					if (!has_started_disarm_on_cable_countdown) {
 
