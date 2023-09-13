@@ -3648,6 +3648,9 @@ void TrajectoryController::stateMachineCallback() {
 		bool hover_under_cable_on_aborted_cable_landing;
 		this->get_parameter("hover_under_cable_on_aborted_cable_landing", hover_under_cable_on_aborted_cable_landing);
 
+		bool use_gripper_status_condition;
+		this->get_parameter("use_gripper_status_condition", use_gripper_status_condition);
+
 		// debug in during cable landing
 		RCLCPP_DEBUG(this->get_logger(), "in during cable landing");
 
@@ -3727,9 +3730,9 @@ void TrajectoryController::stateMachineCallback() {
 
 			}
 
-		} else if (reachedPosition(veh_state, fixed_reference)) {
+		} else if (reachedPosition(veh_state, fixed_reference) || (use_gripper_status_condition && gripper_status_.gripper_status == gripper_status_.GRIPPER_STATUS_CLOSED)) {
 
-			RCLCPP_DEBUG(this->get_logger(), "Reached cable, going to state on_cable_armed");
+			RCLCPP_DEBUG(this->get_logger(), "Reached cable or gripper is closed, going to state on_cable_armed");
 
 			notifyCurrentRequest(success);
 
