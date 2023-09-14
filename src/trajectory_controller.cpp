@@ -49,6 +49,8 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 
 	this->declare_parameter<int>("disarm_on_cable_flight_termination_timeout_s", 5);
 
+	this->declare_parameter<float>("arming_on_cable_spool_up_time_s", 5);
+
 	this->declare_parameter<bool>("update_home_position", true);
 
 	this->declare_parameter<int>("arm_cnt_timout", 10);
@@ -4253,7 +4255,13 @@ void TrajectoryController::stateMachineCallback() {
 			// debug armed, going to state setting offboard on cable
 			RCLCPP_DEBUG(this->get_logger(), "armed, going to state setting offboard on cable");
 
-			set_point = setNanVelocity(fixed_reference);
+			for (int i = 0; i < 4; i++) {
+
+				set_point(i) = fixed_reference(i);
+				set_point(i+4) = 0;
+				set_point(i+8) = NAN;
+
+			}
 
 			this->get_parameter("on_cable_upwards_velocity", set_point(6));
 
@@ -4267,7 +4275,13 @@ void TrajectoryController::stateMachineCallback() {
 
 			setTrajectoryTarget(fixed_reference);
 
-			set_point = setNanVelocity(fixed_reference);
+			for (int i = 0; i < 4; i++) {
+
+				set_point(i) = fixed_reference(i);
+				set_point(i+4) = 0;
+				set_point(i+8) = NAN;
+
+			}
 
 			this->get_parameter("on_cable_upwards_velocity", set_point(6));
 
@@ -4296,9 +4310,7 @@ void TrajectoryController::stateMachineCallback() {
 		} else if (offboard) {
 
 			// debug offboard, going to state on cable armed
-			RCLCPP_DEBUG(this->get_logger(), "offboard, going to state on cable armed");
-
-			notifyCurrentRequest(success);
+			RCLCPP_DEBUG(this->get_logger(), "offboard, starting spool up timer");
 
 			for (int i = 0; i < 4; i++) {
 
@@ -4310,20 +4322,50 @@ void TrajectoryController::stateMachineCallback() {
 
 			this->get_parameter("on_cable_upwards_velocity", set_point(6));
 
-			std::string on_cable_control_mode;
-			this->get_parameter("on_cable_control_mode", on_cable_control_mode);
+			static bool timer_started = false;
+			static float timer_value;
+			static int controller_period_ms;
+			this->get_parameter("controller_period_ms", controller_period_ms);
 
-			if (on_cable_control_mode == "thrust") {
+			if (!timer_started) {
 
-				is_on_cable_armed_using_thrust_control_ = true;
+				this->get_parameter("arming_on_cable_spool_up_time_s", timer_value);
+				timer_started = true;
+
+			} else if (timer_value <= 0) {
+
+				timer_started = false;
+
+				std::string on_cable_control_mode;
+				this->get_parameter("on_cable_control_mode", on_cable_control_mode);
+
+				if (on_cable_control_mode == "thrust") {
+
+					is_on_cable_armed_using_thrust_control_ = true;
+
+				}
+
+				notifyCurrentRequest(success);
+
+				state_ = on_cable_armed;
+
+			} else {
+
+				timer_value -= ((float)controller_period_ms)/1000.;
+
+				state_ = setting_offboard_on_cable;
 
 			}
 
-			state_ = on_cable_armed;
-
 		} else {
 
-			set_point = setNanVelocity(fixed_reference);
+			for (int i = 0; i < 4; i++) {
+
+				set_point(i) = fixed_reference(i);
+				set_point(i+4) = 0;
+				set_point(i+8) = NAN;
+
+			}
 			this->get_parameter("on_cable_upwards_velocity", set_point(6));
 
 			offboard_cnt--;
