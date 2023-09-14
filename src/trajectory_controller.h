@@ -39,6 +39,8 @@
 #include <tf2/exceptions.h>
 #include <tf2/convert.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_ros/transform_broadcaster.h>
 
 #include <geometry_msgs/msg/pose.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -420,6 +422,7 @@ private:
 
     std::shared_ptr<tf2_ros::TransformListener> transform_listener_{nullptr};
     std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+    std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
 	BlockingQueue<request_t> request_queue_;
 	BlockingQueue<request_reply_t> request_reply_queue_;
@@ -516,6 +519,8 @@ private:
 	void publishSetpointPose(state4_t set_point);
 
 	void publishPlannedTrajectory();
+
+	void publishGroundAltitudeOffsetTf(state3_t ground_altitude_offset);
 
 	state4_t loadVehicleState();
 	geometry_msgs::msg::PoseStamped loadVehiclePose();

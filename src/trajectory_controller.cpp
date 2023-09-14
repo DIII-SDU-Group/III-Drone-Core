@@ -195,6 +195,7 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	// tf
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+	tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
 	// Takeoff action:
 	this->takeoff_server_ = rclcpp_action::create_server<Takeoff>(
@@ -2017,7 +2018,7 @@ void TrajectoryController::stateMachineCallback() {
 	armed |= always_armed_for_debug;
 
 	static bool has_determined_ground_altitude_offset = false;
-	static float ground_altitude_offset = 0.;
+	static state3_t ground_altitude_offset(0,0,0,0,0,0);
 
 	bool use_ground_altitude_offset;
 	this->get_parameter("use_ground_altitude_offset", use_ground_altitude_offset);
@@ -2025,7 +2026,13 @@ void TrajectoryController::stateMachineCallback() {
 	if (use_ground_altitude_offset) {
 		if (state_ != disarming_on_cable && state_ != on_cable_disarmed && state_ != arming_on_cable && state_ != setting_offboard_on_cable) {
 			if (!offboard && !armed) {
-				ground_altitude_offset = veh_state(2);
+				for (int i = 0; i < 3; i++) {
+
+					ground_altitude_offset(i) = veh_state(i);
+					ground_altitude_offset(i+3) = veh_state(i+4);
+
+				}
+
 				has_determined_ground_altitude_offset = true;
 			}
 		}
@@ -2390,21 +2397,21 @@ void TrajectoryController::stateMachineCallback() {
 		// debug in state init
 		RCLCPP_DEBUG(this->get_logger(), "state: init");
 
-		if (!offboard && veh_state(2) < landed_altitude_threshold + ground_altitude_offset) {
+		if (!offboard && veh_state(2) < landed_altitude_threshold + ground_altitude_offset(2)) {
 
 			// debug not offboard and under landed altitude threshold
 			RCLCPP_DEBUG(this->get_logger(), "not offboard and under landed altitude threshold");
 
 			state_ = on_ground_non_offboard;
 
-		} else if(!offboard && veh_state(2) >= landed_altitude_threshold + ground_altitude_offset) {
+		} else if(!offboard && veh_state(2) >= landed_altitude_threshold + ground_altitude_offset(2)) {
 
 			// debug not offboard and over landed altitude threshold
 			RCLCPP_DEBUG(this->get_logger(), "not offboard and over landed altitude threshold");
 
 			state_ = in_flight_non_offboard;
 
-		} else if (offboard && veh_state(2) < landed_altitude_threshold + ground_altitude_offset) {
+		} else if (offboard && veh_state(2) < landed_altitude_threshold + ground_altitude_offset(2)) {
 
 			// debug offboard and under landed altitude threshold, landing
 			RCLCPP_DEBUG(this->get_logger(), "offboard and under landed altitude threshold, landing");
@@ -2415,7 +2422,7 @@ void TrajectoryController::stateMachineCallback() {
 
 			state_ = init;
 
-		} else if(offboard && veh_state(2) >= landed_altitude_threshold + ground_altitude_offset) {
+		} else if(offboard && veh_state(2) >= landed_altitude_threshold + ground_altitude_offset(2)) {
 
 			// debug offboard and over landed altitude threshold
 			RCLCPP_DEBUG(this->get_logger(), "offboard and over landed altitude threshold");
@@ -2446,7 +2453,7 @@ void TrajectoryController::stateMachineCallback() {
 		// debug in state on_ground_non_offboard
 		RCLCPP_DEBUG(this->get_logger(), "state: on_ground_non_offboard");
 
-		if (!offboard && veh_state(2) >= landed_altitude_threshold + ground_altitude_offset && armed) {
+		if (!offboard && veh_state(2) >= landed_altitude_threshold + ground_altitude_offset(2) && armed) {
 
 			// debug not offboard and over landed altitude threshold and armed
 			RCLCPP_DEBUG(this->get_logger(), "not offboard and over landed altitude threshold and armed");
@@ -2500,14 +2507,14 @@ void TrajectoryController::stateMachineCallback() {
 		// debug in state in_flight_non_offboard
 		RCLCPP_DEBUG(this->get_logger(), "state: in_flight_non_offboard");
 		
-		if ((!offboard || !armed) && veh_state(2) < landed_altitude_threshold + ground_altitude_offset) {
+		if ((!offboard || !armed) && veh_state(2) < landed_altitude_threshold + ground_altitude_offset(2)) {
 
 			// debug not offboard and under landed altitude threshold or not armed
 			RCLCPP_DEBUG(this->get_logger(), "not offboard or not armed and under landed altitude threshold");
 
 			state_ = on_ground_non_offboard;
 
-		} else if (!armed && veh_state(2) > landed_altitude_threshold + ground_altitude_offset) {
+		} else if (!armed && veh_state(2) > landed_altitude_threshold + ground_altitude_offset(2)) {
 
 			iii_interfaces::msg::Powerline powerline;
 
@@ -4450,6 +4457,10 @@ void TrajectoryController::stateMachineCallback() {
 
 	publishSetpointPose(set_point);
 
+	if (use_ground_altitude_offset) {
+		publishGroundAltitudeOffsetTf(ground_altitude_offset);
+	}
+
 }
 
 void TrajectoryController::odometryCallback(px4_msgs::msg::VehicleOdometry::SharedPtr msg) {
@@ -5065,6 +5076,28 @@ void TrajectoryController::publishTargetCableId() {
 
 }
 
+
+void TrajectoryController::publishGroundAltitudeOffsetTf(state3_t ground_altitude_offset) {
+
+	rclcpp::Time now = this->get_clock()->now();
+	geometry_msgs::msg::TransformStamped t;
+
+	t.header.stamp = now;
+	t.header.frame_id = "world";
+	t.child_frame_id = "ground";
+
+	t.transform.translation.x = ground_altitude_offset(0);
+	t.transform.translation.y = ground_altitude_offset(1);
+	t.transform.translation.z = ground_altitude_offset(2);
+
+	t.transform.rotation.w = 1;
+	t.transform.rotation.x = 0;
+	t.transform.rotation.y = 0;
+	t.transform.rotation.z = 0;
+
+	tf_broadcaster_->sendTransform(t);
+
+}
 
 state4_t TrajectoryController::loadVehicleState() {
 
