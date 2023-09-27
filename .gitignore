@@ -1,2 +1,4 @@
 logging/*
 __pycache__
+.*.swp
+COLCON_IGNORE

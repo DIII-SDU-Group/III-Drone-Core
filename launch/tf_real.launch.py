@@ -9,7 +9,8 @@ import os
 import yaml
 
 def generate_launch_description():
-    config = "/home/mp4d/config.yaml"
+    user = os.getenv("USER")
+    config = "/home/" + user + "/.config/iii_drone/params.yaml"
     #config = os.path.join(
     #    get_package_share_directory('iii_drone'),
     #    'config',
@@ -20,18 +21,18 @@ def generate_launch_description():
 
     world_frame_id = config_dict["/**"]["ros__parameters"]["world_frame_id"]
     drone_frame_id = config_dict["/**"]["ros__parameters"]["drone_frame_id"]
-    cable_drum_frame_id = config_dict["/**"]["ros__parameters"]["cable_drum_frame_id"]
+    #cable_drum_frame_id = config_dict["/**"]["ros__parameters"]["cable_drum_frame_id"]
     cable_gripper_frame_id = config_dict["/**"]["ros__parameters"]["cable_gripper_frame_id"]
-    cable_guard_frame_id = config_dict["/**"]["ros__parameters"]["cable_guard_frame_id"]
+    #cable_guard_frame_id = config_dict["/**"]["ros__parameters"]["cable_guard_frame_id"]
     mmwave_frame_id = config_dict["/**"]["ros__parameters"]["mmwave_frame_id"]
-    depth_cam_frame_id = config_dict["/**"]["ros__parameters"]["depth_cam_frame_id"]
+    #depth_cam_frame_id = config_dict["/**"]["ros__parameters"]["depth_cam_frame_id"]
 
-    args = [str(val) for val in config_dict["tf"]["real"]["ros__parameters"]["drone_to_cable_drum"]] + [drone_frame_id, cable_drum_frame_id]
-    tf_drone_to_cable_drum = Node(
-        package="tf2_ros",
-        executable="static_transform_publisher",
-        arguments=args
-    )
+    #args = [str(val) for val in config_dict["tf"]["real"]["ros__parameters"]["drone_to_cable_drum"]] + [drone_frame_id, cable_drum_frame_id]
+    #tf_drone_to_cable_drum = Node(
+    #    package="tf2_ros",
+    #    executable="static_transform_publisher",
+    #    arguments=args
+    #)
 
     args = [str(val) for val in config_dict["tf"]["real"]["ros__parameters"]["drone_to_cable_gripper"]] + [drone_frame_id, cable_gripper_frame_id]
     tf_drone_to_cable_gripper = Node(
@@ -40,12 +41,12 @@ def generate_launch_description():
         arguments=args
     )
 
-    args = [str(val) for val in config_dict["tf"]["real"]["ros__parameters"]["drone_to_cable_guard"]] + [drone_frame_id, cable_guard_frame_id]
-    tf_drone_to_cable_guard = Node(
-        package="tf2_ros",
-        executable="static_transform_publisher",
-        arguments=args
-    )
+    #args = [str(val) for val in config_dict["tf"]["real"]["ros__parameters"]["drone_to_cable_guard"]] + [drone_frame_id, cable_guard_frame_id]
+    #tf_drone_to_cable_guard = Node(
+    #    package="tf2_ros",
+    #    executable="static_transform_publisher",
+    #    arguments=args
+    #)
 
     args = [str(val) for val in config_dict["tf"]["real"]["ros__parameters"]["drone_to_mmwave"]] + [drone_frame_id, mmwave_frame_id]
     tf_drone_to_iwr = Node(
@@ -62,9 +63,9 @@ def generate_launch_description():
 
 
     return LaunchDescription([
-        tf_drone_to_cable_drum,
+        #tf_drone_to_cable_drum,
         tf_drone_to_cable_gripper,
-        tf_drone_to_cable_guard,
+        #tf_drone_to_cable_guard,
         tf_drone_to_iwr,
         world_to_drone
     ])

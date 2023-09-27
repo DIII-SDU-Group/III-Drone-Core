@@ -21,11 +21,14 @@
 #include <px4_msgs/msg/offboard_control_mode.hpp>
 #include <px4_msgs/msg/trajectory_setpoint.hpp>
 #include <px4_msgs/msg/position_setpoint.hpp>
-#include <px4_msgs/msg/timesync.hpp>
+#include <px4_msgs/msg/timesync_status.hpp>
 #include <px4_msgs/msg/vehicle_command.hpp>
 #include <px4_msgs/msg/vehicle_control_mode.hpp>
 #include <px4_msgs/msg/vehicle_status.hpp>
 #include <px4_msgs/msg/vehicle_odometry.hpp>
+#include <px4_msgs/msg/home_position.hpp>
+#include <px4_msgs/msg/vehicle_thrust_setpoint.hpp>
+#include <px4_msgs/msg/vehicle_torque_setpoint.hpp>
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
@@ -36,13 +39,18 @@
 #include <tf2/exceptions.h>
 #include <tf2/convert.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_ros/transform_broadcaster.h>
 
 #include <geometry_msgs/msg/pose.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 
+#include <std_msgs/msg/int16.hpp>
+
 #include "iii_interfaces/msg/control_state.hpp"
 #include "iii_interfaces/msg/powerline.hpp"
+#include "iii_interfaces/msg/gripper_status.hpp"
 
 #include "iii_interfaces/srv/set_general_target_yaw.hpp"
 
@@ -53,6 +61,8 @@
 #include "iii_interfaces/action/cable_takeoff.hpp"
 #include "iii_interfaces/action/fly_under_cable.hpp"
 #include "iii_interfaces/action/fly_along_cable.hpp"
+#include "iii_interfaces/action/disarm_on_cable.hpp"
+#include "iii_interfaces/action/arm_on_cable.hpp"
 
 #include "geometry.h"
 #include "blocking_queue.h"
@@ -94,7 +104,11 @@ enum state_t {
 	on_cable_armed,
 	during_cable_takeoff,
 	hovering_under_cable,
-	flying_along_cable
+	flying_along_cable,
+	disarming_on_cable,
+	on_cable_disarmed,
+	arming_on_cable,
+	setting_offboard_on_cable
 };
 
 enum request_type_t {
@@ -105,7 +119,9 @@ enum request_type_t {
 	cable_landing_request,
 	cable_takeoff_request,
 	fly_under_cable_request,
-	fly_along_cable_request
+	fly_along_cable_request,
+	disarm_on_cable_request,
+	arm_on_cable_request
 };
 
 struct takeoff_request_params_t {
@@ -251,6 +267,12 @@ public:
 	using CableTakeoff = iii_interfaces::action::CableTakeoff;
 	using GoalHandleCableTakeoff = rclcpp_action::ServerGoalHandle<CableTakeoff>;
 
+	using DisarmOnCable = iii_interfaces::action::DisarmOnCable;
+	using GoalHandleDisarmOnCable = rclcpp_action::ServerGoalHandle<DisarmOnCable>;
+
+	using ArmOnCable = iii_interfaces::action::ArmOnCable;
+	using GoalHandleArmOnCable = rclcpp_action::ServerGoalHandle<ArmOnCable>;
+
 	TrajectoryController(const std::string & node_name="trajectory_controller", 
 			const std::string & node_namespace="/trajectory_controller", 
 			const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
@@ -334,6 +356,28 @@ private:
 	void handleAcceptedCableTakeoff(const std::shared_ptr<GoalHandleCableTakeoff> goal_handle);
 	void followCableTakeoffCompletion(const std::shared_ptr<GoalHandleCableTakeoff> goal_handle);
 
+	// Disarm on cable action:
+	rclcpp_action::Server<DisarmOnCable>::SharedPtr disarm_on_cable_server_;
+
+	rclcpp_action::GoalResponse handleGoalDisarmOnCable(
+		const rclcpp_action::GoalUUID & uuid,
+		std::shared_ptr<const DisarmOnCable::Goal> goal
+	);
+	rclcpp_action::CancelResponse handleCancelDisarmOnCable(const std::shared_ptr<GoalHandleDisarmOnCable> goal_handle);
+	void handleAcceptedDisarmOnCable(const std::shared_ptr<GoalHandleDisarmOnCable> goal_handle);
+	void followDisarmOnCableCompletion(const std::shared_ptr<GoalHandleDisarmOnCable> goal_handle);
+
+	// Arm on cable action:
+	rclcpp_action::Server<ArmOnCable>::SharedPtr arm_on_cable_server_;
+
+	rclcpp_action::GoalResponse handleGoalArmOnCable(
+		const rclcpp_action::GoalUUID & uuid,
+		std::shared_ptr<const ArmOnCable::Goal> goal
+	);
+	rclcpp_action::CancelResponse handleCancelArmOnCable(const std::shared_ptr<GoalHandleArmOnCable> goal_handle);
+	void handleAcceptedArmOnCable(const std::shared_ptr<GoalHandleArmOnCable> goal_handle);
+	void followArmOnCableCompletion(const std::shared_ptr<GoalHandleArmOnCable> goal_handle);
+
     // Set yaw service:
     rclcpp::Service<iii_interfaces::srv::SetGeneralTargetYaw>::SharedPtr set_yaw_service_;
     void setYawServiceCallback(const std::shared_ptr<iii_interfaces::srv::SetGeneralTargetYaw::Request> request,
@@ -378,6 +422,7 @@ private:
 
     std::shared_ptr<tf2_ros::TransformListener> transform_listener_{nullptr};
     std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+    std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
 	BlockingQueue<request_t> request_queue_;
 	BlockingQueue<request_reply_t> request_reply_queue_;
@@ -388,13 +433,19 @@ private:
 	rclcpp::TimerBase::SharedPtr main_state_machine_timer_;
 
 	rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr vehicle_status_sub_;
-	rclcpp::Subscription<px4_msgs::msg::Timesync>::SharedPtr timesync_sub_;
+	rclcpp::Subscription<px4_msgs::msg::TimesyncStatus>::SharedPtr timesync_sub_;
 	rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr odometry_sub_;
 
 	rclcpp::Subscription<iii_interfaces::msg::Powerline>::SharedPtr powerline_sub_;
 
+	rclcpp::Subscription<px4_msgs::msg::HomePosition>::SharedPtr home_position_sub_;
+
+	rclcpp::Subscription<iii_interfaces::msg::GripperStatus>::SharedPtr gripper_status_sub_;
+
 	rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr vehicle_command_pub_;
 	rclcpp::Publisher<px4_msgs::msg::TrajectorySetpoint>::SharedPtr trajectory_setpoint_pub_;
+	rclcpp::Publisher<px4_msgs::msg::VehicleThrustSetpoint>::SharedPtr thrust_setpoint_pub_;
+	rclcpp::Publisher<px4_msgs::msg::VehicleTorqueSetpoint>::SharedPtr torque_setpoint_pub_;
 
 	rclcpp::Publisher<iii_interfaces::msg::ControlState>::SharedPtr control_state_pub_;
 
@@ -406,6 +457,8 @@ private:
 
 	rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr setpoint_pose_pub_;
 
+	rclcpp::Publisher<std_msgs::msg::Int16>::SharedPtr target_cable_id_pub_;
+
 	std::thread MPC_thread_;
 	double MPC_u_[3];
 	double MPC_x_[6];
@@ -414,10 +467,24 @@ private:
 	int MPC_N_;
 	bool MPC_use_state_feedback_;
 
+	px4_msgs::msg::HomePosition home_position_;
+	std::mutex home_position_mutex_;
+	bool home_position_set_ = false;
+
+	// gripper status member and mutex:
+	iii_interfaces::msg::GripperStatus gripper_status_;
+	std::mutex gripper_status_mutex_;
+
 	// General member methods:
 	void stateMachineCallback();
 	void odometryCallback(px4_msgs::msg::VehicleOdometry::SharedPtr msg);
 	void powerlineCallback(iii_interfaces::msg::Powerline::SharedPtr msg);
+	void homePositionCallback(px4_msgs::msg::HomePosition::SharedPtr msg);
+
+	void gripperStatusCallback(iii_interfaces::msg::GripperStatus::SharedPtr msg);
+
+	void setHomePosition(px4_msgs::msg::HomePosition new_home);
+	void setHomePositionIfChanged(px4_msgs::msg::HomePosition old_home, px4_msgs::msg::HomePosition new_home);
 
 	bool isOffboard();
 	bool isArmed();
@@ -427,7 +494,15 @@ private:
 	void land();
 
 	void arm();
-	void disarm();
+	void disarm(bool force=false);
+
+	void disarmOnCable();
+
+	double disarm_on_cable_thrust_;
+	rclcpp::Time disarm_on_cable_thrust_start_time_;
+	bool is_disarming_on_cable_by_thrust_ = false;
+
+	bool is_on_cable_armed_using_thrust_control_ = false;
 
 	void publishVehicleCommand(uint16_t command, float param1 = 0.0,
 					 float param2 = 0.0,
@@ -435,13 +510,17 @@ private:
 					 float param4 = 0.0,
 					 float param5 = 0.0,
 					 float param6 = 0.0,
-					 float param7 = 0.0) const;
-	void publishOffboardControlMode() const;
+					 float param7 = 0.0);
+	void publishOffboardControlMode();
 	void publishControlState();
-	void publishTrajectorySetpoint(state4_t set_point) const;
+	void publishActuatorSetpoints();
+	void publishTargetCableId();
+	void publishTrajectorySetpoint(state4_t set_point) ;
 	void publishSetpointPose(state4_t set_point);
 
 	void publishPlannedTrajectory();
+
+	void publishGroundAltitudeOffsetTf(state3_t ground_altitude_offset);
 
 	state4_t loadVehicleState();
 	geometry_msgs::msg::PoseStamped loadVehiclePose();

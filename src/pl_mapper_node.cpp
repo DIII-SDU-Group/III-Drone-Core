@@ -10,10 +10,15 @@
 
 PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const std::string & node_namespace) : 
         rclcpp::Node(node_name, node_namespace),
-        powerline_(this->get_logger()) {
+        powerline_(this->get_logger(), simulation_) {
             // first val = r = mmW variance 5
             // second val = q = odo variance 0.005
             // last three values indicate alive_cnt_low_thresh=0, alive_cnt_high_thresh=60, alive_cnt_ceiling=90
+
+    this->declare_parameter<bool>("simulation", false);
+    this->get_parameter("simulation", simulation_);
+
+    powerline_.SetSimulation(simulation_);
 
     this->declare_parameter<float>("kf_r", 1.);
     this->declare_parameter<float>("kf_q", 0.25);
@@ -35,6 +40,8 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
     this->declare_parameter<std::string>("world_frame_id", "world");
     this->declare_parameter<std::string>("drone_frame_id", "drone");
     this->declare_parameter<std::string>("mmwave_frame_id", "mmwave");
+
+    this->declare_parameter<bool>("skip_predict_when_on_cable", false);
 
     this->get_parameter("world_frame_id", world_frame_id_);
     this->get_parameter("drone_frame_id", drone_frame_id_);
@@ -60,6 +67,9 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
 
     mmwave_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
         "/mmwave/pcl", 10, std::bind(&PowerlineMapperNode::mmWaveCallback, this, std::placeholders::_1));
+
+    control_state_sub_ = this->create_subscription<iii_interfaces::msg::ControlState>(
+        "/trajectory_controller/control_state", 10, std::bind(&PowerlineMapperNode::controlStateCallback, this, std::placeholders::_1));
 
     powerline_pub_ = this->create_publisher<iii_interfaces::msg::Powerline>("powerline", 10);
     points_est_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("points_est", 10);
@@ -124,6 +134,16 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
 
 }
 
+void PowerlineMapperNode::controlStateCallback(const iii_interfaces::msg::ControlState::SharedPtr msg) {
+
+    control_state_mutex_.lock(); {
+
+        control_state_ = *msg;
+
+    } control_state_mutex_.unlock();
+
+}
+
 void PowerlineMapperNode::odometryCallback() {
 
     this->get_parameter("kf_r", r_);
@@ -175,7 +195,39 @@ void PowerlineMapperNode::odometryCallback() {
         tf.transform.rotation.z
     );
 
-    powerline_.UpdateOdometry(position, quat, tf_buffer_, min_point_dist_strict, max_point_dist_strict, view_cone_slope_strict);
+    bool skip_predict_when_on_cable;
+    this->get_parameter("skip_predict_when_on_cable", skip_predict_when_on_cable);
+
+    // Get control state:
+    iii_interfaces::msg::ControlState control_state;
+    control_state_mutex_.lock(); {
+
+        control_state = control_state_;
+
+    } control_state_mutex_.unlock();
+
+    if (!skip_predict_when_on_cable) {
+
+        powerline_.UpdateOdometry(position, quat, tf_buffer_, min_point_dist_strict, max_point_dist_strict, view_cone_slope_strict);
+
+    } else {
+
+        switch(control_state.state) {
+
+            case iii_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_ARMED:
+            case iii_interfaces::msg::ControlState::CONTROL_STATE_DISARMING_ON_CABLE:
+            case iii_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_DISARMED:
+            case iii_interfaces::msg::ControlState::CONTROL_STATE_ARMING_ON_CABLE:
+            case iii_interfaces::msg::ControlState::CONTROL_STATE_SETTING_OFFBOARD_ON_CABLE:
+                break;
+
+            default:
+                powerline_.UpdateOdometry(position, quat, tf_buffer_, min_point_dist_strict, max_point_dist_strict, view_cone_slope_strict);
+                break;
+
+        }
+
+    }
 
     publishPowerline();
 
@@ -237,7 +289,7 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
         ptr += POINT_STEP;
 
         // filter points based on diagonal distance
-        if( !SingleLine(1, point, 1, 1, this->get_logger(), 1, 1, 1, "", "").IsInFOV(point, min_point_dist, max_point_dist, view_cone_slope) ) {
+        if( !SingleLine(1, point, 1, 1, this->get_logger(), 1, 1, 1, "", "", simulation_).IsInFOV(point, min_point_dist, max_point_dist, view_cone_slope) ) {
             // RCLCPP_INFO(this->get_logger(), "Point filtered away: [%f , %f , %f]", point(0), point(1), point(2));
             continue;
         }
@@ -277,7 +329,39 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
     // //RCLCPP_INFO(this->get_logger(), "Now registered %d lines", powerline_.GetLinesCount());
 
-    powerline_.CleanupLines(tf_buffer_, min_point_dist_strict, max_point_dist_strict, view_cone_slope_strict);
+    // Get control state:
+    iii_interfaces::msg::ControlState control_state;
+    control_state_mutex_.lock(); {
+
+        control_state = control_state_;
+
+    } control_state_mutex_.unlock();
+
+    bool skip_predict_when_on_cable;
+    this->get_parameter("skip_predict_when_on_cable", skip_predict_when_on_cable);
+
+    if (!skip_predict_when_on_cable) {
+
+        powerline_.CleanupLines(tf_buffer_, min_point_dist_strict, max_point_dist_strict, view_cone_slope_strict);
+
+    } else {
+
+        switch(control_state.state) {
+
+            case iii_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_ARMED:
+            case iii_interfaces::msg::ControlState::CONTROL_STATE_DISARMING_ON_CABLE:
+            case iii_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_DISARMED:
+            case iii_interfaces::msg::ControlState::CONTROL_STATE_ARMING_ON_CABLE:
+            case iii_interfaces::msg::ControlState::CONTROL_STATE_SETTING_OFFBOARD_ON_CABLE:
+                break;
+
+            default:
+                powerline_.CleanupLines(tf_buffer_, min_point_dist_strict, max_point_dist_strict, view_cone_slope_strict);
+                break;
+
+        }
+
+    }
 
     // //RCLCPP_INFO(this->get_logger(), "Finished Cleanup, now registered %d lines", powerline_.GetLinesCount());
 

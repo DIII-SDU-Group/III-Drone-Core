@@ -74,6 +74,8 @@ add_executable(trajectory_controller
 )
 ament_target_dependencies(trajectory_controller
   rclcpp
+  rclcpp_action
+  rclcpp_components
   Eigen3
   iii_interfaces
   sensor_msgs
@@ -84,50 +86,32 @@ ament_target_dependencies(trajectory_controller
   tf2_ros
   tf2_geometry_msgs
 )
+target_include_directories(trajectory_controller PRIVATE
+  src/matlab_MPC_5Hz_hp10
+)
+#rclcpp_components_register_node(trajectory_controller PLUGIN "iii_drone::TrajectoryController" EXECUTABLE trajectory_controller)
 install(TARGETS trajectory_controller DESTINATION lib/${PROJECT_NAME})
 
-add_executable(cable_drum_controller
-  src/cable_drum_controller.cpp
-  src/CableDrumBridge/src/xcabledrumbridge.c
-  src/CableDrumBridge/src/xcabledrumbridge_linux.c
-)
-ament_target_dependencies(cable_drum_controller
-  rclcpp
-  iii_interfaces
-  std_msgs
-  tf2
-  tf2_ros
-)
-install(TARGETS cable_drum_controller DESTINATION lib/${PROJECT_NAME})
-
-add_executable(double_cable_lander
-  src/double_cable_lander.cpp
+add_executable(continuous_mission_orchestrator
+  src/continuous_mission_orchestrator.cpp
   src/geometry.cpp
 )
-ament_target_dependencies(double_cable_lander
+ament_target_dependencies(continuous_mission_orchestrator
   rclcpp
+  rclcpp_action
+  rclcpp_components
+  Eigen3
   iii_interfaces
-  std_msgs
+  sensor_msgs
+  px4_msgs
   geometry_msgs
+  std_msgs
   tf2
   tf2_ros
   tf2_geometry_msgs
 )
-install(TARGETS double_cable_lander DESTINATION lib/${PROJECT_NAME})
-
-#add_executable(hough_transformer_HW
-#  src/hough_transformer_HW.cpp
-#  src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel_linux.c
-#  src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel.c
-#)
-#ament_target_dependencies(hough_transformer_HW
-#  rclcpp
-#  sensor_msgs
-#  OpenCV
-#  cv_bridge
-#  iii_interfaces
-#)
-#install(TARGETS hough_transformer_HW DESTINATION lib/${PROJECT_NAME})
+#rclcpp_components_register_node(continuous_mission_orchestrator PLUGIN "iii_drone::ContinuousMissionOrchestrator" EXECUTABLE continuous_mission_orchestrator)
+install(TARGETS continuous_mission_orchestrator DESTINATION lib/${PROJECT_NAME})
 
 add_executable(pl_dir_computer
   src/pl_dir_computer_node.cpp
@@ -195,7 +179,6 @@ endfunction()
 
 custom_executable(img_3d_to_2d_proj)
 custom_executable(hough_transformer_SW)
-custom_executable(img_decompress)
 
 
 add_executable(depth_cam_to_mmwave src/depth_cam_to_mmwave.cpp)
@@ -207,22 +190,6 @@ ament_target_dependencies(depth_cam_to_mmwave
 )
 install(TARGETS depth_cam_to_mmwave DESTINATION lib/${PROJECT_NAME})
 
-add_executable(t265_vio_republisher 
-  src/t265_vio_republisher.cpp
-  src/geometry.cpp
-)
-ament_target_dependencies(t265_vio_republisher
-  rclcpp
-  sensor_msgs
-  geometry_msgs
-  nav_msgs
-  tf2
-  tf2_ros
-  tf2_geometry_msgs
-  px4_msgs
-)
-install(TARGETS t265_vio_republisher DESTINATION lib/${PROJECT_NAME})
-
 ############
 # Install ##
 ############
@@ -230,14 +197,7 @@ install(TARGETS t265_vio_republisher DESTINATION lib/${PROJECT_NAME})
 ament_python_install_package(${PROJECT_NAME})
 # Install Python executables
 install(PROGRAMS
-  scripts/image_drawer.py
-  scripts/image_decompress.py
-  scripts/draw_PL_IDs.py
-  scripts/iii_gui.py
-  scripts/ground_link_republisher.py
-  scripts/points_est_republisher.py
-  scripts/rc_node_launcher.py
-  scripts/data_logger.py
+  scripts/charger_gripper_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

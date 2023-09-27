@@ -15,13 +15,13 @@ def generate_launch_description():
     #    'params.yaml'
     #)
 
-    config = "/home/mp4d/config.yaml"
+    config = "/home/" + os.getenv("USER") + "/.config/iii_drone/params.yaml"
 
     trajectory_controller = Node(
         package="iii_drone",
         executable="trajectory_controller",
         parameters=[config],
-        arguments=["--ros-args", "--log-level", "trajectory_controller.trajectory_controller:=info"]
+        arguments=["--ros-args", "--log-level", "trajectory_controller.trajectory_controller:=debug"]
     )
 
     return LaunchDescription([
