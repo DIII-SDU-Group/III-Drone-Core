@@ -13,3 +13,4 @@ Current efforts is to refactor, debug, and prepare the current version v2.1-ICRA
 - Pull requests need to solve an issue
 - Prioritize solving issues that are listed in the [v2.2 project](https://github.com/orgs/DIII-SDU-Group/projects/1/views/1) 
 - All changes should be merged into `v2.2-staging` by pull request - no direct commits except for changes to [`README.md`](https://github.com/DIII-SDU-Group/III-Drone-ROS2-pkg/blob/v2.2-staging/README.md)
+- When working on an issue, open a new branch out from this branch - when finished, open a pull request for merging back into this branch
