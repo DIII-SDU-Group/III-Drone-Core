@@ -10,7 +10,7 @@ import yaml
 
 def generate_launch_description():
     user = os.getenv("USER")
-    config = "/home/" + user + "/config.yaml"
+    config = "/home/" + user + "/.config/iii_drone/params.yaml"
     #config = os.path.join(
     #    get_package_share_directory('iii_drone'),
     #    'config',

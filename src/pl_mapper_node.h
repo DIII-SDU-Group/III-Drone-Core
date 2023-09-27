@@ -29,6 +29,7 @@
 
 #include "iii_interfaces/msg/powerline_direction.hpp"
 #include "iii_interfaces/msg/powerline.hpp"
+#include "iii_interfaces/msg/control_state.hpp"
 
 #include "powerline_class.h"
 
@@ -53,6 +54,8 @@ private:
 
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pl_direction_sub_;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr mmwave_sub_;
+
+    rclcpp::Subscription<iii_interfaces::msg::ControlState>::SharedPtr control_state_sub_;
 
     rclcpp::Publisher<iii_interfaces::msg::Powerline>::SharedPtr powerline_pub_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr points_est_pub_;
@@ -79,6 +82,10 @@ private:
     vector_t v_drone_to_mmw;
     quat_t pl_direction_; ////////
 
+    std::mutex control_state_mutex_;
+    iii_interfaces::msg::ControlState control_state_;
+
+    void controlStateCallback(const iii_interfaces::msg::ControlState::SharedPtr msg);
     void odometryCallback();
     void mmWaveCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
     void plDirectionCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);

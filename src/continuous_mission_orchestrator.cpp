@@ -106,11 +106,9 @@ ContinuousMissionOrchestrator::ContinuousMissionOrchestrator(const std::string &
 
 // FlyUnderCable action:
 
-void ContinuousMissionOrchestrator::flyUnderCableGoalResponseCallback(std::shared_future<GoalHandleFlyUnderCable::SharedPtr> future) {
+void ContinuousMissionOrchestrator::flyUnderCableGoalResponseCallback(const GoalHandleFlyUnderCable::SharedPtr & goal_handle) {
     
     bool goal_accepted = false;
-
-    auto goal_handle = future.get();
 
     if (!goal_handle) {
 
@@ -233,11 +231,9 @@ void ContinuousMissionOrchestrator::cancelFlyUnderCable() {
 
 // CableLanding action:
 
-void ContinuousMissionOrchestrator::cableLandingGoalResponseCallback(std::shared_future<GoalHandleCableLanding::SharedPtr> future) {
+void ContinuousMissionOrchestrator::cableLandingGoalResponseCallback(const GoalHandleCableLanding::SharedPtr & goal_handle) {
     
     bool goal_accepted = false;
-
-    auto goal_handle = future.get();
 
     if (!goal_handle) {
 
@@ -357,11 +353,9 @@ void ContinuousMissionOrchestrator::cancelCableLanding() {
 
 // DisarmOnCable action:
 
-void ContinuousMissionOrchestrator::disarmOnCableGoalResponseCallback(std::shared_future<GoalHandleDisarmOnCable::SharedPtr> future) {
+void ContinuousMissionOrchestrator::disarmOnCableGoalResponseCallback(const GoalHandleDisarmOnCable::SharedPtr & goal_handle) {
     
     bool goal_accepted = false;
-
-    auto goal_handle = future.get();
 
     if (!goal_handle) {
 
@@ -480,11 +474,9 @@ void ContinuousMissionOrchestrator::cancelDisarmOnCable() {
 
 // ArmOnCable action:
 
-void ContinuousMissionOrchestrator::armOnCableGoalResponseCallback(std::shared_future<GoalHandleArmOnCable::SharedPtr> future) {
+void ContinuousMissionOrchestrator::armOnCableGoalResponseCallback(const GoalHandleArmOnCable::SharedPtr & goal_handle) {
     
     bool goal_accepted = false;
-
-    auto goal_handle = future.get();
 
     if (!goal_handle) {
 
@@ -603,11 +595,9 @@ void ContinuousMissionOrchestrator::cancelArmOnCable() {
 
 // CableTakeoff action:
 
-void ContinuousMissionOrchestrator::cableTakeoffGoalResponseCallback(std::shared_future<GoalHandleCableTakeoff::SharedPtr> future) {
+void ContinuousMissionOrchestrator::cableTakeoffGoalResponseCallback(const GoalHandleCableTakeoff::SharedPtr & goal_handle) {
     
     bool goal_accepted = false;
-
-    auto goal_handle = future.get();
 
     if (!goal_handle) {
 
@@ -1587,6 +1577,8 @@ void ContinuousMissionOrchestrator::setState(state_t state) {
 
 void ContinuousMissionOrchestrator::stateMachineCallback() {
 
+    evaluateChargingStatus();
+
     state_t state = getState();
 
     switch(state) {
@@ -1790,26 +1782,40 @@ void ContinuousMissionOrchestrator::stateMachineInspecting() {
 
     }
 
+    // // Check start charging flag:
+    // if (getStartChargingFlag()) {
+
+    //     RCLCPP_INFO(get_logger(), "ContinuousMissionOrchestrator::stateMachineInspecting(): Start charging flag set, entering landing_on_cable state");
+
+    //     this->get_parameter("cable_landing_max_retries", cable_landing_counter_);
+    //     cable_landing_counter_--;
+
+    //     if (cable_landing_counter_ < 0) {
+            
+    //         RCLCPP_WARN(this->get_logger(), "ContinuousMissionOrchestrator::stateMachineClosingGripper(): Parameter cable_landing_max_retries below 1. Continuing with a single attempt.");
+    //         cable_landing_counter_ = 0;
+    //     }
+
+    //     startCableLanding();
+    //     setState(landing_on_cable);
+
+    //     return;
+
+    // }
+
     // Check start charging flag:
     if (getStartChargingFlag()) {
 
-        RCLCPP_INFO(get_logger(), "ContinuousMissionOrchestrator::stateMachineInspecting(): Start charging flag set, entering landing_on_cable state");
+        RCLCPP_INFO(get_logger(), "ContinuousMissionOrchestrator::stateMachineInspecting(): Start charging flag set, entering closing_gripper state");
 
-        this->get_parameter("cable_landing_max_retries", cable_landing_counter_);
-        cable_landing_counter_--;
-
-        if (cable_landing_counter_ < 0) {
-            
-            RCLCPP_WARN(this->get_logger(), "ContinuousMissionOrchestrator::stateMachineClosingGripper(): Parameter cable_landing_max_retries below 1. Continuing with a single attempt.");
-            cable_landing_counter_ = 0;
-        }
-
-        startCableLanding();
-        setState(landing_on_cable);
+        sendGripperCommand(true);
+        setState(closing_gripper);
 
         return;
 
     }
+
+
 }
 
 void ContinuousMissionOrchestrator::stateMachineLandingOnCable() {
@@ -1840,33 +1846,23 @@ void ContinuousMissionOrchestrator::stateMachineLandingOnCable() {
 
     }
 
-    if (cableLandingSucceeded() && control_state.state == iii_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_ARMED) {
+    iii_interfaces::msg::GripperStatus gripper_status = getGripperStatus();
+    bool gripper_is_closed = gripper_status.gripper_status == iii_interfaces::msg::GripperStatus::GRIPPER_STATUS_CLOSED;
+
+    if (cableLandingSucceeded() && control_state.state == iii_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_ARMED && gripper_is_closed) {
 
         action_timer_started = false;
 
-        // if (!gripperIsClosed()) {
+        RCLCPP_INFO(get_logger(), "ContinuousMissionOrchestrator::stateMachineLandingOnCable(): Cable landing succeeded and gripper is closed, entering disarming_on_cable state");
 
-        //     RCLCPP_FATAL(get_logger(), "ContinuousMissionOrchestrator::stateMachineLandingOnCable(): Cable landing succeeded but gripper is not closed, entering error state");
-
-        //     setState(error);
-
-        // } else {
-
-        //     RCLCPP_INFO(get_logger(), "ContinuousMissionOrchestrator::stateMachineLandingOnCable(): Cable landing succeeded and gripper is closed, entering disarming_on_cable state");
-
-        // }
-
-        RCLCPP_INFO(get_logger(), "ContinuousMissionOrchestrator::stateMachineLandingOnCable(): Cable landing succeeded, entering closing_gripper state");
-
-        sendGripperCommand(true);
-        setState(closing_gripper);
-
+        startDisarmOnCable();
+        setState(disarming_on_cable);
 
     } else if (cableLandingSucceeded()) {
 
         if (!action_timer_started) {
 
-            RCLCPP_WARN(get_logger(), "ContinuousMissionOrchestrator::stateMachineLandingOnCable(): Cable landing succeeded but vehicle is not on cable armed, starting action timer");
+            RCLCPP_WARN(get_logger(), "ContinuousMissionOrchestrator::stateMachineLandingOnCable(): Cable landing succeeded but vehicle is not on cable armed or gripper is not closed, starting action timer");
 
             action_timer_started = true;
 
@@ -1874,7 +1870,7 @@ void ContinuousMissionOrchestrator::stateMachineLandingOnCable() {
 
         } else if (actionTimeout()) {
 
-            RCLCPP_FATAL(get_logger(), "ContinuousMissionOrchestrator::stateMachineLandingOnCable(): Cable landing succeeded but vehicle is not on cable armed and action timer expired, entering error state");
+            RCLCPP_FATAL(get_logger(), "ContinuousMissionOrchestrator::stateMachineLandingOnCable(): Cable landing succeeded but vehicle is not on cable armed or gripper is not closed and action timer expired, entering error state");
 
             setState(error);
 
@@ -1904,14 +1900,99 @@ void ContinuousMissionOrchestrator::stateMachineLandingOnCable() {
 
             }
 
-        } else if (control_state.state != iii_interfaces::msg::ControlState::CONTROL_STATE_DURING_CABLE_LANDING) {
+        } else if (control_state.state != iii_interfaces::msg::ControlState::CONTROL_STATE_DURING_CABLE_TAKEOFF && control_state.state != iii_interfaces::msg::ControlState::CONTROL_STATE_DURING_CABLE_LANDING) {
 
-            RCLCPP_FATAL(get_logger(), "ContinuousMissionOrchestrator::stateMachineLandingOnCable(): Cable landing failed and vehicle is not hovering under cable, entering error state");
+            RCLCPP_FATAL(get_logger(), "ContinuousMissionOrchestrator::stateMachineLandingOnCable(): Cable landing failed and vehicle is not hovering under cable, not during cable takeoff, and not during cable landing, entering error state");
 
             setState(error);
 
         }
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // if (cableLandingSucceeded() && control_state.state == iii_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_ARMED) {
+
+    //     action_timer_started = false;
+
+    //     // if (!gripperIsClosed()) {
+
+    //     //     RCLCPP_FATAL(get_logger(), "ContinuousMissionOrchestrator::stateMachineLandingOnCable(): Cable landing succeeded but gripper is not closed, entering error state");
+
+    //     //     setState(error);
+
+    //     // } else {
+
+    //     //     RCLCPP_INFO(get_logger(), "ContinuousMissionOrchestrator::stateMachineLandingOnCable(): Cable landing succeeded and gripper is closed, entering disarming_on_cable state");
+
+    //     // }
+
+    //     RCLCPP_INFO(get_logger(), "ContinuousMissionOrchestrator::stateMachineLandingOnCable(): Cable landing succeeded, entering closing_gripper state");
+
+    //     sendGripperCommand(true);
+    //     setState(closing_gripper);
+
+
+    // } else if (cableLandingSucceeded()) {
+
+    //     if (!action_timer_started) {
+
+    //         RCLCPP_WARN(get_logger(), "ContinuousMissionOrchestrator::stateMachineLandingOnCable(): Cable landing succeeded but vehicle is not on cable armed, starting action timer");
+
+    //         action_timer_started = true;
+
+    //         startActionTimeoutCounter();
+
+    //     } else if (actionTimeout()) {
+
+    //         RCLCPP_FATAL(get_logger(), "ContinuousMissionOrchestrator::stateMachineLandingOnCable(): Cable landing succeeded but vehicle is not on cable armed and action timer expired, entering error state");
+
+    //         setState(error);
+
+    //     }
+
+    // } else if (!cableLandingSucceeded()) {
+
+    //     action_timer_started = false;
+
+    //     if (control_state.state == iii_interfaces::msg::ControlState::CONTROL_STATE_HOVERING_UNDER_CABLE) {
+
+    //         if (cable_landing_counter_ <= 0) {
+
+    //             RCLCPP_FATAL(get_logger(), "ContinuousMissionOrchestrator::stateMachineLandingOnCable(): Cable landing failed and no retries left, entering error state");
+
+    //             setState(error);
+
+    //             return;
+
+    //         } else {
+
+    //             RCLCPP_WARN(get_logger(), "ContinuousMissionOrchestrator::stateMachineLandingOnCable(): Cable landing failed, %d retr%s left, entering landing_on_cable state", cable_landing_counter_, cable_landing_counter_ == 1 ? "y" : "ies");
+
+    //             cable_landing_counter_--;
+
+    //             startCableLanding();
+
+    //         }
+
+    //     } else if (control_state.state != iii_interfaces::msg::ControlState::CONTROL_STATE_DURING_CABLE_LANDING) {
+
+    //         RCLCPP_FATAL(get_logger(), "ContinuousMissionOrchestrator::stateMachineLandingOnCable(): Cable landing failed and vehicle is not hovering under cable, entering error state");
+
+    //         setState(error);
+
+    //     }
+    // }
 }
 
 void ContinuousMissionOrchestrator::stateMachineClosingGripper() {
@@ -1940,40 +2021,58 @@ void ContinuousMissionOrchestrator::stateMachineClosingGripper() {
 
     }
 
-    iii_interfaces::msg::GripperStatus gripper_status = getGripperStatus();
-    bool gripper_is_closed = gripper_status.gripper_status == iii_interfaces::msg::GripperStatus::GRIPPER_STATUS_CLOSED;
+    // iii_interfaces::msg::GripperStatus gripper_status = getGripperStatus();
+    // bool gripper_is_closed = gripper_status.gripper_status == iii_interfaces::msg::GripperStatus::GRIPPER_STATUS_CLOSED;
 
-    if (gripperCommandSucceeded() && gripper_is_closed) {
+    // if (gripperCommandSucceeded() && gripper_is_closed) {
 
-        RCLCPP_INFO(get_logger(), "ContinuousMissionOrchestrator::stateMachineClosingGripper(): Gripper command succeeded and gripper is closed, entering disarming_on_cable state");
+    //     RCLCPP_INFO(get_logger(), "ContinuousMissionOrchestrator::stateMachineClosingGripper(): Gripper command succeeded and gripper is closed, entering disarming_on_cable state");
 
-        action_timer_started = false;
+    //     action_timer_started = false;
 
-        startDisarmOnCable();
-        setState(disarming_on_cable);
+    //     startDisarmOnCable();
+    //     setState(disarming_on_cable);
 
-    } else if (gripperCommandSucceeded()) {
+    // } else if (gripperCommandSucceeded()) {
 
-        if (!action_timer_started) {
+    //     if (!action_timer_started) {
 
-            RCLCPP_WARN(get_logger(), "ContinuousMissionOrchestrator::stateMachineClosingGripper(): Gripper command succeeded but gripper is not closed, starting action timer");
+    //         RCLCPP_WARN(get_logger(), "ContinuousMissionOrchestrator::stateMachineClosingGripper(): Gripper command succeeded but gripper is not closed, starting action timer");
 
-            action_timer_started = true;
+    //         action_timer_started = true;
 
-            startActionTimeoutCounter();
+    //         startActionTimeoutCounter();
 
-        } else if (actionTimeout()) {
+    //     } else if (actionTimeout()) {
 
-            RCLCPP_WARN(get_logger(), "ContinuousMissionOrchestrator::stateMachineClosingGripper(): Gripper command succeeded but gripper is not closed and gripper timer expired, entering taking_off_from_cable state");
+    //         RCLCPP_WARN(get_logger(), "ContinuousMissionOrchestrator::stateMachineClosingGripper(): Gripper command succeeded but gripper is not closed and gripper timer expired, entering taking_off_from_cable state");
 
-            action_timer_started = false;
+    //         action_timer_started = false;
 
-            startCableTakeoff();
-            setState(taking_off_from_cable);
+    //         startCableTakeoff();
+    //         setState(taking_off_from_cable);
 
+    //     }
+
+    if (gripperCommandSucceeded()) {
+
+        RCLCPP_INFO(get_logger(), "ContinuousMissionOrchestrator::stateMachineClosingGripper(): Gripper command succeeded, entering landing_on_cable state");
+
+        this->get_parameter("cable_landing_max_retries", cable_landing_counter_);
+        cable_landing_counter_--;
+
+        if (cable_landing_counter_ < 0) {
+            
+            RCLCPP_WARN(this->get_logger(), "ContinuousMissionOrchestrator::stateMachineClosingGripper(): Parameter cable_landing_max_retries below 1. Continuing with a single attempt.");
+            cable_landing_counter_ = 0;
         }
 
-    } else if (!gripperCommandSucceeded()) {
+        startCableLanding();
+        setState(landing_on_cable);
+
+        return;
+
+    } else {
 
         RCLCPP_FATAL(get_logger(), "ContinuousMissionOrchestrator::stateMachineClosingGripper(): Gripper command failed, entering error state");
 

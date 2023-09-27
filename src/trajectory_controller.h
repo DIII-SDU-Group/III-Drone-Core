@@ -21,7 +21,7 @@
 #include <px4_msgs/msg/offboard_control_mode.hpp>
 #include <px4_msgs/msg/trajectory_setpoint.hpp>
 #include <px4_msgs/msg/position_setpoint.hpp>
-#include <px4_msgs/msg/timesync.hpp>
+#include <px4_msgs/msg/timesync_status.hpp>
 #include <px4_msgs/msg/vehicle_command.hpp>
 #include <px4_msgs/msg/vehicle_control_mode.hpp>
 #include <px4_msgs/msg/vehicle_status.hpp>
@@ -39,6 +39,8 @@
 #include <tf2/exceptions.h>
 #include <tf2/convert.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_ros/transform_broadcaster.h>
 
 #include <geometry_msgs/msg/pose.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -48,6 +50,7 @@
 
 #include "iii_interfaces/msg/control_state.hpp"
 #include "iii_interfaces/msg/powerline.hpp"
+#include "iii_interfaces/msg/gripper_status.hpp"
 
 #include "iii_interfaces/srv/set_general_target_yaw.hpp"
 
@@ -419,6 +422,7 @@ private:
 
     std::shared_ptr<tf2_ros::TransformListener> transform_listener_{nullptr};
     std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+    std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
 	BlockingQueue<request_t> request_queue_;
 	BlockingQueue<request_reply_t> request_reply_queue_;
@@ -429,12 +433,14 @@ private:
 	rclcpp::TimerBase::SharedPtr main_state_machine_timer_;
 
 	rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr vehicle_status_sub_;
-	rclcpp::Subscription<px4_msgs::msg::Timesync>::SharedPtr timesync_sub_;
+	rclcpp::Subscription<px4_msgs::msg::TimesyncStatus>::SharedPtr timesync_sub_;
 	rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr odometry_sub_;
 
 	rclcpp::Subscription<iii_interfaces::msg::Powerline>::SharedPtr powerline_sub_;
 
 	rclcpp::Subscription<px4_msgs::msg::HomePosition>::SharedPtr home_position_sub_;
+
+	rclcpp::Subscription<iii_interfaces::msg::GripperStatus>::SharedPtr gripper_status_sub_;
 
 	rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr vehicle_command_pub_;
 	rclcpp::Publisher<px4_msgs::msg::TrajectorySetpoint>::SharedPtr trajectory_setpoint_pub_;
@@ -465,11 +471,17 @@ private:
 	std::mutex home_position_mutex_;
 	bool home_position_set_ = false;
 
+	// gripper status member and mutex:
+	iii_interfaces::msg::GripperStatus gripper_status_;
+	std::mutex gripper_status_mutex_;
+
 	// General member methods:
 	void stateMachineCallback();
 	void odometryCallback(px4_msgs::msg::VehicleOdometry::SharedPtr msg);
 	void powerlineCallback(iii_interfaces::msg::Powerline::SharedPtr msg);
 	void homePositionCallback(px4_msgs::msg::HomePosition::SharedPtr msg);
+
+	void gripperStatusCallback(iii_interfaces::msg::GripperStatus::SharedPtr msg);
 
 	void setHomePosition(px4_msgs::msg::HomePosition new_home);
 	void setHomePositionIfChanged(px4_msgs::msg::HomePosition old_home, px4_msgs::msg::HomePosition new_home);
@@ -482,7 +494,7 @@ private:
 	void land();
 
 	void arm();
-	void disarm();
+	void disarm(bool force=false);
 
 	void disarmOnCable();
 
@@ -490,21 +502,25 @@ private:
 	rclcpp::Time disarm_on_cable_thrust_start_time_;
 	bool is_disarming_on_cable_by_thrust_ = false;
 
+	bool is_on_cable_armed_using_thrust_control_ = false;
+
 	void publishVehicleCommand(uint16_t command, float param1 = 0.0,
 					 float param2 = 0.0,
 					 float param3 = 0.0,
 					 float param4 = 0.0,
 					 float param5 = 0.0,
 					 float param6 = 0.0,
-					 float param7 = 0.0) const;
+					 float param7 = 0.0);
 	void publishOffboardControlMode();
 	void publishControlState();
 	void publishActuatorSetpoints();
 	void publishTargetCableId();
-	void publishTrajectorySetpoint(state4_t set_point) const;
+	void publishTrajectorySetpoint(state4_t set_point) ;
 	void publishSetpointPose(state4_t set_point);
 
 	void publishPlannedTrajectory();
+
+	void publishGroundAltitudeOffsetTf(state3_t ground_altitude_offset);
 
 	state4_t loadVehicleState();
 	geometry_msgs::msg::PoseStamped loadVehiclePose();

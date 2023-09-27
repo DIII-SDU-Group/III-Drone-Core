@@ -44,8 +44,13 @@ explicit
 
         std::ostringstream stream;
 
+        rclcpp::QoS sub_qos(rclcpp::KeepLast(1));
+        sub_qos.transient_local();
+        sub_qos.best_effort();
+
         subscription_ = this->create_subscription<px4_msgs::msg::VehicleOdometry>(
-            "/fmu/vehicle_odometry/out", 10,
+            "/fmu/out/vehicle_odometry", 
+            sub_qos,
             std::bind(&DroneFrameBroadcasterNode::odometryCallback, this, std::placeholders::_1));
 
         R_NED_to_body_frame = eulToR(orientation_t(M_PI, 0, 0));
@@ -64,9 +69,9 @@ private:
         t.child_frame_id = drone_frame_id_;
 
         point_t position(
-            msg->x,
-            msg->y, 
-            msg->z
+            msg->position[0],
+            msg->position[1], 
+            msg->position[2]
         );
 
         position = R_NED_to_body_frame * position;
