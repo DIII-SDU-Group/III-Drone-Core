@@ -14,7 +14,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-#include "iii_interfaces/msg/powerline_direction.hpp"
+#include "iii_drone_interfaces/msg/powerline_direction.hpp"
 
 #include <algorithm>
 #include <cstdlib>
@@ -44,7 +44,7 @@ class HoughTFPub : public rclcpp::Node
 			this->declare_parameter<int>("canny_ratio", 4);
 			this->declare_parameter<int>("canny_kernel_size", 3);
 
-			cable_yaw_publisher_ = this->create_publisher<iii_interfaces::msg::PowerlineDirection>(
+			cable_yaw_publisher_ = this->create_publisher<iii_drone_interfaces::msg::PowerlineDirection>(
 				"cable_yaw_angle", 10);
 
 			rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(10));
@@ -66,8 +66,8 @@ class HoughTFPub : public rclcpp::Node
 
 		rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr camera_subscription_;
 		rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr odometry_subscription_;
-		rclcpp::Publisher<iii_interfaces::msg::PowerlineDirection>::SharedPtr cable_yaw_publisher_;
-		// rclcpp::Publisher<iii_interfaces::msg::PowerlineDirection>::SharedPtr hough_yaw_publisher_;
+		rclcpp::Publisher<iii_drone_interfaces::msg::PowerlineDirection>::SharedPtr cable_yaw_publisher_;
+		// rclcpp::Publisher<iii_drone_interfaces::msg::PowerlineDirection>::SharedPtr hough_yaw_publisher_;
 		void OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg);
 
 		int getBestLineIndex(std::vector<cv::Vec2f> lines, int img_height, int img_width);
@@ -127,7 +127,7 @@ void HoughTFPub::OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg){
 
 		avg_theta_ = -avg_theta_tmp;
 
-		iii_interfaces::msg::PowerlineDirection pl_msg;
+		iii_drone_interfaces::msg::PowerlineDirection pl_msg;
 
 		pl_msg.angle = avg_theta_;
 		cable_yaw_publisher_->publish(pl_msg);

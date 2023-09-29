@@ -21,8 +21,8 @@
 #include <tf2/exceptions.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
-#include "iii_interfaces/msg/powerline_direction.hpp"
-#include "iii_interfaces/msg/powerline.hpp"
+#include "iii_drone_interfaces/msg/powerline_direction.hpp"
+#include "iii_drone_interfaces/msg/powerline.hpp"
 
 #include "geometry.h"
 
@@ -49,8 +49,8 @@ explicit
     PowerlineDirectionComputerNode(const std::string & node_name="pl_dir_computer", const std::string & node_namespace="/pl_dir_computer");
 
 private:
-    rclcpp::Subscription<iii_interfaces::msg::PowerlineDirection>::SharedPtr pl_direction_sub_;
-    rclcpp::Subscription<iii_interfaces::msg::Powerline>::SharedPtr pl_sub_;
+    rclcpp::Subscription<iii_drone_interfaces::msg::PowerlineDirection>::SharedPtr pl_direction_sub_;
+    rclcpp::Subscription<iii_drone_interfaces::msg::Powerline>::SharedPtr pl_sub_;
 
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pl_direction_pub_;
 
@@ -66,7 +66,7 @@ private:
 
     quat_t drone_quat_, last_drone_quat_;
 
-    iii_interfaces::msg::Powerline pl_;
+    iii_drone_interfaces::msg::Powerline pl_;
 
     float r_, q_;
 
@@ -81,9 +81,9 @@ private:
     std::mutex pl_mutex_;
 
     void odometryCallback();
-    void plDirectionCallback(const iii_interfaces::msg::PowerlineDirection::SharedPtr msg);
+    void plDirectionCallback(const iii_drone_interfaces::msg::PowerlineDirection::SharedPtr msg);
 
-    void plCallback(const iii_interfaces::msg::Powerline::SharedPtr msg);
+    void plCallback(const iii_drone_interfaces::msg::Powerline::SharedPtr msg);
 
     void predict();
     void update(float angle);

@@ -32,23 +32,23 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 
-#include "iii_interfaces/msg/control_state.hpp"
-#include "iii_interfaces/msg/powerline.hpp"
-#include "iii_interfaces/msg/charger_operating_mode.hpp"
-#include "iii_interfaces/msg/charger_status.hpp"
-#include "iii_interfaces/msg/gripper_status.hpp"
-
-#include "iii_interfaces/srv/gripper_command.hpp"
-#include "iii_interfaces/srv/initiate_charging.hpp"
-#include "iii_interfaces/srv/interrupt_charging.hpp"
-#include "iii_interfaces/srv/set_target_cable_id.hpp"
-#include "iii_interfaces/srv/prolong_charging.hpp"
-
-#include "iii_interfaces/action/fly_under_cable.hpp"
-#include "iii_interfaces/action/cable_landing.hpp"
-#include "iii_interfaces/action/disarm_on_cable.hpp"
-#include "iii_interfaces/action/arm_on_cable.hpp"
-#include "iii_interfaces/action/cable_takeoff.hpp"
+#include "iii_drone_interfaces/msg/control_state.hpp"
+#include "iii_drone_interfaces/msg/powerline.hpp"
+#include "iii_drone_interfaces/msg/charger_operating_mode.hpp"
+#include "iii_drone_interfaces/msg/charger_status.hpp"
+#include "iii_drone_interfaces/msg/gripper_status.hpp"
+              
+#include "iii_drone_interfaces/srv/gripper_command.hpp"
+#include "iii_drone_interfaces/srv/initiate_charging.hpp"
+#include "iii_drone_interfaces/srv/interrupt_charging.hpp"
+#include "iii_drone_interfaces/srv/set_target_cable_id.hpp"
+#include "iii_drone_interfaces/srv/prolong_charging.hpp"
+              
+#include "iii_drone_interfaces/action/fly_under_cable.hpp"
+#include "iii_drone_interfaces/action/cable_landing.hpp"
+#include "iii_drone_interfaces/action/disarm_on_cable.hpp"
+#include "iii_drone_interfaces/action/arm_on_cable.hpp"
+#include "iii_drone_interfaces/action/cable_takeoff.hpp"
 
 #include "geometry.h"
 
@@ -68,19 +68,19 @@ using namespace std::placeholders;
 
 class ContinuousMissionOrchestrator : public rclcpp::Node {
 public:
-	using FlyUnderCable = iii_interfaces::action::FlyUnderCable;
+	using FlyUnderCable = iii_drone_interfaces::action::FlyUnderCable;
 	using GoalHandleFlyUnderCable = rclcpp_action::ClientGoalHandle<FlyUnderCable>;
 
-	using CableLanding = iii_interfaces::action::CableLanding;
+	using CableLanding = iii_drone_interfaces::action::CableLanding;
 	using GoalHandleCableLanding = rclcpp_action::ClientGoalHandle<CableLanding>;
 
-    using DisarmOnCable = iii_interfaces::action::DisarmOnCable;
+    using DisarmOnCable = iii_drone_interfaces::action::DisarmOnCable;
     using GoalHandleDisarmOnCable = rclcpp_action::ClientGoalHandle<DisarmOnCable>;
 
-    using ArmOnCable = iii_interfaces::action::ArmOnCable;
+    using ArmOnCable = iii_drone_interfaces::action::ArmOnCable;
     using GoalHandleArmOnCable = rclcpp_action::ClientGoalHandle<ArmOnCable>;
 
-	using CableTakeoff = iii_interfaces::action::CableTakeoff;
+	using CableTakeoff = iii_drone_interfaces::action::CableTakeoff;
 	using GoalHandleCableTakeoff = rclcpp_action::ClientGoalHandle<CableTakeoff>;
 
 	ContinuousMissionOrchestrator(const std::string & node_name="continuous_mission_orchestrator", 
@@ -176,8 +176,8 @@ private:
     void cancelCableTakeoff();
 
     // Gripper command client:
-    rclcpp::Client<iii_interfaces::srv::GripperCommand>::SharedPtr gripper_command_client_;
-    void gripperCommandResponseCallback(rclcpp::Client<iii_interfaces::srv::GripperCommand>::SharedFuture future);
+    rclcpp::Client<iii_drone_interfaces::srv::GripperCommand>::SharedPtr gripper_command_client_;
+    void gripperCommandResponseCallback(rclcpp::Client<iii_drone_interfaces::srv::GripperCommand>::SharedFuture future);
 
     bool gripper_command_response_received_;
     bool gripper_command_active_;
@@ -191,10 +191,10 @@ private:
     bool getLastGripperCommandClose();
 
     // Target cable service:
-    rclcpp::Service<iii_interfaces::srv::SetTargetCableId>::SharedPtr set_target_cable_id_srv_;
+    rclcpp::Service<iii_drone_interfaces::srv::SetTargetCableId>::SharedPtr set_target_cable_id_srv_;
     void setTargetCableIdSrvCallback(const std::shared_ptr<rmw_request_id_t> request_header,
-            const std::shared_ptr<iii_interfaces::srv::SetTargetCableId::Request> request,
-            const std::shared_ptr<iii_interfaces::srv::SetTargetCableId::Response> response);
+            const std::shared_ptr<iii_drone_interfaces::srv::SetTargetCableId::Request> request,
+            const std::shared_ptr<iii_drone_interfaces::srv::SetTargetCableId::Response> response);
     int8_t target_cable_id_ = -1;
     bool target_cable_id_changed_ = false;
     std::mutex target_cable_id_mutex_;
@@ -225,20 +225,20 @@ private:
     float getChargingPower();
     bool chargingPowerLow();
 
-    rclcpp::Subscription<iii_interfaces::msg::ChargerOperatingMode>::SharedPtr charger_operating_mode_sub_;
-    void chargerOperatingModeCallback(iii_interfaces::msg::ChargerOperatingMode::SharedPtr msg);
-    iii_interfaces::msg::ChargerOperatingMode charger_operating_mode_;
+    rclcpp::Subscription<iii_drone_interfaces::msg::ChargerOperatingMode>::SharedPtr charger_operating_mode_sub_;
+    void chargerOperatingModeCallback(iii_drone_interfaces::msg::ChargerOperatingMode::SharedPtr msg);
+    iii_drone_interfaces::msg::ChargerOperatingMode charger_operating_mode_;
     std::mutex charger_operating_mode_mutex_;
-    iii_interfaces::msg::ChargerOperatingMode getChargerOperatingMode();
+    iii_drone_interfaces::msg::ChargerOperatingMode getChargerOperatingMode();
 
-    rclcpp::Subscription<iii_interfaces::msg::ChargerStatus>::SharedPtr charger_status_sub_;
-    void chargerStatusCallback(iii_interfaces::msg::ChargerStatus::SharedPtr msg);
-    iii_interfaces::msg::ChargerStatus charger_status_;
+    rclcpp::Subscription<iii_drone_interfaces::msg::ChargerStatus>::SharedPtr charger_status_sub_;
+    void chargerStatusCallback(iii_drone_interfaces::msg::ChargerStatus::SharedPtr msg);
+    iii_drone_interfaces::msg::ChargerStatus charger_status_;
     bool charger_status_disabled_ = false;
     bool charger_status_charging_ = false;
     bool charger_status_fully_charged_ = false;
     std::mutex charger_status_mutex_;
-    iii_interfaces::msg::ChargerStatus getChargerStatus();
+    iii_drone_interfaces::msg::ChargerStatus getChargerStatus();
     bool chargerStatusDisabled();
     void setChargerStatusDisabled(bool disabled);
     bool chargerStatusCharging();
@@ -246,11 +246,11 @@ private:
     bool chargerStatusFullyCharged();
     void setChargerStatusFullyCharged(bool fully_charged);
 
-    rclcpp::Subscription<iii_interfaces::msg::GripperStatus>::SharedPtr gripper_status_sub_;
-    void gripperStatusCallback(iii_interfaces::msg::GripperStatus::SharedPtr msg);
-    iii_interfaces::msg::GripperStatus gripper_status_;
+    rclcpp::Subscription<iii_drone_interfaces::msg::GripperStatus>::SharedPtr gripper_status_sub_;
+    void gripperStatusCallback(iii_drone_interfaces::msg::GripperStatus::SharedPtr msg);
+    iii_drone_interfaces::msg::GripperStatus gripper_status_;
     std::mutex gripper_status_mutex_;
-    iii_interfaces::msg::GripperStatus getGripperStatus();
+    iii_drone_interfaces::msg::GripperStatus getGripperStatus();
 
     bool gripperIsClosed();
     bool gripperIsOpen();
@@ -260,28 +260,28 @@ private:
     std::mutex charging_start_time_mutex_;
     rclcpp::Time getChargingStartTime();
 
-    rclcpp::Service<iii_interfaces::srv::InitiateCharging>::SharedPtr initiate_charging_srv_server_;
+    rclcpp::Service<iii_drone_interfaces::srv::InitiateCharging>::SharedPtr initiate_charging_srv_server_;
     void initiateChargingSrvCallback(const std::shared_ptr<rmw_request_id_t> request_header,
-            const std::shared_ptr<iii_interfaces::srv::InitiateCharging::Request> request,
-            const std::shared_ptr<iii_interfaces::srv::InitiateCharging::Response> response);
+            const std::shared_ptr<iii_drone_interfaces::srv::InitiateCharging::Request> request,
+            const std::shared_ptr<iii_drone_interfaces::srv::InitiateCharging::Response> response);
     bool initiate_charging_srv_called_ = false;
     std::mutex initiate_charging_srv_called_mutex_;
     bool initiateChargingSrvCalled();
     void clearInitiateChargingSrvCalled();
     
-    rclcpp::Service<iii_interfaces::srv::InterruptCharging>::SharedPtr interrupt_charging_srv_server_;
+    rclcpp::Service<iii_drone_interfaces::srv::InterruptCharging>::SharedPtr interrupt_charging_srv_server_;
     void interruptChargingSrvCallback(const std::shared_ptr<rmw_request_id_t> request_header,
-            const std::shared_ptr<iii_interfaces::srv::InterruptCharging::Request> request,
-            const std::shared_ptr<iii_interfaces::srv::InterruptCharging::Response> response);
+            const std::shared_ptr<iii_drone_interfaces::srv::InterruptCharging::Request> request,
+            const std::shared_ptr<iii_drone_interfaces::srv::InterruptCharging::Response> response);
     bool interrupt_charging_srv_called_ = false;
     std::mutex interrupt_charging_srv_called_mutex_;
     bool interruptChargingSrvCalled();
     void clearInterruptChargingSrvCalled();
 
-    rclcpp::Service<iii_interfaces::srv::ProlongCharging>::SharedPtr prolong_charging_srv_server_;
+    rclcpp::Service<iii_drone_interfaces::srv::ProlongCharging>::SharedPtr prolong_charging_srv_server_;
     void prolongChargingSrvCallback(const std::shared_ptr<rmw_request_id_t> request_header,
-            const std::shared_ptr<iii_interfaces::srv::ProlongCharging::Request> request,
-            const std::shared_ptr<iii_interfaces::srv::ProlongCharging::Response> response);
+            const std::shared_ptr<iii_drone_interfaces::srv::ProlongCharging::Request> request,
+            const std::shared_ptr<iii_drone_interfaces::srv::ProlongCharging::Response> response);
     bool prolong_charging_until_interrupted_ = false;
     float prolong_charging_for_seconds_ = -1;
     float prolong_charging_until_new_battery_voltage_ = -1;
@@ -304,15 +304,15 @@ private:
     void setStopChargingFlag(bool flag);
 
     // Control state:
-    rclcpp::Subscription<iii_interfaces::msg::ControlState>::SharedPtr control_state_sub_;
-    void controlStateCallback(iii_interfaces::msg::ControlState::SharedPtr msg);
-    iii_interfaces::msg::ControlState control_state_;
+    rclcpp::Subscription<iii_drone_interfaces::msg::ControlState>::SharedPtr control_state_sub_;
+    void controlStateCallback(iii_drone_interfaces::msg::ControlState::SharedPtr msg);
+    iii_drone_interfaces::msg::ControlState control_state_;
     std::mutex control_state_mutex_;
-    iii_interfaces::msg::ControlState getControlState();
-    void setControlState(iii_interfaces::msg::ControlState control_state);
+    iii_drone_interfaces::msg::ControlState getControlState();
+    void setControlState(iii_drone_interfaces::msg::ControlState control_state);
 
     bool isInControllableState();
-    bool isInControllableState(iii_interfaces::msg::ControlState control_state);
+    bool isInControllableState(iii_drone_interfaces::msg::ControlState control_state);
 
     // tf:
     std::shared_ptr<tf2_ros::TransformListener> transform_listener_{nullptr};

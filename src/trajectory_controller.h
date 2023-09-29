@@ -48,21 +48,21 @@
 
 #include <std_msgs/msg/int16.hpp>
 
-#include "iii_interfaces/msg/control_state.hpp"
-#include "iii_interfaces/msg/powerline.hpp"
-#include "iii_interfaces/msg/gripper_status.hpp"
-
-#include "iii_interfaces/srv/set_general_target_yaw.hpp"
-
-#include "iii_interfaces/action/takeoff.hpp"
-#include "iii_interfaces/action/landing.hpp"
-#include "iii_interfaces/action/fly_to_position.hpp"
-#include "iii_interfaces/action/cable_landing.hpp"
-#include "iii_interfaces/action/cable_takeoff.hpp"
-#include "iii_interfaces/action/fly_under_cable.hpp"
-#include "iii_interfaces/action/fly_along_cable.hpp"
-#include "iii_interfaces/action/disarm_on_cable.hpp"
-#include "iii_interfaces/action/arm_on_cable.hpp"
+#include "iii_drone_interfaces/msg/control_state.hpp"
+#include "iii_drone_interfaces/msg/powerline.hpp"
+#include "iii_drone_interfaces/msg/gripper_status.hpp"
+              
+#include "iii_drone_interfaces/srv/set_general_target_yaw.hpp"
+              
+#include "iii_drone_interfaces/action/takeoff.hpp"
+#include "iii_drone_interfaces/action/landing.hpp"
+#include "iii_drone_interfaces/action/fly_to_position.hpp"
+#include "iii_drone_interfaces/action/cable_landing.hpp"
+#include "iii_drone_interfaces/action/cable_takeoff.hpp"
+#include "iii_drone_interfaces/action/fly_under_cable.hpp"
+#include "iii_drone_interfaces/action/fly_along_cable.hpp"
+#include "iii_drone_interfaces/action/disarm_on_cable.hpp"
+#include "iii_drone_interfaces/action/arm_on_cable.hpp"
 
 #include "geometry.h"
 #include "blocking_queue.h"
@@ -246,31 +246,31 @@ struct MPC_parameters_t {
 
 class TrajectoryController : public rclcpp::Node {
 public:
-	using Takeoff = iii_interfaces::action::Takeoff;
+	using Takeoff = iii_drone_interfaces::action::Takeoff;
 	using GoalHandleTakeoff = rclcpp_action::ServerGoalHandle<Takeoff>;
 
-	using Landing = iii_interfaces::action::Landing;
+	using Landing = iii_drone_interfaces::action::Landing;
 	using GoalHandleLanding = rclcpp_action::ServerGoalHandle<Landing>;
 
-	using FlyToPosition = iii_interfaces::action::FlyToPosition;
+	using FlyToPosition = iii_drone_interfaces::action::FlyToPosition;
 	using GoalHandleFlyToPosition = rclcpp_action::ServerGoalHandle<FlyToPosition>;
 
-	using FlyUnderCable = iii_interfaces::action::FlyUnderCable;
+	using FlyUnderCable = iii_drone_interfaces::action::FlyUnderCable;
 	using GoalHandleFlyUnderCable = rclcpp_action::ServerGoalHandle<FlyUnderCable>;
 
-	using FlyAlongCable = iii_interfaces::action::FlyAlongCable;
+	using FlyAlongCable = iii_drone_interfaces::action::FlyAlongCable;
 	using GoalHandleFlyAlongCable = rclcpp_action::ServerGoalHandle<FlyAlongCable>;
 
-	using CableLanding = iii_interfaces::action::CableLanding;
+	using CableLanding = iii_drone_interfaces::action::CableLanding;
 	using GoalHandleCableLanding = rclcpp_action::ServerGoalHandle<CableLanding>;
 
-	using CableTakeoff = iii_interfaces::action::CableTakeoff;
+	using CableTakeoff = iii_drone_interfaces::action::CableTakeoff;
 	using GoalHandleCableTakeoff = rclcpp_action::ServerGoalHandle<CableTakeoff>;
 
-	using DisarmOnCable = iii_interfaces::action::DisarmOnCable;
+	using DisarmOnCable = iii_drone_interfaces::action::DisarmOnCable;
 	using GoalHandleDisarmOnCable = rclcpp_action::ServerGoalHandle<DisarmOnCable>;
 
-	using ArmOnCable = iii_interfaces::action::ArmOnCable;
+	using ArmOnCable = iii_drone_interfaces::action::ArmOnCable;
 	using GoalHandleArmOnCable = rclcpp_action::ServerGoalHandle<ArmOnCable>;
 
 	TrajectoryController(const std::string & node_name="trajectory_controller", 
@@ -379,9 +379,9 @@ private:
 	void followArmOnCableCompletion(const std::shared_ptr<GoalHandleArmOnCable> goal_handle);
 
     // Set yaw service:
-    rclcpp::Service<iii_interfaces::srv::SetGeneralTargetYaw>::SharedPtr set_yaw_service_;
-    void setYawServiceCallback(const std::shared_ptr<iii_interfaces::srv::SetGeneralTargetYaw::Request> request,
-                                    std::shared_ptr<iii_interfaces::srv::SetGeneralTargetYaw::Response> response);
+    rclcpp::Service<iii_drone_interfaces::srv::SetGeneralTargetYaw>::SharedPtr set_yaw_service_;
+    void setYawServiceCallback(const std::shared_ptr<iii_drone_interfaces::srv::SetGeneralTargetYaw::Request> request,
+                                    std::shared_ptr<iii_drone_interfaces::srv::SetGeneralTargetYaw::Response> response);
 
 	// General member variables:
 	state_t state_ = init;
@@ -407,7 +407,7 @@ private:
 	float fly_along_cable_velocity_;
 	float fly_along_cable_inverse_direction_;
 
-	iii_interfaces::msg::Powerline powerline_;
+	iii_drone_interfaces::msg::Powerline powerline_;
 	int target_cable_id_ = -1;
 	geometry_msgs::msg::PoseStamped target_cable_pose_;
 	float target_cable_distance_ = -1;
@@ -436,18 +436,18 @@ private:
 	rclcpp::Subscription<px4_msgs::msg::TimesyncStatus>::SharedPtr timesync_sub_;
 	rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr odometry_sub_;
 
-	rclcpp::Subscription<iii_interfaces::msg::Powerline>::SharedPtr powerline_sub_;
+	rclcpp::Subscription<iii_drone_interfaces::msg::Powerline>::SharedPtr powerline_sub_;
 
 	rclcpp::Subscription<px4_msgs::msg::HomePosition>::SharedPtr home_position_sub_;
 
-	rclcpp::Subscription<iii_interfaces::msg::GripperStatus>::SharedPtr gripper_status_sub_;
+	rclcpp::Subscription<iii_drone_interfaces::msg::GripperStatus>::SharedPtr gripper_status_sub_;
 
 	rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr vehicle_command_pub_;
 	rclcpp::Publisher<px4_msgs::msg::TrajectorySetpoint>::SharedPtr trajectory_setpoint_pub_;
 	rclcpp::Publisher<px4_msgs::msg::VehicleThrustSetpoint>::SharedPtr thrust_setpoint_pub_;
 	rclcpp::Publisher<px4_msgs::msg::VehicleTorqueSetpoint>::SharedPtr torque_setpoint_pub_;
 
-	rclcpp::Publisher<iii_interfaces::msg::ControlState>::SharedPtr control_state_pub_;
+	rclcpp::Publisher<iii_drone_interfaces::msg::ControlState>::SharedPtr control_state_pub_;
 
 	rclcpp::Publisher<px4_msgs::msg::OffboardControlMode>::SharedPtr offboard_control_mode_pub_;
 
@@ -472,16 +472,16 @@ private:
 	bool home_position_set_ = false;
 
 	// gripper status member and mutex:
-	iii_interfaces::msg::GripperStatus gripper_status_;
+	iii_drone_interfaces::msg::GripperStatus gripper_status_;
 	std::mutex gripper_status_mutex_;
 
 	// General member methods:
 	void stateMachineCallback();
 	void odometryCallback(px4_msgs::msg::VehicleOdometry::SharedPtr msg);
-	void powerlineCallback(iii_interfaces::msg::Powerline::SharedPtr msg);
+	void powerlineCallback(iii_drone_interfaces::msg::Powerline::SharedPtr msg);
 	void homePositionCallback(px4_msgs::msg::HomePosition::SharedPtr msg);
 
-	void gripperStatusCallback(iii_interfaces::msg::GripperStatus::SharedPtr msg);
+	void gripperStatusCallback(iii_drone_interfaces::msg::GripperStatus::SharedPtr msg);
 
 	void setHomePosition(px4_msgs::msg::HomePosition new_home);
 	void setHomePositionIfChanged(px4_msgs::msg::HomePosition old_home, px4_msgs::msg::HomePosition new_home);

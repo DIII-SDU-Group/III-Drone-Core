@@ -44,12 +44,12 @@ ContinuousMissionOrchestrator::ContinuousMissionOrchestrator(const std::string &
     );
 
     // Gripper command client:
-    this->gripper_command_client_ = this->create_client<iii_interfaces::srv::GripperCommand>(
+    this->gripper_command_client_ = this->create_client<iii_drone_interfaces::srv::GripperCommand>(
         "/charger_gripper/gripper_command"
     );
 
     // Target cable service:
-    set_target_cable_id_srv_ = this->create_service<iii_interfaces::srv::SetTargetCableId>(
+    set_target_cable_id_srv_ = this->create_service<iii_drone_interfaces::srv::SetTargetCableId>(
         "set_target_cable_id",
         std::bind(&ContinuousMissionOrchestrator::setTargetCableIdSrvCallback, this, _1, _2, _3)
     );
@@ -61,28 +61,28 @@ ContinuousMissionOrchestrator::ContinuousMissionOrchestrator(const std::string &
     charging_power_sub_ = this->create_subscription<std_msgs::msg::Float32>(
         "/charger_gripper/charging_power", 10,
         std::bind(&ContinuousMissionOrchestrator::chargingPowerCallback, this, std::placeholders::_1));
-    charger_operating_mode_sub_ = this->create_subscription<iii_interfaces::msg::ChargerOperatingMode>(
+    charger_operating_mode_sub_ = this->create_subscription<iii_drone_interfaces::msg::ChargerOperatingMode>(
         "/charger_gripper/charger_operating_mode", 10,
         std::bind(&ContinuousMissionOrchestrator::chargerOperatingModeCallback, this, std::placeholders::_1));
-    charger_status_sub_ = this->create_subscription<iii_interfaces::msg::ChargerStatus>(
+    charger_status_sub_ = this->create_subscription<iii_drone_interfaces::msg::ChargerStatus>(
         "/charger_gripper/charger_status", 10,
         std::bind(&ContinuousMissionOrchestrator::chargerStatusCallback, this, std::placeholders::_1));
-    gripper_status_sub_ = this->create_subscription<iii_interfaces::msg::GripperStatus>(
+    gripper_status_sub_ = this->create_subscription<iii_drone_interfaces::msg::GripperStatus>(
         "/charger_gripper/gripper_status", 10,
         std::bind(&ContinuousMissionOrchestrator::gripperStatusCallback, this, std::placeholders::_1));
 
     // Charging:
-    initiate_charging_srv_server_ = this->create_service<iii_interfaces::srv::InitiateCharging>(
+    initiate_charging_srv_server_ = this->create_service<iii_drone_interfaces::srv::InitiateCharging>(
         "initiate_charging",
         std::bind(&ContinuousMissionOrchestrator::initiateChargingSrvCallback, this, _1, _2, _3)
     );
-    interrupt_charging_srv_server_ = this->create_service<iii_interfaces::srv::InterruptCharging>(
+    interrupt_charging_srv_server_ = this->create_service<iii_drone_interfaces::srv::InterruptCharging>(
         "interrupt_charging",
         std::bind(&ContinuousMissionOrchestrator::interruptChargingSrvCallback, this, _1, _2, _3)
     );
 
     // Control state:
-    control_state_sub_ = this->create_subscription<iii_interfaces::msg::ControlState>(
+    control_state_sub_ = this->create_subscription<iii_drone_interfaces::msg::ControlState>(
         "/trajectory_controller/control_state", 10,
         std::bind(&ContinuousMissionOrchestrator::controlStateCallback, this, std::placeholders::_1));
     
@@ -719,13 +719,13 @@ void ContinuousMissionOrchestrator::cancelCableTakeoff() {
 
 // GripperCommand service client:
 
-void ContinuousMissionOrchestrator::gripperCommandResponseCallback(rclcpp::Client<iii_interfaces::srv::GripperCommand>::SharedFuture future) {
+void ContinuousMissionOrchestrator::gripperCommandResponseCallback(rclcpp::Client<iii_drone_interfaces::srv::GripperCommand>::SharedFuture future) {
 
     bool gripper_command_success = false;
 
     auto response = future.get();
 
-    if (response->gripper_command_response == iii_interfaces::srv::GripperCommand::Response::GRIPPER_COMMAND_RESPONSE_SUCCESS) {
+    if (response->gripper_command_response == iii_drone_interfaces::srv::GripperCommand::Response::GRIPPER_COMMAND_RESPONSE_SUCCESS) {
 
         RCLCPP_INFO(this->get_logger(), "ContinuousMissionOrchestrator::gripperCommandResponseCallback(): GripperCommand service succeeded");
 
@@ -758,8 +758,8 @@ void ContinuousMissionOrchestrator::sendGripperCommand(bool close) {
         gripper_command_success_ = false;
     }
 
-    auto request = std::make_shared<iii_interfaces::srv::GripperCommand::Request>();
-    request->gripper_command = close ? iii_interfaces::srv::GripperCommand::Request::GRIPPER_COMMAND_CLOSE : iii_interfaces::srv::GripperCommand::Request::GRIPPER_COMMAND_OPEN;
+    auto request = std::make_shared<iii_drone_interfaces::srv::GripperCommand::Request>();
+    request->gripper_command = close ? iii_drone_interfaces::srv::GripperCommand::Request::GRIPPER_COMMAND_CLOSE : iii_drone_interfaces::srv::GripperCommand::Request::GRIPPER_COMMAND_OPEN;
 
     auto future = gripper_command_client_->async_send_request(request, std::bind(&ContinuousMissionOrchestrator::gripperCommandResponseCallback, this, std::placeholders::_1));
 
@@ -793,8 +793,8 @@ bool ContinuousMissionOrchestrator::getLastGripperCommandClose() {
 
 void ContinuousMissionOrchestrator::setTargetCableIdSrvCallback(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<iii_interfaces::srv::SetTargetCableId::Request> request,
-    const std::shared_ptr<iii_interfaces::srv::SetTargetCableId::Response> response
+    const std::shared_ptr<iii_drone_interfaces::srv::SetTargetCableId::Request> request,
+    const std::shared_ptr<iii_drone_interfaces::srv::SetTargetCableId::Response> response
 ) {
 
     (void)request_header;
@@ -944,7 +944,7 @@ bool ContinuousMissionOrchestrator::chargingPowerLow() {
 
 }
 
-void ContinuousMissionOrchestrator::chargerOperatingModeCallback(const iii_interfaces::msg::ChargerOperatingMode::SharedPtr msg) {
+void ContinuousMissionOrchestrator::chargerOperatingModeCallback(const iii_drone_interfaces::msg::ChargerOperatingMode::SharedPtr msg) {
 
     std::lock_guard<std::mutex> lock(charger_operating_mode_mutex_);
 
@@ -952,7 +952,7 @@ void ContinuousMissionOrchestrator::chargerOperatingModeCallback(const iii_inter
 
 }
 
-iii_interfaces::msg::ChargerOperatingMode ContinuousMissionOrchestrator::getChargerOperatingMode() {
+iii_drone_interfaces::msg::ChargerOperatingMode ContinuousMissionOrchestrator::getChargerOperatingMode() {
 
     std::lock_guard<std::mutex> lock(charger_operating_mode_mutex_);
 
@@ -960,7 +960,7 @@ iii_interfaces::msg::ChargerOperatingMode ContinuousMissionOrchestrator::getChar
 
 }
 
-void ContinuousMissionOrchestrator::chargerStatusCallback(const iii_interfaces::msg::ChargerStatus::SharedPtr msg) {
+void ContinuousMissionOrchestrator::chargerStatusCallback(const iii_drone_interfaces::msg::ChargerStatus::SharedPtr msg) {
 
     std::lock_guard<std::mutex> lock(charger_status_mutex_);
 
@@ -993,7 +993,7 @@ void ContinuousMissionOrchestrator::chargerStatusCallback(const iii_interfaces::
     }
 }
 
-iii_interfaces::msg::ChargerStatus ContinuousMissionOrchestrator::getChargerStatus() {
+iii_drone_interfaces::msg::ChargerStatus ContinuousMissionOrchestrator::getChargerStatus() {
 
     std::lock_guard<std::mutex> lock(charger_status_mutex_);
 
@@ -1054,7 +1054,7 @@ void ContinuousMissionOrchestrator::setChargerStatusFullyCharged(bool charger_st
 }
 
 
-void ContinuousMissionOrchestrator::gripperStatusCallback(const iii_interfaces::msg::GripperStatus::SharedPtr msg) {
+void ContinuousMissionOrchestrator::gripperStatusCallback(const iii_drone_interfaces::msg::GripperStatus::SharedPtr msg) {
 
     std::lock_guard<std::mutex> lock(gripper_status_mutex_);
 
@@ -1062,7 +1062,7 @@ void ContinuousMissionOrchestrator::gripperStatusCallback(const iii_interfaces::
 
 }
 
-iii_interfaces::msg::GripperStatus ContinuousMissionOrchestrator::getGripperStatus() {
+iii_drone_interfaces::msg::GripperStatus ContinuousMissionOrchestrator::getGripperStatus() {
 
     std::lock_guard<std::mutex> lock(gripper_status_mutex_);
 
@@ -1082,9 +1082,9 @@ bool ContinuousMissionOrchestrator::gripperIsClosed() {
 
     if (use_charger_gripper_info) {
 
-        iii_interfaces::msg::GripperStatus gripper_status = getGripperStatus();
+        iii_drone_interfaces::msg::GripperStatus gripper_status = getGripperStatus();
 
-        return gripper_status.gripper_status == iii_interfaces::msg::GripperStatus::GRIPPER_STATUS_CLOSED;
+        return gripper_status.gripper_status == iii_drone_interfaces::msg::GripperStatus::GRIPPER_STATUS_CLOSED;
 
     } else {
 
@@ -1105,9 +1105,9 @@ bool ContinuousMissionOrchestrator::gripperIsOpen() {
 
     if (use_charger_gripper_info) {
 
-        iii_interfaces::msg::GripperStatus gripper_status = getGripperStatus();
+        iii_drone_interfaces::msg::GripperStatus gripper_status = getGripperStatus();
 
-        return gripper_status.gripper_status == iii_interfaces::msg::GripperStatus::GRIPPER_STATUS_OPEN;
+        return gripper_status.gripper_status == iii_drone_interfaces::msg::GripperStatus::GRIPPER_STATUS_OPEN;
 
     } else {
 
@@ -1128,8 +1128,8 @@ rclcpp::Time ContinuousMissionOrchestrator::getChargingStartTime() {
 
 void ContinuousMissionOrchestrator::initiateChargingSrvCallback(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<iii_interfaces::srv::InitiateCharging::Request> request,
-    const std::shared_ptr<iii_interfaces::srv::InitiateCharging::Response> response
+    const std::shared_ptr<iii_drone_interfaces::srv::InitiateCharging::Request> request,
+    const std::shared_ptr<iii_drone_interfaces::srv::InitiateCharging::Response> response
 ) {
 
     (void)request_header;
@@ -1174,8 +1174,8 @@ void ContinuousMissionOrchestrator::clearInitiateChargingSrvCalled() {
 
 void ContinuousMissionOrchestrator::interruptChargingSrvCallback(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<iii_interfaces::srv::InterruptCharging::Request> request,
-    const std::shared_ptr<iii_interfaces::srv::InterruptCharging::Response> response
+    const std::shared_ptr<iii_drone_interfaces::srv::InterruptCharging::Request> request,
+    const std::shared_ptr<iii_drone_interfaces::srv::InterruptCharging::Response> response
 ) {
 
     (void)request_header;
@@ -1220,8 +1220,8 @@ void ContinuousMissionOrchestrator::clearInterruptChargingSrvCalled() {
 
 void ContinuousMissionOrchestrator::prolongChargingSrvCallback(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<iii_interfaces::srv::ProlongCharging::Request> request,
-    const std::shared_ptr<iii_interfaces::srv::ProlongCharging::Response> response
+    const std::shared_ptr<iii_drone_interfaces::srv::ProlongCharging::Request> request,
+    const std::shared_ptr<iii_drone_interfaces::srv::ProlongCharging::Response> response
 ) {
 
     (void)request_header;
@@ -1242,13 +1242,13 @@ void ContinuousMissionOrchestrator::prolongChargingSrvCallback(
 
     std::lock_guard<std::mutex> lock(prolong_charging_mutex_);
 
-    if (request->prolong_mode == iii_interfaces::srv::ProlongCharging::Request::PROLONG_MODE_UNTIL_INTERRUPTED) {
+    if (request->prolong_mode == iii_drone_interfaces::srv::ProlongCharging::Request::PROLONG_MODE_UNTIL_INTERRUPTED) {
 
         prolong_charging_until_interrupted_ = true;
         prolong_charging_for_seconds_ = -1;
         prolong_charging_until_new_battery_voltage_ = -1;
 
-    } else if (request->prolong_mode == iii_interfaces::srv::ProlongCharging::Request::PROLONG_MODE_FOR_TIME) {
+    } else if (request->prolong_mode == iii_drone_interfaces::srv::ProlongCharging::Request::PROLONG_MODE_FOR_TIME) {
 
         RCLCPP_FATAL(this->get_logger(), "ContinuousMissionOrchestrator::prolongChargingSrvCallback(): PROLONG_MODE_FOR_TIME not implemented yet");
 
@@ -1256,7 +1256,7 @@ void ContinuousMissionOrchestrator::prolongChargingSrvCallback(
         prolong_charging_for_seconds_ = request->prolong_time_s;
         prolong_charging_until_new_battery_voltage_ = -1;
 
-    } else if (request->prolong_mode == iii_interfaces::srv::ProlongCharging::Request::PROLONG_MODE_UNTIL_NEW_BATTERY_VOLTAGE) {
+    } else if (request->prolong_mode == iii_drone_interfaces::srv::ProlongCharging::Request::PROLONG_MODE_UNTIL_NEW_BATTERY_VOLTAGE) {
 
         RCLCPP_FATAL(this->get_logger(), "ContinuousMissionOrchestrator::prolongChargingSrvCallback(): PROLONG_MODE_UNTIL_NEW_BATTERY_VOLTAGE not implemented yet");
 
@@ -1264,7 +1264,7 @@ void ContinuousMissionOrchestrator::prolongChargingSrvCallback(
         prolong_charging_for_seconds_ = -1;
         prolong_charging_until_new_battery_voltage_ = request->new_battery_voltage;
 
-    } else if (request->prolong_mode == iii_interfaces::srv::ProlongCharging::Request::PROLONG_MODE_FOR_TIME_OR_NEW_BATTERY_VOLTAGE) {
+    } else if (request->prolong_mode == iii_drone_interfaces::srv::ProlongCharging::Request::PROLONG_MODE_FOR_TIME_OR_NEW_BATTERY_VOLTAGE) {
 
         RCLCPP_FATAL(this->get_logger(), "ContinuousMissionOrchestrator::prolongChargingSrvCallback(): PROLONG_MODE_FOR_TIME_OR_NEW_BATTERY_VOLTAGE not implemented yet");
 
@@ -1272,7 +1272,7 @@ void ContinuousMissionOrchestrator::prolongChargingSrvCallback(
         prolong_charging_for_seconds_ = request->prolong_time_s;
         prolong_charging_until_new_battery_voltage_ = request->new_battery_voltage;
 
-    } else if (request->prolong_mode == iii_interfaces::srv::ProlongCharging::Request::PROLONG_MODE_CLEAR) {
+    } else if (request->prolong_mode == iii_drone_interfaces::srv::ProlongCharging::Request::PROLONG_MODE_CLEAR) {
 
         prolong_charging_until_interrupted_ = false;
         prolong_charging_for_seconds_ = -1;
@@ -1483,13 +1483,13 @@ void ContinuousMissionOrchestrator::setStopChargingFlag(bool stop_charging_flag)
 }
 
 // Control state:
-void ContinuousMissionOrchestrator::controlStateCallback(const iii_interfaces::msg::ControlState::SharedPtr msg) {
+void ContinuousMissionOrchestrator::controlStateCallback(const iii_drone_interfaces::msg::ControlState::SharedPtr msg) {
 
     setControlState(*msg);
 
 }
 
-iii_interfaces::msg::ControlState ContinuousMissionOrchestrator::getControlState() {
+iii_drone_interfaces::msg::ControlState ContinuousMissionOrchestrator::getControlState() {
 
     std::lock_guard<std::mutex> lock(control_state_mutex_);
 
@@ -1497,7 +1497,7 @@ iii_interfaces::msg::ControlState ContinuousMissionOrchestrator::getControlState
 
 }
 
-void ContinuousMissionOrchestrator::setControlState(iii_interfaces::msg::ControlState control_state) {
+void ContinuousMissionOrchestrator::setControlState(iii_drone_interfaces::msg::ControlState control_state) {
 
     std::lock_guard<std::mutex> lock(control_state_mutex_);
 
@@ -1507,23 +1507,23 @@ void ContinuousMissionOrchestrator::setControlState(iii_interfaces::msg::Control
 
 bool ContinuousMissionOrchestrator::isInControllableState() {
 
-    iii_interfaces::msg::ControlState control_state = getControlState();
+    iii_drone_interfaces::msg::ControlState control_state = getControlState();
 
     return isInControllableState(control_state);
 
 }
 
-bool ContinuousMissionOrchestrator::isInControllableState(iii_interfaces::msg::ControlState control_state) {
+bool ContinuousMissionOrchestrator::isInControllableState(iii_drone_interfaces::msg::ControlState control_state) {
 
     switch(control_state.state) {
 
-        case iii_interfaces::msg::ControlState::CONTROL_STATE_INIT:
-        case iii_interfaces::msg::ControlState::CONTROL_STATE_ON_GROUND_NON_OFFBOARD:
-        case iii_interfaces::msg::ControlState::CONTROL_STATE_IN_FLIGHT_NON_OFFBOARD:
-        case iii_interfaces::msg::ControlState::CONTROL_STATE_ARMING:
-        case iii_interfaces::msg::ControlState::CONTROL_STATE_SETTING_OFFBOARD:
-        case iii_interfaces::msg::ControlState::CONTROL_STATE_TAKING_OFF:
-        case iii_interfaces::msg::ControlState::CONTROL_STATE_LANDING:
+        case iii_drone_interfaces::msg::ControlState::CONTROL_STATE_INIT:
+        case iii_drone_interfaces::msg::ControlState::CONTROL_STATE_ON_GROUND_NON_OFFBOARD:
+        case iii_drone_interfaces::msg::ControlState::CONTROL_STATE_IN_FLIGHT_NON_OFFBOARD:
+        case iii_drone_interfaces::msg::ControlState::CONTROL_STATE_ARMING:
+        case iii_drone_interfaces::msg::ControlState::CONTROL_STATE_SETTING_OFFBOARD:
+        case iii_drone_interfaces::msg::ControlState::CONTROL_STATE_TAKING_OFF:
+        case iii_drone_interfaces::msg::ControlState::CONTROL_STATE_LANDING:
 
             return false;
 
@@ -1638,9 +1638,9 @@ void ContinuousMissionOrchestrator::stateMachineCallback() {
 
 void ContinuousMissionOrchestrator::stateMachineManual() {
 
-    iii_interfaces::msg::ControlState control_state = getControlState();
+    iii_drone_interfaces::msg::ControlState control_state = getControlState();
 
-    if (control_state.state == iii_interfaces::msg::ControlState::CONTROL_STATE_HOVERING || control_state.state == iii_interfaces::msg::ControlState::CONTROL_STATE_HOVERING_UNDER_CABLE) {
+    if (control_state.state == iii_drone_interfaces::msg::ControlState::CONTROL_STATE_HOVERING || control_state.state == iii_drone_interfaces::msg::ControlState::CONTROL_STATE_HOVERING_UNDER_CABLE) {
 
         RCLCPP_INFO(get_logger(), "ContinuousMissionOrchestrator::stateMachineManual(): Vehicle is controllable, entering wait_for_target_line state");
 
@@ -1680,7 +1680,7 @@ void ContinuousMissionOrchestrator::stateMachineFlyingUnderCable() {
     static bool action_timer_started = false;
 
     // Check control state:
-    iii_interfaces::msg::ControlState control_state = getControlState();
+    iii_drone_interfaces::msg::ControlState control_state = getControlState();
 
     if (!isInControllableState(control_state)) {
 
@@ -1704,7 +1704,7 @@ void ContinuousMissionOrchestrator::stateMachineFlyingUnderCable() {
 
     }
 
-    if (flyUnderCableSucceeded() && control_state.state == iii_interfaces::msg::ControlState::CONTROL_STATE_HOVERING_UNDER_CABLE) {
+    if (flyUnderCableSucceeded() && control_state.state == iii_drone_interfaces::msg::ControlState::CONTROL_STATE_HOVERING_UNDER_CABLE) {
 
         RCLCPP_INFO(get_logger(), "ContinuousMissionOrchestrator::stateMachineFlyingUnderCable(): Vehicle is hovering under cable, entering inspecting state");
 
@@ -1746,9 +1746,9 @@ void ContinuousMissionOrchestrator::stateMachineFlyingUnderCable() {
 void ContinuousMissionOrchestrator::stateMachineInspecting() {
 
     // Check control state:
-    iii_interfaces::msg::ControlState control_state = getControlState();
+    iii_drone_interfaces::msg::ControlState control_state = getControlState();
 
-    if (control_state.state != iii_interfaces::msg::ControlState::CONTROL_STATE_HOVERING_UNDER_CABLE) {
+    if (control_state.state != iii_drone_interfaces::msg::ControlState::CONTROL_STATE_HOVERING_UNDER_CABLE) {
 
         RCLCPP_ERROR(get_logger(), "ContinuousMissionOrchestrator::stateMachineInspecting(): Vehicle is not hovering under cable, resetting target cable id and entering manual state");
 
@@ -1822,7 +1822,7 @@ void ContinuousMissionOrchestrator::stateMachineLandingOnCable() {
 
     static bool action_timer_started = false;
 
-    iii_interfaces::msg::ControlState control_state = getControlState();
+    iii_drone_interfaces::msg::ControlState control_state = getControlState();
 
     if (!isInControllableState(control_state)) {
 
@@ -1846,10 +1846,10 @@ void ContinuousMissionOrchestrator::stateMachineLandingOnCable() {
 
     }
 
-    iii_interfaces::msg::GripperStatus gripper_status = getGripperStatus();
-    bool gripper_is_closed = gripper_status.gripper_status == iii_interfaces::msg::GripperStatus::GRIPPER_STATUS_CLOSED;
+    iii_drone_interfaces::msg::GripperStatus gripper_status = getGripperStatus();
+    bool gripper_is_closed = gripper_status.gripper_status == iii_drone_interfaces::msg::GripperStatus::GRIPPER_STATUS_CLOSED;
 
-    if (cableLandingSucceeded() && control_state.state == iii_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_ARMED && gripper_is_closed) {
+    if (cableLandingSucceeded() && control_state.state == iii_drone_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_ARMED && gripper_is_closed) {
 
         action_timer_started = false;
 
@@ -1880,7 +1880,7 @@ void ContinuousMissionOrchestrator::stateMachineLandingOnCable() {
 
         action_timer_started = false;
 
-        if (control_state.state == iii_interfaces::msg::ControlState::CONTROL_STATE_HOVERING_UNDER_CABLE) {
+        if (control_state.state == iii_drone_interfaces::msg::ControlState::CONTROL_STATE_HOVERING_UNDER_CABLE) {
 
             if (cable_landing_counter_ <= 0) {
 
@@ -1900,7 +1900,7 @@ void ContinuousMissionOrchestrator::stateMachineLandingOnCable() {
 
             }
 
-        } else if (control_state.state != iii_interfaces::msg::ControlState::CONTROL_STATE_DURING_CABLE_TAKEOFF && control_state.state != iii_interfaces::msg::ControlState::CONTROL_STATE_DURING_CABLE_LANDING) {
+        } else if (control_state.state != iii_drone_interfaces::msg::ControlState::CONTROL_STATE_DURING_CABLE_TAKEOFF && control_state.state != iii_drone_interfaces::msg::ControlState::CONTROL_STATE_DURING_CABLE_LANDING) {
 
             RCLCPP_FATAL(get_logger(), "ContinuousMissionOrchestrator::stateMachineLandingOnCable(): Cable landing failed and vehicle is not hovering under cable, not during cable takeoff, and not during cable landing, entering error state");
 
@@ -1921,7 +1921,7 @@ void ContinuousMissionOrchestrator::stateMachineLandingOnCable() {
 
 
 
-    // if (cableLandingSucceeded() && control_state.state == iii_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_ARMED) {
+    // if (cableLandingSucceeded() && control_state.state == iii_drone_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_ARMED) {
 
     //     action_timer_started = false;
 
@@ -1965,7 +1965,7 @@ void ContinuousMissionOrchestrator::stateMachineLandingOnCable() {
 
     //     action_timer_started = false;
 
-    //     if (control_state.state == iii_interfaces::msg::ControlState::CONTROL_STATE_HOVERING_UNDER_CABLE) {
+    //     if (control_state.state == iii_drone_interfaces::msg::ControlState::CONTROL_STATE_HOVERING_UNDER_CABLE) {
 
     //         if (cable_landing_counter_ <= 0) {
 
@@ -1985,7 +1985,7 @@ void ContinuousMissionOrchestrator::stateMachineLandingOnCable() {
 
     //         }
 
-    //     } else if (control_state.state != iii_interfaces::msg::ControlState::CONTROL_STATE_DURING_CABLE_LANDING) {
+    //     } else if (control_state.state != iii_drone_interfaces::msg::ControlState::CONTROL_STATE_DURING_CABLE_LANDING) {
 
     //         RCLCPP_FATAL(get_logger(), "ContinuousMissionOrchestrator::stateMachineLandingOnCable(): Cable landing failed and vehicle is not hovering under cable, entering error state");
 
@@ -2021,8 +2021,8 @@ void ContinuousMissionOrchestrator::stateMachineClosingGripper() {
 
     }
 
-    // iii_interfaces::msg::GripperStatus gripper_status = getGripperStatus();
-    // bool gripper_is_closed = gripper_status.gripper_status == iii_interfaces::msg::GripperStatus::GRIPPER_STATUS_CLOSED;
+    // iii_drone_interfaces::msg::GripperStatus gripper_status = getGripperStatus();
+    // bool gripper_is_closed = gripper_status.gripper_status == iii_drone_interfaces::msg::GripperStatus::GRIPPER_STATUS_CLOSED;
 
     // if (gripperCommandSucceeded() && gripper_is_closed) {
 
@@ -2086,7 +2086,7 @@ void ContinuousMissionOrchestrator::stateMachineDisarmingOnCable() {
 
     static bool action_timer_started = false;
 
-    iii_interfaces::msg::ControlState control_state = getControlState();
+    iii_drone_interfaces::msg::ControlState control_state = getControlState();
 
     if (!isInControllableState(control_state)) {
 
@@ -2104,7 +2104,7 @@ void ContinuousMissionOrchestrator::stateMachineDisarmingOnCable() {
 
     }
 
-    if (disarmOnCableSucceeded() && control_state.state == iii_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_DISARMED) {
+    if (disarmOnCableSucceeded() && control_state.state == iii_drone_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_DISARMED) {
 
         RCLCPP_INFO(get_logger(), "ContinuousMissionOrchestrator::stateMachineDisarmingOnCable(): Disarm on cable succeeded and vehicle is disarmed on cable, entering charging state");
 
@@ -2143,9 +2143,9 @@ void ContinuousMissionOrchestrator::stateMachineDisarmingOnCable() {
 
 void ContinuousMissionOrchestrator::stateMachineCharging() {
 
-    iii_interfaces::msg::ControlState control_state = getControlState();
+    iii_drone_interfaces::msg::ControlState control_state = getControlState();
 
-    if (control_state.state != iii_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_DISARMED) {
+    if (control_state.state != iii_drone_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_DISARMED) {
 
         RCLCPP_FATAL(get_logger(), "ContinuousMissionOrchestrator::stateMachineCharging(): Vehicle is not disarmed on cable, entering error state");
 
@@ -2173,7 +2173,7 @@ void ContinuousMissionOrchestrator::stateMachineArmingOnCable() {
 
     static bool action_timer_started = false;
 
-    iii_interfaces::msg::ControlState control_state = getControlState();
+    iii_drone_interfaces::msg::ControlState control_state = getControlState();
 
     if (!isInControllableState(control_state)) {
 
@@ -2191,7 +2191,7 @@ void ContinuousMissionOrchestrator::stateMachineArmingOnCable() {
 
     }
 
-    if (armOnCableSucceeded() && control_state.state == iii_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_ARMED) {
+    if (armOnCableSucceeded() && control_state.state == iii_drone_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_ARMED) {
 
         RCLCPP_INFO(get_logger(), "ContinuousMissionOrchestrator::stateMachineArmingOnCable(): Arm on cable succeeded and vehicle is armed on cable, entering opening_gripper state");
 
@@ -2288,7 +2288,7 @@ void ContinuousMissionOrchestrator::stateMachineTakingOffFromCable() {
 
     static bool action_timer_started = false;
 
-    iii_interfaces::msg::ControlState control_state = getControlState();
+    iii_drone_interfaces::msg::ControlState control_state = getControlState();
 
     if (!isInControllableState(control_state)) {
 
@@ -2306,7 +2306,7 @@ void ContinuousMissionOrchestrator::stateMachineTakingOffFromCable() {
 
     }
 
-    if (cableTakeoffSucceeded() && control_state.state == iii_interfaces::msg::ControlState::CONTROL_STATE_HOVERING_UNDER_CABLE) {
+    if (cableTakeoffSucceeded() && control_state.state == iii_drone_interfaces::msg::ControlState::CONTROL_STATE_HOVERING_UNDER_CABLE) {
 
         if (getStartChargingFlag()) {
 
