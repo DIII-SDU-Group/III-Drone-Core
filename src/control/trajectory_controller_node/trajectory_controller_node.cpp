@@ -2,7 +2,11 @@
 // Includes
 /*****************************************************************************/
 
-#include "trajectory_controller.h"
+#include "iii_drone_core/control/trajectory_controller_node/trajectory_controller_node.hpp"
+
+using namespace iii_drone::control::trajectory_controller_node;
+using namespace iii_drone::types;
+using namespace iii_drone::math;
 
 /*****************************************************************************/
 // Implementation
@@ -281,7 +285,7 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	);
 
 	// Set yaw service:
-    set_yaw_service_ = this->create_service<iii_interfaces::srv::SetGeneralTargetYaw>("set_general_target_yaw", 
+    set_yaw_service_ = this->create_service<iii_drone_interfaces::srv::SetGeneralTargetYaw>("set_general_target_yaw", 
         std::bind(&TrajectoryController::setYawServiceCallback, this, std::placeholders::_1, std::placeholders::_2));
 
 	// Publishers and subscriptions:
@@ -305,7 +309,7 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 		this->create_publisher<px4_msgs::msg::VehicleTorqueSetpoint>("/fmu/in/vehicle_torque_setpoint", 10);
 
 	control_state_pub_ = 
-		this->create_publisher<iii_interfaces::msg::ControlState>("control_state", 10);
+		this->create_publisher<iii_drone_interfaces::msg::ControlState>("control_state", 10);
 
 	target_cable_id_pub_ = 
 		this->create_publisher<std_msgs::msg::Int16>("target_cable_id", 10);
@@ -345,12 +349,12 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 		sub_qos,
 		std::bind(&TrajectoryController::homePositionCallback, this, std::placeholders::_1));
 
-	powerline_sub_ = this->create_subscription<iii_interfaces::msg::Powerline>(
+	powerline_sub_ = this->create_subscription<iii_drone_interfaces::msg::Powerline>(
 		"/pl_mapper/powerline", 
 		10,
 		std::bind(&TrajectoryController::powerlineCallback, this, std::placeholders::_1));
 
-	gripper_status_sub_ = this->create_subscription<iii_interfaces::msg::GripperStatus>(
+	gripper_status_sub_ = this->create_subscription<iii_drone_interfaces::msg::GripperStatus>(
 		"/charger_gripper/gripper_status", 
 		10,
 		std::bind(&TrajectoryController::gripperStatusCallback, this, std::placeholders::_1));
@@ -1467,14 +1471,14 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalCableTakeoff(
 	bool use_gripper_status_condition;
 	this->get_parameter("use_gripper_status_condition", use_gripper_status_condition);
 	if (use_gripper_status_condition) {
-		iii_interfaces::msg::GripperStatus gripper_status; {
+		iii_drone_interfaces::msg::GripperStatus gripper_status; {
 
 			std::lock_guard<std::mutex> lock(gripper_status_mutex_);
 			gripper_status = gripper_status_;
 			
 		}
 
-		if (gripper_status.gripper_status != iii_interfaces::msg::GripperStatus::GRIPPER_STATUS_OPEN) {
+		if (gripper_status.gripper_status != iii_drone_interfaces::msg::GripperStatus::GRIPPER_STATUS_OPEN) {
 			// debug cable takeoff goal rejected, gripper not open
 			RCLCPP_INFO(this->get_logger(), "Cable takeoff goal rejected, gripper not open");
 			return rclcpp_action::GoalResponse::REJECT;
@@ -1670,13 +1674,13 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalDisarmOnCable(
 	if (use_gripper_status_condition) {
 
 		// Load gripper_status_:
-		iii_interfaces::msg::GripperStatus gripper_status;
+		iii_drone_interfaces::msg::GripperStatus gripper_status;
 		{
 			std::lock_guard<std::mutex> lock(gripper_status_mutex_);
 			gripper_status = gripper_status_;
 		}
 
-		if (gripper_status.gripper_status != iii_interfaces::msg::GripperStatus::GRIPPER_STATUS_CLOSED) {
+		if (gripper_status.gripper_status != iii_drone_interfaces::msg::GripperStatus::GRIPPER_STATUS_CLOSED) {
 			RCLCPP_INFO(this->get_logger(), "Disarm on cable goal rejected, gripper not closed");
 			return rclcpp_action::GoalResponse::REJECT;
 		}
@@ -1933,8 +1937,8 @@ void TrajectoryController::followArmOnCableCompletion(const std::shared_ptr<Goal
 	}
 }
 
-void TrajectoryController::setYawServiceCallback(const std::shared_ptr<iii_interfaces::srv::SetGeneralTargetYaw::Request> request,
-                                std::shared_ptr<iii_interfaces::srv::SetGeneralTargetYaw::Response> response) {
+void TrajectoryController::setYawServiceCallback(const std::shared_ptr<iii_drone_interfaces::srv::SetGeneralTargetYaw::Request> request,
+                                std::shared_ptr<iii_drone_interfaces::srv::SetGeneralTargetYaw::Response> response) {
 
     target_yaw_mutex_.lock(); {
 
@@ -2518,7 +2522,7 @@ void TrajectoryController::stateMachineCallback() {
 
 		} else if (!armed && veh_state(2) > landed_altitude_threshold + ground_altitude_offset(2)) {
 
-			iii_interfaces::msg::Powerline powerline;
+			iii_drone_interfaces::msg::Powerline powerline;
 
 			powerline_mutex_.lock(); {
 
@@ -4152,7 +4156,7 @@ void TrajectoryController::stateMachineCallback() {
 
 				if (use_gripper_status_condition) {
 
-					iii_interfaces::msg::GripperStatus gripper_status; {
+					iii_drone_interfaces::msg::GripperStatus gripper_status; {
 
 						std::lock_guard<std::mutex> lock(gripper_status_mutex_);
 
@@ -4160,7 +4164,7 @@ void TrajectoryController::stateMachineCallback() {
 
 					}
 
-					condition = condition && gripper_status.gripper_status == iii_interfaces::msg::GripperStatus::GRIPPER_STATUS_CLOSED;
+					condition = condition && gripper_status.gripper_status == iii_drone_interfaces::msg::GripperStatus::GRIPPER_STATUS_CLOSED;
 
 				}
 
@@ -4548,7 +4552,7 @@ void TrajectoryController::odometryCallback(px4_msgs::msg::VehicleOdometry::Shar
 
 }
 
-void TrajectoryController::powerlineCallback(iii_interfaces::msg::Powerline::SharedPtr msg) {
+void TrajectoryController::powerlineCallback(iii_drone_interfaces::msg::Powerline::SharedPtr msg) {
 
 	powerline_mutex_.lock(); {
 
@@ -4558,7 +4562,7 @@ void TrajectoryController::powerlineCallback(iii_interfaces::msg::Powerline::Sha
 
 }
 
-void TrajectoryController::gripperStatusCallback(iii_interfaces::msg::GripperStatus::SharedPtr msg) {
+void TrajectoryController::gripperStatusCallback(iii_drone_interfaces::msg::GripperStatus::SharedPtr msg) {
 
 	gripper_status_mutex_.lock(); {
 
@@ -4799,7 +4803,7 @@ void TrajectoryController::publishOffboardControlMode() {
 
 void TrajectoryController::publishControlState() {
 
-	iii_interfaces::msg::ControlState msg;
+	iii_drone_interfaces::msg::ControlState msg;
 
 	switch (state_) {
 

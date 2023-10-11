@@ -2,14 +2,25 @@
 // Includes
 /*****************************************************************************/
 
-#include "pl_dir_computer_node.h"
+#include <iii_drone_core/perception/pl_dir_computer_node/pl_dir_computer_node.hpp>
+
+using namespace iii_drone::perception::pl_dir_computer_node;
+using namespace iii_drone::types;
+using namespace iii_drone::math;
 
 /*****************************************************************************/
 // Implementation
 /*****************************************************************************/
 
-PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(const std::string & node_name, const std::string & node_namespace) : 
-        rclcpp::Node(node_name, node_namespace) {
+PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(
+    const std::string & node_name, 
+    const std::string & node_namespace,
+    const rclcpp::NodeOptions & options
+) : rclcpp::Node(
+    node_name, 
+    node_namespace,
+    options
+) {
 
     this->declare_parameter<float>("kf_r", 0.999);
     this->declare_parameter<float>("kf_q", 0.001);
@@ -46,13 +57,13 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(const std::string
     last_drone_quat_(2) = 0;
     last_drone_quat_(3) = 0;
 
-    // pl_direction_sub_ = this->create_subscription<iii_interfaces::msg::PowerlineDirection>(
+    // pl_direction_sub_ = this->create_subscription<iii_drone_interfaces::msg::PowerlineDirection>(
     //     "/hough_transformer/cable_yaw_angle", 10, std::bind(&PowerlineDirectionComputerNode::plDirectionCallback, this, std::placeholders::_1));
-    pl_direction_sub_ = this->create_subscription<iii_interfaces::msg::PowerlineDirection>(
+    pl_direction_sub_ = this->create_subscription<iii_drone_interfaces::msg::PowerlineDirection>(
         "/hough_transformer/cable_yaw_angle", 10, std::bind(&PowerlineDirectionComputerNode::plDirectionCallback, this, std::placeholders::_1));
 
     // INiti pl_sub:
-    pl_sub_ = this->create_subscription<iii_interfaces::msg::Powerline>(
+    pl_sub_ = this->create_subscription<iii_drone_interfaces::msg::Powerline>(
         "/pl_mapper/powerline", 10, std::bind(&PowerlineDirectionComputerNode::plCallback, this, std::placeholders::_1));
 
     pl_direction_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("powerline_direction", 10);
@@ -148,7 +159,7 @@ void PowerlineDirectionComputerNode::odometryCallback() {
 
 }
 
-void PowerlineDirectionComputerNode::plDirectionCallback(const iii_interfaces::msg::PowerlineDirection::SharedPtr msg) {
+void PowerlineDirectionComputerNode::plDirectionCallback(const iii_drone_interfaces::msg::PowerlineDirection::SharedPtr msg) {
 
     // RCLCPP_DEBUG(this->get_logger(), "Received powerline direction message");
 
@@ -161,7 +172,7 @@ void PowerlineDirectionComputerNode::plDirectionCallback(const iii_interfaces::m
     update(pl_angle);
 }
 
-void PowerlineDirectionComputerNode::plCallback(const iii_interfaces::msg::Powerline::SharedPtr msg) {
+void PowerlineDirectionComputerNode::plCallback(const iii_drone_interfaces::msg::Powerline::SharedPtr msg) {
 
     pl_mutex_.lock(); {
 

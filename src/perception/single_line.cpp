@@ -2,15 +2,29 @@
 // Includes
 /*****************************************************************************/
 
-#include "single_line_class.h"
+#include "iii_drone_core/perception/single_line.hpp"
+
+using namespace iii_drone::perception;
+using namespace iii_drone::types;
+using namespace iii_drone::math;
 
 /*****************************************************************************/
 // Implementation
 /*****************************************************************************/
 
-SingleLine::SingleLine(int id, point_t initial_point, float r, float q, 
-    rclcpp::Logger logger, int alive_cnt_low_thresh, int alive_cnt_high_thresh, int alive_cnt_ceiling,
-    std::string drone_frame_id, std::string mmwave_frame_id, bool simulation) : logger_(logger) {
+SingleLine::SingleLine(
+    int id, 
+    point_t initial_point, 
+    float r, 
+    float q,
+    rclcpp::Logger logger,
+    int alive_cnt_low_thresh, 
+    int alive_cnt_high_thresh, 
+    int alive_cnt_ceiling,
+    std::string drone_frame_id,
+    std::string mmwave_frame_id, 
+    bool simulation
+) : logger_(logger) {
 
     simulation_ = simulation;
 
@@ -52,8 +66,19 @@ int SingleLine::GetId() {
 
 SingleLine SingleLine::GetCopy() {
 
-    SingleLine sl(id_, pl_point_, r_, q_, 
-        logger_, alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_, drone_frame_id_, mmwave_frame_id_, simulation_);
+    SingleLine sl(
+        id_, 
+        pl_point_, 
+        r_, 
+        q_, 
+        logger_, 
+        alive_cnt_low_thresh_, 
+        alive_cnt_high_thresh_, 
+        alive_cnt_ceiling_, 
+        drone_frame_id_, 
+        mmwave_frame_id_, 
+        simulation_
+    );
 
     return sl;
 
@@ -74,9 +99,20 @@ void SingleLine::SetPoint(point_t point) {
 
 }
 
-bool SingleLine::IsAlive(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float min_point_dist, float max_point_dist, float view_cone_slope) {
+bool SingleLine::IsAlive(
+    std::unique_ptr<tf2_ros::Buffer> &tf_buffer, 
+    float min_point_dist, 
+    float max_point_dist, 
+    float view_cone_slope
+) {
 
-    if (IsInFOV(tf_buffer, min_point_dist, max_point_dist, view_cone_slope) && --alive_cnt_ <= alive_cnt_low_thresh_) {
+    if (IsInFOV(
+            tf_buffer, 
+            min_point_dist, 
+            max_point_dist, 
+            view_cone_slope
+        ) && --alive_cnt_ <= alive_cnt_low_thresh_
+    ) {
 
         return false;
 
@@ -93,7 +129,12 @@ bool SingleLine::IsVisible() {
 
 }
 
-bool SingleLine::IsInFOV(point_t point, float min_point_dist, float max_point_dist, float view_cone_slope) {
+bool SingleLine::IsInFOV(
+    point_t point,
+    float min_point_dist,
+    float max_point_dist,
+    float view_cone_slope
+) {
 
     bool in_FOV = true;
 
@@ -118,7 +159,12 @@ bool SingleLine::IsInFOV(point_t point, float min_point_dist, float max_point_di
 
 }
 
-bool SingleLine::IsInFOV(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float min_point_dist, float max_point_dist, float view_cone_slope) {
+bool SingleLine::IsInFOV(
+    std::unique_ptr<tf2_ros::Buffer> &tf_buffer, 
+    float min_point_dist, 
+    float max_point_dist, 
+    float view_cone_slope
+) {
 
     // //RCLCPP_INFO(logger_, "b1");
 
@@ -143,7 +189,12 @@ bool SingleLine::IsInFOV(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float min_
     // //RCLCPP_INFO(logger_, "b4");
 
     // return IsInFOV(pl_point_, min_point_dist, max_point_dist, view_cone_slope);
-    return IsInFOV(mmwave_point, min_point_dist, max_point_dist, view_cone_slope);
+    return IsInFOV(
+        mmwave_point, 
+        min_point_dist, 
+        max_point_dist, 
+        view_cone_slope
+    );
 
 }
 
@@ -175,7 +226,12 @@ void SingleLine::Update(point_t point) {
 
 }
 
-void SingleLine::Predict(vector_t delta_position, quat_t delta_quat, plane_t projection_plane, std::unique_ptr<tf2_ros::Buffer> &tf_buffer) {
+void SingleLine::Predict(
+    vector_t delta_position, 
+    quat_t delta_quat, 
+    plane_t projection_plane, 
+    std::unique_ptr<tf2_ros::Buffer> &tf_buffer
+) {
 
     //RCLCPP_INFO(logger_, "Predicting line");
 
@@ -190,7 +246,10 @@ void SingleLine::Predict(vector_t delta_position, quat_t delta_quat, plane_t pro
 
     //RCLCPP_INFO(logger_, "Point before: (%f, %f, %f)", pl_point_(0), pl_point_(1), pl_point_(2));
 
-    delta_position = projectPointOnPlane(delta_position, projection_plane);
+    delta_position = projectPointOnPlane(
+        delta_position, 
+        projection_plane
+    );
     // delta_position(0) = 0;
     // delta_position(1) = 0;
 

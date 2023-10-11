@@ -7,8 +7,8 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
 from std_msgs.msg import Float32
 
-from iii_interfaces.msg import ChargerOperatingMode, ChargerStatus, GripperStatus
-from iii_interfaces.srv import GripperCommand
+from iii_drone_interfaces.msg import ChargerOperatingMode, ChargerStatus, GripperStatus
+from iii_drone_interfaces.srv import GripperCommand
 
 from threading import Lock
 

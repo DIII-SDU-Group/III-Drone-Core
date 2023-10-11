@@ -2,18 +2,29 @@
 // Includes
 /*****************************************************************************/
 
-#include "pl_mapper_node.h"
+#include "iii_drone_core/perception/pl_mapper_node/pl_mapper_node.hpp"
+
+using namespace iii_drone::perception::pl_mapper_node;
+using namespace iii_drone::math;
+using namespace iii_drone::types;
 
 /*****************************************************************************/
 // Implementation
 /*****************************************************************************/
 
-PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const std::string & node_namespace) : 
-        rclcpp::Node(node_name, node_namespace),
-        powerline_(this->get_logger(), simulation_) {
-            // first val = r = mmW variance 5
-            // second val = q = odo variance 0.005
-            // last three values indicate alive_cnt_low_thresh=0, alive_cnt_high_thresh=60, alive_cnt_ceiling=90
+PowerlineMapperNode::PowerlineMapperNode(
+    const std::string & node_name, 
+    const std::string & node_namespace,
+    const rclcpp::NodeOptions & options
+) : rclcpp::Node(
+        node_name, 
+        node_namespace,
+        options
+    ), 
+    powerline_(
+        this->get_logger(), 
+        simulation_
+) {
 
     this->declare_parameter<bool>("simulation", false);
     this->get_parameter("simulation", simulation_);
@@ -68,10 +79,10 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
     mmwave_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
         "/mmwave/pcl", 10, std::bind(&PowerlineMapperNode::mmWaveCallback, this, std::placeholders::_1));
 
-    control_state_sub_ = this->create_subscription<iii_interfaces::msg::ControlState>(
+    control_state_sub_ = this->create_subscription<iii_drone_interfaces::msg::ControlState>(
         "/trajectory_controller/control_state", 10, std::bind(&PowerlineMapperNode::controlStateCallback, this, std::placeholders::_1));
 
-    powerline_pub_ = this->create_publisher<iii_interfaces::msg::Powerline>("powerline", 10);
+    powerline_pub_ = this->create_publisher<iii_drone_interfaces::msg::Powerline>("powerline", 10);
     points_est_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("points_est", 10);
     transformed_points_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("transformed_points", 10);
     projected_points_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("projected_points", 10);
@@ -134,7 +145,7 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
 
 }
 
-void PowerlineMapperNode::controlStateCallback(const iii_interfaces::msg::ControlState::SharedPtr msg) {
+void PowerlineMapperNode::controlStateCallback(const iii_drone_interfaces::msg::ControlState::SharedPtr msg) {
 
     control_state_mutex_.lock(); {
 
@@ -199,7 +210,7 @@ void PowerlineMapperNode::odometryCallback() {
     this->get_parameter("skip_predict_when_on_cable", skip_predict_when_on_cable);
 
     // Get control state:
-    iii_interfaces::msg::ControlState control_state;
+    iii_drone_interfaces::msg::ControlState control_state;
     control_state_mutex_.lock(); {
 
         control_state = control_state_;
@@ -214,11 +225,11 @@ void PowerlineMapperNode::odometryCallback() {
 
         switch(control_state.state) {
 
-            case iii_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_ARMED:
-            case iii_interfaces::msg::ControlState::CONTROL_STATE_DISARMING_ON_CABLE:
-            case iii_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_DISARMED:
-            case iii_interfaces::msg::ControlState::CONTROL_STATE_ARMING_ON_CABLE:
-            case iii_interfaces::msg::ControlState::CONTROL_STATE_SETTING_OFFBOARD_ON_CABLE:
+            case iii_drone_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_ARMED:
+            case iii_drone_interfaces::msg::ControlState::CONTROL_STATE_DISARMING_ON_CABLE:
+            case iii_drone_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_DISARMED:
+            case iii_drone_interfaces::msg::ControlState::CONTROL_STATE_ARMING_ON_CABLE:
+            case iii_drone_interfaces::msg::ControlState::CONTROL_STATE_SETTING_OFFBOARD_ON_CABLE:
                 break;
 
             default:
@@ -330,7 +341,7 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
     // //RCLCPP_INFO(this->get_logger(), "Now registered %d lines", powerline_.GetLinesCount());
 
     // Get control state:
-    iii_interfaces::msg::ControlState control_state;
+    iii_drone_interfaces::msg::ControlState control_state;
     control_state_mutex_.lock(); {
 
         control_state = control_state_;
@@ -348,11 +359,11 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
         switch(control_state.state) {
 
-            case iii_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_ARMED:
-            case iii_interfaces::msg::ControlState::CONTROL_STATE_DISARMING_ON_CABLE:
-            case iii_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_DISARMED:
-            case iii_interfaces::msg::ControlState::CONTROL_STATE_ARMING_ON_CABLE:
-            case iii_interfaces::msg::ControlState::CONTROL_STATE_SETTING_OFFBOARD_ON_CABLE:
+            case iii_drone_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_ARMED:
+            case iii_drone_interfaces::msg::ControlState::CONTROL_STATE_DISARMING_ON_CABLE:
+            case iii_drone_interfaces::msg::ControlState::CONTROL_STATE_ON_CABLE_DISARMED:
+            case iii_drone_interfaces::msg::ControlState::CONTROL_STATE_ARMING_ON_CABLE:
+            case iii_drone_interfaces::msg::ControlState::CONTROL_STATE_SETTING_OFFBOARD_ON_CABLE:
                 break;
 
             default:
@@ -412,7 +423,7 @@ void PowerlineMapperNode::publishPowerline() {
     //orientation_t plane_orientation = powerline_.GetPlaneOrientation();
     //quat_t plane_quat = eulToQuat(plane_orientation);
 
-    auto msg = iii_interfaces::msg::Powerline();
+    auto msg = iii_drone_interfaces::msg::Powerline();
     auto quat_msg = geometry_msgs::msg::Quaternion();
     auto pcl2_msg = sensor_msgs::msg::PointCloud2();
     pcl2_msg.header.frame_id = drone_frame_id_;

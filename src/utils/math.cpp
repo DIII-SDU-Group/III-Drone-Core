@@ -2,14 +2,17 @@
 // Includes
 /*****************************************************************************/
 
-#include "geometry.h"
-#include <iostream>
+#include "iii_drone_core/utils/math.hpp"
+#include "iii_drone_core/utils/types.hpp"
+
+using namespace iii_drone::types;
+using namespace iii_drone::math;
 
 /*****************************************************************************/
 // Function implementations
 /*****************************************************************************/
 
-rotation_matrix_t eulToR(orientation_t eul) {
+rotation_matrix_t iii_drone::math::eulToR(orientation_t eul) {
 
     float cos_yaw = cos(eul[2]);
     float cos_pitch = cos(eul[1]);
@@ -34,31 +37,24 @@ rotation_matrix_t eulToR(orientation_t eul) {
 
 }
 
-vector_t rotateVector(rotation_matrix_t R, vector_t v) {
+vector_t iii_drone::math::rotateVector(rotation_matrix_t R, vector_t v) {
 
     vector_t ret_vec = R*v;
 
     return ret_vec;
 }
 
-point_t projectPointOnPlane(point_t point, plane_t plane) {
+point_t iii_drone::math::projectPointOnPlane(point_t point, plane_t plane) {
 
-    // line_t l = {
-    //     .p = point,
-    //     .v = plane.normal
-    // };
-
-    // float t = - plane.normal.dot(l.p) / plane.normal.dot(plane.normal);
     float t = (plane.normal.dot(plane.p) - plane.normal.dot(point)) / plane.normal.dot(plane.normal);
 
-    // point_t proj_point = l.p + (point_t)(t*l.v);
     point_t proj_point = point + (point_t)(t*plane.normal);
 
     return proj_point;
 
 }
 
-orientation_t quatToEul(quat_t quat) {
+orientation_t iii_drone::math::quatToEul(quat_t quat) {
 
     orientation_t eul(
         atan2(2*(quat[0]*quat[1] + quat[2]*quat[3]), 1-2*(quat[1]*quat[1] + quat[2]*quat[2])),
@@ -70,7 +66,7 @@ orientation_t quatToEul(quat_t quat) {
 
 }
 
-quat_t quatInv(quat_t quat) {
+quat_t iii_drone::math::quatInv(quat_t quat) {
 
     quat_t ret_quat(quat[0], -quat[1], -quat[2], -quat[3]);
 
@@ -78,7 +74,7 @@ quat_t quatInv(quat_t quat) {
 
 }
 
-quat_t quatMultiply(quat_t quat1, quat_t quat2) {
+quat_t iii_drone::math::quatMultiply(quat_t quat1, quat_t quat2) {
 
     quat_t ret_quat(
         quat1[0]*quat2[0] - quat1[1]*quat2[1] - quat1[2]*quat2[2] - quat1[3]*quat2[3],
@@ -91,18 +87,9 @@ quat_t quatMultiply(quat_t quat1, quat_t quat2) {
 
 }
 
-rotation_matrix_t quatToMat(quat_t quat) {
+rotation_matrix_t iii_drone::math::quatToMat(quat_t quat) {
 
     rotation_matrix_t mat;
-    //mat(0,0) = 1-2*quat[2]*quat[2]-2*quat[3]*quat[3];
-    //mat(0,1) = 2*quat[1]*quat[2]-2*quat[0]*quat[3];
-    //mat(0,2) = 2*quat[1]*quat[3]+2*quat[0]*quat[2];
-    //mat(1,0) = 2*quat[1]*quat[2]+2*quat[0]*quat[3];
-    //mat(1,1) = 1-2*quat[1]*quat[1]-2*quat[3]*quat[3];
-    //mat(1,2) = 2*quat[2]*quat[3]-2*quat[0]*quat[1];
-    //mat(2,0) = 2*quat[1]*quat[3]-2*quat[0]*quat[3];
-    //mat(2,1) = 2*quat[2]*quat[3]+2*quat[0]*quat[1];
-    //mat(2,2) = 1-2*quat[1]*quat[1]-2*quat[2]*quat[2];
 
     float q0 = quat[0];
     float q1 = quat[1];
@@ -139,7 +126,7 @@ rotation_matrix_t quatToMat(quat_t quat) {
 
 }
 
-quat_t matToQuat(rotation_matrix_t R) {
+quat_t iii_drone::math::matToQuat(rotation_matrix_t R) {
 
     float tr = R(0,0) + R(1,1) + R(2,2);
 
@@ -185,7 +172,7 @@ quat_t matToQuat(rotation_matrix_t R) {
 
 }
 
-quat_t eulToQuat(orientation_t eul) {
+quat_t iii_drone::math::eulToQuat(orientation_t eul) {
 
     // Abbreviations for the various angular functions
     float cy = cos(eul(2) * 0.5);
@@ -205,11 +192,11 @@ quat_t eulToQuat(orientation_t eul) {
 
 }
 
-transform_t getTransformMatrix(vector_t vec, quat_t quat) {
+transform_t iii_drone::math::getTransformMatrix(vector_t vec, quat_t quat) {
 
     transform_t T;
 
-    rotation_matrix_t R = quatToMat(quat);
+    rotation_matrix_t R = iii_drone::math::quatToMat(quat);
 
     for ( int i = 0; i < 3; i++) {
 
