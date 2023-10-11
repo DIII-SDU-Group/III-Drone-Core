@@ -2,18 +2,29 @@
 // Includes
 /*****************************************************************************/
 
-#include "pl_mapper_node.h"
+#include "iii_drone_core/perception/pl_mapper_node/pl_mapper_node.hpp"
+
+using namespace iii_drone::perception::pl_mapper_node;
+using namespace iii_drone::math;
+using namespace iii_drone::types;
 
 /*****************************************************************************/
 // Implementation
 /*****************************************************************************/
 
-PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const std::string & node_namespace) : 
-        rclcpp::Node(node_name, node_namespace),
-        powerline_(this->get_logger(), simulation_) {
-            // first val = r = mmW variance 5
-            // second val = q = odo variance 0.005
-            // last three values indicate alive_cnt_low_thresh=0, alive_cnt_high_thresh=60, alive_cnt_ceiling=90
+PowerlineMapperNode::PowerlineMapperNode(
+    const std::string & node_name, 
+    const std::string & node_namespace,
+    const rclcpp::NodeOptions & options
+) : rclcpp::Node(
+        node_name, 
+        node_namespace,
+        options
+    ), 
+    powerline_(
+        this->get_logger(), 
+        simulation_
+) {
 
     this->declare_parameter<bool>("simulation", false);
     this->get_parameter("simulation", simulation_);

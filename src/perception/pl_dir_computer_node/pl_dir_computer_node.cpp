@@ -2,14 +2,25 @@
 // Includes
 /*****************************************************************************/
 
-#include "pl_dir_computer_node.h"
+#include <iii_drone_core/perception/pl_dir_computer_node/pl_dir_computer_node.hpp>
+
+using namespace iii_drone::perception::pl_dir_computer_node;
+using namespace iii_drone::types;
+using namespace iii_drone::math;
 
 /*****************************************************************************/
 // Implementation
 /*****************************************************************************/
 
-PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(const std::string & node_name, const std::string & node_namespace) : 
-        rclcpp::Node(node_name, node_namespace) {
+PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(
+    const std::string & node_name, 
+    const std::string & node_namespace,
+    const rclcpp::NodeOptions & options
+) : rclcpp::Node(
+    node_name, 
+    node_namespace,
+    options
+) {
 
     this->declare_parameter<float>("kf_r", 0.999);
     this->declare_parameter<float>("kf_q", 0.001);

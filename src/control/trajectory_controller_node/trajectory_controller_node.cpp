@@ -2,7 +2,11 @@
 // Includes
 /*****************************************************************************/
 
-#include "trajectory_controller.h"
+#include "iii_drone_core/control/trajectory_controller_node/trajectory_controller_node.hpp"
+
+using namespace iii_drone::control::trajectory_controller_node;
+using namespace iii_drone::types;
+using namespace iii_drone::math;
 
 /*****************************************************************************/
 // Implementation

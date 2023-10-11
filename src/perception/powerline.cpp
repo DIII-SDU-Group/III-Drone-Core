@@ -2,33 +2,45 @@
 // Includes
 /*****************************************************************************/
 
-#include "powerline_class.h"
+#include "iii_drone_core/perception/powerline.hpp"
+
+using namespace iii_drone::perception;
+using namespace iii_drone::types;
+using namespace iii_drone::math;
 
 /*****************************************************************************/
 // Implementation
 /*****************************************************************************/
 
-Powerline::Powerline(rclcpp::Logger logger, bool simulation) : logger_(logger) {
+Powerline::Powerline(
+    rclcpp::Logger logger, 
+    bool simulation
+) : logger_(logger) {
 
     simulation_ = simulation;
 
     direction_ = quat_t(1,0,0,0);
-    //last_global_input_direction_ = 0;
-    //last_global_output_direction_ = 0;
-    //last_last_global_output_direction_ = 0;
     position_ = point_t(0,0,0);
     quat_ = quat_t(0, 0, 0, 0);
     last_position_ = point_t(0, 0, 0);
     last_quat_ = quat_t(0, 0, 0, 0);
     projection_plane_ = { .p=point_t(0,0,0), .normal=vector_t(0,0,0) };
-    //plane_orientation_ = orientation_t(0,0,0);
 
     id_cnt_ = 0;
 
 }
 
-void Powerline::SetParams(float r, float q, int alive_cnt_low_thresh, int alive_cnt_high_thresh, int alive_cnt_ceiling, float matching_line_max_dist,
-            std::string drone_frame_id, std::string mmwave_frame_id, int max_lines) {
+void Powerline::SetParams(
+    float r, 
+    float q, 
+    int alive_cnt_low_thresh, 
+    int alive_cnt_high_thresh, 
+    int alive_cnt_ceiling, 
+    float matching_line_max_dist,
+    std::string drone_frame_id, 
+    std::string mmwave_frame_id, 
+    int max_lines
+) {
 
     max_lines_ = max_lines;
 
@@ -95,20 +107,6 @@ plane_t Powerline::GetProjectionPlane() {
     return plane;
 
 }
-
-//orientation_t Powerline::GetPlaneOrientation() {
-//
-//    orientation_t ori;
-//
-//    projection_plane_mutex_.lock(); {
-//
-//        ori = plane_orientation_;
-//
-//    } projection_plane_mutex_.unlock();
-//
-//    return ori;
-//
-//}
 
 quat_t Powerline::GetQuat() {
 
@@ -233,8 +231,14 @@ void Powerline::UpdateDirection(quat_t pl_direction) {
 
 }
 
-void Powerline::UpdateOdometry(point_t position, quat_t quat, 
-            std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float min_point_dist, float max_point_dist, float view_cone_slope) {
+void Powerline::UpdateOdometry(
+    point_t position, 
+    quat_t quat, 
+    std::unique_ptr<tf2_ros::Buffer> &tf_buffer,
+    float min_point_dist, 
+    float max_point_dist, 
+    float view_cone_slope
+) {
 
     //RCLCPP_INFO(logger_, "Updating odometry");
 
@@ -276,7 +280,12 @@ void Powerline::UpdateOdometry(point_t position, quat_t quat,
 
 }
 
-void Powerline::CleanupLines(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float min_point_dist, float max_point_dist, float view_cone_slope) {
+void Powerline::CleanupLines(
+    std::unique_ptr<tf2_ros::Buffer> &tf_buffer, 
+    float min_point_dist, 
+    float max_point_dist, 
+    float view_cone_slope
+) {
 
     //RCLCPP_INFO(logger_, "Cleaning up lines");
 
@@ -354,8 +363,13 @@ void Powerline::CleanupLines(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float 
 
 }
 
-void Powerline::ComputeInterLinePositions(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, 
-                float min_point_dist, float max_point_dist, float view_cone_slope, int inter_pos_window_size) {
+void Powerline::ComputeInterLinePositions(
+    std::unique_ptr<tf2_ros::Buffer> &tf_buffer, 
+    float min_point_dist, 
+    float max_point_dist, 
+    float view_cone_slope, 
+    int inter_pos_window_size
+) {
 
     //RCLCPP_INFO(logger_, "Computing inter line positions");
 
@@ -496,6 +510,20 @@ void Powerline::ComputeInterLinePositions(std::unique_ptr<tf2_ros::Buffer> &tf_b
 
 }
 
+int Powerline::GetLinesCount() {
+
+    int cnt;
+
+    lines_mutex_.lock(); {
+
+        cnt = lines_.size();
+
+    } lines_mutex_.unlock();
+
+    return cnt;
+
+}
+
 void Powerline::updateProjectionPlane() {
 
     // //RCLCPP_INFO(logger_, "Updating projection plane");
@@ -589,7 +617,12 @@ int Powerline::findMatchingLine(point_t point) {
 
 }
 
-void Powerline::predictLines(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float min_point_dist, float max_point_dist, float view_cone_slope) {
+void Powerline::predictLines(
+    std::unique_ptr<tf2_ros::Buffer> &tf_buffer, 
+    float min_point_dist, 
+    float max_point_dist, 
+    float view_cone_slope
+) {
 
     // //RCLCPP_INFO(logger_, "Predicting lines");
 

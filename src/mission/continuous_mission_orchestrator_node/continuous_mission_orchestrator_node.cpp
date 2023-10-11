@@ -2,7 +2,12 @@
 // Includes
 /*****************************************************************************/
 
-#include "continuous_mission_orchestrator.h"
+#include "iii_drone_core/mission/continuous_mission_orchestrator_node/continuous_mission_orchestrator_node.hpp"
+
+using namespace iii_drone::mission::continuous_mission_orchestrator_node;
+using namespace iii_drone::math;
+using namespace iii_drone::types;
+using namespace std::placeholders;
 
 /*****************************************************************************/
 // Implementation
