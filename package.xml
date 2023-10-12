@@ -1,17 +1,19 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>iii_drone</name>
-  <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="ffn@mmmi.sdu.dk">ffn</maintainer>
-  <license>TODO: License declaration</license>
+  <name>iii_drone_core</name>
+  <version>2.2.0</version>
+  <description>
+    The III-Drone core system. This package contains the main nodes for the III-Drone system. Includes namespace perception, motion, mission, hardware, and utilities.
+  </description>
+  <maintainer email="ffn@sdu.dk">ffn</maintainer>
+  <license>Proprietary</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
   <exec_depend>rclpy</exec_depend>
   <depend>rclcpp</depend>
-  <depend>iii_interfaces</depend>
+  <depend>iii_drone_interfaces</depend>
   <depend>px4_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>sensor_msgs</depend>
