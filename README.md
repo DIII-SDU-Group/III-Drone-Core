@@ -2,8 +2,38 @@
 ROS2 package for the III-Drone system
 
 ## Compatibility
-* ROS2 Humble
-* PX4 v1.14.0-RC1
+This version is compatible with
+- `ROS2 Humble`
+- [`PX4-Autopilot` DIII fork tag `v1.14.0-rc2`](https://github.com/DIII-SDU-Group/PX4-Autopilot/tree/v1.14.0-rc2)
+- [`px4_msgs` DIII fork tag `v1.14`](https://github.com/DIII-SDU-Group/px4_msgs/tree/v1.14)
+- [`micro-ROS-agent` DIII fork tag `III-Drone-v2.2`](https://github.com/DIII-SDU-Group/micro-ROS-Agent/tree/III-Drone-v2.2)
+- [`micro_ros_msgs` DIII fork tag `III-Drone-v2.2`](https://github.com/DIII-SDU-Group/micro_ros_msgs/tree/III-Drone-v2.2)
+- [`III-Drone-Interfaces` v2.2](https://github.com/DIII-SDU-Group/III-Drone-Interfaces/tree/v2.2-staging)
+
+## Build and installation
+Pulling the core packages of the III-Drone system, `III-Drone-Core` and [`III-Drone-Interfaces`](https://github.com/DIII-SDU-Group/III-Drone-Interfaces/), as well as the [`px4_msgs`](https://github.com/DIII-SDU-Group/px4_msgs), [`micro-ROS-agent`](https://github.com/DIII-SDU-Group/micro-ROS-Agent), and [`micro_ros_msgs`](https://github.com/DIII-SDU-Group/micro_ros_msgs) packages:
+```
+cd <ROS2-DIII-workspace>/src
+
+git clone git@github.com:DIII-SDU-Group/III-Drone-Core.git -b v2.2-staging
+git clone git@github.com:DIII-SDU-Group/III-Drone-Interfaces.git -b v2.2-staging
+
+git clone git@github.com:DIII-SDU-Group/px4_msgs.git -b v1.14
+git clone git@github.com:DIII-SDU-Group/micro-ROS-Agent.git -b III-Drone-v2.2
+git clone git@github.com:DIII-SDU-Group/micro_ros_msgs.git -b III-Drone-v2.2
+```
+
+If simulation is required, pull the [`III-Drone-Simulation`](https://github.com/DIII-SDU-Group/III-Drone-Simulation) package:
+```
+git clone git@github.com:DIII-SDU-Group/III-Drone-Simulation.git -b v2.2-staging
+```
+
+If ground control system is required, pull the [`III-Drone-GC`](https://github.com/DIII-SDU-Group/III-Drone-GC) package:
+```
+git clone git@github.com:DIII-SDU-Group/III-Drone-GC.git -b v2.2-staging
+```
+
+Pulling 
 
 ## Contribution
 Current efforts is to refactor, debug, and prepare the current version v2.1-ICRA2024 to the next version v2.2. Major structural changes are made. Tasks to be done can be found [here](https://github.com/orgs/DIII-SDU-Group/projects/1/views/1).
