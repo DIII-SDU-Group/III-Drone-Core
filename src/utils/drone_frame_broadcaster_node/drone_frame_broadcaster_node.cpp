@@ -25,11 +25,9 @@ DroneFrameBroadcasterNode::DroneFrameBroadcasterNode(
     // Params
     this->declare_parameter<std::string>("drone_frame_id", "drone");
     this->declare_parameter<std::string>("world_frame_id", "world");
-    this->declare_parameter<std::string>("fmu_frame_id", "fmu");
 
     this->get_parameter("drone_frame_id", drone_frame_id_);
     this->get_parameter("world_frame_id", world_frame_id_);
-    this->get_parameter("fmu_frame_id", fmu_frame_id_);
 
 
     // Initialize the transform broadcaster
@@ -95,28 +93,11 @@ void DroneFrameBroadcasterNode::odometryCallback(const std::shared_ptr<px4_msgs:
     quat_t roll_quat = eulToQuat(roll_eul);
     quat = quatMultiply(quat, roll_quat);
 
-    geometry_msgs::msg::TransformStamped t_fmu;
-    t_fmu.header.stamp = now;
-    t_fmu.header.frame_id = world_frame_id_;
-    t_fmu.child_frame_id = fmu_frame_id_;
-
-    t_fmu.transform.translation.x = position(0);
-    t_fmu.transform.translation.y = position(1);
-    t_fmu.transform.translation.z = position(2);
-
-    t_fmu.transform.rotation.w = quat(0);
-    t_fmu.transform.rotation.x = quat(1);
-    t_fmu.transform.rotation.y = quat(2);
-    t_fmu.transform.rotation.z = quat(3);
-
-
     // Send the transformation
     tf_broadcaster_->sendTransform(t);
-    tf_broadcaster_->sendTransform(t_fmu);
 
     // RCLCPP debug published transform
     RCLCPP_DEBUG(this->get_logger(), "Published transform: %s -> %s", t.header.frame_id.c_str(), t.child_frame_id.c_str());
-    RCLCPP_DEBUG(this->get_logger(), "Published transform: %s -> %s", t_fmu.header.frame_id.c_str(), t_fmu.child_frame_id.c_str());
 
 }
 

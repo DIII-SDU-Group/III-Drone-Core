@@ -44,7 +44,6 @@ namespace drone_frame_broadcaster_node {
 
         std::string drone_frame_id_;
         std::string world_frame_id_;
-        std::string fmu_frame_id_;
 
     };
 
