@@ -9,19 +9,14 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 def generate_launch_description():
-    #config = os.path.join(
-    #    get_package_share_directory('iii_drone'),
-    #    'config',
-    #    'params.yaml'
-    #)
-
     config = "/home/" + os.getenv("USER") + "/.config/iii_drone/params.yaml"
 
     trajectory_controller = Node(
-        package="iii_drone",
+        package="iii_drone_core",
         executable="trajectory_controller",
+        namespace="control",
         parameters=[config],
-        arguments=["--ros-args", "--log-level", "trajectory_controller.trajectory_controller:=debug"]
+        arguments=["--ros-args", "--log-level", "control.trajectory_controller:=debug"]
     )
 
     return LaunchDescription([
