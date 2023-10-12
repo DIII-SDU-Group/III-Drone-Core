@@ -11,6 +11,15 @@ This version is compatible with
 - [`III-Drone-Interfaces` v2.2](https://github.com/DIII-SDU-Group/III-Drone-Interfaces/tree/v2.2-staging)
 
 ## Build and installation
+Follow the [ROS2 Humble installation instructions](https://docs.ros.org/en/humble/Installation.html). Make sure to source the tools:
+```
+source /opt/ros/humble/setup.bash
+```
+Optionally, add it to `.bashrc`:
+```
+echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+```
+
 Pulling the core packages of the III-Drone system, `III-Drone-Core` and [`III-Drone-Interfaces`](https://github.com/DIII-SDU-Group/III-Drone-Interfaces/), as well as the [`px4_msgs`](https://github.com/DIII-SDU-Group/px4_msgs), [`micro-ROS-agent`](https://github.com/DIII-SDU-Group/micro-ROS-Agent), and [`micro_ros_msgs`](https://github.com/DIII-SDU-Group/micro_ros_msgs) packages:
 ```
 cd <ROS2-DIII-workspace>/src
@@ -23,6 +32,8 @@ git clone git@github.com:DIII-SDU-Group/micro-ROS-Agent.git -b III-Drone-v2.2
 git clone git@github.com:DIII-SDU-Group/micro_ros_msgs.git -b III-Drone-v2.2
 ```
 
+TODO: [Make rosdep work](https://github.com/DIII-SDU-Group/III-Drone-Core/issues/24) to more easily fetch required packages.
+
 If simulation is required, pull the [`III-Drone-Simulation`](https://github.com/DIII-SDU-Group/III-Drone-Simulation) package:
 ```
 git clone git@github.com:DIII-SDU-Group/III-Drone-Simulation.git -b v2.2-staging
@@ -33,7 +44,12 @@ If ground control system is required, pull the [`III-Drone-GC`](https://github.c
 git clone git@github.com:DIII-SDU-Group/III-Drone-GC.git -b v2.2-staging
 ```
 
-Pulling 
+Build the workspace:
+```
+cd <ROS2-DIII-workspace>
+
+colcon build
+```
 
 ## Contribution
 Current efforts is to refactor, debug, and prepare the current version v2.1-ICRA2024 to the next version v2.2. Major structural changes are made. Tasks to be done can be found [here](https://github.com/orgs/DIII-SDU-Group/projects/1/views/1).
