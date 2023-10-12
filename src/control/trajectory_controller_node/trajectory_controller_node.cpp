@@ -105,28 +105,6 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	this->declare_parameter<double>("position_MPC_wjy", 10.00);
 	this->declare_parameter<double>("position_MPC_wjz", 10.00);
 
-	this->declare_parameter<double>("fly_along_cable_MPC_vz_max", 10.);
-
-	this->declare_parameter<double>("fly_along_cable_MPC_ax_max", 10.);
-	this->declare_parameter<double>("fly_along_cable_MPC_ay_max", 10.);
-	this->declare_parameter<double>("fly_along_cable_MPC_az_max", 10.);
-
-	this->declare_parameter<double>("fly_along_cable_MPC_wx", 0.);
-	this->declare_parameter<double>("fly_along_cable_MPC_wy", 0.);
-	this->declare_parameter<double>("fly_along_cable_MPC_wz", 0.);
-
-	this->declare_parameter<double>("fly_along_cable_MPC_wvx", 10.00);
-	this->declare_parameter<double>("fly_along_cable_MPC_wvy", 10.00);
-	this->declare_parameter<double>("fly_along_cable_MPC_wvz", 10.00);
-
-	this->declare_parameter<double>("fly_along_cable_MPC_wax", 10.00);
-	this->declare_parameter<double>("fly_along_cable_MPC_way", 10.00);
-	this->declare_parameter<double>("fly_along_cable_MPC_waz", 10.00);
-
-	this->declare_parameter<double>("fly_along_cable_MPC_wjx", 10.00);
-	this->declare_parameter<double>("fly_along_cable_MPC_wjy", 10.00);
-	this->declare_parameter<double>("fly_along_cable_MPC_wjz", 10.00);
-
 	this->declare_parameter<double>("cable_landing_MPC_vx_max", 10.);
 	this->declare_parameter<double>("cable_landing_MPC_vy_max", 10.);
 	this->declare_parameter<double>("cable_landing_MPC_vz_max", 10.);
@@ -237,15 +215,6 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 		std::bind(&TrajectoryController::handleGoalFlyUnderCable, this, std::placeholders::_1, std::placeholders::_2),
 		std::bind(&TrajectoryController::handleCancelFlyUnderCable, this, std::placeholders::_1),
 		std::bind(&TrajectoryController::handleAcceptedFlyUnderCable, this, std::placeholders::_1)
-	);
-
-	// Fly along cable action:
-	this->fly_along_cable_server_ = rclcpp_action::create_server<FlyAlongCable>(
-		this,
-		"fly_along_cable",
-		std::bind(&TrajectoryController::handleGoalFlyAlongCable, this, std::placeholders::_1, std::placeholders::_2),
-		std::bind(&TrajectoryController::handleCancelFlyAlongCable, this, std::placeholders::_1),
-		std::bind(&TrajectoryController::handleAcceptedFlyAlongCable, this, std::placeholders::_1)
 	);
 
 	// Cable landing action:
@@ -1093,172 +1062,6 @@ void TrajectoryController::followFlyUnderCableCompletion(const std::shared_ptr<G
 	}
 }
 
-rclcpp_action::GoalResponse TrajectoryController::handleGoalFlyAlongCable(
-	const rclcpp_action::GoalUUID & uuid,
-	std::shared_ptr<const FlyAlongCable::Goal> goal
-) {
-
-	RCLCPP_DEBUG(this->get_logger(), "Received fly along cable goal request");
-
-	(void)uuid;
-
-	rclcpp_action::GoalUUID action_id = (rclcpp_action::GoalUUID)uuid;
-
-	if (state_ != hovering_under_cable) {
-		RCLCPP_ERROR(this->get_logger(), "Cannot fly along cable when not hovering under cable");
-		return rclcpp_action::GoalResponse::REJECT;
-	}
-
-	float distance = goal->distance;
-	float velocity = goal->velocity;
-
-	if (distance <= 0) {
-		RCLCPP_ERROR(this->get_logger(), "Distance must be positive");
-		return rclcpp_action::GoalResponse::REJECT;
-	}
-
-	if (velocity <= 0) {
-		RCLCPP_ERROR(this->get_logger(), "Velocity must be positive");
-		return rclcpp_action::GoalResponse::REJECT;
-	}
-
-	request_t request = {
-		.action_id = action_id,
-		.request_type = fly_along_cable_request,
-		.request_params = new fly_along_cable_request_params_t{
-			.distance = distance,
-			.velocity = velocity,
-			.inverse_direction = goal->inverse_direction
-		}
-	};
-
-	if (!request_queue_.Push(request, false)) {
-		RCLCPP_ERROR(this->get_logger(), "Failed to push request to queue");
-		return rclcpp_action::GoalResponse::REJECT;
-	}
-
-	// debug fly along cable goal request accepted
-	RCLCPP_DEBUG(this->get_logger(), "Fly along cable goal request accepted");
-
-	return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
-
-}
-
-rclcpp_action::CancelResponse TrajectoryController::handleCancelFlyAlongCable(
-	const std::shared_ptr<rclcpp_action::ServerGoalHandle<FlyAlongCable>> goal_handle
-) {
-
-	RCLCPP_DEBUG(this->get_logger(), "Received cancel fly along cable request");
-
-	request_t request = {
-		.action_id = goal_handle->get_goal_id(),
-		.request_type = cancel_request,
-		.request_params = NULL
-	};
-
-	if (request_queue_.Push(request, false)) {
-		return rclcpp_action::CancelResponse::ACCEPT;
-	} else {
-		RCLCPP_ERROR(this->get_logger(), "Failed to push cancel request to queue");
-		return rclcpp_action::CancelResponse::REJECT;
-	}
-
-}
-
-void TrajectoryController::handleAcceptedFlyAlongCable(
-	const std::shared_ptr<rclcpp_action::ServerGoalHandle<FlyAlongCable>> goal_handle
-) {
-
-	using namespace std::placeholders;
-
-	RCLCPP_DEBUG(this->get_logger(), "Accepted fly along cable goal");
-
-	std::thread{std::bind(&TrajectoryController::followFlyAlongCableCompletion, this, _1), goal_handle}.detach();
-
-}
-
-void TrajectoryController::followFlyAlongCableCompletion(const std::shared_ptr<GoalHandleFlyAlongCable> goal_handle) {
-	
-	RCLCPP_DEBUG(this->get_logger(), "Starting fly along cable completion thread");
-
-	rclcpp_action::GoalUUID action_id = goal_handle->get_goal_id();
-
-	auto feedback = std::make_shared<FlyAlongCable::Feedback>();
-	auto result = std::make_shared<FlyAlongCable::Result>();
-
-	request_reply_t reply = {
-		.action_id = action_id
-	};
-
-
-	while(true) {
-
-		while(!request_reply_queue_.Pop(reply, false) || reply.action_id != action_id) {
-		// while(!request_reply_queue_.Peak(reply, false) || reply.action_id != action_id) {
-			
-			geometry_msgs::msg::PoseStamped vehicle_pose = loadVehiclePose();
-			feedback->vehicle_pose = vehicle_pose;
-
-			goal_handle->publish_feedback(feedback);
-
-			// debug fly along cable goal thread waiting for reply, publishing feedback woth vehicle pose: %s
-			RCLCPP_DEBUG(this->get_logger(), "Fly along cable goal thread waiting for reply, publishing feedback woth vehicle pose: %s", vehicle_pose.pose.position);
-
-			request_completion_poll_rate_.sleep();
-
-		}
-
-		// if (!request_reply_queue_.Pop(reply, false)) throw std::exception(); // The reply should still be in the queue
-
-		switch (reply.reply_type) {
-
-		default:
-		case cancel:
-			// debug fly along cable goal thread received cancel reply
-			RCLCPP_DEBUG(this->get_logger(), "Fly along cable goal thread received cancel reply");
-
-			if (goal_handle->is_canceling()) {
-				// debug fly along cable goal thread received cancel reply and goal is canceling
-				RCLCPP_DEBUG(this->get_logger(), "Fly along cable goal thread received cancel reply and goal is canceling");
-
-				result->success = false;
-				goal_handle->canceled(result);
-
-				return;
-				break;
-
-			}
-
-		case reject:
-		case fail:
-			// debug fly along cable goal thread received reject or fail reply
-			RCLCPP_DEBUG(this->get_logger(), "Fly along cable goal thread received reject or fail reply");
-
-			result->success = false;
-			goal_handle->abort(result);
-
-			return;
-			break;
-
-		case accept:
-
-			break;
-
-		case success:
-
-			// debug fly along cable goal thread received success reply
-			RCLCPP_DEBUG(this->get_logger(), "Fly along cable goal thread received success reply, notifying success");
-
-			result->success = true;
-			goal_handle->succeed(result);
-
-			return;
-			break;
-
-		}
-	}
-}
-
 rclcpp_action::GoalResponse TrajectoryController::handleGoalCableLanding(
 	const rclcpp_action::GoalUUID & uuid, 
 	std::shared_ptr<const CableLanding::Goal> goal
@@ -2002,12 +1805,6 @@ void TrajectoryController::stateMachineCallback() {
 
 	static int cable_id = -1;
 	static float target_cable_distance = -1;
-	static float fly_along_cable_distance = -1;
-	static float fly_along_cable_velocity = -1;
-	static bool fly_along_cable_inverse_direction = false;
-
-	static state4_t prev_fly_along_cable_state;
-	static state4_t fly_along_cable_state;
 
 	static vector_t disarm_on_cable_initial_position;
 	static int disarm_on_cable_cnt;
@@ -3176,67 +2973,6 @@ void TrajectoryController::stateMachineCallback() {
 
 			state_ = during_cable_landing;
 
-		} else if (tryPendingRequest(fly_along_cable_request, if_match, if_match)) {
-
-			RCLCPP_INFO(this->get_logger(), "Using MPC");
-
-			direct_target_setpoint = false;
-
-			// debug fly along cable request, flying along cable
-			RCLCPP_DEBUG(this->get_logger(), "fly along cable request, flying along cable");
-
-			fly_along_cable_request_params_t *request_params = (fly_along_cable_request_params_t *)request.request_params;
-
-			fly_along_cable_distance = request_params->distance;
-			fly_along_cable_velocity = request_params->velocity;
-			fly_along_cable_inverse_direction = request_params->inverse_direction;
-
-			setFlyAlongCableParams(fly_along_cable_distance, fly_along_cable_velocity, fly_along_cable_inverse_direction);
-
-			target_cable_cnt = updateTargetCablePose(veh_state, cable_id) ? target_cable_cnt : target_cable_cnt-1;
-
-			// prev_fly_along_cable_state = veh_state;
-			// fly_along_cable_state = loadTargetFlyAlongCableState(
-			// 	fly_along_cable_velocity,
-			// 	fly_along_cable_distance,
-			// 	fly_along_cable_inverse_direction,
-			// 	prev_fly_along_cable_state,
-			// 	true
-			// );
-
-			fixed_reference = setZeroVelocity(loadTargetFlyAlongCableState(true));
-
-			setTrajectoryTarget(fixed_reference);
-
-			if (direct_target_setpoint || withinDirectTargetDistance(veh_state, fixed_reference)) {
-
-				direct_target_setpoint = true;
-
-				// debug within direct target setpoint dist threshold, setting direct target setpoint: %f, %f, %f, %f
-				RCLCPP_DEBUG(this->get_logger(), "within direct target setpoint dist threshold, setting direct target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
-				
-				if (use_cartesian_PID) {
-
-					vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
-					set_point = setVelocityControl(fixed_reference, vel_control);
-
-				} else {
-
-					set_point = setNanVelocity(fixed_reference);
-
-				}
-
-			} else {
-				set_point = stepMPC(prev_veh_state, fixed_reference, true, true, fly_along_cable);
-			}
-
-			this->get_parameter("offboard_cnt_timeout", offboard_cnt);
-
-			// debug set point is: %f, %f, %f, %f
-			RCLCPP_DEBUG(this->get_logger(), "set point is: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
-
-			state_ = flying_along_cable;
-
 		} else {
 
 			rejectPendingRequest();
@@ -3437,220 +3173,6 @@ void TrajectoryController::stateMachineCallback() {
 			}
 
 			this->get_parameter("offboard_cnt_timeout", offboard_cnt);
-
-		}
-
-		break;
-
-	case flying_along_cable:
-
-		// debug in flying along cable
-		RCLCPP_DEBUG(this->get_logger(), "in flying along cable");
-
-		if ((!offboard || !armed) && --offboard_cnt == 0) {
-			// debug offboard or armed is false, aborting request, going to state hovering
-			RCLCPP_DEBUG(this->get_logger(), "offboard or armed is false, aborting request, going to state init");
-
-			notifyCurrentRequest(fail);
-			rejectPendingRequest();
-
-			clearPlannedTrajectory();
-			clearTargetCable();
-
-			state_ = init;
-
-		} else if (target_cable_cnt == 0) {
-			// debug Target cable counter is zero, aborting request, going to state hovering
-			RCLCPP_DEBUG(this->get_logger(), "Target cable counter is zero, aborting request, going to state hovering");
-
-			clearPlannedTrajectory();
-			clearTargetCable();
-
-			fixed_reference = setZeroVelocity(veh_state);
-
-			setTrajectoryTarget(fixed_reference);
-
-			if (use_cartesian_PID) {
-
-				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
-				set_point = setVelocityControl(fixed_reference, vel_control);
-
-			} else {
-
-				set_point = setNanVelocity(fixed_reference);
-
-			}
-
-			state_ = hovering;
-
-		//} else if (fly_along_cable_distance <= 0) {
-
-		//	// debug fly along cable distance is zero, aborting request, going to state hovering under cable
-		//	RCLCPP_DEBUG(this->get_logger(), "fly along cable distance is zero, aborting request, going to state hovering under cable");
-
-		//	notifyCurrentRequest(success);
-
-		//	clearPlannedTrajectory();
-
-		//	target_cable_cnt = updateTargetCablePose(veh_state) ? target_cable_cnt : target_cable_cnt-1;
-
-		//	fixed_reference = setZeroVelocity(loadTargetUnderCableState());
-
-		//	setTrajectoryTarget(fixed_reference);
-
-		//	if (use_cartesian_PID) {
-
-		//		vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
-		//		set_point = setVelocityControl(fixed_reference, vel_control);
-
-		//	} else {
-
-		//		set_point = setNanVelocity(fixed_reference);
-
-		//	}
-		//	
-		//	state_ = hovering_under_cable;
-
-		} else if (currentRequestIsCancelled(if_match, if_match)) {
-
-			// debug current request is cancelled, aborting request, going to state hovering under cable
-			RCLCPP_DEBUG(this->get_logger(), "current request is cancelled, aborting request, going to state hovering under cable");
-
-			clearPlannedTrajectory();
-
-			target_cable_cnt = updateTargetCablePose(veh_state) ? target_cable_cnt : target_cable_cnt-1;
-
-			fixed_reference = setZeroVelocity(loadTargetUnderCableState());
-
-			setTrajectoryTarget(fixed_reference);
-
-			if (use_cartesian_PID) {
-
-				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
-				set_point = setVelocityControl(fixed_reference, vel_control);
-
-			} else {
-
-				set_point = setNanVelocity(fixed_reference);
-
-			}
-			
-			state_ = hovering_under_cable;
-
-		} else if (reachedPosition(veh_state, fixed_reference)) {
-
-			// debug reached position, going to state hovering
-			RCLCPP_DEBUG(this->get_logger(), "reached position, going to state hovering_under_cable");
-
-			notifyCurrentRequest(success);
-
-			clearPlannedTrajectory();
-
-			target_cable_cnt = updateTargetCablePose(veh_state) ? target_cable_cnt : target_cable_cnt-1;
-
-			fixed_reference = setZeroVelocity(loadTargetUnderCableState());
-
-			setTrajectoryTarget(fixed_reference);
-
-			if (use_cartesian_PID) {
-
-				vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
-				set_point = setVelocityControl(fixed_reference, vel_control);
-
-			} else {
-
-				set_point = setNanVelocity(fixed_reference);
-
-			}
-			
-			state_ = hovering_under_cable;
-
-		// } else {
-
-		// 	// debug current request is not cancelled, continuing request
-		// 	RCLCPP_DEBUG(this->get_logger(), "current request is not cancelled, continuing request");
-
-		// 	rejectPendingRequest();
-
-		// 	target_cable_cnt = updateTargetCablePose(veh_state, cable_id) ? target_cable_cnt : target_cable_cnt-1;
-
-		// 	prev_fly_along_cable_state = fly_along_cable_state;
-		// 	fly_along_cable_state = loadTargetFlyAlongCableState(
-		// 		fly_along_cable_velocity,
-		// 		fly_along_cable_distance,
-		// 		fly_along_cable_inverse_direction,
-		// 		prev_fly_along_cable_state,
-		// 		false
-		// 	);
-
-		// 	point_t p0(
-		// 		prev_fly_along_cable_state(0),
-		// 		prev_fly_along_cable_state(1),
-		// 		prev_fly_along_cable_state(2)
-		// 	);
-
-		// 	point_t p1(
-		// 		fly_along_cable_state(0),
-		// 		fly_along_cable_state(1),
-		// 		fly_along_cable_state(2)
-		// 	);
-
-		// 	fly_along_cable_distance -= (p1-p0).norm();
-
-		// 	set_point = fly_along_cable_state;
-
-		// 	// debug fly along cable distance: %f, setpoint: %f, %f, %f, %f
-		// 	RCLCPP_DEBUG(this->get_logger(), "fly along cable distance: %f, setpoint: %f, %f, %f, %f", fly_along_cable_distance, set_point(0), set_point(1), set_point(2), set_point(3));
-
-		// }
-
-		} else {
-
-			target_cable_cnt = updateTargetCablePose(veh_state, cable_id) ? target_cable_cnt : target_cable_cnt-1;
-
-			fixed_reference = setZeroVelocity(loadTargetFlyAlongCableState(false));
-
-			setTrajectoryTarget(fixed_reference);
-
-			if (direct_target_setpoint || withinDirectTargetDistance(veh_state, fixed_reference)) {
-
-				if (!direct_target_setpoint){
-
-					// RCLCPP_INFO(this->get_logger(), "Using direct target setpoint");
-					// print fixed reference and vehicle state
-					// RCLCPP_INFO(this->get_logger(), "fixed reference: %f, %f, %f, %f", fixed_reference(0), fixed_reference(1), fixed_reference(2), fixed_reference(3));
-					// RCLCPP_INFO(this->get_logger(), "vehicle state: %f, %f, %f, %f", veh_state(0), veh_state(1), veh_state(2), veh_state(3));
-
-				};
-
-				direct_target_setpoint = true;
-
-				// debug within direct target setpoint dist threshold, setting direct target setpoint: %f, %f, %f, %f
-				RCLCPP_DEBUG(this->get_logger(), "within direct target setpoint dist threshold, setting direct target setpoint: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
-				
-				if (use_cartesian_PID) {
-
-					vector_t vel_control = stepCartesianVelocityPID(veh_state, fixed_reference, true);
-					set_point = setVelocityControl(fixed_reference, vel_control);
-
-				} else {
-
-					set_point = setNanVelocity(fixed_reference);
-
-				}
-
-			} else {
-				set_point = stepMPC(prev_veh_state, fixed_reference, true, false, fly_along_cable);
-			}
-
-			set_point = setZeroVelocity(veh_state);
-
-			this->get_parameter("offboard_cnt_timeout", offboard_cnt);
-
-			// debug set point is: %f, %f, %f, %f
-			RCLCPP_DEBUG(this->get_logger(), "set point is: %f, %f, %f, %f", set_point(0), set_point(1), set_point(2), set_point(3));
-
-			state_ = flying_along_cable;
 
 		}
 
@@ -4867,12 +4389,6 @@ void TrajectoryController::publishControlState() {
 		msg.state = msg.CONTROL_STATE_HOVERING_UNDER_CABLE;
 		break;
 
-	case flying_along_cable:
-
-		msg.state = msg.CONTROL_STATE_FLYING_ALONG_CABLE;
-		break;
-
-
 	case disarming_on_cable:
 
 		msg.state = msg.CONTROL_STATE_DISARMING_ON_CABLE;
@@ -5070,7 +4586,7 @@ void TrajectoryController::publishPlannedTrajectory() {
 		target = loadVehiclePose();
 		path.poses.push_back(target);
 
-		if (state_ == arming || state_ == setting_offboard || state_ == taking_off || state_ == hovering_under_cable || state_ == flying_along_cable \
+		if (state_ == arming || state_ == setting_offboard || state_ == taking_off || state_ == hovering_under_cable \
 			|| state_ == during_cable_takeoff || state_ == during_cable_landing || state_ == on_cable_armed || state_ == hovering) {
 
 			target = loadPlannedTarget();
@@ -5494,332 +5010,6 @@ state4_t TrajectoryController::loadTargetUnderCableState() {
 
 }
 
-//state4_t TrajectoryController::loadTargetFlyAlongCableState(float velocity, float distance_left, 
-//					bool inverse_direction, state4_t prev_fly_along_cable_state, bool first) {
-//
-//	float max_acceleration;
-//	this->get_parameter("max_acceleration", max_acceleration);
-//
-//	int controller_period_ms;
-//	this->get_parameter("controller_period_ms", controller_period_ms);
-//
-//	float dt = controller_period_ms/1000.0;
-//
-//	state4_t fly_along_cable_state;
-//
-//	geometry_msgs::msg::PoseStamped cable_pose;
-//
-//	powerline_mutex_.lock(); {
-//
-//		cable_pose = target_cable_pose_;
-//
-//	} powerline_mutex_.unlock();
-//
-//	quat_t cable_quat(
-//		cable_pose.pose.orientation.w,
-//		cable_pose.pose.orientation.x,
-//		cable_pose.pose.orientation.y,
-//		cable_pose.pose.orientation.z
-//	);
-//
-//	orientation_t cable_eul = quatToEul(cable_quat);
-//
-//	geometry_msgs::msg::TransformStamped T_drone_to_cable_gripper = tf_buffer_->lookupTransform("cable_gripper", "drone", tf2::TimePointZero);
-//
-//	quat_t q_drone_to_cable_gripper(
-//		T_drone_to_cable_gripper.transform.rotation.w,
-//		T_drone_to_cable_gripper.transform.rotation.x,
-//		T_drone_to_cable_gripper.transform.rotation.y,
-//		T_drone_to_cable_gripper.transform.rotation.z
-//	);
-//
-//	orientation_t eul_drone_to_cable_gripper = quatToEul(q_drone_to_cable_gripper);
-//
-//	float target_yaw;
-//
-//	target_yaw_mutex_.lock(); {
-//
-//		target_yaw = target_yaw_;
-//
-//	} target_yaw_mutex_.unlock();
-//
-//	if (target_yaw > M_PI) 
-//		target_yaw -= 2*M_PI;
-//	else if (target_yaw < -M_PI)
-//		target_yaw += 2*M_PI;
-//
-//	float cable_gripper_target_yaw = cable_eul(2) + eul_drone_to_cable_gripper(2);
-//
-//	if (cable_gripper_target_yaw > M_PI)
-//		cable_gripper_target_yaw -= 2*M_PI;
-//	else if (cable_gripper_target_yaw < -M_PI)
-//		cable_gripper_target_yaw += 2*M_PI;
-//
-//	float best_yaw = cable_gripper_target_yaw;
-//
-//	if (abs(best_yaw - target_yaw) > abs(cable_gripper_target_yaw-M_PI - target_yaw))
-//		best_yaw = cable_gripper_target_yaw - M_PI;
-//
-//	if (abs(best_yaw - target_yaw) > abs(cable_gripper_target_yaw+M_PI-target_yaw))
-//		best_yaw = cable_gripper_target_yaw + M_PI;
-//
-//	point_t pm1, p0, p1, p2;
-//	vector_t vm1, v0, v1, v2, am1, a0, a1, a2;
-//
-//	vector_t unit_x(1,0,0);
-//	vector_t unit_y(0,1,0);
-//	
-//	geometry_msgs::msg::PoseStamped cable_pose_W;
-//	cable_pose_W.header.frame_id = cable_pose.header.frame_id;
-//	cable_pose_W.pose = cable_pose.pose;
-//
-//	cable_pose_W = tf_buffer_->transform(cable_pose_W, "world");
-//
-//	quat_t cable_quat_W(
-//		cable_pose_W.pose.orientation.w,
-//		cable_pose_W.pose.orientation.x,
-//		cable_pose_W.pose.orientation.y,
-//		cable_pose_W.pose.orientation.z
-//	);
-//
-//	rotation_matrix_t R_W_to_cable = quatToMat(cable_quat_W);
-//
-//	vector_t cable_x_W = R_W_to_cable*unit_x;
-//	vector_t cable_y_W = R_W_to_cable*unit_y;
-//
-//	if (inverse_direction) {
-//		cable_x_W = -cable_x_W;
-//		cable_y_W = -cable_y_W;
-//	}
-//
-//	RCLCPP_INFO(this->get_logger(), "cable_x_W: %f, %f, %f", cable_x_W(0), cable_x_W(1), cable_x_W(2));
-//	RCLCPP_INFO(this->get_logger(), "cable_y_W: %f, %f, %f", cable_y_W(0), cable_y_W(1), cable_y_W(2));
-//
-//	plane_t cable_plane_W = {
-//		.p = point_t(
-//			cable_pose_W.pose.position.x, 
-//			cable_pose_W.pose.position.y, 
-//			cable_pose_W.pose.position.z
-//		),
-//		.normal = cable_y_W
-//	};
-//
-//	vector_t v_max = cable_x_W*velocity;
-//	vector_t a_max = cable_x_W*max_acceleration;
-//
-//	RCLCPP_INFO(this->get_logger(), "v_max: %f, %f, %f", v_max(0), v_max(1), v_max(2));
-//	RCLCPP_INFO(this->get_logger(), "a_max: %f, %f, %f", a_max(0), a_max(1), a_max(2));
-//
-//	pm1(0) = prev_fly_along_cable_state(0);
-//	pm1(1) = prev_fly_along_cable_state(1);
-//	pm1(2) = prev_fly_along_cable_state(2);
-//
-//	vm1(0) = prev_fly_along_cable_state(4);
-//	vm1(1) = prev_fly_along_cable_state(5);
-//	vm1(2) = prev_fly_along_cable_state(6);
-//
-//	am1(0) = prev_fly_along_cable_state(8);
-//	am1(1) = prev_fly_along_cable_state(9);
-//	am1(2) = prev_fly_along_cable_state(10);
-//
-//	RCLCPP_INFO(this->get_logger(), "pm1: %f, %f, %f", pm1(0), pm1(1), pm1(2));
-//	RCLCPP_INFO(this->get_logger(), "vm1: %f, %f, %f", vm1(0), vm1(1), vm1(2));
-//	RCLCPP_INFO(this->get_logger(), "am1: %f, %f, %f", am1(0), am1(1), am1(2));
-//
-//	p0 = pm1 + vm1*dt + 0.5*am1*dt*dt;
-//	v0 = vm1 + am1*dt;
-//
-//	v1 = v_max;
-//	a0 = (v1-v0)/dt;
-//
-//	if (a0.norm() > a_max.norm()) {
-//		a0 = a_max;
-//		v1 = v0 + a0*dt;
-//	}
-//
-//	p1 = p0 + v0*dt + 0.5*a0*dt*dt;
-//
-//	if ((p1-p0).norm() >= distance_left) {
-//
-//		a0 = - cable_x_W * (distance_left)/(0.5*dt*dt);
-//		v0 = -a0*dt;
-//		
-//	} else {
-//
-//		p1 = p0 + v0*dt + 0.5*a0*dt*dt;
-//		v1 = v0 + a0*dt;
-//
-//		a1 = (v_max-v1)/dt;
-//
-//		if (a1.norm() > a_max.norm()) {
-//
-//			a1 = a_max;
-//
-//		}
-//
-//		p2 = p1 + v1*dt + 0.5*a1*dt*dt;
-//		v2 = v1 + a1*dt;
-//
-//		if ((p2-p0).norm() > distance_left) {
-//
-//			a0 = - (cable_x_W * distance_left - 1.5*v0*dt)/(dt*dt);
-//
-//		}
-//	}
-//
-//	// p1 = p0 + v0*dt + 0.5*a0*dt*dt;
-//	// RCLCPP_INFO(this->get_logger(), "p1 before proj: %f, %f, %f", p1(0), p1(1), p1(2));
-//	// p1 = projectPointOnPlane(p1, cable_plane_W);
-//
-//	// RCLCPP_INFO(this->get_logger(), "cable_plane_W.p: %f, %f, %f", cable_plane_W.p(0), cable_plane_W.p(1), cable_plane_W.p(2));
-//	// RCLCPP_INFO(this->get_logger(), "cable_plane_W.n: %f, %f, %f", cable_plane_W.normal(0), cable_plane_W.normal(1), cable_plane_W.normal(2));
-//	// RCLCPP_INFO(this->get_logger(), "p1 after proj: %f, %f, %f", p1(0), p1(1), p1(2));
-//
-//	// v0 = (p1 - p0 - 0.5*v1) / (dt - 0.5);
-//	// a0 = (v1-v0) / dt;
-//
-//	RCLCPP_INFO(this->get_logger(), "p0: %f, %f, %f", p0(0), p0(1), p0(2));
-//	RCLCPP_INFO(this->get_logger(), "v0: %f, %f, %f", v0(0), v0(1), v0(2));
-//	RCLCPP_INFO(this->get_logger(), "a0: %f, %f, %f", a0(0), a0(1), a0(2));
-//
-//	p0 = projectPointOnPlane(p0, cable_plane_W);
-//
-//	fly_along_cable_state(0) = p0(0);
-//	fly_along_cable_state(1) = p0(1);
-//	fly_along_cable_state(2) = p0(2);
-//	fly_along_cable_state(3) = best_yaw;
-//	fly_along_cable_state(4) = v0(0);
-//	fly_along_cable_state(5) = v0(1);
-//	fly_along_cable_state(6) = v0(2);
-//	fly_along_cable_state(7) = 0;
-//	fly_along_cable_state(8) = a0(0);
-//	fly_along_cable_state(9) = a0(1);
-//	fly_along_cable_state(10) = a0(2);
-//	fly_along_cable_state(11) = 0;
-//
-//	return fly_along_cable_state;
-//
-//}
-
-state4_t TrajectoryController::loadTargetFlyAlongCableState(bool first) {
-
-	static vector_t first_under_cable_pos(0,0,0);
-
-	float target_distance;
-	bool inverse_direction;
-
-	fly_along_cable_mutex_.lock(); {
-
-		target_distance = fly_along_cable_distance_;
-		inverse_direction = fly_along_cable_inverse_direction_;
-
-	} fly_along_cable_mutex_.unlock();
-
-	state4_t fly_along_cable_state;
-
-	geometry_msgs::msg::Pose cable_pose;
-
-	powerline_mutex_.lock(); {
-
-		cable_pose = target_cable_pose_.pose;
-
-	} powerline_mutex_.unlock();
-
-	quat_t cable_quat(
-		cable_pose.orientation.w,
-		cable_pose.orientation.x,
-		cable_pose.orientation.y,
-		cable_pose.orientation.z
-	);
-
-	orientation_t cable_eul = quatToEul(cable_quat);
-
-	geometry_msgs::msg::TransformStamped T_drone_to_cable_gripper = tf_buffer_->lookupTransform("cable_gripper", "drone", tf2::TimePointZero);
-
-	quat_t q_drone_to_cable_gripper(
-		T_drone_to_cable_gripper.transform.rotation.w,
-		T_drone_to_cable_gripper.transform.rotation.x,
-		T_drone_to_cable_gripper.transform.rotation.y,
-		T_drone_to_cable_gripper.transform.rotation.z
-	);
-
-	orientation_t eul_drone_to_cable_gripper = quatToEul(q_drone_to_cable_gripper);
-
-	float target_yaw;
-
-	target_yaw_mutex_.lock(); {
-
-		target_yaw = target_yaw_;
-
-	} target_yaw_mutex_.unlock();
-
-	if (target_yaw > M_PI) 
-		target_yaw -= 2*M_PI;
-	else if (target_yaw < -M_PI)
-		target_yaw += 2*M_PI;
-
-	float cable_gripper_target_yaw = cable_eul(2) + eul_drone_to_cable_gripper(2);
-
-	if (cable_gripper_target_yaw > M_PI)
-		cable_gripper_target_yaw -= 2*M_PI;
-	else if (cable_gripper_target_yaw < -M_PI)
-		cable_gripper_target_yaw += 2*M_PI;
-
-	float best_yaw = cable_gripper_target_yaw;
-
-	if (abs(best_yaw - target_yaw) > abs(cable_gripper_target_yaw-M_PI - target_yaw))
-		best_yaw = cable_gripper_target_yaw - M_PI;
-
-	if (abs(best_yaw - target_yaw) > abs(cable_gripper_target_yaw+M_PI-target_yaw))
-		best_yaw = cable_gripper_target_yaw + M_PI;
-
-	vector_t under_cable_pos(
-		cable_pose.position.x,
-		cable_pose.position.y,
-		cable_pose.position.z - target_cable_distance_
-	);
-
-	if (first) {
-		first_under_cable_pos = under_cable_pos;
-	}
-
-	float dist = sqrt(pow(under_cable_pos(0)-first_under_cable_pos(0),2) + pow(under_cable_pos(1)-first_under_cable_pos(1),2));
-
-	float dist_left = target_distance - dist;
-
-	if (inverse_direction) {
-		dist_left = -dist_left;
-	}
-
-	fly_along_cable_state(0) = under_cable_pos(0) + dist_left*cos(cable_eul(2));
-	fly_along_cable_state(1) = under_cable_pos(1) + dist_left*sin(cable_eul(2));
-	fly_along_cable_state(2) = under_cable_pos(2);
-	fly_along_cable_state(3) = best_yaw;
-	fly_along_cable_state(4) = 0;
-	fly_along_cable_state(5) = 0;
-	fly_along_cable_state(6) = 0;
-	fly_along_cable_state(7) = 0;
-	fly_along_cable_state(8) = 0;
-	fly_along_cable_state(9) = 0;
-	fly_along_cable_state(10) = 0;
-	fly_along_cable_state(11) = 0;
-
-	return fly_along_cable_state;
-
-}
-
-void TrajectoryController::setFlyAlongCableParams(float distance, float velocity, float inverse_direction) {
-
-	fly_along_cable_mutex_.lock(); {
-
-		fly_along_cable_distance_ = distance;
-		fly_along_cable_velocity_ = velocity;
-		fly_along_cable_inverse_direction_ = inverse_direction;
-
-	} fly_along_cable_mutex_.unlock();
-
-}
-
 vector_t TrajectoryController::stepCartesianVelocityPID(state4_t vehicle_state, state4_t target_state, bool reset) {
 
 	// Variables:
@@ -5911,25 +5101,6 @@ state4_t TrajectoryController::stepMPC(state4_t vehicle_state, state4_t target_s
 
 	}
 
-	// cos_yaw = cos(ref_target_state(3));
-	// sin_yaw = sin(ref_target_state(3));
-
-	// vector_t translated_veh_state(
-	// 	vehicle_state(0) - ref_target_state(0),
-	// 	vehicle_state(1) - ref_target_state(1),
-	// 	vehicle_state(2) - ref_target_state(2)
-	// );
-
-	// vector_t transformed_veh_state(
-	// 	cos_yaw*translated_veh_state(0) - sin_yaw*translated_veh_state(1),
-	// 	cos_yaw*translated_veh_state(1) + sin_yaw*translated_veh_state(0),
-	// 	translated_veh_state(2)
-	// );
-
-	// vehicle_state(0) = transformed_veh_state(0);
-	// vehicle_state(1) = transformed_veh_state(1);
-	// vehicle_state(2) = transformed_veh_state(2);
-
 	if (first || reset) {
 
 		RCLCPP_INFO(this->get_logger(), "Initializing MPC with vehicle state");
@@ -5942,17 +5113,11 @@ state4_t TrajectoryController::stepMPC(state4_t vehicle_state, state4_t target_s
 
 	if (reset) {
 
-		// reset_target = 1;
 		reset_trajectory = 1;
 		reset_bounds = 1;
 		reset_weights = 1;
 
 	} else {
-
-		// if (mpc_mode == cable_landing)
-		// 	reset_target = 1;
-		// else
-		// 	reset_target = 0;
 
 		reset_trajectory = 0;
 		reset_bounds = 0;
@@ -5970,26 +5135,6 @@ state4_t TrajectoryController::stepMPC(state4_t vehicle_state, state4_t target_s
 	}
 
 	if (set_target) {
-
-		// vector_t translated_target(
-		// 	target_state(0) - ref_target_state(0),
-		// 	target_state(1) - ref_target_state(1),
-		// 	target_state(2) - ref_target_state(2)
-		// );
-
-		// vector_t transformed_target(
-		// 	cos_yaw*translated_target(0) - sin_yaw*translated_target(1),
-		// 	cos_yaw*translated_target(1) + sin_yaw*translated_target(0),
-		// 	translated_target(2)
-		// );
-
-		// target[0] = transformed_target(0);
-		// target[1] = transformed_target(1);
-		// target[2] = transformed_target(2);
-
-		// target[0] = ref_target_state(0);
-		// target[1] = ref_target_state(1);
-		// target[2] = ref_target_state(2);
 
 		for (int i = 0; i < 3; i++) {
 
@@ -6050,10 +5195,6 @@ state4_t TrajectoryController::stepMPC(state4_t vehicle_state, state4_t target_s
 
 	}
 
-	// With state progression:
-	//for (int i = 0; i < 3; i++) MPC_x_[i] = vehicle_state(i) + vehicle_state(i+4)*dt + 0.5*u[i]*dt*dt;
-	//for (int i = 0; i < 3; i++) MPC_x_[i+3] = vehicle_state(i+4) + u[i]*dt;
-
 	prev_vehicle_state = vehicle_state;
 
 	MPC_thread_ = std::thread( &TrajectoryController::threadFunctionMPC, this,
@@ -6083,43 +5224,11 @@ state4_t TrajectoryController::stepMPC(state4_t vehicle_state, state4_t target_s
 				state4_t tmp_state;
 
 				if (true) {
-				// if (mpc_mode == fly_along_cable) {
-
-					// vector_t rotated_pos(
-					// 	cos_yaw*planned_traj[i*6+0] + sin_yaw*planned_traj[i*6+1],
-					// 	cos_yaw*planned_traj[i*6+1] - sin_yaw*planned_traj[i*6+0],
-					// 	planned_traj[i*6+2]
-					// );
-
-					// vector_t transformed_pos(
-					// 	rotated_pos(0) + ref_target_state(0),
-					// 	rotated_pos(1) + ref_target_state(1),
-					// 	rotated_pos(2) + ref_target_state(2)
-					// );
-
-					// tmp_state[0] = transformed_pos(0);
-					// tmp_state[1] = transformed_pos(1);
-					// tmp_state[2] = transformed_pos(2);
 
 					tmp_state[0] = planned_traj[i*6+0];
 					tmp_state[1] = planned_traj[i*6+1];
 					tmp_state[2] = planned_traj[i*6+2];
 
-					// vector_t transformed_vel(
-					// 	cos_yaw*planned_traj[i*6+3] + sin_yaw*planned_traj[i*6+4],
-					// 	cos_yaw*planned_traj[i*6+4] - sin_yaw*planned_traj[i*6+3],
-					// 	planned_traj[i*6+5]
-					// );
-
-					//vector_t transformed_vel(
-					//	rotated_vel(0) + prev_target_cable_state(3),
-					//	rotated_vel(1) + prev_target_cable_state(4),
-					//	rotated_vel(2) + prev_target_cable_state(5)
-					//);
-
-					// tmp_state[3] = transformed_vel(0);
-					// tmp_state[4] = transformed_vel(1);
-					// tmp_state[5] = transformed_vel(2);
 
 					tmp_state[3] = planned_traj[i*6+0];
 					tmp_state[4] = planned_traj[i*6+1];
@@ -6143,63 +5252,14 @@ state4_t TrajectoryController::stepMPC(state4_t vehicle_state, state4_t target_s
 		} planned_trajectory_mutex_.unlock();
 
 		if (true) {
-		// if (mpc_mode == fly_along_cable) {
-
-			// vector_t rotated_pos(
-			// 	cos_yaw*x[0] + sin_yaw*x[1],
-			// 	cos_yaw*x[1] - sin_yaw*x[0],
-			// 	x[2]
-			// );
-
-			// vector_t transformed_pos(
-			// 	rotated_pos(0) + ref_target_state(0),
-			// 	rotated_pos(1) + ref_target_state(1),
-			// 	rotated_pos(2) + ref_target_state(2)
-			// );
-
-			// set_point(0) = transformed_pos(0);
-			// set_point(1) = transformed_pos(1);
-			// set_point(2) = transformed_pos(2);
 
 			set_point(0) = x[0];
 			set_point(1) = x[1];
 			set_point(2) = x[2];
 
-			// vector_t transformed_vel(
-			// 	cos_yaw*x[3] + sin_yaw*x[4],
-			// 	cos_yaw*x[4] - sin_yaw*x[3],
-			// 	x[5]
-			// );
-
-			//vector_t transformed_vel(
-			//	rotated_vel(0) + prev_target_cable_state(3),
-			//	rotated_vel(1) + prev_target_cable_state(4),
-			//	rotated_vel(2) + prev_target_cable_state(5)
-			//);
-
-			// set_point(4) = transformed_vel(0);
-			// set_point(5) = transformed_vel(1);
-			// set_point(6) = transformed_vel(2);
-
 			set_point(4) = x[3];
 			set_point(5) = x[4];
 			set_point(6) = x[5];
-
-			// vector_t transformed_acc(
-			// 	cos_yaw*u[0] + sin_yaw*u[1],
-			// 	cos_yaw*u[1] - sin_yaw*u[0],
-			// 	u[2]
-			// );
-
-			// vector_t transformed_acc(
-			// 	rotated_acc(0) + prev_target_cable_state(6),
-			// 	rotated_acc(1) + prev_target_cable_state(7),
-			// 	rotated_acc(2) + prev_target_cable_state(8)
-			// );
-
-			// set_point(8) = transformed_acc(0);
-			// set_point(9) = transformed_acc(1);
-			// set_point(10) = transformed_acc(2);
 
 			set_point(8) = u[0];
 			set_point(9) = u[1];
@@ -6396,28 +5456,6 @@ void TrajectoryController::loadBoundsMPC(MPC_parameters_t &mpc_params, MPC_mode_
 		this->get_parameter("cable_takeoff_MPC_ay_max", mpc_params.ay_max);
 		this->get_parameter("cable_takeoff_MPC_az_max", mpc_params.az_max);
 
-	case fly_along_cable:
-		state4_t target_cable_state = loadTargetCableState();
-
-		float max_vel;
-		
-		fly_along_cable_mutex_.lock(); {
-
-			max_vel = fly_along_cable_velocity_;
-
-		} fly_along_cable_mutex_.unlock();
-
-		mpc_params.vx_max = max_vel*cos(target_cable_state(3));
-		mpc_params.vy_max = max_vel*sin(target_cable_state(3));
-
-		this->get_parameter("fly_along_cable_MPC_vz_max", mpc_params.vz_max);
-
-		this->get_parameter("fly_along_cable_MPC_ax_max", mpc_params.ax_max);
-		this->get_parameter("fly_along_cable_MPC_ay_max", mpc_params.ay_max);
-		this->get_parameter("fly_along_cable_MPC_az_max", mpc_params.az_max);
-
-		break;
-
 	} 
 }
 
@@ -6487,23 +5525,6 @@ void TrajectoryController::loadWeightsMPC(MPC_parameters_t &mpc_params, MPC_mode
 		this->get_parameter("cable_takeoff_MPC_wjz", mpc_params.wjz);
 
 		// RCLCPP_INFO(this->get_logger(), "cable_takeoff_MPC_wjxyz: %f, %f, %f", mpc_params.wjx, mpc_params.wjy, mpc_params.wjz);
-
-	case fly_along_cable:
-		this->get_parameter("fly_along_cable_MPC_wx", mpc_params.wx);
-		this->get_parameter("fly_along_cable_MPC_wy", mpc_params.wy);
-		this->get_parameter("fly_along_cable_MPC_wz", mpc_params.wz);
-
-		this->get_parameter("fly_along_cable_MPC_wvx", mpc_params.wvx);
-		this->get_parameter("fly_along_cable_MPC_wvy", mpc_params.wvy);
-		this->get_parameter("fly_along_cable_MPC_wvz", mpc_params.wvz);
-
-		this->get_parameter("fly_along_cable_MPC_wax", mpc_params.wax);
-		this->get_parameter("fly_along_cable_MPC_way", mpc_params.way);
-		this->get_parameter("fly_along_cable_MPC_waz", mpc_params.waz);
-
-		this->get_parameter("fly_along_cable_MPC_wjx", mpc_params.wjx);
-		this->get_parameter("fly_along_cable_MPC_wjy", mpc_params.wjy);
-		this->get_parameter("fly_along_cable_MPC_wjz", mpc_params.wjz);
 
 		break;
 
