@@ -60,7 +60,6 @@
 #include "iii_drone_interfaces/action/cable_landing.hpp"
 #include "iii_drone_interfaces/action/cable_takeoff.hpp"
 #include "iii_drone_interfaces/action/fly_under_cable.hpp"
-#include "iii_drone_interfaces/action/fly_along_cable.hpp"
 #include "iii_drone_interfaces/action/disarm_on_cable.hpp"
 #include "iii_drone_interfaces/action/arm_on_cable.hpp"
 
@@ -100,7 +99,6 @@ namespace trajectory_controller_node {
 		on_cable_armed,
 		during_cable_takeoff,
 		hovering_under_cable,
-		flying_along_cable,
 		disarming_on_cable,
 		on_cable_disarmed,
 		arming_on_cable,
@@ -115,7 +113,6 @@ namespace trajectory_controller_node {
 		cable_landing_request,
 		cable_takeoff_request,
 		fly_under_cable_request,
-		fly_along_cable_request,
 		disarm_on_cable_request,
 		arm_on_cable_request
 	};
@@ -139,12 +136,6 @@ namespace trajectory_controller_node {
 	struct fly_under_cable_request_params_t {
 		int cable_id;
 		float target_cable_distance;
-	};
-
-	struct fly_along_cable_request_params_t {
-		float distance;
-		float velocity;
-		bool inverse_direction;
 	};
 
 	struct request_t {
@@ -204,8 +195,7 @@ namespace trajectory_controller_node {
 	enum MPC_mode_t {
 		positional,
 		cable_landing,
-		cable_takeoff,
-		fly_along_cable
+		cable_takeoff
 	};
 
 	struct MPC_parameters_t {
@@ -261,9 +251,6 @@ namespace trajectory_controller_node {
 
 		using FlyUnderCable = iii_drone_interfaces::action::FlyUnderCable;
 		using GoalHandleFlyUnderCable = rclcpp_action::ServerGoalHandle<FlyUnderCable>;
-
-		using FlyAlongCable = iii_drone_interfaces::action::FlyAlongCable;
-		using GoalHandleFlyAlongCable = rclcpp_action::ServerGoalHandle<FlyAlongCable>;
 
 		using CableLanding = iii_drone_interfaces::action::CableLanding;
 		using GoalHandleCableLanding = rclcpp_action::ServerGoalHandle<CableLanding>;
@@ -326,17 +313,6 @@ namespace trajectory_controller_node {
 		rclcpp_action::CancelResponse handleCancelFlyUnderCable(const std::shared_ptr<GoalHandleFlyUnderCable> goal_handle);
 		void handleAcceptedFlyUnderCable(const std::shared_ptr<GoalHandleFlyUnderCable> goal_handle);
 		void followFlyUnderCableCompletion(const std::shared_ptr<GoalHandleFlyUnderCable> goal_handle);
-
-		// Fly along cable action:
-		rclcpp_action::Server<FlyAlongCable>::SharedPtr fly_along_cable_server_;
-
-		rclcpp_action::GoalResponse handleGoalFlyAlongCable(
-			const rclcpp_action::GoalUUID & uuid, 
-			std::shared_ptr<const FlyAlongCable::Goal> goal
-		);
-		rclcpp_action::CancelResponse handleCancelFlyAlongCable(const std::shared_ptr<GoalHandleFlyAlongCable> goal_handle);
-		void handleAcceptedFlyAlongCable(const std::shared_ptr<GoalHandleFlyAlongCable> goal_handle);
-		void followFlyAlongCableCompletion(const std::shared_ptr<GoalHandleFlyAlongCable> goal_handle);
 
 		// Cable landing action:
 		rclcpp_action::Server<CableLanding>::SharedPtr cable_landing_server_;
@@ -407,10 +383,6 @@ namespace trajectory_controller_node {
 		std::vector<state4_t> planned_macro_trajectory_;
 		state4_t trajectory_target_;
 
-		float fly_along_cable_distance_;
-		float fly_along_cable_velocity_;
-		float fly_along_cable_inverse_direction_;
-
 		iii_drone_interfaces::msg::Powerline powerline_;
 		int target_cable_id_ = -1;
 		geometry_msgs::msg::PoseStamped target_cable_pose_;
@@ -421,8 +393,6 @@ namespace trajectory_controller_node {
 		std::mutex planned_trajectory_mutex_;
 		std::mutex powerline_mutex_;
 		std::mutex target_yaw_mutex_;
-
-		std::mutex fly_along_cable_mutex_;
 
 		std::shared_ptr<tf2_ros::TransformListener> transform_listener_{nullptr};
 		std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -533,11 +503,6 @@ namespace trajectory_controller_node {
 		geometry_msgs::msg::PoseStamped loadPlannedTarget();
 		state4_t loadTargetCableState();
 		state4_t loadTargetUnderCableState();
-		state4_t loadTargetFlyAlongCableState(bool first);
-		//state4_t loadTargetFlyAlongCableState(float velocity, float distance_left, 
-		//	bool inverse_direction, state4_t prev_fly_along_state, bool first);
-
-		void setFlyAlongCableParams(float distance, float velocity, float inverse_direction);
 
 		iii_drone::types::vector_t stepCartesianVelocityPID(state4_t vehicle_state, state4_t target_state, bool reset);
 
