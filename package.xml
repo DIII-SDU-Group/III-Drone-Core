@@ -11,17 +11,24 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
-  <exec_depend>rclpy</exec_depend>
-  <depend>rclcpp</depend>
-  <depend>iii_drone_interfaces</depend>
-  <depend>px4_msgs</depend>
-  <depend>geometry_msgs</depend>
-  <depend>sensor_msgs</depend>
-  <depend>tf2</depend>
-  <depend>iwr6843aop_pub</depend>
-  <depend>iwr6843aop</depend>
-  <depend>image_transport</depend>
 
+  <depend>rclcpp</depend>
+  <exec_depend>rclpy</exec_depend>
+  <depend>iii_drone_interfaces</depend>
+  <depend>sensor_msgs</depend>
+  <depend>px4_msgs</depend>
+  <depend>builtin_interfaces</depend>
+  <depend>fastcdr</depend>
+  <depend>fastrtps</depend>
+  <depend>geometry_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>cv_bridge</depend>
+  <depend>pcl_ros</depend>
+  <depend>tf2</depend>
+  <exec_depend>iwr6843aop</exec_depend>
+  <exec_depend>usb_cam</exec_depend>
+  <depend>image_transport</depend>
+  <depend>nav_msgs</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

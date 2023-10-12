@@ -12,6 +12,7 @@ dependencies="
     python3-opencv
     ros-$ROS_VERSION-cv-bridge
     ros-$ROS_VERSION-image-transport
+    ros-$ROS_VERSION-usb-cam
 "
 
 sudo apt update
