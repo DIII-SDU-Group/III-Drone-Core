@@ -48,7 +48,7 @@ public:
 explicit
     PowerlineMapperNode(
         const std::string & node_name="pl_mapper", 
-        const std::string & node_namespace="/pl_mapper",
+        const std::string & node_namespace="/perception/pl_mapper",
         const rclcpp::NodeOptions & options = rclcpp::NodeOptions()
     );
 

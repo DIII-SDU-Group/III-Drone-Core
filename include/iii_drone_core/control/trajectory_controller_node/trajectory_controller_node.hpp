@@ -265,7 +265,7 @@ namespace trajectory_controller_node {
 		using GoalHandleArmOnCable = rclcpp_action::ServerGoalHandle<ArmOnCable>;
 
 		TrajectoryController(const std::string & node_name="trajectory_controller", 
-				const std::string & node_namespace="/trajectory_controller", 
+				const std::string & node_namespace="/control/trajectory_controller", 
 				const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 		~TrajectoryController();
 

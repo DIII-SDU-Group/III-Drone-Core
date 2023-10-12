@@ -60,11 +60,11 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(
     // pl_direction_sub_ = this->create_subscription<iii_drone_interfaces::msg::PowerlineDirection>(
     //     "/hough_transformer/cable_yaw_angle", 10, std::bind(&PowerlineDirectionComputerNode::plDirectionCallback, this, std::placeholders::_1));
     pl_direction_sub_ = this->create_subscription<iii_drone_interfaces::msg::PowerlineDirection>(
-        "/hough_transformer/cable_yaw_angle", 10, std::bind(&PowerlineDirectionComputerNode::plDirectionCallback, this, std::placeholders::_1));
+        "/perception/hough_transformer/cable_yaw_angle", 10, std::bind(&PowerlineDirectionComputerNode::plDirectionCallback, this, std::placeholders::_1));
 
     // INiti pl_sub:
     pl_sub_ = this->create_subscription<iii_drone_interfaces::msg::Powerline>(
-        "/pl_mapper/powerline", 10, std::bind(&PowerlineDirectionComputerNode::plCallback, this, std::placeholders::_1));
+        "/perception/pl_mapper/powerline", 10, std::bind(&PowerlineDirectionComputerNode::plCallback, this, std::placeholders::_1));
 
     pl_direction_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("powerline_direction", 10);
 

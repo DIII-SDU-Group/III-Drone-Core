@@ -316,12 +316,12 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 		std::bind(&TrajectoryController::homePositionCallback, this, std::placeholders::_1));
 
 	powerline_sub_ = this->create_subscription<iii_drone_interfaces::msg::Powerline>(
-		"/pl_mapper/powerline", 
+		"/perception/pl_mapper/powerline", 
 		10,
 		std::bind(&TrajectoryController::powerlineCallback, this, std::placeholders::_1));
 
 	gripper_status_sub_ = this->create_subscription<iii_drone_interfaces::msg::GripperStatus>(
-		"/charger_gripper/gripper_status", 
+		"/payload/charger_gripper/gripper_status", 
 		10,
 		std::bind(&TrajectoryController::gripperStatusCallback, this, std::placeholders::_1));
 

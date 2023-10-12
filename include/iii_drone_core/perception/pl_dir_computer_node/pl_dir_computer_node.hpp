@@ -40,7 +40,7 @@ namespace pl_dir_computer_node {
     explicit
         PowerlineDirectionComputerNode(
             const std::string & node_name="pl_dir_computer", 
-            const std::string & node_namespace="/pl_dir_computer",
+            const std::string & node_namespace="/perception/pl_dir_computer",
             const rclcpp::NodeOptions & options = rclcpp::NodeOptions()
         );
 

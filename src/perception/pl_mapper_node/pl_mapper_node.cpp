@@ -74,13 +74,13 @@ PowerlineMapperNode::PowerlineMapperNode(
     powerline_.SetParams(r_, q_, alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_, matching_line_max_dist_, drone_frame_id_, mmwave_frame_id_, max_lines_);
 
     pl_direction_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
-        "/pl_dir_computer/powerline_direction", 10, std::bind(&PowerlineMapperNode::plDirectionCallback, this, std::placeholders::_1));
+        "/perception/pl_dir_computer/powerline_direction", 10, std::bind(&PowerlineMapperNode::plDirectionCallback, this, std::placeholders::_1));
 
     mmwave_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-        "/mmwave/pcl", 10, std::bind(&PowerlineMapperNode::mmWaveCallback, this, std::placeholders::_1));
+        "/sensor/mmwave/pcl", 10, std::bind(&PowerlineMapperNode::mmWaveCallback, this, std::placeholders::_1));
 
     control_state_sub_ = this->create_subscription<iii_drone_interfaces::msg::ControlState>(
-        "/trajectory_controller/control_state", 10, std::bind(&PowerlineMapperNode::controlStateCallback, this, std::placeholders::_1));
+        "/control/trajectory_controller/control_state", 10, std::bind(&PowerlineMapperNode::controlStateCallback, this, std::placeholders::_1));
 
     powerline_pub_ = this->create_publisher<iii_drone_interfaces::msg::Powerline>("powerline", 10);
     points_est_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("points_est", 10);

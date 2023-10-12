@@ -35,7 +35,7 @@ HoughTransformerNode::HoughTransformerNode(
 	qos.durability_volatile();
 
 	camera_subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
-		"/cable_camera/image_raw",	
+		"/sensor/cable_camera/image_raw",	
 		qos,
 		std::bind(
 			&HoughTransformerNode::OnCameraMsg, 

@@ -45,7 +45,7 @@ namespace hough_transformer_node {
 	public:
 		HoughTransformerNode(
 			const std::string & node_name="hough_transformer", 
-			const std::string & node_namespace="/hough_transformer",
+			const std::string & node_namespace="/perception/hough_transformer",
 			const rclcpp::NodeOptions & options = rclcpp::NodeOptions()
 		);
 
