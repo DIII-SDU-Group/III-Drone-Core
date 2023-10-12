@@ -20,7 +20,7 @@ class ChargerGripperNode(Node):
     def __init__(
             self,
             node_name="charger_gripper",
-            node_namespace="charger_gripper"
+            node_namespace="payload"
         ):
         super().__init__(node_name, namespace=node_namespace)
 
