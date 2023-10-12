@@ -51,6 +51,9 @@ cd <ROS2-DIII-workspace>
 colcon build
 ```
 
+## Building PX4-Autopilot firmware
+TODO: Write this section, including how to add new DDS topics.
+
 ## Contribution
 Current efforts is to refactor, debug, and prepare the current version v2.1-ICRA2024 to the next version v2.2. Major structural changes are made. Tasks to be done can be found [here](https://github.com/orgs/DIII-SDU-Group/projects/1/views/1).
 
