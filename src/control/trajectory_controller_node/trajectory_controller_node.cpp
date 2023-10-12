@@ -21,7 +21,6 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	request_completion_poll_rate_(100ms) {
 
 	this->declare_parameter<bool>("always_armed_for_debug", false);
-	this->declare_parameter<int>("controller_period_ms", 100);
 	this->declare_parameter<float>("landed_altitude_threshold", 0.15);
 	this->declare_parameter<bool>("use_ground_altitude_offset", true);
 	this->declare_parameter<float>("reached_position_euclidean_distance_threshold", 0.1);
@@ -62,8 +61,6 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 	this->declare_parameter<int>("land_cnt_timeout", 10);
 	this->declare_parameter<int>("target_cable_cnt_timeout", 10);
 	this->declare_parameter<int>("disarm_on_cable_cnt_timeout", 10);
-
-	this->declare_parameter<float>("max_acceleration", 1.);
 
 	this->declare_parameter<double>("dt", 0.2);
 
@@ -328,11 +325,11 @@ TrajectoryController::TrajectoryController(const std::string & node_name,
 		10,
 		std::bind(&TrajectoryController::gripperStatusCallback, this, std::placeholders::_1));
 
-	int controller_period_ms;
-	this->get_parameter("controller_period_ms", controller_period_ms);
+	double dt;
+	this->get_parameter("dt", dt);
 
 	main_state_machine_timer_ = this->create_wall_timer(
-		std::chrono::milliseconds(controller_period_ms), std::bind(&TrajectoryController::stateMachineCallback, this));
+		std::chrono::milliseconds((int)(dt*1000)), std::bind(&TrajectoryController::stateMachineCallback, this));
 
 	// RCLCPP debug successfully initilized trajectory controller
 	RCLCPP_INFO(this->get_logger(), "Successfully initialized trajectory controller");
@@ -357,7 +354,7 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalTakeoff(
 	(void)uuid;
 
 	float min_target_altitude;
-	this->get_parameter("min_target_altitude", min_target_altitude);
+	this->get_parameter("minimum_target_altitude", min_target_altitude);
 
 	if (goal->target_altitude < min_target_altitude){
 		// debug target altitude too low
@@ -3851,7 +3848,9 @@ void TrajectoryController::stateMachineCallback() {
 			static bool timer_started = false;
 			static float timer_value;
 			static int controller_period_ms;
-			this->get_parameter("controller_period_ms", controller_period_ms);
+			static float dt;
+			this->get_parameter("dt", dt);
+			controller_period_ms = (int)(dt*1000);
 
 			if (!timer_started) {
 
@@ -4058,8 +4057,9 @@ void TrajectoryController::odometryCallback(px4_msgs::msg::VehicleOdometry::Shar
 		msg->velocity[2]
 	);
 
-	int controller_period_ms;
-	this->get_parameter("controller_period_ms", controller_period_ms);
+	float dt;
+	this->get_parameter("dt", dt);
+	int controller_period_ms = (int)(dt*1000);
 
 	odometry_mutex_.lock(); {
 
