@@ -71,6 +71,9 @@ set(dependencies
 
 # Library:
 set(III_DRONE_LIBRARY_HEADERS
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/configuration/configurator.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/configuration/parameter.hpp"
+
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/math.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/blocking_queue.hpp"
 
@@ -79,6 +82,9 @@ set(III_DRONE_LIBRARY_HEADERS
 )
 
 set(III_DRONE_LIBRARY_SOURCES
+  "${PROJECT_SOURCE_DIR}/src/configuration/configurator.cpp"
+  "${PROJECT_SOURCE_DIR}/src/configuration/parameter.cpp"
+
   "${PROJECT_SOURCE_DIR}/src/utils/math.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/perception/single_line.cpp"
@@ -127,6 +133,12 @@ function(custom_cpp_target target_name target_sources)
   # Loop over optional arguments and add to target sources:
   foreach(arg ${ARGN})
     list(APPEND target_sources "${arg}")
+  endforeach()
+
+  # Print target sources:
+  message(STATUS "Target sources for ${target_name}:")
+  foreach(source ${target_sources})
+    message(STATUS "  ${source}")
   endforeach()
 
   add_executable(${target_name}
@@ -241,7 +253,8 @@ custom_cpp_target(continuous_mission_orchestrator
 ament_python_install_package(${PROJECT_NAME})
 # Install Python executables
 install(PROGRAMS
-  "${PROJECT_SOURCE_DIR}/scripts/payload/charger_gripper_node.py"
+  "${PROJECT_SOURCE_DIR}/scripts/payload/charger_gripper_node/charger_gripper_node.py"
+  "${PROJECT_SOURCE_DIR}/scripts/configuration/configuration_server_node/configuration_server_node.py"
   DESTINATION lib/${PROJECT_NAME}
 )
 

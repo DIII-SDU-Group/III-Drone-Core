@@ -1,9 +1,3 @@
-iii_gc:
-  iii_gc:
-    ros__parameters:
-      takeoff_height_default: 1.5
-      target_cable_distance_default: 1.5
-
 perception:
   hough_transformer:
     ros__parameters:
