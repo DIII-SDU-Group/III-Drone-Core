@@ -20,27 +20,16 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(
     node_name, 
     node_namespace,
     options
+), configurator_(
+    this
 ) {
 
-    this->declare_parameter<float>("kf_r", 0.999);
-    this->declare_parameter<float>("kf_q", 0.001);
+    for (int i = 0; i < 3; i++) { 
 
-    this->declare_parameter<int>("init_sleep_time_ms", 1000);
-    this->declare_parameter<int>("odometry_callback_period_ms", 25);
+        pl_angle_est[i].state_est = 0; 
+        pl_angle_est[i].var_est = 1; 
 
-    this->declare_parameter<float>("min_point_dist", 0.2);
-    this->declare_parameter<float>("max_point_dist", 18.);
-    this->declare_parameter<float>("view_cone_slope", 0.75);
-
-    this->declare_parameter<std::string>("world_frame_id", "world");
-    this->declare_parameter<std::string>("drone_frame_id", "drone");
-    this->declare_parameter<std::string>("mmwave_frame_id", "mmwave");
-
-    this->get_parameter("world_frame_id", world_frame_id_);
-    this->get_parameter("drone_frame_id", drone_frame_id_);
-    this->get_parameter("mmwave_frame_id", mmwave_frame_id_);
-
-    for (int i = 0; i < 3; i++) { pl_angle_est[i].state_est = 0; pl_angle_est[i].var_est = 1; }
+    }
 
     pl_direction_(0) = 1;
     pl_direction_(1) = 0;
@@ -57,32 +46,48 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(
     last_drone_quat_(2) = 0;
     last_drone_quat_(3) = 0;
 
-    // pl_direction_sub_ = this->create_subscription<iii_drone_interfaces::msg::PowerlineDirection>(
-    //     "/hough_transformer/cable_yaw_angle", 10, std::bind(&PowerlineDirectionComputerNode::plDirectionCallback, this, std::placeholders::_1));
     pl_direction_sub_ = this->create_subscription<iii_drone_interfaces::msg::PowerlineDirection>(
-        "/perception/hough_transformer/cable_yaw_angle", 10, std::bind(&PowerlineDirectionComputerNode::plDirectionCallback, this, std::placeholders::_1));
+        "/perception/hough_transformer/cable_yaw_angle", 
+        10, 
+        std::bind(
+            &PowerlineDirectionComputerNode::plDirectionCallback, 
+            this, 
+            std::placeholders::_1
+        )
+    );
 
     // INiti pl_sub:
     pl_sub_ = this->create_subscription<iii_drone_interfaces::msg::Powerline>(
-        "/perception/pl_mapper/powerline", 10, std::bind(&PowerlineDirectionComputerNode::plCallback, this, std::placeholders::_1));
+        "/perception/pl_mapper/powerline", 
+        10, 
+        std::bind(
+            &PowerlineDirectionComputerNode::plCallback, 
+            this, 
+            std::placeholders::_1
+        )
+    );
 
-    pl_direction_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("powerline_direction", 10);
+    pl_direction_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
+        "powerline_direction", 
+        10
+    );
 
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
-    int init_sleep_time_ms;
-    this->get_parameter("init_sleep_time_ms", init_sleep_time_ms);
-    std::chrono::milliseconds sleep_ms(init_sleep_time_ms);
+    std::chrono::milliseconds sleep_ms(configurator_.init_sleep_time_ms());
 	rclcpp::Rate rate(sleep_ms);
 	rate.sleep();
 
     // Call on_timer function every second
-    int odometry_callback_period_ms;
-    this->get_parameter("odometry_callback_period_ms", odometry_callback_period_ms);
-    std::chrono::milliseconds odom_callback_ms(odometry_callback_period_ms);
+    std::chrono::milliseconds odom_callback_ms(configurator_.odometry_callback_period_ms());
     drone_tf_timer_ = this->create_wall_timer(
-      odom_callback_ms, std::bind(&PowerlineDirectionComputerNode::odometryCallback, this));
+        odom_callback_ms, 
+        std::bind(
+            &PowerlineDirectionComputerNode::odometryCallback, 
+            this
+        )
+    );
 
     RCLCPP_DEBUG(this->get_logger(), "Initialized PowerlineDirectionComputerNode");
 
@@ -96,7 +101,11 @@ void PowerlineDirectionComputerNode::odometryCallback() {
 
     try {
 
-        tf = tf_buffer_->lookupTransform(drone_frame_id_, world_frame_id_, tf2::TimePointZero);
+        tf = tf_buffer_->lookupTransform(
+            configurator_.drone_frame_id(),
+            configurator_.world_frame_id(), 
+            tf2::TimePointZero
+        );
 
     } catch(tf2::TransformException & ex) {
 
@@ -184,8 +193,6 @@ void PowerlineDirectionComputerNode::plCallback(const iii_drone_interfaces::msg:
 
 void PowerlineDirectionComputerNode::predict() {
 
-    this->get_parameter("kf_q", q_);
-
     quat_t inv_drone_quat = quatInv(drone_quat_);
     quat_t inv_last_drone_quat = quatInv(last_drone_quat_);
 
@@ -211,7 +218,12 @@ void PowerlineDirectionComputerNode::predict() {
 
             orientation_t eul = quatToEul(pl_direction_);
 
-            for (int i = 0; i < 3; i++) { pl_angle_est[i].var_est += q_; pl_angle_est[i].state_est = backmapAngle(eul(i)); }
+            for (int i = 0; i < 3; i++) { 
+                
+                pl_angle_est[i].var_est += configurator_.kf_q(); 
+                pl_angle_est[i].state_est = backmapAngle(eul(i)); 
+                
+            }
 
         } kf_mutex_.unlock();
 
@@ -232,8 +244,6 @@ void PowerlineDirectionComputerNode::update(float pl_angle) {
         return;
 
     }
-
-    this->get_parameter("kf_r", r_);
 
     pl_angle = - pl_angle;
     // RCLCPP_INFO(this->get_logger(), "pl_angle = %f", pl_angle);
@@ -338,7 +348,7 @@ void PowerlineDirectionComputerNode::update(float pl_angle) {
 
                     float y_bar = angle - pl_angle_est[i].state_est;
                     // RCLCPP_INFO(this->get_logger(), "y_bar[%d] = %f", i, y_bar);
-                    float s = pl_angle_est[i].var_est + r_;
+                    float s = pl_angle_est[i].var_est + configurator_.kf_r();
                     // RCLCPP_INFO(this->get_logger(), "s[%d] = %f", i, s);
 
                     float k = pl_angle_est[i].var_est / s;
@@ -378,7 +388,7 @@ void PowerlineDirectionComputerNode::publishPowerlineDirection() {
     RCLCPP_DEBUG(this->get_logger(), "Publishing powerline direction");
 
     geometry_msgs::msg::PoseStamped msg;
-    msg.header.frame_id = drone_frame_id_; //"drone";
+    msg.header.frame_id = configurator_.drone_frame_id(); //"drone";
     msg.header.stamp = this->get_clock()->now();
 
     direction_mutex_.lock(); {
@@ -490,17 +500,16 @@ float PowerlineDirectionComputerNode::mapAngle2(float curr_angle, float new_angl
 
 bool PowerlineDirectionComputerNode::anyCableInFOV() {
 
-    float min_point_dist, max_point_dist, view_cone_slope;
-
-    // Get parameters
-    this->get_parameter("min_point_dist", min_point_dist);
-    this->get_parameter("max_point_dist", max_point_dist);
-    this->get_parameter("view_cone_slope", view_cone_slope);
-
     if (pl_.count == 0) {
+
         RCLCPP_INFO(this->get_logger(), "No powerlines detected, returning FOV true");
         return true;
+
     }
+
+    float min_point_dist = configurator_.min_point_dist();
+    float max_point_dist = configurator_.max_point_dist();
+    float view_cone_slope = configurator_.view_cone_slope();
 
     // Loop through all cables in pl_ and check if any of them are in the FOV
     for (int i = 0; i < pl_.count; i++) {
@@ -508,7 +517,10 @@ bool PowerlineDirectionComputerNode::anyCableInFOV() {
         geometry_msgs::msg::PoseStamped cable_pose = pl_.poses[i];
 
         // Transform to drone frame:
-        geometry_msgs::msg::PoseStamped mmwave_pose_stamped = tf_buffer_->transform(cable_pose, mmwave_frame_id_);
+        geometry_msgs::msg::PoseStamped mmwave_pose_stamped = tf_buffer_->transform(
+            cable_pose, 
+            configurator_.mmwave_frame_id()
+        );
 
         // //RCLCPP_INFO(logger_, "b3");
 
@@ -538,9 +550,6 @@ bool PowerlineDirectionComputerNode::anyCableInFOV() {
             RCLCPP_DEBUG(this->get_logger(), "dist = %f", dist);
             RCLCPP_DEBUG(this->get_logger(), "yz_dist = %f", yz_dist);
             RCLCPP_DEBUG(this->get_logger(), "view_cone_slope = %f", view_cone_slope);
-
-
-
             
             return true;
         }

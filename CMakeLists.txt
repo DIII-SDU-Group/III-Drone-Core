@@ -72,23 +72,41 @@ set(dependencies
 # Library:
 set(III_DRONE_LIBRARY_HEADERS
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/configuration/configurator.hpp"
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/configuration/parameter.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/configuration/tf/tf_configurator.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/configuration/mpc/mpc_configurator.hpp"
+
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/hough_transformer_node/hough_transformer_node_configurator.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/pl_dir_computer_node/pl_dir_computer_node_configurator.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/pl_mapper_node/pl_mapper_node_configurator.hpp"
+
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_controller_node/trajectory_controller_node_configurator.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/math.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/blocking_queue.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/single_line.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/powerline.hpp"
+
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/mpc_parameters.hpp"
 )
 
 set(III_DRONE_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/configuration/configurator.cpp"
-  "${PROJECT_SOURCE_DIR}/src/configuration/parameter.cpp"
+  "${PROJECT_SOURCE_DIR}/src/configuration/tf/tf_configurator.cpp"
+  "${PROJECT_SOURCE_DIR}/src/configuration/mpc/mpc_configurator.cpp"
+
+  "${PROJECT_SOURCE_DIR}/src/perception/hough_transformer_node/hough_transformer_node_configurator.cpp"
+  "${PROJECT_SOURCE_DIR}/src/perception/pl_dir_computer_node/pl_dir_computer_node_configurator.cpp"
+  "${PROJECT_SOURCE_DIR}/src/perception/pl_mapper_node/pl_mapper_node_configurator.cpp"
+
+  "${PROJECT_SOURCE_DIR}/src/control/trajectory_controller_node/trajectory_controller_node_configurator.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/utils/math.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/perception/single_line.cpp"
   "${PROJECT_SOURCE_DIR}/src/perception/powerline.cpp"
+
+  "${PROJECT_SOURCE_DIR}/src/control/mpc_parameters.cpp"
 )
 
 include_directories(${III_DRONE_INCLUDE_DIRS})
@@ -127,6 +145,9 @@ install(TARGETS iii_drone_lib
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/"
   DESTINATION include
 )
+
+# MATLAB MPC Library:
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/extern")
 
 # Executables:
 function(custom_cpp_target target_name target_sources)
@@ -198,53 +219,20 @@ custom_cpp_target(pl_mapper
 custom_cpp_target(trajectory_controller 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_controller_node/trajectory_controller_node.hpp"
   "${PROJECT_SOURCE_DIR}/src/control/trajectory_controller_node/trajectory_controller_node.cpp"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/minOrMax.cpp"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/minOrMax.h"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcblock_optimizer.cpp"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcblock_optimizer.h"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration.a"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration.cpp"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_data.cpp"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_data.h"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration.h"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_initialize.cpp"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_initialize.h"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_rtwutil.cpp"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_rtwutil.h"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_terminate.cpp"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_terminate.h"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_types.h"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/norm.cpp"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/norm.h"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/qpkwik.cpp"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/qpkwik.h"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/rtGetInf.cpp"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/rtGetInf.h"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/rtGetNaN.cpp"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/rtGetNaN.h"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/rt_nonfinite.cpp"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/rt_nonfinite.h"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/rtw_proj.tmw"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/rtwtypes.h"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/tmwtypes.h"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/trisolve.cpp"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/trisolve.h"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/xgerc.cpp"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/xgerc.h"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/xnrm2.cpp"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/xnrm2.h"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/xpotrf.cpp"
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/xpotrf.h"
 )
-target_include_directories(trajectory_controller PRIVATE
-  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10"
+target_include_directories(trajectory_controller 
+  PRIVATE
+  ${MATLAB_MPC_INCLUDE_DIRS}
+)
+target_link_libraries(trajectory_controller 
+  matlab_mpc
 )
 
-# Continuous mission orchestrator:
-custom_cpp_target(continuous_mission_orchestrator
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/mission/continuous_mission_orchestrator_node/continuous_mission_orchestrator_node.hpp"
-  "${PROJECT_SOURCE_DIR}/src/mission/continuous_mission_orchestrator_node/continuous_mission_orchestrator_node.cpp"
-)
+# # Continuous mission orchestrator:
+# custom_cpp_target(continuous_mission_orchestrator
+#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/mission/continuous_mission_orchestrator_node/continuous_mission_orchestrator_node.hpp"
+#   "${PROJECT_SOURCE_DIR}/src/mission/continuous_mission_orchestrator_node/continuous_mission_orchestrator_node.cpp"
+# )
 
 ############
 # Install ##
