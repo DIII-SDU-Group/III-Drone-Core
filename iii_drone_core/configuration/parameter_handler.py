@@ -40,7 +40,7 @@ class ParameterHandler:
             ValueError: If a parameter is missing the 'type' or 'value' key.
             TypeError: If a parameter name is not a string.
             TypeError: If a parameter 'type' is not a string.
-            TypeError: If a parameter 'is_constant' is not a bool.
+            TypeError: If a parameter 'constant' is not a bool.
             TypeError: If a parameter 'options' is not a list of strings.
             TypeError: If a parameter value is not of the specified type.
             TypeError: If a parameter 'min' or 'max' is not of the specified type.
@@ -177,7 +177,8 @@ class ParameterHandler:
     def set_param(
         self, 
         param_name: str, 
-        param_value: "str|int|float|bool|list[str|int|float|bool]"
+        param_value: "str|int|float|bool|list[str|int|float|bool]",
+        parameter_initialized: bool
     ) -> None:
         """
         Sets the value of a parameter.
@@ -197,7 +198,8 @@ class ParameterHandler:
 
         self.can_set_param(
             param_name, 
-            param_value
+            param_value,
+            parameter_initialized
         )
 
         self.params_dict[param_name]['value'] = param_value
@@ -205,7 +207,8 @@ class ParameterHandler:
     def can_set_param(
         self,
         param_name: str,
-        param_value: "str|int|float|bool|list[str|int|float|bool]"
+        param_value: "str|int|float|bool|list[str|int|float|bool]",
+        parameter_initialized: bool
     ) -> None:
         """
         Checks if a parameter can be set.
@@ -224,7 +227,7 @@ class ParameterHandler:
 
         self.validate_param(param_name, param_value)
 
-        if "is_constant" in self.params_dict[param_name] and self.params_dict[param_name]["is_constant"]:
+        if "constant" in self.params_dict[param_name] and self.params_dict[param_name]["constant"] and parameter_initialized:
             raise AttributeError(f"Parameter {param_name} is constant and cannot be changed")
 
     def get_all_params(self) -> dict:
@@ -263,7 +266,7 @@ class ParameterHandler:
             ValueError: If a parameter name already exists.
             ValueError: If a parameter is missing the 'type' or 'value' key.
             TypeError: If a parameter 'type' is not a string.
-            TypeError: If a parameter 'is_constant' is not a bool.
+            TypeError: If a parameter 'constant' is not a bool.
             TypeError: If a parameter 'options' is not a list of strings.
             TypeError: If a parameter value is not of the specified type.
             TypeError: If a parameter 'min' or 'max' is not of the specified type.
@@ -330,7 +333,7 @@ class ParameterHandler:
         Raises:
             ValueError: If a parameter is missing the 'type' or 'value' key.
             TypeError: If a parameter 'type' is not a string.
-            TypeError: If a parameter 'is_constant' is not a bool.
+            TypeError: If a parameter 'constant' is not a bool.
             TypeError: If a parameter 'options' is not a list of strings.
             TypeError: If a parameter value is not of the specified type.
             TypeError: If a parameter 'min' or 'max' is not of the specified type.
@@ -365,11 +368,11 @@ class ParameterHandler:
             'value': param_value
         }
 
-        if 'is_constant' in param:
-            if not isinstance(param['is_constant'], bool):
-                raise TypeError(f"Parameter {param_name} 'is_constant' must be a bool")
+        if 'constant' in param:
+            if not isinstance(param['constant'], bool):
+                raise TypeError(f"Parameter {param_name} 'constant' must be a bool")
 
-            param_out['is_constant'] = param['is_constant']
+            param_out['constant'] = param['constant']
 
         has_expression = False
 

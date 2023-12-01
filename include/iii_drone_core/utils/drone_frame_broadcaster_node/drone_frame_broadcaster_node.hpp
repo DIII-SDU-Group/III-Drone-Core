@@ -17,7 +17,7 @@
 
 #include "iii_drone_core/utils/math.hpp"
 
-#include <iii_drone_core/configuration/tf/tf_configurator.hpp>
+#include <iii_drone_core/utils/drone_frame_broadcaster_node/drone_frame_broadcaster_node_configurator.hpp>
 
 /*****************************************************************************/
 // Class
@@ -44,7 +44,7 @@ namespace drone_frame_broadcaster_node {
 
         iii_drone::types::rotation_matrix_t R_NED_to_body_frame;
 
-        configuration::TFConfigurator tf_configurator_;
+        DroneFrameBroadcasterConfigurator tf_configurator_;
 
     };
 

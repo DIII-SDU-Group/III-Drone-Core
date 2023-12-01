@@ -122,6 +122,13 @@ public:
     template<typename T>
     static std::string GetParameterTypeString();
 
+    /**
+     * @brief Prints all parameters to the console.
+     * 
+     * @return void
+     */
+    void PrintParameters() const;
+
 
 protected:
     /*

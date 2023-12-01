@@ -9,6 +9,20 @@ global:
     constant: true
 
 perception:
+  min_point_dist:
+    type: "float"
+    value: 0.1
+    min: 0.05
+    max: 2.0
+  max_point_dist:
+    type: "float"
+    value: 20.0
+    min: 10.
+  view_cone_slope:
+    type: "float"
+    value: 0.55
+    min: 0.
+
   hough_transformer:
     canny_low_threshold: 
       type: "int"
@@ -64,33 +78,20 @@ perception:
       type: "int"
       value: 150
       min: "/perception/pl_mapper/alive_cnt_high_thresh+1"
-    min_point_dist:
-      type: "float"
-      value: 0.1
-      min: 0.05
-      max: 2.0
-    max_point_dist:
-      type: "float"
-      value: 20.0
-      min: 10.
-    view_cone_slope:
-      type: "float"
-      value: 0.55
-      min: 0.
     min_point_dist_strict:
       type: "float"
       value: 1.0
-      min: "/global/min_point_dist"
+      min: "/perception/min_point_dist"
       max: "/perception/pl_mapper/max_point_dist_strict-0.1"
     max_point_dist_strict:
       type: "float"
       value: 18.
       min: "/perception/pl_mapper/min_point_dist_strict+0.1"
-      max: "/global/max_point_dist"
+      max: "/perception/max_point_dist"
     view_cone_slope_strict:
       type: "float"
       value: 0.75
-      min: "/global/view_cone_slope"
+      min: "/perception/view_cone_slope"
       max: 2.0
     matching_line_max_dist:
       type: "float"

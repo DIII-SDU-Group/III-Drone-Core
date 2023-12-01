@@ -7,7 +7,7 @@
 /*****************************************************************************/
 // III-Drone-Core:
 
-#include <iii_drone_core/configuration/tf/tf_configurator.hpp>
+#include <iii_drone_core/configuration/configurator.hpp>
 
 /*****************************************************************************/
 // ROS2:
@@ -27,7 +27,7 @@ namespace hough_transformer_node {
     /**
      * @brief Class for handling parameters for HoughTransformer.
     */
-    class HoughTransformerConfigurator : public configuration::TFConfigurator {
+    class HoughTransformerConfigurator : public configuration::Configurator {
 
     public:
         /**
@@ -53,6 +53,34 @@ namespace hough_transformer_node {
             const rclcpp::QoS & qos,
             std::function<void(const rclcpp::Parameter &)> after_parameter_change_callback = nullptr
         );
+
+        /**
+         * @brief Get the drone frame ID
+         *
+         * @return Drone frame ID
+         */
+        const std::string drone_frame_id() const;
+
+        /**
+         * @brief Get the world frame ID
+         *
+         * @return World frame ID
+         */
+        const std::string world_frame_id() const;
+
+        /**
+         * @brief Get the cable gripper frame ID
+         * 
+         * @return Cable gripper frame ID
+         */
+        const std::string cable_gripper_frame_id() const;
+
+        /**
+         * @brief Get the mmWave frame ID
+         * 
+         * @return mmWave frame ID
+         */
+        const std::string mmwave_frame_id() const;
 
         /**
          * @brief Get the Canny low threshold

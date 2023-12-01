@@ -20,14 +20,14 @@
 
 namespace iii_drone {
 
-namespace perception {
+namespace mission {
 
-namespace pl_dir_computer_node {
+namespace continuous_mission_orchestrator_node {
 
     /**
-     * @brief Class for handling parameters for PowerlineDirectionComputer.
+     * @brief Class for handling parameters for ContinuousMissionOrchestrator.
     */
-    class PowerlineDirectionComputerConfigurator : public configuration::Configurator {
+    class ContinuousMissionOrchestratorConfigurator : public configuration::Configurator {
 
     public:
         /**
@@ -36,7 +36,7 @@ namespace pl_dir_computer_node {
          * @param node Reference to the handling node
          * @param after_parameter_change_callback Callback function called after successful parameter change, default is nullptr
          */
-        PowerlineDirectionComputerConfigurator(
+        ContinuousMissionOrchestratorConfigurator(
             rclcpp::Node *node,
             std::function<void(const rclcpp::Parameter &)> after_parameter_change_callback = nullptr
         );
@@ -48,88 +48,81 @@ namespace pl_dir_computer_node {
          * @param qos QoS profile for the parameter event subscription
          * @param after_parameter_change_callback Callback function called after successful parameter change, default is nullptr
          */
-        PowerlineDirectionComputerConfigurator(
+        ContinuousMissionOrchestratorConfigurator(
             rclcpp::Node *node, 
             const rclcpp::QoS & qos,
             std::function<void(const rclcpp::Parameter &)> after_parameter_change_callback = nullptr
         );
 
         /**
-         * @brief Get the Kalman filter r coefficient
-         *
-         * @return Kalman filter r coefficient
-         */
-        const float kf_r() const;
-
-        /**
-         * @brief Get the Kalman filter q coefficient
-         *
-         * @return Kalman filter q coefficient
-         */
-        const float kf_q() const;
-
-        /**
-         * @brief Get the initial ms sleep time
-         *
-         * @return Initial ms sleep time
-         */
-        const int init_sleep_time_ms() const;
-
-        /**
-         * @brief Get the odometry callback period ms
+         * @brief Get the simulation flag
          * 
-         * @return Odometry callback period ms
+         * @return Simulation flag
          */
-        const int odometry_callback_period_ms() const;
+        const bool simulation() const;
 
         /**
-         * @brief Get the pl_mapper min_point_dist parameter
+         * @brief Get the under cable target distance
          * 
-         * @return pl_mapper min_point_dist parameter
+         * @return Under cable target distance
          */
-        const float min_point_dist() const;
+        const float under_cable_target_distance() const;
 
         /**
-         * @brief Get the pl_mapper max_point_dist parameter
+         * @brief Get the use charger gripper info flag
          * 
-         * @return pl_mapper max_point_dist parameter
+         * @return Use charger gripper info flag
          */
-        const float max_point_dist() const;
+        const bool use_charger_gripper_info() const;
 
         /**
-         * @brief Get the pl_mapper view_cone_slope parameter
+         * @brief Get the cable landing max retries
          * 
-         * @return pl_mapper view_cone_slope parameter
+         * @return Cable landing max retries
          */
-        const float view_cone_slope() const;
+        const int cable_landing_max_retries() const;
 
         /**
-         * @brief Get the drone frame ID
-         *
-         * @return Drone frame ID
-         */
-        const std::string drone_frame_id() const;
-
-        /**
-         * @brief Get the world frame ID
-         *
-         * @return World frame ID
-         */
-        const std::string world_frame_id() const;
-
-        /**
-         * @brief Get the cable gripper frame ID
+         * @brief Get the battery voltage low threshold
          * 
-         * @return Cable gripper frame ID
+         * @return Battery voltage low threshold
          */
-        const std::string cable_gripper_frame_id() const;
+        const float battery_voltage_low_threshold() const;
 
         /**
-         * @brief Get the mmWave frame ID
+         * @brief Get the battery voltage high threshold
          * 
-         * @return mmWave frame ID
+         * @return Battery voltage high threshold
          */
-        const std::string mmwave_frame_id() const;
+        const float battery_voltage_high_threshold() const;
+
+        /**
+         * @brief Get the charging power low threshold
+         * 
+         * @return Charging power low threshold
+         */
+        const float charging_power_low_threshold() const;
+
+        /**
+         * @brief Get the action timeout in milliseconds
+         * 
+         * @return Action timeout in milliseconds
+         */
+        const int action_timeout_ms() const;
+
+        /**
+         * @brief Get the charging minimum duration in seconds
+         * 
+         * @return Charging minimum duration in seconds
+         */
+        const int charging_minimum_duration_s() const;
+
+        /**
+         * @brief Get the charging maximum duration in seconds
+         * 
+         * @return Charging maximum duration in seconds
+         */
+        const int charging_maximum_duration_s() const;
 
     private:
         /**
@@ -141,6 +134,6 @@ namespace pl_dir_computer_node {
 
     };
 
-} // namespace hough_transformer_node
-} // namespace perception
+} // namespace continuous_mission_orchestrator_node
+} // namespace mission
 } // namespace iii_drone

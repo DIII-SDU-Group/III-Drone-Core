@@ -20,12 +20,14 @@
 
 namespace iii_drone {
 
-namespace configuration {
+namespace utils {
+
+namespace drone_frame_broadcaster_node {
 
     /**
-     * @brief Class for handling TF-related parameters.
+     * @brief Class for handling parameters for HoughTransformer.
     */
-    class TFConfigurator : public virtual Configurator {
+    class DroneFrameBroadcasterConfigurator : public configuration::Configurator {
 
     public:
         /**
@@ -34,7 +36,7 @@ namespace configuration {
          * @param node Reference to the handling node
          * @param after_parameter_change_callback Callback function called after successful parameter change, default is nullptr
          */
-        TFConfigurator(
+        DroneFrameBroadcasterConfigurator(
             rclcpp::Node *node,
             std::function<void(const rclcpp::Parameter &)> after_parameter_change_callback = nullptr
         );
@@ -46,7 +48,7 @@ namespace configuration {
          * @param qos QoS profile for the parameter event subscription
          * @param after_parameter_change_callback Callback function called after successful parameter change, default is nullptr
          */
-        TFConfigurator(
+        DroneFrameBroadcasterConfigurator(
             rclcpp::Node *node, 
             const rclcpp::QoS & qos,
             std::function<void(const rclcpp::Parameter &)> after_parameter_change_callback = nullptr
@@ -66,29 +68,16 @@ namespace configuration {
          */
         const std::string world_frame_id() const;
 
-        /**
-         * @brief Get the cable gripper frame ID
-         * 
-         * @return Cable gripper frame ID
-         */
-        const std::string cable_gripper_frame_id() const;
-
-        /**
-         * @brief Get the mmWave frame ID
-         * 
-         * @return mmWave frame ID
-         */
-        const std::string mmwave_frame_id() const;
-
     private:
         /**
-         * @brief Declares the TF related parameters
+         * @brief Declares the node specific parameters
          * 
          * @return void
          */
-        void declareTFParameters();
+        void declareNodeParameters();
 
     };
 
-} // namespace configuration
+} // namespace drone_frame_broadcaster_node
+} // namespace utils
 } // namespace iii_drone

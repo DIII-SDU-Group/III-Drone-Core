@@ -41,6 +41,8 @@ class ConfigurationServer(Node):
             node_name=node_name, 
             namespace=namespace
         )
+        
+        self.get_logger().info("ConfigurationServer.__init__(): Initializing node " + node_name + " in namespace " + namespace + ".")
 
         # Get user:
         self.user = os.environ["USER"]
@@ -52,6 +54,7 @@ class ConfigurationServer(Node):
 
         # Declared params empty dict:
         self.declared_params = {}
+        self.parameters_initialized = {}
 
         # Initialize service:
         self.declare_parameter_service = self.create_service(
@@ -96,9 +99,10 @@ class ConfigurationServer(Node):
                 try:
                     self.parameter_handler.can_set_param(
                         parameter.name,
-                        parameter.value
+                        parameter.value,
+                        self.parameters_initialized[parameter.name]
                     )
-
+                    
                 except KeyError as e:
                     self.get_logger().fatal("ConfigurationServer.set_parameter_event_callback(): Parameter not listed in parameters file: " + str(e))
                     result.successful = False
@@ -162,10 +166,12 @@ class ConfigurationServer(Node):
 
                 self.parameter_handler.set_param(
                     parameter.name, 
-                    param_value
+                    param_value,
+                    self.parameters_initialized[parameter.name]
                 )
 
                 self.declared_params[parameter.name] = param_value
+                self.parameters_initialized[parameter.name] = True
 
                 self.get_logger().info("ConfigurationServer.parameter_events_callback(): Parameter " + parameter.name + " set to " + str(param_value) + ".")
 
@@ -265,7 +271,7 @@ class ConfigurationServer(Node):
             param_dict = self.parameter_handler.get_param(request.name)
         
         except KeyError as e:
-            response.success = False
+            response.succeeded = False
             response.message = "Parameter not listed in parameters file: " + str(e)
 
             return response
@@ -276,7 +282,7 @@ class ConfigurationServer(Node):
             already_declared = True
 
         if request.type != param_dict["type"]:
-            response.success = False
+            response.succeeded = False
             response.message = "Type " + str(request.type) + " does not match type " + str(param_dict["type"]) + " in loaded parameters for parameter " + request.name + "."
 
             return response
@@ -284,7 +290,7 @@ class ConfigurationServer(Node):
         self.get_logger().info("ConfigurationServer.declare_parameter_callback(): Declaring parameter " + request.name + " with value " + str(param_dict["value"]) + " of type " + str(param_dict["type"]) + ".")
         
         if already_declared:
-            response.success = True
+            response.succeeded = True
             response.message = "Parameter already declared."
 
             return response
@@ -297,8 +303,9 @@ class ConfigurationServer(Node):
         )
 
         self.declared_params[request.name] = value
+        self.parameters_initialized[request.name] = False
 
-        response.success = True
+        response.succeeded = True
         response.message = "Parameter declared successfully."
 
         return response

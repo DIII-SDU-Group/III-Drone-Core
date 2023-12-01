@@ -141,6 +141,7 @@ int main(int argc, char *argv[])
 	std::cout << "Starting hough_tf_pub node..." << std::endl;
 	setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 	rclcpp::init(argc, argv);
+
 	rclcpp::spin(std::make_shared<HoughTransformerNode>());
 
 	rclcpp::shutdown();

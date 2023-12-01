@@ -17,9 +17,6 @@ TrajectoryControllerConfigurator::TrajectoryControllerConfigurator(
 ) : Configurator(
         node,
         after_parameter_change_callback
-    ), TFConfigurator(
-        node,
-        after_parameter_change_callback
     ) {
 
     declareNodeParameters();
@@ -32,10 +29,6 @@ TrajectoryControllerConfigurator::TrajectoryControllerConfigurator(
     std::function<void(const rclcpp::Parameter &)> after_parameter_change_callback
 ) : Configurator(
         node, 
-        qos,
-        after_parameter_change_callback
-    ), TFConfigurator(
-        node,
         qos,
         after_parameter_change_callback
     ) {
@@ -296,6 +289,30 @@ const float TrajectoryControllerConfigurator::cable_landing_target_upwards_veloc
 
 }
 
+const std::string TrajectoryControllerConfigurator::drone_frame_id() const {
+    
+    return GetParameter("/tf/drone_frame_id").as_string();
+
+}
+
+const std::string TrajectoryControllerConfigurator::world_frame_id() const {
+    
+    return GetParameter("/tf/world_frame_id").as_string();
+
+}
+
+const std::string TrajectoryControllerConfigurator::cable_gripper_frame_id() const {
+    
+    return GetParameter("/tf/cable_gripper_frame_id").as_string();
+
+}
+
+const std::string TrajectoryControllerConfigurator::mmwave_frame_id() const {
+    
+    return GetParameter("/tf/mmwave_frame_id").as_string();
+
+}
+
 void TrajectoryControllerConfigurator::declareNodeParameters() {
 
     DeclareParameter<bool>("/control/trajectory_controller/always_armed_for_debug");
@@ -340,5 +357,10 @@ void TrajectoryControllerConfigurator::declareNodeParameters() {
     DeclareParameter<bool>("/control/trajectory_controller/MPC_use_state_feedback");
     DeclareParameter<float>("/control/trajectory_controller/direct_target_setpoint_dist_threshold");
     DeclareParameter<float>("/control/trajectory_controller/cable_landing_target_upwards_velocity");
+
+    DeclareParameter<std::string>("/tf/drone_frame_id");
+    DeclareParameter<std::string>("/tf/world_frame_id");
+    DeclareParameter<std::string>("/tf/cable_gripper_frame_id");
+    DeclareParameter<std::string>("/tf/mmwave_frame_id");
 
 }

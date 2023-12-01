@@ -17,9 +17,6 @@ PowerlineDirectionComputerConfigurator::PowerlineDirectionComputerConfigurator(
 ) : Configurator(
         node,
         after_parameter_change_callback
-    ), TFConfigurator(
-        node,
-        after_parameter_change_callback
     ) {
 
     declareNodeParameters();
@@ -32,10 +29,6 @@ PowerlineDirectionComputerConfigurator::PowerlineDirectionComputerConfigurator(
     std::function<void(const rclcpp::Parameter &)> after_parameter_change_callback
 ) : Configurator(
         node, 
-        qos,
-        after_parameter_change_callback
-    ), TFConfigurator(
-        node,
         qos,
         after_parameter_change_callback
     ) {
@@ -86,6 +79,30 @@ const float PowerlineDirectionComputerConfigurator::view_cone_slope() const {
 
 }
 
+const std::string PowerlineDirectionComputerConfigurator::drone_frame_id() const {
+    
+    return GetParameter("/tf/drone_frame_id").as_string();
+
+}
+
+const std::string PowerlineDirectionComputerConfigurator::world_frame_id() const {
+    
+    return GetParameter("/tf/world_frame_id").as_string();
+
+}
+
+const std::string PowerlineDirectionComputerConfigurator::cable_gripper_frame_id() const {
+    
+    return GetParameter("/tf/cable_gripper_frame_id").as_string();
+
+}
+
+const std::string PowerlineDirectionComputerConfigurator::mmwave_frame_id() const {
+    
+    return GetParameter("/tf/mmwave_frame_id").as_string();
+
+}
+
 void PowerlineDirectionComputerConfigurator::declareNodeParameters() {
 
     DeclareParameter<float>("/perception/pl_dir_computer/kf_r");
@@ -96,5 +113,10 @@ void PowerlineDirectionComputerConfigurator::declareNodeParameters() {
     DeclareParameter<float>("/perception/pl_mapper/min_point_dist");
     DeclareParameter<float>("/perception/pl_mapper/max_point_dist");
     DeclareParameter<float>("/perception/pl_mapper/view_cone_slope");
+
+    DeclareParameter<std::string>("/tf/drone_frame_id");
+    DeclareParameter<std::string>("/tf/world_frame_id");
+    DeclareParameter<std::string>("/tf/cable_gripper_frame_id");
+    DeclareParameter<std::string>("/tf/mmwave_frame_id");
 
 }

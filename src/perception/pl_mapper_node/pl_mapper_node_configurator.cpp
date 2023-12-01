@@ -17,9 +17,6 @@ PowerlineMapperConfigurator::PowerlineMapperConfigurator(
 ) : Configurator(
         node,
         after_parameter_change_callback
-    ), TFConfigurator(
-        node,
-        after_parameter_change_callback
     ) {
 
     declareNodeParameters();
@@ -32,10 +29,6 @@ PowerlineMapperConfigurator::PowerlineMapperConfigurator(
     std::function<void(const rclcpp::Parameter &)> after_parameter_change_callback
 ) : Configurator(
         node, 
-        qos,
-        after_parameter_change_callback
-    ), TFConfigurator(
-        node,
         qos,
         after_parameter_change_callback
     ) {
@@ -152,6 +145,30 @@ const bool PowerlineMapperConfigurator::simulation() const {
 
 }
 
+const std::string PowerlineMapperConfigurator::drone_frame_id() const {
+    
+    return GetParameter("/tf/drone_frame_id").as_string();
+
+}
+
+const std::string PowerlineMapperConfigurator::world_frame_id() const {
+    
+    return GetParameter("/tf/world_frame_id").as_string();
+
+}
+
+const std::string PowerlineMapperConfigurator::cable_gripper_frame_id() const {
+    
+    return GetParameter("/tf/cable_gripper_frame_id").as_string();
+
+}
+
+const std::string PowerlineMapperConfigurator::mmwave_frame_id() const {
+    
+    return GetParameter("/tf/mmwave_frame_id").as_string();
+
+}
+
 void PowerlineMapperConfigurator::declareNodeParameters() {
 
     DeclareParameter<float>("/perception/pl_mapper/kf_r");
@@ -173,5 +190,10 @@ void PowerlineMapperConfigurator::declareNodeParameters() {
     DeclareParameter<int>("/perception/pl_mapper/inter_pos_window_size");
 
     DeclareParameter<bool>("/global/simulation");
+
+    DeclareParameter<std::string>("/tf/drone_frame_id");
+    DeclareParameter<std::string>("/tf/world_frame_id");
+    DeclareParameter<std::string>("/tf/cable_gripper_frame_id");
+    DeclareParameter<std::string>("/tf/mmwave_frame_id");
 
 }

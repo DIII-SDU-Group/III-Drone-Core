@@ -72,9 +72,10 @@ set(dependencies
 # Library:
 set(III_DRONE_LIBRARY_HEADERS
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/configuration/configurator.hpp"
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/configuration/tf/tf_configurator.hpp"
+
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/configuration/mpc/mpc_configurator.hpp"
 
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/drone_frame_broadcaster_node/drone_frame_broadcaster_node_configurator.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/hough_transformer_node/hough_transformer_node_configurator.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/pl_dir_computer_node/pl_dir_computer_node_configurator.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/pl_mapper_node/pl_mapper_node_configurator.hpp"
@@ -92,9 +93,10 @@ set(III_DRONE_LIBRARY_HEADERS
 
 set(III_DRONE_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/configuration/configurator.cpp"
-  "${PROJECT_SOURCE_DIR}/src/configuration/tf/tf_configurator.cpp"
+
   "${PROJECT_SOURCE_DIR}/src/configuration/mpc/mpc_configurator.cpp"
 
+  "${PROJECT_SOURCE_DIR}/src/utils/drone_frame_broadcaster_node/drone_frame_broadcaster_node_configurator.cpp"
   "${PROJECT_SOURCE_DIR}/src/perception/hough_transformer_node/hough_transformer_node_configurator.cpp"
   "${PROJECT_SOURCE_DIR}/src/perception/pl_dir_computer_node/pl_dir_computer_node_configurator.cpp"
   "${PROJECT_SOURCE_DIR}/src/perception/pl_mapper_node/pl_mapper_node_configurator.cpp"
