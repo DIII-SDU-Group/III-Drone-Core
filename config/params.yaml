@@ -1,30 +1,4 @@
-iii_gc:
-  iii_gc:
-    ros__parameters:
-      config_file_path: "~/config.yaml"
-      takeoff_height_default: 1.5
-
-perc_rc_node_launcher:
-  rc_node_launcher:
-    ros__parameters:
-      rc_channel_indexes: [6,7]
-      rc_channel_thresholds: [0.75, 0.75]
-      rc_channel_launch_files: ["sensors_real.launch.py", "pl_mapper_SW.launch.py"]
-      rc_channel_launch_packages: ["iii_drone", "iii_drone"]
-      rc_channel_terminate_all_idx: 11
-      rc_channel_terminate_all_threshold: 0.75
-
-ctrl_rc_node_launcher:
-  rc_node_launcher:
-    ros__parameters:
-      rc_channel_indexes: [6,8]
-      rc_channel_thresholds: [0.75, 0.75]
-      rc_channel_launch_files: ["tf_real.launch.py", "controller.launch.py"]
-      rc_channel_launch_packages: ["iii_drone", "iii_drone"]
-      rc_channel_terminate_all_idx: 11
-      rc_channel_terminate_all_threshold: 0.75
-
-hough_transformer:
+perception:
   hough_transformer:
     ros__parameters:
       canny_low_threshold: 50
@@ -32,7 +6,6 @@ hough_transformer:
       canny_kernel_size: 3
       n_lines_include: 8
 
-pl_dir_computer:
   pl_dir_computer:
     ros__parameters:
       kf_r: 0.999
@@ -40,7 +13,6 @@ pl_dir_computer:
       init_sleep_time_ms: 1000
       odometry_callback_period_ms: 25
 
-pl_mapper:
   pl_mapper:
     ros__parameters:
       kf_r: 0.999
@@ -49,24 +21,20 @@ pl_mapper:
       alive_cnt_high_thresh: 60
       alive_cnt_ceiling: 150
       matching_line_max_dist: 3.
-      min_point_dist: 0.1
       min_point_dist_strict: 1.0
-      max_point_dist: 20.
       max_point_dist_strict: 18.
-      view_cone_slope: 0.55
       view_cone_slope_strict: 0.75
       init_sleep_time_ms: 1000
       odometry_callback_period_ms: 25
       max_lines: 10
       skip_predict_when_on_cable: false
 
-mmwave:
+sensor:
   iwr6843_pcl_pub:
     ros__parameters:
       cli_port: /dev/ttyUSB0
       data_port: /dev/ttyUSB1
 
-cable_camera:
   usb_cam:
     ros__parameters:
       video_device: "/dev/video0"
@@ -79,15 +47,14 @@ cable_camera:
       camera_name: "test_camera"
       camera_info_url: "package://usb_cam/config/camera_info.yaml"
 
-trajectory_controller:
+control:
   trajectory_controller:
     ros__parameters:
       always_armed_for_debug: false
-      controller_period_ms: 200
       landed_altitude_threshold: 0.1
       use_ground_altitude_offset: true
       reached_position_euclidean_distance_threshold: 0.20
-      min_target_altitude: 1.
+      minimum_target_altitude: 1.
       target_cable_fixed_position_distance_threshold: 0.5
       target_cable_safety_margin_distance_threshold: 0.25
       target_cable_safety_margin_max_euc_distance: 0.15
@@ -107,20 +74,19 @@ trajectory_controller:
       disarm_on_cable_thrust_decrease_time_s: 5.0
       disarm_on_cable_thrust_wait_for_disarm_time_s: 5.0
       disarm_on_cable_flight_termination_timeout_s: -1
-      disarm_on_cable_thrust_initial: 0.75
-      arming_on_cable_upwards_velocity: 0.1
+      arming_on_cable_spool_up_time_s: 5.0
       update_home_position: true
-      offboard_cnt_timeout: 10
       arm_cnt_timeout: 10
+      offboard_cnt_timeout: 10
       land_cnt_timeout: 100
       target_cable_cnt_timeout: 10
       disarm_on_cable_cnt_timeout: 100
-      max_acceleration: 1.
       dt: 0.2
       use_cartesian_PID: false
       cartesian_PID_Kp: 1.5
       cartesian_PID_Ki: 0.2
       cartesian_PID_Kd: 0.2
+      cartesian_PID_integral_reset_error_threshold: 0.05
       MPC_N: 10
       MPC_use_state_feedback: false
       direct_target_setpoint_dist_threshold: 0.05
@@ -143,22 +109,6 @@ trajectory_controller:
       position_MPC_wjx: 0.1
       position_MPC_wjy: 0.1
       position_MPC_wjz: 0.1
-      fly_along_cable_MPC_vz_max: 0.5
-      fly_along_cable_MPC_ax_max: 1.0
-      fly_along_cable_MPC_ay_max: 1.0
-      fly_along_cable_MPC_az_max: 1.0
-      fly_along_cable_MPC_wx: 1.1
-      fly_along_cable_MPC_wy: 1.1
-      fly_along_cable_MPC_wz: 1.1
-      fly_along_cable_MPC_wvx: 1.0
-      fly_along_cable_MPC_wvy: 1.0
-      fly_along_cable_MPC_wvz: 1.0
-      fly_along_cable_MPC_wax: 0.01
-      fly_along_cable_MPC_way: 0.01
-      fly_along_cable_MPC_waz: 0.01
-      fly_along_cable_MPC_wjx: 0.1
-      fly_along_cable_MPC_wjy: 0.1
-      fly_along_cable_MPC_wjz: 0.1
       cable_landing_MPC_vx_max: 0.2
       cable_landing_MPC_vy_max: 0.2
       cable_landing_MPC_vz_max: 0.2
@@ -196,7 +146,7 @@ trajectory_controller:
       cable_takeoff_MPC_wjy: 0.1
       cable_takeoff_MPC_wjz: 0.1
 
-charger_gripper:
+payload:
   charger_gripper:
     ros__parameters:
       gripper_command_only: true
@@ -224,7 +174,7 @@ charger_gripper:
       battery_voltage_avg_filter_size: 10
       charging_power_avg_filter_size: 10
 
-continuous_mission_orchestrator:
+mission:
   continuous_mission_orchestrator:
     ros__parameters:
       under_cable_target_distance: 1.5
@@ -239,29 +189,26 @@ continuous_mission_orchestrator:
 
 /**:
   ros__parameters:
+    config_file_path: "~/.config/iii_drone/params.yaml"
     simulation: true
     world_frame_id: "world"
     drone_frame_id: "drone"
-    fmu_frame_id: "fmu"
-    cable_drum_frame_id: "cable_drum"
     cable_gripper_frame_id: "cable_gripper"
     mmwave_frame_id: "mmwave"
     depth_cam_frame_id: "depth_cam"
-    t265_world_frame_id: "t265_world"
-    t265_camera_frame_id: "t265_camera"
+
+    min_point_dist: 0.1
+    max_point_dist: 20.
+    view_cone_slope: 0.55
 
 tf:
   sim:
     ros__parameters:
-      drone_to_cable_drum: [0.0, 0.0, 0.09, 1.57079632679, 0.0, 0.0]
       drone_to_cable_gripper: [0.0, 0.0, 0.4, 1.57079632679, 0.0, 0.0]
-      drone_to_mmwave: [0.035, -0.23, 0.28, 3.1415, -1.57079632679, 0.0] 
+      drone_to_mmwave: [0.035, -0.23, 0.28, 3.1415, -1.57079632679, 0.0]
       drone_to_depth_cam: [0.035, -0.23, 0.28, -1.57079632679, 0.0, 0.0]
   real:
     ros__parameters:
-      drone_to_cable_drum: [-0.13, -0.01, -0.09, 3.1415, 0.0, 0.0]
       drone_to_cable_gripper: [0.0, 0.0, 0.13, 1.57079632679, 0.0, 0.0]
-      drone_to_mmwave: [-0.0375, -0.2, 0.04, 3.1415, 0.0, 1.57079632679] 
-      drone_to_t265: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-      world_to_t265_world: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      drone_to_mmwave: [-0.0375, -0.2, 0.04, 3.1415, 0.0, 1.57079632679]
       

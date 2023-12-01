@@ -33,24 +33,24 @@ ContinuousMissionOrchestrator::ContinuousMissionOrchestrator(const std::string &
 
     // Action clients:
     this->fly_under_cable_client_ = rclcpp_action::create_client<FlyUnderCable>(
-       this, "/trajectory_controller/fly_under_cable"
+       this, "/control/trajectory_controller/fly_under_cable"
     );
     this->cable_landing_client_ = rclcpp_action::create_client<CableLanding>(
-       this, "/trajectory_controller/cable_landing"
+       this, "/control/trajectory_controller/cable_landing"
     );
     this->disarm_on_cable_client_ = rclcpp_action::create_client<DisarmOnCable>(
-       this, "/trajectory_controller/disarm_on_cable"
+       this, "/control/trajectory_controller/disarm_on_cable"
     );
     this->arm_on_cable_client_ = rclcpp_action::create_client<ArmOnCable>(
-       this, "/trajectory_controller/arm_on_cable"
+       this, "/control/trajectory_controller/arm_on_cable"
     );
     this->cable_takeoff_client_ = rclcpp_action::create_client<CableTakeoff>(
-       this, "/trajectory_controller/cable_takeoff"
+       this, "/control/trajectory_controller/cable_takeoff"
     );
 
     // Gripper command client:
     this->gripper_command_client_ = this->create_client<iii_drone_interfaces::srv::GripperCommand>(
-        "/charger_gripper/gripper_command"
+        "/payload/charger_gripper/gripper_command"
     );
 
     // Target cable service:
@@ -61,19 +61,19 @@ ContinuousMissionOrchestrator::ContinuousMissionOrchestrator(const std::string &
 
     // Charger/gripper status:
     battery_voltage_sub_ = this->create_subscription<std_msgs::msg::Float32>(
-        "/charger_gripper/battery_voltage", 10,
+        "/payload/charger_gripper/battery_voltage", 10,
         std::bind(&ContinuousMissionOrchestrator::batteryVoltageCallback, this, std::placeholders::_1));
     charging_power_sub_ = this->create_subscription<std_msgs::msg::Float32>(
-        "/charger_gripper/charging_power", 10,
+        "/payload/charger_gripper/charging_power", 10,
         std::bind(&ContinuousMissionOrchestrator::chargingPowerCallback, this, std::placeholders::_1));
     charger_operating_mode_sub_ = this->create_subscription<iii_drone_interfaces::msg::ChargerOperatingMode>(
-        "/charger_gripper/charger_operating_mode", 10,
+        "/payload/charger_gripper/charger_operating_mode", 10,
         std::bind(&ContinuousMissionOrchestrator::chargerOperatingModeCallback, this, std::placeholders::_1));
     charger_status_sub_ = this->create_subscription<iii_drone_interfaces::msg::ChargerStatus>(
-        "/charger_gripper/charger_status", 10,
+        "/payload/charger_gripper/charger_status", 10,
         std::bind(&ContinuousMissionOrchestrator::chargerStatusCallback, this, std::placeholders::_1));
     gripper_status_sub_ = this->create_subscription<iii_drone_interfaces::msg::GripperStatus>(
-        "/charger_gripper/gripper_status", 10,
+        "/payload/charger_gripper/gripper_status", 10,
         std::bind(&ContinuousMissionOrchestrator::gripperStatusCallback, this, std::placeholders::_1));
 
     // Charging:
@@ -88,7 +88,7 @@ ContinuousMissionOrchestrator::ContinuousMissionOrchestrator(const std::string &
 
     // Control state:
     control_state_sub_ = this->create_subscription<iii_drone_interfaces::msg::ControlState>(
-        "/trajectory_controller/control_state", 10,
+        "/control/trajectory_controller/control_state", 10,
         std::bind(&ContinuousMissionOrchestrator::controlStateCallback, this, std::placeholders::_1));
     
 

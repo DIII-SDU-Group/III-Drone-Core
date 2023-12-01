@@ -79,7 +79,7 @@ namespace continuous_mission_orchestrator_node {
         using GoalHandleCableTakeoff = rclcpp_action::ClientGoalHandle<CableTakeoff>;
 
         ContinuousMissionOrchestrator(const std::string & node_name="continuous_mission_orchestrator", 
-                const std::string & node_namespace="/continuous_mission_orchestrator", 
+                const std::string & node_namespace="/mission/continuous_mission_orchestrator", 
                 const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
     private:

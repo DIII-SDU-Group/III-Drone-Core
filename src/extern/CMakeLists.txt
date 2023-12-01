@@ -1,0 +1,66 @@
+# Set the minimum required version of CMake
+cmake_minimum_required(VERSION 3.8)
+
+set(MATLAB_MPC_HEADERS
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/minOrMax.h"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcblock_optimizer.h"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_data.h"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration.h"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_initialize.h"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_rtwutil.h"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_terminate.h"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_types.h"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/norm.h"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/qpkwik.h"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/rtGetInf.h"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/rtGetNaN.h"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/rt_nonfinite.h"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/rtwtypes.h"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/tmwtypes.h"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/trisolve.h"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/xgerc.h"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/xnrm2.h"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/xpotrf.h"
+)
+
+set(MATLAB_MPC_SOURCES
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/minOrMax.cpp"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcblock_optimizer.cpp"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration.cpp"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_data.cpp"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_initialize.cpp"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_rtwutil.cpp"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_terminate.cpp"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/norm.cpp"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/qpkwik.cpp"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/rtGetInf.cpp"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/rtGetNaN.cpp"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/rt_nonfinite.cpp"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/trisolve.cpp"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/xgerc.cpp"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/xnrm2.cpp"
+  "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/xpotrf.cpp"
+)
+
+set(MATLAB_MPC_INCLUDE_DIRS
+  "${PROJECT_SOURCE_DIR}/src/extern"
+  PARENT_SCOPE
+)
+
+add_library(matlab_mpc 
+    SHARED
+    STATIC 
+    ${MATLAB_MPC_SOURCES} 
+    ${MATLAB_MPC_HEADERS}
+)
+
+target_sources(matlab_mpc
+    PUBLIC
+    ${MATLAB_MPC_SOURCES}
+    ${MATLAB_MPC_HEADERS}
+)
+
+target_include_directories(matlab_mpc
+    PUBLIC
+    ${MATLAB_MPC_INCLUDE_DIRS}
+)

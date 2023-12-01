@@ -4,11 +4,15 @@
 // Includes
 /*****************************************************************************/
 
+/*****************************************************************************/
+// ROS2:
+
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
-#include <px4_msgs/msg/vehicle_odometry.hpp>
-
 #include <rclcpp/qos.hpp>
+
+/*****************************************************************************/
+// CV:
 
 #include <image_transport/image_transport.hpp>
 #include <cv_bridge/cv_bridge.h>
@@ -20,7 +24,18 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+/*****************************************************************************/
+// III-Drone-Interfaces:
+
 #include "iii_drone_interfaces/msg/powerline_direction.hpp"
+
+/*****************************************************************************/
+// III-Drone-Core:
+
+#include <iii_drone_core/perception/hough_transformer_node/hough_transformer_node_configurator.hpp>
+
+/*****************************************************************************/
+// Std:
 
 #include <algorithm>
 #include <cstdlib>
@@ -41,34 +56,71 @@ namespace iii_drone {
 namespace perception {
 namespace hough_transformer_node {
 
+	/**
+	 * @brief Node for computing hough transform on images to detect powerline direction.
+	*/
 	class HoughTransformerNode : public rclcpp::Node {
 	public:
+		/**
+		 *	@brief Constructor
+		 *
+		 * @param node_name Name of the node
+		 * @param node_namespace Namespace of the node
+		 * @param options Options for the node
+		 */
 		HoughTransformerNode(
 			const std::string & node_name="hough_transformer", 
-			const std::string & node_namespace="/hough_transformer",
+			const std::string & node_namespace="/perception/hough_transformer",
 			const rclcpp::NodeOptions & options = rclcpp::NodeOptions()
 		);
 
+		/**
+		 *	@brief Destructor
+		 */
 		~HoughTransformerNode();
 
 	private:
+		/**
+		 * @brief Configurator object
+		 */
+		HoughTransformerConfigurator configurator_;
 
+		/**
+		 *	@brief Subscription object for the image topic
+		 */
 		rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr camera_subscription_;
-		rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr odometry_subscription_;
-		rclcpp::Publisher<iii_drone_interfaces::msg::PowerlineDirection>::SharedPtr cable_yaw_publisher_;
+
+		/**
+		 * @brief Callback function for the image topic
+		 *
+		 * @param _msg Message containing the image
+		 */
 		void OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg);
 
+		/**
+		 * @brief Publisher object for the cable yaw angle
+		 */
+		rclcpp::Publisher<iii_drone_interfaces::msg::PowerlineDirection>::SharedPtr cable_yaw_publisher_;
+
+		/**
+		 * @brief Computes the best line index from the hough transform
+		 * 
+		 * @param lines Vector of lines from the hough transform
+		 * @param img_height Height of the image
+		 * @param img_width Width of the image
+		 * 
+		 * @return Index of the best line
+		 */
 		int getBestLineIndex(
 			std::vector<cv::Vec2f> lines, 
 			int img_height, 
 			int img_width
 		);
 
+		/**
+		 * @brief Average of the angles of the lines
+		 */
 		float avg_theta_;
-
-		int canny_low_threshold_;
-		int canny_ratio_;
-		int canny_kernel_size_;
 
 	};
 

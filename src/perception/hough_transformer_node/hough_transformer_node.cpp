@@ -18,13 +18,9 @@ HoughTransformerNode::HoughTransformerNode(
 	node_name, 
 	node_namespace,
 	options
-) {
+), configurator_(this) {
 
-	// Params
-	this->declare_parameter<int>("canny_low_threshold", 50);
-	this->declare_parameter<int>("canny_ratio", 4);
-	this->declare_parameter<int>("canny_kernel_size", 3);
-
+	// Topics:
 	cable_yaw_publisher_ = this->create_publisher<iii_drone_interfaces::msg::PowerlineDirection>(
 		"cable_yaw_angle", 
 		10
@@ -35,7 +31,7 @@ HoughTransformerNode::HoughTransformerNode(
 	qos.durability_volatile();
 
 	camera_subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
-		"/cable_camera/image_raw",	
+		"/sensor/cable_camera/image_raw",	
 		qos,
 		std::bind(
 			&HoughTransformerNode::OnCameraMsg, 
@@ -81,24 +77,44 @@ int HoughTransformerNode::getBestLineIndex(
 // mmwave message callback function
 void HoughTransformerNode::OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg){
 
-	cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(_msg, _msg->encoding);
+	cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(
+		_msg, 
+		_msg->encoding
+	);
+
 	cv::Mat img = cv_ptr->image;
 
 	cv::Mat edge;
-	this->get_parameter("canny_low_threshold", canny_low_threshold_);
-	this->get_parameter("canny_ratio", canny_ratio_);
-	this->get_parameter("canny_kernel_size", canny_kernel_size_);
-	cv::Canny(img, edge, canny_low_threshold_, canny_low_threshold_*canny_ratio_, canny_kernel_size_); // edge detection
+
+	cv::Canny(
+		img, 
+		edge, 
+		configurator_.canny_low_threshold(), 
+		configurator_.canny_low_threshold() * configurator_.canny_ratio(),
+		configurator_.canny_kernel_size()
+	); // edge detection
 
 	// Standard Hough Line Transform
     std::vector<cv::Vec2f> lines; // will hold the results of the detection
-    cv::HoughLines(edge, lines, 1, M_PI/180, 150, 0, 0 ); // runs the actual detection
+    cv::HoughLines(
+		edge, 
+		lines, 
+		1, 
+		M_PI/180, 
+		150, 
+		0, 
+		0
+	); // runs the actual detection
 
 	float avg_theta_tmp = 0.0;
 
 	if (lines.size() > 0){
 
-		int idx = getBestLineIndex(lines, img.rows, img.cols);
+		int idx = getBestLineIndex(
+			lines, 
+			img.rows, 
+			img.cols
+		);
 
 		avg_theta_tmp = lines[idx][1];
 
@@ -116,15 +132,16 @@ void HoughTransformerNode::OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr 
 
 		// RCLCPP debug no lines detected
 		RCLCPP_DEBUG(this->get_logger(), "No lines detected");
+
 	}
 }
 
-			
 int main(int argc, char *argv[])
 {
 	std::cout << "Starting hough_tf_pub node..." << std::endl;
 	setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 	rclcpp::init(argc, argv);
+
 	rclcpp::spin(std::make_shared<HoughTransformerNode>());
 
 	rclcpp::shutdown();
