@@ -21,8 +21,6 @@ DroneFrameBroadcasterConfigurator::DroneFrameBroadcasterConfigurator(
 
     declareNodeParameters();
 
-    RCLCPP_INFO(node_->get_logger(), "Test 102");
-
 }
 
 DroneFrameBroadcasterConfigurator::DroneFrameBroadcasterConfigurator(

@@ -115,21 +115,21 @@ namespace pl_mapper_node {
          * 
          * @return Minimum distance between two points in the point cloud (strict)
          */
-        const float min_point_dist_strict() const;
+        const float strict_min_point_dist() const;
 
         /**
          * @brief Get the maximum distance between two points in the point cloud (strict)
          * 
          * @return Maximum distance between two points in the point cloud (strict)
          */
-        const float max_point_dist_strict() const;
+        const float strict_max_point_dist() const;
 
         /**
          * @brief Get the slope of the view cone (strict)
          * 
          * @return Slope of the view cone (strict)
          */
-        const float view_cone_slope_strict() const;
+        const float strict_view_cone_slope() const;
 
         /**
          * @brief Get the maximum distance between two points in the point cloud (for line matching)
