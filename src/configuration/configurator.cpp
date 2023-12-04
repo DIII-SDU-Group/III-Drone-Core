@@ -47,6 +47,7 @@ Configurator::Configurator(
     qos_ = std::make_unique<rclcpp::QoS>(qos);
 
     declare_parameter_client_ = node_->create_client<iii_drone_interfaces::srv::DeclareParameter>("/configuration/configuration_server/declare_parameter");
+    get_parameters_client_ = node_->create_client<rcl_interfaces::srv::GetParameters>("/configuration/configuration_server/configuration_server/get_parameters");
 
     parameter_events_subscriber_ = node_->create_subscription<rcl_interfaces::msg::ParameterEvent>(
         "/parameter_events",
@@ -127,14 +128,16 @@ void Configurator::DeclareParameter(const std::string & name) {
 
     }
 
+
     // Add parameter to the list of parameters:
     parameters_.push_back(parameter);
+
 
     // lock.unlock();
 
 }
 
-const rclcpp::Parameter & Configurator::GetParameter(const std::string & name) const {
+rclcpp::Parameter Configurator::GetParameter(const std::string & name) const {
 
     std::vector<rclcpp::Parameter> parameters = GetParameters({name});
 
@@ -142,7 +145,7 @@ const rclcpp::Parameter & Configurator::GetParameter(const std::string & name) c
 
 }
 
-const std::vector<rclcpp::Parameter> & Configurator::GetParameters(const std::vector<std::string> & names) const {
+std::vector<rclcpp::Parameter> Configurator::GetParameters(const std::vector<std::string> & names) const {
 
     // std::shared_lock<std::shared_mutex> lock(parameters_mutex_);
 
@@ -374,9 +377,9 @@ bool Configurator::sendDeclareParameterRequest(
     request->type = type;
 
     // Wait for service:
-    if (!declare_parameter_client_->wait_for_service(std::chrono::seconds(1))) {
+    if (!declare_parameter_client_->wait_for_service(std::chrono::seconds(5))) {
 
-        std::string fatal_message = "Configurator::DeclareParameter(): Service DeclareParameter not available after 1 second.";
+        std::string fatal_message = "Configurator::DeclareParameter(): Service DeclareParameter not available after 5 seconds.";
 
         RCLCPP_FATAL(
             node_->get_logger(),
@@ -463,23 +466,16 @@ bool Configurator::sendGetParametersRequest(
     request->names = names;
 
     // Wait for service:
-    while (!get_parameters_client_->wait_for_service(std::chrono::seconds(1))) {
+    if (!get_parameters_client_->wait_for_service(std::chrono::seconds(5))) {
 
-        if (!rclcpp::ok()) {
+        std::string fatal_message = "Configurator::GetParameter(): Service GetParameter not available after 5 seconds.";
 
-            RCLCPP_FATAL(
-                node_->get_logger(),
-                "Interrupted while waiting for the service. Exiting."
-            );
-
-            throw std::runtime_error("Interrupted while waiting for the service. Exiting.");
-
-        }
-
-        RCLCPP_DEBUG(
+        RCLCPP_FATAL(
             node_->get_logger(),
-            "Configurator::sendGetParametersRequest(): GetParameters service not available, waiting again..."
+            fatal_message.c_str()
         );
+
+        throw std::runtime_error(fatal_message);
 
     }
 

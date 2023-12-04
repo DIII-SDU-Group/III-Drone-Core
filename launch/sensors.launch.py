@@ -9,23 +9,18 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 def generate_launch_description():
-    user = os.getenv("USER")
-    config = "/home/" + user + "/.config/iii_drone/params.yaml"
-
     camera_node = Node(
         package="usb_cam",
         executable="usb_cam_node_exe",
         name="usb_cam",
         namespace="/sensor/cable_camera",
-        parameters=[config]
     )
 
     mmwave_node = Node(
         package="iwr6843aop_pub",
         executable="pcl_pub",
-        namespace="sensor",
-        remappings=[("/sensor/iwr6843_pcl", "/sensor/pcl")],
-        parameters=[config]
+        namespace="/sensor/mmwave",
+        remappings=[("/sensor/iwr6843_pcl", "/sensor/mmwave/pcl")],
     )
 
 

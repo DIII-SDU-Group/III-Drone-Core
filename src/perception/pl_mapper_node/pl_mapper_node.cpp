@@ -169,13 +169,13 @@ void PowerlineMapperNode::odometryCallback() {
         configurator_.max_lines()
     );
 
-    //RCLCPP_INFO(this->get_logger(), "Odometry callback");
+    // RCLCPP_INFO(this->get_logger(), "Odometry callback");
          
-    float min_point_dist_strict = configurator_.min_point_dist_strict();
-    float max_point_dist_strict = configurator_.max_point_dist_strict();
-    float view_cone_slope_strict = configurator_.view_cone_slope_strict();
+    float strict_min_point_dist = configurator_.strict_min_point_dist();
+    float strict_max_point_dist = configurator_.strict_max_point_dist();
+    float strict_view_cone_slope = configurator_.strict_view_cone_slope();
 
-    // RCLCPP_INFO(this->get_logger(), "Min points dist strict: %f", min_point_dist_strict);
+    // RCLCPP_INFO(this->get_logger(), "Min points dist strict: %f", strict_min_point_dist);
 
     // //RCLCPP_INFO(this->get_logger(), "Fetching odometry transform");
 
@@ -229,9 +229,9 @@ void PowerlineMapperNode::odometryCallback() {
             position, 
             quat, 
             tf_buffer_, 
-            min_point_dist_strict, 
-            max_point_dist_strict, 
-            view_cone_slope_strict
+            strict_min_point_dist, 
+            strict_max_point_dist, 
+            strict_view_cone_slope
         );
 
     } else {
@@ -250,9 +250,9 @@ void PowerlineMapperNode::odometryCallback() {
                     position, 
                     quat, 
                     tf_buffer_, 
-                    min_point_dist_strict, 
-                    max_point_dist_strict, 
-                    view_cone_slope_strict
+                    strict_min_point_dist, 
+                    strict_max_point_dist, 
+                    strict_view_cone_slope
                 );
 
                 break;
@@ -283,15 +283,15 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
         configurator_.max_lines()
     );
 
-    //RCLCPP_INFO(this->get_logger(), "mmWave callback");
+    // RCLCPP_INFO(this->get_logger(), "mmWave callback");
 
     float min_point_dist = configurator_.min_point_dist();
     float max_point_dist = configurator_.max_point_dist();
     float view_cone_slope = configurator_.view_cone_slope();
 
-    float min_point_dist_strict = configurator_.min_point_dist_strict();
-    float max_point_dist_strict = configurator_.max_point_dist_strict();
-    float view_cone_slope_strict = configurator_.view_cone_slope_strict();
+    float strict_min_point_dist = configurator_.strict_min_point_dist();
+    float strict_max_point_dist = configurator_.strict_max_point_dist();
+    float strict_view_cone_slope = configurator_.strict_view_cone_slope();
 
     int inter_pos_window_size = configurator_.inter_pos_window_size();
 
@@ -403,9 +403,9 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
         powerline_.CleanupLines(
             tf_buffer_, 
-            min_point_dist_strict, 
-            max_point_dist_strict, 
-            view_cone_slope_strict
+            strict_min_point_dist, 
+            strict_max_point_dist, 
+            strict_view_cone_slope
         );
 
     } else {
@@ -422,9 +422,9 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
             default:
                 powerline_.CleanupLines(
                     tf_buffer_, 
-                    min_point_dist_strict, 
-                    max_point_dist_strict, 
-                    view_cone_slope_strict
+                    strict_min_point_dist, 
+                    strict_max_point_dist, 
+                    strict_view_cone_slope
                 );
                 break;
 
@@ -438,8 +438,8 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
     powerline_.ComputeInterLinePositions(
         tf_buffer_, 
-        min_point_dist_strict, 
-        max_point_dist_strict, 
+        strict_min_point_dist, 
+        strict_max_point_dist, 
         view_cone_slope, 
         inter_pos_window_size
     );

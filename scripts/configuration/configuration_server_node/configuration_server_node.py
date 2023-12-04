@@ -229,7 +229,7 @@ class ConfigurationServer(Node):
         elif param_dict["type"] == "int":
             return parameter_value.integer_value
         
-        elif param_dict["type"] == "double":
+        elif param_dict["type"] == "float":
             return parameter_value.double_value
         
         elif param_dict["type"] == "bool":
@@ -241,7 +241,7 @@ class ConfigurationServer(Node):
         elif param_dict["type"] == "integer_array":
             return parameter_value.integer_array_value
         
-        elif param_dict["type"] == "double_array":
+        elif param_dict["type"] == "float_array":
             return parameter_value.double_array_value
         
         elif param_dict["type"] == "bool_array":

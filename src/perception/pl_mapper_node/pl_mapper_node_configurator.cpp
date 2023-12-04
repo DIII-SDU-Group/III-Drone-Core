@@ -85,21 +85,21 @@ const float PowerlineMapperConfigurator::view_cone_slope() const {
 
 }
 
-const float PowerlineMapperConfigurator::min_point_dist_strict() const {
+const float PowerlineMapperConfigurator::strict_min_point_dist() const {
     
-    return GetParameter("/perception/pl_mapper/min_point_dist_strict").as_double();
+    return GetParameter("/perception/pl_mapper/strict_min_point_dist").as_double();
 
 }
 
-const float PowerlineMapperConfigurator::max_point_dist_strict() const {
+const float PowerlineMapperConfigurator::strict_max_point_dist() const {
     
-    return GetParameter("/perception/pl_mapper/max_point_dist_strict").as_double();
+    return GetParameter("/perception/pl_mapper/strict_max_point_dist").as_double();
 
 }
 
-const float PowerlineMapperConfigurator::view_cone_slope_strict() const {
+const float PowerlineMapperConfigurator::strict_view_cone_slope() const {
     
-    return GetParameter("/perception/pl_mapper/view_cone_slope_strict").as_double();
+    return GetParameter("/perception/pl_mapper/strict_view_cone_slope").as_double();
 
 }
 
@@ -179,9 +179,9 @@ void PowerlineMapperConfigurator::declareNodeParameters() {
     DeclareParameter<float>("/perception/pl_mapper/min_point_dist");
     DeclareParameter<float>("/perception/pl_mapper/max_point_dist");
     DeclareParameter<float>("/perception/pl_mapper/view_cone_slope");
-    DeclareParameter<float>("/perception/pl_mapper/min_point_dist_strict");
-    DeclareParameter<float>("/perception/pl_mapper/max_point_dist_strict");
-    DeclareParameter<float>("/perception/pl_mapper/view_cone_slope_strict");
+    DeclareParameter<float>("/perception/pl_mapper/strict_min_point_dist");
+    DeclareParameter<float>("/perception/pl_mapper/strict_max_point_dist");
+    DeclareParameter<float>("/perception/pl_mapper/strict_view_cone_slope");
     DeclareParameter<float>("/perception/pl_mapper/matching_line_max_dist");
     DeclareParameter<int>("/perception/pl_mapper/init_sleep_time_ms");
     DeclareParameter<int>("/perception/pl_mapper/odometry_callback_period_ms");

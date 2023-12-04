@@ -92,7 +92,7 @@ public:
      * 
      * @return The parameter
      */
-    const rclcpp::Parameter & GetParameter(const std::string & name) const;
+    rclcpp::Parameter GetParameter(const std::string & name) const;
 
     /**
      * @brief Gets multiple parameters.
@@ -101,7 +101,7 @@ public:
      * 
      * @return std::vector<rclcpp::Parameter> Vector of parameters
      */
-    const std::vector<rclcpp::Parameter> & GetParameters(const std::vector<std::string> & names) const;
+    std::vector<rclcpp::Parameter> GetParameters(const std::vector<std::string> & names) const;
 
     /**
      * @brief Synchronizes parameters with the parameter server. Should never be necessary.

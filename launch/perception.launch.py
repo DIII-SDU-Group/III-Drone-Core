@@ -9,27 +9,22 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 def generate_launch_description():
-    config = "/home/" + os.getenv("USER") + "/.config/iii_drone/params.yaml"
-
     hough = Node(
         package="iii_drone_core",
         executable="hough_transformer",
         namespace="/perception/hough_transformer",
-        parameters=[config]
     )
 
     pl_dir_computer = Node(
         package="iii_drone_core",
         executable="pl_dir_computer",
         namespace="/perception/pl_dir_computer",
-        parameters=[config]
     )
 
     pl_mapper = Node(
         package="iii_drone_core",
         executable="pl_mapper",
         namespace="/perception/pl_mapper",
-        parameters=[config]
     )
 
     return LaunchDescription([

@@ -9,20 +9,6 @@ global:
     constant: true
 
 perception:
-  min_point_dist:
-    type: "float"
-    value: 0.1
-    min: 0.05
-    max: 2.0
-  max_point_dist:
-    type: "float"
-    value: 20.0
-    min: 10.
-  view_cone_slope:
-    type: "float"
-    value: 0.55
-    min: 0.
-
   hough_transformer:
     canny_low_threshold: 
       type: "int"
@@ -78,21 +64,37 @@ perception:
       type: "int"
       value: 150
       min: "/perception/pl_mapper/alive_cnt_high_thresh+1"
-    min_point_dist_strict:
+
+    min_point_dist:
+      type: "float"
+      value: 0.1
+      min: 0.05
+      max: 2.0
+    max_point_dist:
+      type: "float"
+      value: 20.0
+      min: 10.
+    view_cone_slope:
+      type: "float"
+      value: 0.55
+      min: 0.
+
+    strict_min_point_dist:
       type: "float"
       value: 1.0
-      min: "/perception/min_point_dist"
-      max: "/perception/pl_mapper/max_point_dist_strict-0.1"
-    max_point_dist_strict:
+      min: "/perception/pl_mapper/min_point_dist"
+      max: "/perception/pl_mapper/strict_max_point_dist-0.1"
+    strict_max_point_dist:
       type: "float"
       value: 18.
-      min: "/perception/pl_mapper/min_point_dist_strict+0.1"
-      max: "/perception/max_point_dist"
-    view_cone_slope_strict:
+      min: "/perception/pl_mapper/strict_min_point_dist+0.1"
+      max: "/perception/pl_mapper/max_point_dist"
+    strict_view_cone_slope:
       type: "float"
       value: 0.75
-      min: "/perception/view_cone_slope"
+      min: "/perception/pl_mapper/view_cone_slope"
       max: 2.0
+
     matching_line_max_dist:
       type: "float"
       value: 3.
@@ -763,10 +765,6 @@ tf:
     type: "string"
     value: "mmwave"
     constant: true
-  depth_cam_frame_id:
-    type: "string"
-    value: "depth_cam"
-    constant: true
 
   drone_to_cable_gripper:
     type: "float_array"
@@ -776,3 +774,22 @@ tf:
     type: "float_array"
     value: [-0.0375, -0.2, 0.04, 3.1415, 0.0, 1.57079632679]
     constant: true
+
+  sim:
+    depth_cam_frame_id:
+      type: "string"
+      value: "depth_cam"
+      constant: true
+
+    drone_to_cable_gripper:
+      type: "float_array"
+      value: [0.0, 0.0, 0.4, 1.57079632679, 0.0, 0.0]
+      constant: true
+    drone_to_mmwave:
+      type: "float_array"
+      value: [0.035, -0.23, 0.28, 3.1415, -1.57079632679, 0.0]
+      constant: true
+    drone_to_depth_cam:
+      type: "float_array"
+      value: [0.035, -0.23, 0.28, -1.57079632679, 0.0, 0.0]
+      constant: true
