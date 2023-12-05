@@ -11,8 +11,9 @@ from rclpy.parameter import Parameter, ParameterValue
 
 import os
 import yaml
+from datetime import datetime
 
-from iii_drone_interfaces.srv import DeclareParameter
+from iii_drone_interfaces.srv import DeclareParameter, GetParameterYaml, GetDeclaredParameters, SaveParameters, GetParameterFiles, LoadParameters
 
 from iii_drone_core.configuration.parameter_handler import ParameterHandler
 
@@ -47,20 +48,68 @@ class ConfigurationServer(Node):
         # Get user:
         self.user = os.environ["USER"]
 
-        self.declare_parameter("parameters_file_path", "/home/" + self.user + "/.config/iii_drone/parameters.yaml")
-        self.params_file_path = str(self.get_parameter("parameters_file_path").value)
+        self.declare_parameter("parameters_dir", "/home/" + self.user + "/.config/iii_drone/parameters/")
+        self.params_dir = str(self.get_parameter("parameters_dir").value)
+        
+        # Replace "~" with "/home/<user>" in the path
+        if self.params_dir[0] == "~":
+            self.params_dir = "/home/" + self.user + self.params_dir[1:]
+        
+        self.declare_parameter("default_parameter_file", "parameters.yaml")
+        
+        params_file = str(self.get_parameter("default_parameter_file").value)
+        
+        if not self.validate_parameter_file_name(params_file):
+            raise ValueError("ConfigurationServer.__init__(): Default parameter file name " + params_file + " is not valid.")
+        
+        self.params_file = os.path.join(
+            self.params_dir,
+            params_file
+        )
+        
+        self.ros_params_file = "/home/" + self.user + "/.config/iii_drone/ros_params.yaml"
 
-        self.parameter_handler = ParameterHandler(self.params_file_path)
+        self.parameter_handler = ParameterHandler.from_parameter_file(self.params_file)
 
         # Declared params empty dict:
         self.declared_params = {}
         self.parameters_initialized = {}
 
-        # Initialize service:
+        # Initialize services:
         self.declare_parameter_service = self.create_service(
             DeclareParameter,
             "declare_parameter",
             self.declare_parameter_callback
+        )
+        
+        self.get_parameter_yaml_service = self.create_service(
+            GetParameterYaml,
+            "get_parameter_yaml",
+            self.get_parameter_yaml_callback
+        )
+        
+        self.get_declared_parameters_service = self.create_service(
+            GetDeclaredParameters,
+            "get_declared_parameters",
+            self.get_declared_parameters_callback
+        )
+        
+        self.save_parameters_service = self.create_service(
+            SaveParameters,
+            "save_parameters",
+            self.save_parameters_callback
+        )
+        
+        self.get_parameter_files_service = self.create_service(
+            GetParameterFiles,
+            "get_parameter_files",
+            self.get_parameter_files_callback
+        )
+        
+        self.load_parameters_service = self.create_service(
+            LoadParameters,
+            "load_parameters",
+            self.load_parameters_callback
         )
 
         # Service callback that gets called before a parameter is set:
@@ -104,26 +153,34 @@ class ConfigurationServer(Node):
                     )
                     
                 except KeyError as e:
-                    self.get_logger().fatal("ConfigurationServer.set_parameter_event_callback(): Parameter not listed in parameters file: " + str(e))
+                    return_string = "Parameter " + parameter.name + " not listed in parameters file, rejecting."
+                    self.get_logger().fatal("ConfigurationServer.set_parameter_event_callback(): " + return_string + ": " + str(e))
                     result.successful = False
+                    result.reason = return_string
 
                     return result
 
                 except AttributeError as e:
-                    self.get_logger().error("ConfigurationServer.set_parameter_event_callback(): Parameter " + parameter.name + " is constant, rejecting.")
+                    return_string = "Parameter " + parameter.name + " is constant, rejecting."
+                    self.get_logger().error("ConfigurationServer.set_parameter_event_callback(): " + return_string + ": " + str(e))
                     result.successful = False
+                    result.reason = return_string
 
                     return result
 
                 except TypeError as e:
-                    self.get_logger().error("ConfigurationServer.set_parameter_event_callback(): Parameter " + parameter.name + " has different type, rejecting.")
+                    return_string = "Parameter " + parameter.name + " has different type, rejecting."
+                    self.get_logger().error("ConfigurationServer.set_parameter_event_callback(): " + return_string + ": " + str(e))
                     result.successful = False
+                    result.reason = return_string
 
                     return result
                 
                 except ValueError as e:
-                    self.get_logger().error("ConfigurationServer.set_parameter_event_callback(): Parameter " + parameter.name + " failed validation, rejecting.")
+                    return_string = "Parameter " + parameter.name + " failed validation, rejecting."
+                    self.get_logger().error("ConfigurationServer.set_parameter_event_callback(): " + return_string + ": " + str(e))
                     result.successful = False
+                    result.reason = return_string
 
                     return result
 
@@ -309,6 +366,257 @@ class ConfigurationServer(Node):
         response.message = "Parameter declared successfully."
 
         return response
+    
+    def get_parameter_yaml_callback(
+        self,
+        request: GetParameterYaml.Request,
+        response: GetParameterYaml.Response
+    ) -> GetParameterYaml.Response:
+        """
+        Callback for get_parameter_yaml service. Returns the loaded parameters as a yaml string.
+
+        Parameters:
+            request (GetParameterYaml.Request): Service request.
+            response (GetParameterYaml.Response): Service response.
+
+        Returns:
+            GetParameterYaml.Response: Service response.
+        """
+
+        response.yaml = self.parameter_handler.get_parameters_yaml_string()
+
+        return response
+    
+    def get_declared_parameters_callback(
+        self,
+        request: GetDeclaredParameters.Request,
+        response: GetDeclaredParameters.Response
+    ) -> GetDeclaredParameters.Response:
+        """
+        Callback for get_declared_parameters service. Returns the declared parameters as a yaml string.
+
+        Parameters:
+            request (GetDeclaredParameters.Request): Service request.
+            response (GetDeclaredParameters.Response): Service response.
+
+        Returns:
+            GetDeclaredParameters.Response: Service response.
+        """
+
+        response.declared_parameters_yaml = yaml.dump(self.declared_params)
+
+        return response
+    
+    def save_parameters_callback(
+        self,
+        request: SaveParameters.Request,
+        response: SaveParameters.Response
+    ) -> SaveParameters.Response:
+        """
+        Callback for save_parameters service. Saves the parameters to a yaml file.
+
+        Parameters:
+            request (SaveParameters.Request): Service request.
+            response (SaveParameters.Response): Service response.
+
+        Returns:
+            SaveParameters.Response: Service response.
+        """
+        
+        if request.file == "":
+            # Get the current date and time
+            now = datetime.now()
+
+            # Format the date and time as a string in the format 'YYYYMMDD_HHMM'
+            date_time_string = now.strftime('%Y%m%d_%H%M')
+            
+            request.file = "parameters_" + date_time_string + ".yaml"
+
+        self.get_logger().info("ConfigurationServer.save_parameters_callback(): Request to save parameters to file " + request.file + ".")
+        
+        if not self.validate_parameter_file_name(request.file):
+            response.success = False
+            response.message = "Invalid file name."
+
+            return response
+        
+        file_name = os.path.join(
+            self.params_dir,
+            request.file
+        )
+
+        try:
+            self.parameter_handler.save_parameters(
+                file_name,
+                request.overwrite
+            )
+            
+            if request.set_as_default:
+                self.set_default_parameter_file(request.file)
+            
+            response.success = True
+            response.message = "Parameters saved successfully."
+            
+        except FileExistsError as e:
+            self.get_logger().error("ConfigurationServer.save_parameters_callback(): File already exists: " + str(e))
+            response.success = False
+            response.message = "File already exists and overwrite is false."
+
+        return response
+    
+    def get_parameter_files_callback(
+        self,
+        request: GetParameterFiles.Request,
+        response: GetParameterFiles.Response
+    ) -> GetParameterFiles.Response:
+        """
+        Callback for get_parameter_files service. Returns a list of all parameter files in the parameters directory.
+
+        Parameters:
+            request (GetParameterFiles.Request): Service request.
+            response (GetParameterFiles.Response): Service response.
+
+        Returns:
+            GetParameterFiles.Response: Service response.
+        """
+
+        response.parameter_files = os.listdir(self.params_dir)
+
+        return response
+    
+    def load_parameters_callback(
+        self,
+        request: LoadParameters.Request,
+        response: LoadParameters.Response
+    ) -> LoadParameters.Response:
+        """
+        Callback for load_parameters service. Loads the parameters from a yaml file.
+
+        Parameters:
+            request (LoadParameters.Request): Service request.
+            response (LoadParameters.Response): Service response.
+
+        Returns:
+            LoadParameters.Response: Service response.
+        """
+
+        self.get_logger().info("ConfigurationServer.load_parameters_callback(): Request to load parameters from file " + request.file + ".")
+        
+        if not self.validate_parameter_file_name(request.file):
+            response.success = False
+            response.message = "Invalid file name."
+
+            return response
+        
+        file_name = os.path.join(
+            self.params_dir,
+            request.file
+        )
+
+        try:
+            changed_parameter_names = self.parameter_handler.load_new_parameter_file(
+                file_name,
+                declared_parameters=list(self.declared_params.keys())
+            )
+            
+            if request.set_as_default:
+                self.set_default_parameter_file(request.file)
+                
+            if changed_parameter_names != []:
+                changed_ros_parameters = [
+                    Parameter(
+                        name=param_name,
+                        value=self.parameter_handler.get_param_value(param_name)
+                    ) for param_name in changed_parameter_names
+                ]
+                
+                set_parameter_results = self.set_parameters(changed_ros_parameters)
+                
+                for result in set_parameter_results:
+                    if not result.successful:
+                        response.success = False
+                        response.message = "Failed to set parameter: " + result.reason + "."
+                        
+                        return response
+            
+            response.success = True
+            response.message = "Parameters loaded successfully."
+            
+        except FileNotFoundError as e:
+            response.success = False
+            response.message = "File not found."
+            
+        except ValueError as e:
+            response.success = False
+            response.message = "Invalid parameter."
+            
+        except TypeError as e:
+            response.success = False
+            response.message = "Invalid parameter type."
+            
+        except Exception as e:
+            response.success = False
+            response.message = "Unknown error: " + str(e)
+
+        return response
+    
+    def validate_parameter_file_name(
+        self,
+        file_name: str
+    ) -> bool:
+        """
+        Validates the parameter file name, checks that it is a yaml file.
+
+        Parameters:
+            file_name (str): File name.
+
+        Returns:
+            bool: True if the file name is valid, False otherwise.
+        """
+
+        if file_name[-5:] != ".yaml":
+            return False
+        
+        if file_name[0] == ".":
+            return False
+        
+        if "/" in file_name:
+            return False
+        
+        if "\\" in file_name:
+            return False
+        
+        if file_name == "":
+            return False
+        
+        return True
+    
+    def set_default_parameter_file(
+        self,
+        file: str
+    ) -> None:
+        """
+        Sets the default parameter file.
+
+        Parameters:
+            file (str): File name.
+        """
+        
+        ros_params_lines = []
+
+        with open(self.ros_params_file, "r") as ros_params_file:
+            ros_params_lines = ros_params_file.readlines()
+            
+        for i in range(len(ros_params_lines)):
+            if "default_parameter_file" in ros_params_lines[i]:
+                splitted_line = ros_params_lines[i].split(":")
+                splitted_line[1] = " " + f'"{file}"' + "\n"
+                ros_params_lines[i] = ":".join(splitted_line)
+                
+                break
+            
+        with open(self.ros_params_file, "w") as ros_params_file:
+            ros_params_file.writelines(ros_params_lines)
 
 ###############################################################################
 # Main

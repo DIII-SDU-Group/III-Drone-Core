@@ -5,7 +5,7 @@ global:
     constant: true
   simulation:
     type: "bool"
-    value: true
+    value: false
     constant: true
 
 perception:
@@ -26,10 +26,10 @@ perception:
   pl_dir_computer:
     kf_r: 
       type: "float"
-      value: 0.999
+      value: 0.5
     kf_q: 
       type: "float"
-      value: 0.001
+      value: 0.5
     init_sleep_time_ms: 
       type: "int"
       value: 1000
@@ -57,7 +57,7 @@ perception:
       max: "/perception/pl_mapper/alive_cnt_high_thresh-1"
     alive_cnt_high_thresh:
       type: "int"
-      value: 60
+      value: 100
       min: "/perception/pl_mapper/alive_cnt_low_thresh+1"
       max: "/perception/pl_mapper/alive_cnt_ceiling-1"
     alive_cnt_ceiling:
@@ -67,7 +67,7 @@ perception:
 
     min_point_dist:
       type: "float"
-      value: 0.1
+      value: 1.0
       min: 0.05
       max: 2.0
     max_point_dist:
@@ -76,12 +76,12 @@ perception:
       min: 10.
     view_cone_slope:
       type: "float"
-      value: 0.55
+      value: 0.1
       min: 0.
 
     strict_min_point_dist:
       type: "float"
-      value: 1.0
+      value: 1.1
       min: "/perception/pl_mapper/min_point_dist"
       max: "/perception/pl_mapper/strict_max_point_dist-0.1"
     strict_max_point_dist:
@@ -91,13 +91,13 @@ perception:
       max: "/perception/pl_mapper/max_point_dist"
     strict_view_cone_slope:
       type: "float"
-      value: 0.75
+      value: 0.1
       min: "/perception/pl_mapper/view_cone_slope"
       max: 2.0
 
     matching_line_max_dist:
       type: "float"
-      value: 3.
+      value: 2.
       min: 0.1
     init_sleep_time_ms:
       type: "int"
@@ -111,7 +111,7 @@ perception:
       constant: true
     max_lines:
       type: "int"
-      value: 10
+      value: 5
       min: 1
       max: 20
     skip_predict_when_on_cable:
@@ -182,7 +182,7 @@ control:
       constant: true
     landed_altitude_threshold:
       type: "float"
-      value: 0.1
+      value: 0.25
       min: 0.1
       max: 1.0
     use_ground_altitude_offset:
@@ -190,7 +190,7 @@ control:
       value: true
     reached_position_euclidean_distance_threshold:
       type: "float"
-      value: 0.20
+      value: 0.25
       min: 0.05
       max: 0.5
     minimum_target_altitude:
@@ -200,27 +200,27 @@ control:
       max: 2.0
     target_cable_fixed_position_distance_threshold:
       type: "float"
-      value: 0.5
+      value: 0.25
       min: 0.1
       max: 1.0
     target_cable_safety_margin_distance_threshold:
       type: "float"
-      value: 0.25
+      value: 0.2
       min: 0.1
       max: 1.0
     target_cable_safety_margin_max_euc_distance:
       type: "float"
-      value: 0.15
+      value: 0.2
       min: 0.05
       max: 1.0
     target_cable_safety_margin_max_euc_velocity:
       type: "float"
-      value: 5.
+      value: 3.
       min: 0.1
       max: 10.0
     target_cable_safety_margin_max_euc_acceleration:
       type: "float"
-      value: 2.
+      value: 1.
       min: 0.1
       max: 10.0
     target_cable_safety_margin_max_yaw_distance:
@@ -235,7 +235,7 @@ control:
       max: 10.0
     target_cable_set_point_truncate_distance_threshold:
       type: "float"
-      value: 0.25
+      value: 0.15
       min: 0.1
       max: 1.0
     landed_on_powerline_non_offboard_max_euc_distance:
@@ -257,7 +257,7 @@ control:
       max: 1.0
     on_cable_upwards_velocity:
       type: "float"
-      value: 0.1
+      value: 0.5
       min: 0.0
       max: 5.
     hover_under_cable_on_aborted_cable_landing:
@@ -268,7 +268,7 @@ control:
       value: true
     disarming_on_cable_max_descend_distance:
       type: "float"
-      value: 0.25
+      value: 0.5
       min: 0.05
       max: 0.5
     disarm_on_cable_mode:
@@ -287,7 +287,7 @@ control:
       max: 10.0
     disarm_on_cable_flight_termination_timeout_s:
       type: "float"
-      value: -1
+      value: 4.
       min: -1
       max: 10.0
     arming_on_cable_spool_up_time_s:
@@ -300,17 +300,17 @@ control:
       value: false
     arm_cnt_timeout:
       type: "int"
-      value: 10
+      value: 100
       min: 1
       max: 100
     offboard_cnt_timeout:
       type: "int"
-      value: 10
+      value: 100
       min: 1
       max: 100
     land_cnt_timeout:
       type: "int"
-      value: 100
+      value: 1000
       min: 1
       max: 1000
     target_cable_cnt_timeout:
@@ -320,9 +320,9 @@ control:
       max: 100
     disarm_on_cable_cnt_timeout:
       type: "int"
-      value: 100
+      value: 10000
       min: 1
-      max: 1000
+      max: 100000
     dt:
       type: "float"
       value: 0.2
@@ -385,17 +385,17 @@ control:
       max: 5.0
     position_MPC_ax_max:
       type: "float"
-      value: 0.25
+      value: 0.1
       min: 0.1
       max: 5.0
     position_MPC_ay_max:
       type: "float"
-      value: 0.25
+      value: 0.1
       min: 0.1
       max: 5.0
     position_MPC_az_max:
       type: "float"
-      value: 0.25
+      value: 0.1
       min: 0.1
       max: 5.0
     position_MPC_wx:
@@ -412,15 +412,15 @@ control:
       min: 0.
     position_MPC_wvx:
       type: "float"
-      value: 1.0
+      value: 0.9
       min: 0.
     position_MPC_wvy:
       type: "float"
-      value: 1.0
+      value: 0.9
       min: 0.
     position_MPC_wvz:
       type: "float"
-      value: 1.0
+      value: 0.9
       min: 0.
     position_MPC_wax:
       type: "float"
@@ -458,22 +458,22 @@ control:
       max: 5.0
     cable_landing_MPC_vz_max:
       type: "float"
-      value: 0.2
+      value: 2.0
       min: 0.1
       max: 5.0
     cable_landing_MPC_ax_max:
       type: "float"
-      value: 0.2
+      value: 0.1
       min: 0.1
       max: 5.0
     cable_landing_MPC_ay_max:
       type: "float"
-      value: 0.2
+      value: 0.1
       min: 0.1
       max: 5.0
     cable_landing_MPC_az_max:
       type: "float"
-      value: 0.2
+      value: 0.1
       min: 0.1
       max: 5.0
     cable_landing_MPC_wx:
@@ -502,15 +502,15 @@ control:
       min: 0.
     cable_landing_MPC_wax:
       type: "float"
-      value: 0.01
+      value: 0.1
       min: 0.
     cable_landing_MPC_way:
       type: "float"
-      value: 0.01
+      value: 0.1
       min: 0.
     cable_landing_MPC_waz:
       type: "float"
-      value: 0.01
+      value: 0.1
       min: 0.
     cable_landing_MPC_wjx:
       type: "float"
@@ -526,17 +526,17 @@ control:
       min: 0.
     cable_takeoff_MPC_vx_max:
       type: "float"
-      value: 2.0
+      value: 0.2
       min: 0.1
       max: 5.0
     cable_takeoff_MPC_vy_max:
       type: "float"
-      value: 2.0
+      value: 0.2
       min: 0.1
       max: 5.0
     cable_takeoff_MPC_vz_max:
       type: "float"
-      value: 2.0
+      value: 0.25
       min: 0.1
       max: 5.0
     cable_takeoff_MPC_ax_max:
@@ -607,11 +607,11 @@ payload:
   charger_gripper:
     gripper_command_only:
       type: "bool"
-      value: true
+      value: false
       constant: true
     gripper_command_interface:
       type: "string"
-      value: "gpio"
+      value: "serial"
       options: ["gpio", "serial"]
       constant: true
     gripper_open_command:
@@ -628,11 +628,11 @@ payload:
       min: 1
     gripper_command_complete_timeout_ms:
       type: "int"
-      value: 1000
+      value: 5000
       min: 1
     charger_gripper_serial_port:
       type: "string"
-      value: "/dev/ttyUSB0"
+      value: "/dev/charger"
       constant: true
     charger_gripper_serial_baudrate:
       type: "int"
@@ -649,7 +649,7 @@ payload:
       min: 1
     charger_gripper_rpi_gpio_pin:
       type: "int"
-      value: 17
+      value: 21
       constant: true
       min: 0
     status_timer_period_ms:
@@ -737,7 +737,7 @@ mission:
       min: 0.01
     action_timeout_ms:
       type: "int"
-      value: 1000
+      value: 5000
       min: 1
     charging_minimum_duration_s:
       type: "int"

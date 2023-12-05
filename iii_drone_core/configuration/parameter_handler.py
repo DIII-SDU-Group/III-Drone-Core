@@ -5,6 +5,7 @@
 ###############################################################################
 
 import yaml
+import os
 
 ###############################################################################
 # Class
@@ -15,22 +16,175 @@ class ParameterHandler:
     ParameterHandler class that loads parameters from a yaml file and provides methods for getting, setting, and validating parameters.
     """
 
-    def __init__(
-        self, 
-        file_path: str
-    ):
+    def __init__(self):
         """
         Constructor for ParameterHandler class.
+        """
+
+        self.file_path = ""
+        self.raw_yaml_dict = {}
+        self.params_dict = {}
+        
+    @staticmethod
+    def from_parameter_file(
+        file_path: str
+    ) -> "ParameterHandler":
+        """
+        Creates a ParameterHandler object from a yaml file.
 
         Parameters:
             file_path (str): Path to the yaml file containing the parameters.
+
+        Returns:
+            ParameterHandler: ParameterHandler object.
         """
 
-        self.file_path = file_path
-        self.params_dict = {}
-        self._load_parameter_file()
+        ph = ParameterHandler()
+        ph.file_path = file_path
 
-    def _load_parameter_file(self) -> None:
+        ph.load_parameter_file()
+        
+        return ph
+        
+    def get_parameters_yaml_dict(self) -> dict:
+        """
+        Returns the parameters yaml dict.
+
+        Returns:
+            str: Parameters yaml dict.
+        """
+
+        return self.raw_yaml_dict
+    
+    def get_parameters_yaml_string(self) -> str:
+        """
+        Returns the parameters yaml string.
+
+        Returns:
+            str: Parameters yaml string.
+        """
+
+        return yaml.dump(self.raw_yaml_dict, sort_keys=False)
+    
+    def load_new_parameter_file(
+        self,
+        file_path: str,
+        declared_parameters: "list[str]"
+    ) -> "list[str]":
+        """
+        Loads a new parameter file. Returns a list of parameter names that were changed.
+        All previously declared parameters must be present in the new parameter file.
+
+        Parameters:
+            file_path (str): Path to the yaml file containing the parameters.
+            declared_parameters (list[str]): List of parameter names that are currently declared.
+            
+        Returns:
+            list[str]: List of parameter names that were changed.
+            
+        Raises:
+            FileNotFoundError: If the parameter file is not found.
+
+            ValueError: If a parameter name is not a string or contains other characters than letters, numbers, and underscores.
+            ValueError: If a parameter name already exists.
+            ValueError: If a parameter is missing the 'type' or 'value' key.
+            TypeError: If a parameter name is not a string.
+            TypeError: If a parameter 'type' is not a string.
+            TypeError: If a parameter 'constant' is not a bool.
+            TypeError: If a parameter 'options' is not a list of strings.
+            TypeError: If a parameter value is not of the specified type.
+            TypeError: If a parameter 'min' or 'max' is not of the specified type.
+            ValueError: If a parameter 'min' or 'max' is not of type int or float.
+            ValueError: If a parameter 'options' is not a list of strings.
+
+            ValueError: If a parameter name is not found.
+            ValueError: If a parameter value is less than the minimum value.
+            ValueError: If a parameter value is greater than the maximum value.
+            ValueError: If a parameter value is not one of the allowed options.
+            
+        """
+
+        ph = ParameterHandler()
+        ph.file_path = file_path
+        
+        ph.load_parameter_file()
+        
+        changed_parameter_names = self._evaluate_parameters_from_new_handler(
+            ph,
+            declared_parameters=declared_parameters
+        )
+        
+        self.file_path = file_path
+        self.params_dict = ph.params_dict
+        
+        return changed_parameter_names
+    
+    def save_parameters(
+        self,
+        file_path: str,
+        overwrite: bool = False
+    ):
+        """
+        Saves the parameters to a yaml file.
+
+        Parameters:
+            file_path (str): Path to the yaml file to save the parameters to.
+            overwrite (bool): Whether to overwrite the file if it already exists, default False.
+
+        Raises:
+            FileExistsError: If the file already exists and overwrite is False.
+        """
+
+        if not overwrite and os.path.exists(file_path):
+            raise FileExistsError(f"File {file_path} already exists")
+
+        with open(file_path, 'w') as f:
+            f.write(self.get_parameters_yaml_string())
+
+    def _evaluate_parameters_from_new_handler(
+        self,
+        new_handler: "ParameterHandler",
+        declared_parameters: "list[str]" = None
+    ) -> "list[str]":
+        """
+        Evaluates the parameters from a new ParameterHandler object and returns a list of parameter names that were changed.
+
+        Parameters:
+            new_handler (ParameterHandler): ParameterHandler object containing the new parameters.
+            declared_parameters (list[str]): List of parameter names that are currently declared, default [].
+
+        Returns:
+            list[str]: List of parameter names that were changed.
+
+        Raises:
+            ValueError: If a parameter name is not found.
+            TypeError: If a parameter value is not of the specified type.
+            ValueError: If a parameter value is less than the minimum value.
+            ValueError: If a parameter value is greater than the maximum value.
+            ValueError: If a parameter value is not one of the allowed options.
+        """
+
+        changed_parameter_names = []
+        parameters_to_be_evaluated = declared_parameters if declared_parameters is not None else self.params_dict.keys()
+
+        for param_name in parameters_to_be_evaluated:
+            if param_name not in new_handler.params_dict:
+                raise ValueError(f"Parameter {param_name} not found in new parameter file.")
+
+            param_value = new_handler.params_dict[param_name]['value']
+
+            self.validate_param(
+                param_name,
+                param_value
+            )
+
+            if param_value != self.params_dict[param_name]['value']:
+                changed_parameter_names.append(param_name)
+
+        return changed_parameter_names
+        
+
+    def load_parameter_file(self) -> None:
         """
         Loads the parameter file and validates the parameters.
 
@@ -49,10 +203,10 @@ class ParameterHandler:
         """
 
         with open(self.file_path, 'r') as f:
-            params_dict = yaml.safe_load(f)
+            self.raw_yaml_dict = yaml.safe_load(f)
 
         params_dict, params_with_expressions = self._load_params(
-            params_dict,
+            self.raw_yaml_dict,
             {},
             {}
         )
@@ -203,6 +357,20 @@ class ParameterHandler:
         )
 
         self.params_dict[param_name]['value'] = param_value
+        
+        param_namespaces = param_name.split("/")[1:]
+        
+        dict_to_update = self.raw_yaml_dict
+        
+        for param_namespace in param_namespaces:
+            if param_namespace not in dict_to_update:
+                raise KeyError(f"Parameter namespace {param_namespace} not found")
+            dict_to_update = dict_to_update[param_namespace]
+            
+        if 'value' not in dict_to_update:
+            raise KeyError(f"Parameter {param_name} not found")
+        
+        dict_to_update['value'] = param_value
 
     def can_set_param(
         self,
