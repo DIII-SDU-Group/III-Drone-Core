@@ -1,8 +1,4 @@
 global:
-  config_file_path:
-    type: "string"
-    value: "~/.config/iii_drone/params.yaml"
-    constant: true
   simulation:
     type: "bool"
     value: true

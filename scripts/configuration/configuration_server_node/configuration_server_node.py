@@ -13,7 +13,7 @@ import os
 import yaml
 from datetime import datetime
 
-from iii_drone_interfaces.srv import DeclareParameter, GetParameterYaml, GetDeclaredParameters, SaveParameters, GetParameterFiles, LoadParameters
+from iii_drone_interfaces.srv import DeclareParameter, GetParameterYaml, GetDeclaredParameters, SaveParameters, GetParameterFiles, LoadParameters, SetParameterFromGC, GetCurrentParameterFile
 
 from iii_drone_core.configuration.parameter_handler import ParameterHandler
 
@@ -111,6 +111,18 @@ class ConfigurationServer(Node):
             "load_parameters",
             self.load_parameters_callback
         )
+        
+        self.set_parameter_from_gc_service = self.create_service(
+            SetParameterFromGC,
+            "set_parameter_from_gc",
+            self.set_parameter_from_gc_callback
+        )
+        
+        self.get_current_parameter_file_service = self.create_service(
+            GetCurrentParameterFile,
+            "get_current_parameter_file",
+            self.get_current_parameter_file_callback
+        )
 
         # Service callback that gets called before a parameter is set:
         self.set_parameter_event_callback_handler = self.add_on_set_parameters_callback(self.set_parameter_event_callback)
@@ -124,7 +136,25 @@ class ConfigurationServer(Node):
         )
 
         self.param_success = True
+        
+    def on_delete(self):
+        self.get_logger().info("ConfigurationServer.on_delete(): Deleting ConfigurationServer object.")
 
+        if self.parameter_handler.any_params_changed:
+            self.get_logger().info("ConfigurationServer.on_delete(): Parameters changed, saving...")
+
+            request = SaveParameters.Request()
+            request.file = ""
+            request.overwrite = True
+            request.set_as_default = True
+
+            response = self.save_parameters_callback(request, SaveParameters.Response())
+            
+            if not response.success:
+                self.get_logger().fatal("ConfigurationServer.on_delete(): Failed to save parameters: " + response.message + ".")
+            else:
+                self.get_logger().info("ConfigurationServer.on_delete(): Parameters saved successfully to file " + response.file + ".")
+        
     def set_parameter_event_callback(
         self,
         parameters: "list[Parameter]"
@@ -209,12 +239,15 @@ class ConfigurationServer(Node):
 
         if parameter_event.node != self.get_fully_qualified_name():
             return
+        
 
         if len(parameter_event.deleted_parameters) > 0:
             self.get_logger().fatal("ConfigurationServer.parameter_events_callback(): Deleted parameters not supported.")
             raise RuntimeError("Deleted parameters not supported.")
         
         for parameter in parameter_event.changed_parameters + parameter_event.new_parameters:
+            if parameter.name == "default_parameter_file":
+                continue
             try:
                 param_value = self._get_parameter_value_from_msg(
                     parameter.name, 
@@ -456,6 +489,7 @@ class ConfigurationServer(Node):
             
             response.success = True
             response.message = "Parameters saved successfully."
+            response.file = file_name
             
         except FileExistsError as e:
             self.get_logger().error("ConfigurationServer.save_parameters_callback(): File already exists: " + str(e))
@@ -480,7 +514,13 @@ class ConfigurationServer(Node):
             GetParameterFiles.Response: Service response.
         """
 
-        response.parameter_files = os.listdir(self.params_dir)
+        parameter_files = os.listdir(self.params_dir)
+
+        response.parameter_files = []
+        
+        for parameter_file in parameter_files:
+            if self.validate_parameter_file_name(parameter_file):
+                response.parameter_files.append(parameter_file)
 
         return response
     
@@ -501,6 +541,21 @@ class ConfigurationServer(Node):
         """
 
         self.get_logger().info("ConfigurationServer.load_parameters_callback(): Request to load parameters from file " + request.file + ".")
+
+        if self.parameter_handler.any_params_changed:
+            self.get_logger().info("ConfigurationServer.on_delete(): Parameters changed, saving...")
+
+            tmp_request = SaveParameters.Request()
+            tmp_request.file = ""
+            tmp_request.overwrite = True
+            tmp_request.set_as_default = True
+
+            tmp_response = self.save_parameters_callback(tmp_request, SaveParameters.Response())
+            
+            if not response.success:
+                self.get_logger().fatal("ConfigurationServer.on_delete(): Failed to save parameters: " + tmp_response.message + ".")
+            else:
+                self.get_logger().info("ConfigurationServer.on_delete(): Parameters saved successfully to file " + tmp_response.file + ".")
         
         if not self.validate_parameter_file_name(request.file):
             response.success = False
@@ -539,6 +594,10 @@ class ConfigurationServer(Node):
                         
                         return response
             
+            self.params_file = request.file
+            
+            self.parameter_handler.reset_changed_parameters()
+            
             response.success = True
             response.message = "Parameters loaded successfully."
             
@@ -558,6 +617,111 @@ class ConfigurationServer(Node):
             response.success = False
             response.message = "Unknown error: " + str(e)
 
+        return response
+    
+    def set_parameter_from_gc_callback(
+        self,
+        request: SetParameterFromGC.Request,
+        response: SetParameterFromGC.Response
+    ) -> SetParameterFromGC.Response:
+        parameter_name = request.parameter_name
+
+        try:
+            parameter_dict = self.parameter_handler.get_param(parameter_name)
+        except KeyError as e:
+            response.success = False
+            response.message = "Parameter not listed in parameters file."
+            
+            return response
+        
+        if not (parameter_dict["type"] == "bool" or parameter_dict["type"] == "int" or parameter_dict["type"] == "float" or parameter_dict["type"] == "string"):
+            response.success = False
+            response.message = "Parameter type " + parameter_dict["type"] + " not supported."
+            
+            return response
+        
+        parameter_value = request.parameter_string_value
+        
+        if parameter_dict["type"] == "bool":
+            try:
+                parameter_value = bool(parameter_value)
+            except ValueError as e:
+                response.success = False
+                response.message = "Invalid bool value."
+                
+                return response
+            
+        elif parameter_dict["type"] == "int":
+            try:
+                parameter_value = int(parameter_value)
+            except ValueError as e:
+                response.success = False
+                response.message = "Invalid int value."
+                
+                return response
+            
+        elif parameter_dict["type"] == "float":
+            try:
+                parameter_value = float(parameter_value)
+            except ValueError as e:
+                response.success = False
+                response.message = "Invalid float value."
+                
+                return response
+            
+        elif parameter_dict["type"] == "string":
+            try:
+                parameter_value = str(parameter_value)
+            except ValueError as e:
+                response.success = False
+                response.message = "Invalid string value."
+                
+                return response
+            
+        try:
+            if "constant" in parameter_dict and parameter_dict["constant"]:
+                response.message = "Parameter " + parameter_name + " successfully set to " + str(parameter_value) + ", but change will only take place after restarting system."
+            else:
+                set_result: "list[SetParametersResult]" = self.set_parameters([
+                    Parameter(
+                        name=parameter_name,
+                        value=parameter_value
+                    )
+                ])
+
+                if not set_result[0].successful:
+                    response.success = False
+                    response.message = "Failed to set parameter: " + set_result[0].reason + "."
+                    
+                    return response
+
+                response.message = "Parameter " + parameter_name + " successfully set to " + str(parameter_value) + "."
+                
+            self.parameter_handler.set_param(
+                parameter_name,
+                parameter_value,
+                True,
+                force_constant=True
+            )
+            
+            response.success = True
+            
+            return response
+                
+        except Exception as e:
+            response.success = False
+            response.message = "Unknown error: " + str(e)
+            
+            return response
+        
+    def get_current_parameter_file_callback(
+        self,
+        request: GetCurrentParameterFile.Request,
+        response: GetCurrentParameterFile.Response
+    ) -> GetCurrentParameterFile.Response:
+        response.default_parameter_file = self.get_parameter("default_parameter_file").value
+        response.current_parameter_file = os.path.basename(self.params_file)
+        
         return response
     
     def validate_parameter_file_name(
@@ -617,6 +781,13 @@ class ConfigurationServer(Node):
             
         with open(self.ros_params_file, "w") as ros_params_file:
             ros_params_file.writelines(ros_params_lines)
+            
+        self.set_parameters([
+            Parameter(
+                name="default_parameter_file",
+                value=file
+            )
+        ])
 
 ###############################################################################
 # Main
@@ -628,13 +799,10 @@ def main():
     print("Starting ConfigurationServer node...")
     node = ConfigurationServer()
 
-    rclpy.spin(node)
-
-    # Destroy the node explicitly
-    # (optional - otherwise it will be done automatically
-    # when the garbage collector destroys the node object)
-    rclpy.shutdown()
-
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.on_delete()
 
 if __name__ == "__main__":
     main()
