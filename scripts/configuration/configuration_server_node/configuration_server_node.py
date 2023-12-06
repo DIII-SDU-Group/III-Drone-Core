@@ -123,7 +123,7 @@ class ConfigurationServer(Node):
             "get_current_parameter_file",
             self.get_current_parameter_file_callback
         )
-
+        
         # Service callback that gets called before a parameter is set:
         self.set_parameter_event_callback_handler = self.add_on_set_parameters_callback(self.set_parameter_event_callback)
 
@@ -246,7 +246,7 @@ class ConfigurationServer(Node):
             raise RuntimeError("Deleted parameters not supported.")
         
         for parameter in parameter_event.changed_parameters + parameter_event.new_parameters:
-            if parameter.name == "default_parameter_file":
+            if parameter.name == "default_parameter_file" or "use_sim_time" in parameter.name:
                 continue
             try:
                 param_value = self._get_parameter_value_from_msg(
@@ -596,7 +596,8 @@ class ConfigurationServer(Node):
             
             self.params_file = request.file
             
-            self.parameter_handler.reset_changed_parameters()
+            # Schedule reset changed parameters:
+            self.parameter_handler.reset_changed_parameters(changed_parameter_names=changed_parameter_names)
             
             response.success = True
             response.message = "Parameters loaded successfully."
