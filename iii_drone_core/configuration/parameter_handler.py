@@ -5,6 +5,8 @@
 ###############################################################################
 
 import yaml
+import os
+from copy import deepcopy
 
 ###############################################################################
 # Class
@@ -15,22 +17,245 @@ class ParameterHandler:
     ParameterHandler class that loads parameters from a yaml file and provides methods for getting, setting, and validating parameters.
     """
 
-    def __init__(
-        self, 
-        file_path: str
-    ):
+    def __init__(self):
         """
         Constructor for ParameterHandler class.
+        """
+
+        self.file_path = ""
+        self.raw_yaml_dict = {}
+        self.params_dict = {}
+        self._any_params_changed = False
+        self._ignore_changed_parameter_names = []
+        
+    @staticmethod
+    def from_parameter_file(file_path: str) -> "ParameterHandler":
+        """
+        Creates a ParameterHandler object from a yaml file.
 
         Parameters:
             file_path (str): Path to the yaml file containing the parameters.
+
+        Returns:
+            ParameterHandler: ParameterHandler object.
+            
+        Raises:
+            ValueError: If a parameter name is not a string or contains other characters than letters, numbers, and underscores.
+            ValueError: If a parameter name already exists.
+            ValueError: If a parameter is missing the 'type' or 'value' key.
+            TypeError: If a parameter name is not a string.
+            TypeError: If a parameter 'type' is not a string.
+            TypeError: If a parameter 'constant' is not a bool.
+            TypeError: If a parameter 'options' is not a list of strings.
+            TypeError: If a parameter value is not of the specified type.
+            TypeError: If a parameter 'min' or 'max' is not of the specified type.
+            ValueError: If a parameter 'min' or 'max' is not of type int or float.
+            ValueError: If a parameter 'options' is not a list of strings.
         """
 
-        self.file_path = file_path
-        self.params_dict = {}
-        self._load_parameter_file()
+        ph = ParameterHandler()
+        ph.file_path = file_path
 
-    def _load_parameter_file(self) -> None:
+        ph.load_parameter_file()
+        
+        return ph
+    
+    @staticmethod
+    def from_raw_yaml_string(raw_yaml_string: str) -> "ParameterHandler":
+        """
+        Creates a ParameterHandler object from a yaml string.
+
+        Parameters:
+            raw_yaml_string (str): String containing the parameters in yaml format.
+
+        Returns:
+            ParameterHandler: ParameterHandler object.
+        
+        Raises:
+            ValueError: If a parameter name is not a string or contains other characters than letters, numbers, and underscores.
+            ValueError: If a parameter name already exists.
+            ValueError: If a parameter is missing the 'type' or 'value' key.
+            TypeError: If a parameter name is not a string.
+            TypeError: If a parameter 'type' is not a string.
+            TypeError: If a parameter 'constant' is not a bool.
+            TypeError: If a parameter 'options' is not a list of strings.
+            TypeError: If a parameter value is not of the specified type.
+            TypeError: If a parameter 'min' or 'max' is not of the specified type.
+            ValueError: If a parameter 'min' or 'max' is not of type int or float.
+            ValueError: If a parameter 'options' is not a list of strings.
+        """
+
+        ph = ParameterHandler()
+        ph.raw_yaml_dict = yaml.safe_load(raw_yaml_string)
+
+        ph.load_from_raw_yaml_dict()
+        
+        return ph
+    
+    @property
+    def any_params_changed(self) -> bool:
+        """
+        Returns whether any parameters have changed.
+
+        Returns:
+            bool: True if any parameters have changed, False otherwise.
+        """
+
+        return self._any_params_changed
+        
+    def get_parameters_yaml_dict(self) -> dict:
+        """
+        Returns the parameters yaml dict.
+
+        Returns:
+            str: Parameters yaml dict.
+        """
+
+        return self.raw_yaml_dict
+    
+    def get_parameters_yaml_string(self) -> str:
+        """
+        Returns the parameters yaml string.
+
+        Returns:
+            str: Parameters yaml string.
+        """
+
+        return yaml.dump(self.raw_yaml_dict, sort_keys=False)
+    
+    def reset_changed_parameters(
+        self,
+        changed_parameter_names: "list[str]" = []
+    ):
+        """
+        Resets the changed parameters flag. 
+        If changed_parameter_names is specified, the next change to these parameters will not be counted as a change.
+        
+        Parameters:
+            changed_parameter_names (list[str]): List of parameter names that were changed, default [].
+        """
+        self._any_params_changed = False
+        self._ignore_changed_parameter_names = changed_parameter_names
+    
+    def load_new_parameter_file(
+        self,
+        file_path: str,
+        declared_parameters: "list[str]"
+    ) -> "list[str]":
+        """
+        Loads a new parameter file. Returns a list of parameter names that were changed.
+        All previously declared parameters must be present in the new parameter file.
+
+        Parameters:
+            file_path (str): Path to the yaml file containing the parameters.
+            declared_parameters (list[str]): List of parameter names that are currently declared.
+            
+        Returns:
+            list[str]: List of parameter names that were changed.
+            
+        Raises:
+            FileNotFoundError: If the parameter file is not found.
+
+            ValueError: If a parameter name is not a string or contains other characters than letters, numbers, and underscores.
+            ValueError: If a parameter name already exists.
+            ValueError: If a parameter is missing the 'type' or 'value' key.
+            TypeError: If a parameter name is not a string.
+            TypeError: If a parameter 'type' is not a string.
+            TypeError: If a parameter 'constant' is not a bool.
+            TypeError: If a parameter 'options' is not a list of strings.
+            TypeError: If a parameter value is not of the specified type.
+            TypeError: If a parameter 'min' or 'max' is not of the specified type.
+            ValueError: If a parameter 'min' or 'max' is not of type int or float.
+            ValueError: If a parameter 'options' is not a list of strings.
+
+            ValueError: If a parameter name is not found.
+            ValueError: If a parameter value is less than the minimum value.
+            ValueError: If a parameter value is greater than the maximum value.
+            ValueError: If a parameter value is not one of the allowed options.
+            
+        """
+
+        ph = ParameterHandler()
+        ph.file_path = file_path
+        
+        ph.load_parameter_file()
+        
+        changed_parameter_names = self._evaluate_parameters_from_new_handler(
+            ph,
+            declared_parameters=declared_parameters
+        )
+        
+        self.file_path = file_path
+        self.params_dict = ph.params_dict
+        
+        return changed_parameter_names
+    
+    def save_parameters(
+        self,
+        file_path: str,
+        overwrite: bool = False
+    ):
+        """
+        Saves the parameters to a yaml file.
+
+        Parameters:
+            file_path (str): Path to the yaml file to save the parameters to.
+            overwrite (bool): Whether to overwrite the file if it already exists, default False.
+
+        Raises:
+            FileExistsError: If the file already exists and overwrite is False.
+        """
+
+        if not overwrite and os.path.exists(file_path):
+            raise FileExistsError(f"File {file_path} already exists")
+
+        with open(file_path, 'w') as f:
+            f.write(self.get_parameters_yaml_string())
+
+    def _evaluate_parameters_from_new_handler(
+        self,
+        new_handler: "ParameterHandler",
+        declared_parameters: "list[str]" = None
+    ) -> "list[str]":
+        """
+        Evaluates the parameters from a new ParameterHandler object and returns a list of parameter names that were changed.
+
+        Parameters:
+            new_handler (ParameterHandler): ParameterHandler object containing the new parameters.
+            declared_parameters (list[str]): List of parameter names that are currently declared, default [].
+
+        Returns:
+            list[str]: List of parameter names that were changed.
+
+        Raises:
+            ValueError: If a parameter name is not found.
+            TypeError: If a parameter value is not of the specified type.
+            ValueError: If a parameter value is less than the minimum value.
+            ValueError: If a parameter value is greater than the maximum value.
+            ValueError: If a parameter value is not one of the allowed options.
+        """
+
+        changed_parameter_names = []
+        parameters_to_be_evaluated = declared_parameters if declared_parameters is not None else self.params_dict.keys()
+
+        for param_name in parameters_to_be_evaluated:
+            if param_name not in new_handler.params_dict:
+                raise ValueError(f"Parameter {param_name} not found in new parameter file.")
+
+            param_value = new_handler.params_dict[param_name]['value']
+
+            self.validate_param(
+                param_name,
+                param_value
+            )
+
+            if param_value != self.params_dict[param_name]['value']:
+                changed_parameter_names.append(param_name)
+
+        return changed_parameter_names
+        
+
+    def load_parameter_file(self) -> None:
         """
         Loads the parameter file and validates the parameters.
 
@@ -49,10 +274,13 @@ class ParameterHandler:
         """
 
         with open(self.file_path, 'r') as f:
-            params_dict = yaml.safe_load(f)
+            self.raw_yaml_dict = yaml.safe_load(f)
+            
+        self.load_from_raw_yaml_dict()
 
+    def load_from_raw_yaml_dict(self) -> None:
         params_dict, params_with_expressions = self._load_params(
-            params_dict,
+            self.raw_yaml_dict,
             {},
             {}
         )
@@ -178,7 +406,8 @@ class ParameterHandler:
         self, 
         param_name: str, 
         param_value: "str|int|float|bool|list[str|int|float|bool]",
-        parameter_initialized: bool
+        parameter_initialized: bool,
+        force_constant: bool = False
     ) -> None:
         """
         Sets the value of a parameter.
@@ -186,6 +415,8 @@ class ParameterHandler:
         Parameters:
             param_name (str): Name of the parameter.
             param_value (str|int|float|bool|list[str|int|float|bool]): Value of the parameter.
+            parameter_initialized (bool): Whether the parameter has been initialized.
+            force_constant (bool): Whether to force setting the parameter even if it is constant, default False.
 
         Raises:
             KeyError: If the parameter name is not found.
@@ -199,16 +430,70 @@ class ParameterHandler:
         self.can_set_param(
             param_name, 
             param_value,
-            parameter_initialized
+            (not parameter_initialized) or force_constant
         )
 
+        dict_to_update = self._get_raw_yaml_param_dict(param_name)
+
         self.params_dict[param_name]['value'] = param_value
+        
+        previous_value = dict_to_update['value']
+        dict_to_update['value'] = param_value
+        
+        if previous_value != param_value:
+            if param_name not in self._ignore_changed_parameter_names:
+                self._any_params_changed = True
+            else:
+                self._ignore_changed_parameter_names.remove(param_name)
+                
+    def _get_raw_yaml_param_dict(
+        self,
+        param_name: str,
+        create_missing_namespaces: bool = False,
+        get_parent_dict: bool = False
+    ) -> "dict|tuple[dict,str]":
+        """
+        Returns the raw yaml dict of a parameter.
+
+        Parameters:
+            param_name (str): Name of the parameter.
+            create_missing_namespaces (bool): Whether to create missing namespaces in case of adding a new parameter, default False.
+            get_parent_dict (bool): Whether to return the parent dict of the parameter instead of the parameter dict, default False.
+
+        Returns:
+            dict: Dictionary containing the parameter information.
+
+        Raises:
+            KeyError: If the parameter name is not found.
+        """
+
+        param_namespaces = param_name.split("/")[1:]
+        
+        dict_to_update = self.raw_yaml_dict
+        
+        for i, param_namespace in enumerate(param_namespaces):
+            if i == len(param_namespaces) - 1 and get_parent_dict:
+                break
+            
+            if param_namespace not in dict_to_update and not create_missing_namespaces:
+                raise KeyError(f"Parameter namespace {param_namespace} not found")
+            elif param_namespace not in dict_to_update and create_missing_namespaces:
+                dict_to_update[param_namespace] = {}
+            dict_to_update = dict_to_update[param_namespace]
+            
+        if 'value' not in dict_to_update and not create_missing_namespaces and not get_parent_dict:
+            raise KeyError(f"Parameter {param_name} not found")
+
+        if not get_parent_dict:
+            return dict_to_update
+        else:
+            return dict_to_update, param_namespaces[-1]
 
     def can_set_param(
         self,
         param_name: str,
         param_value: "str|int|float|bool|list[str|int|float|bool]",
-        parameter_initialized: bool
+        force_constant: bool = False,
     ) -> None:
         """
         Checks if a parameter can be set.
@@ -216,6 +501,7 @@ class ParameterHandler:
         Parameters:
             param_name (str): Name of the parameter.
             param_value (str|int|float|bool|list[str|int|float|bool]): Value of the parameter.
+            force_constant (bool): Whether to force setting the parameter even if it is constant, default False.
 
         Raises:
             KeyError: If the parameter name is not found.
@@ -227,7 +513,7 @@ class ParameterHandler:
 
         self.validate_param(param_name, param_value)
 
-        if "constant" in self.params_dict[param_name] and self.params_dict[param_name]["constant"] and parameter_initialized:
+        if "constant" in self.params_dict[param_name] and self.params_dict[param_name]["constant"] and not force_constant:
             raise AttributeError(f"Parameter {param_name} is constant and cannot be changed")
 
     def get_all_params(self) -> dict:
@@ -239,6 +525,151 @@ class ParameterHandler:
         """
 
         return self.params_dict
+    
+    def update_param(
+        self,
+        param_name: str,
+        param_dict: dict,
+        keep_value: bool = False
+    ):
+        """
+        Updates a parameter dict.
+        Attention: Updates the full parameter configuration, not just the value.
+        If only updating the value, use set_param() instead.
+
+        Parameters:
+            param_name (str): Name of the parameter.
+            param_dict (dict): Dictionary containing the parameter configuration.
+            keep_value (bool): Whether to keep the current value of the parameter, default False.
+            
+        Raises:
+            KeyError: If the parameter name is not found.
+            KeyError: If the parameter is missing the 'type' or 'value' key.
+            TypeError: If the parameter 'type' is not a string.
+            TypeError: If the parameter 'constant' is not a bool.
+            TypeError: If the parameter 'options' is not a list of strings.
+            TypeError: If the parameter value is not of the specified type.
+            TypeError: If the parameter 'min' or 'max' is not of the specified type.
+            ValueError: If the parameter 'min' or 'max' is not of type int or float.
+            ValueError: If the parameter 'options' is not a list of strings.
+        """
+
+        if param_name not in self.params_dict:
+            raise KeyError(f"Parameter {param_name} not found")
+        
+        dict_to_update = self._get_raw_yaml_param_dict(param_name)
+        
+        old_keys = list(dict_to_update.keys())
+        new_keys = list(param_dict.keys())
+        new_keys_copy = deepcopy(new_keys)
+
+        for key in new_keys_copy:
+            old_keys.remove(key)
+            new_keys.remove(key)
+
+            if key == "value" and keep_value:
+                continue
+            
+            if key == "type" and dict_to_update[key] != param_dict[key]:
+                raise ValueError(f"Attempted change of parameter type from {dict_to_update[key]} to {param_dict[key]} for parameter {param_name}")
+            
+            dict_to_update[key] = param_dict[key]
+
+        for key in old_keys:
+            del dict_to_update[key]
+
+        self.params_dict[param_name] = param_dict
+        
+        self.validate_param(
+            param_name,
+            self.get_param_value(param_name)
+        )
+        
+    def add_param(
+        self,
+        param_name: str,
+        param_dict: dict
+    ):
+        """
+        Adds a parameter dict.
+
+        Parameters:
+            param_name (str): Name of the parameter.
+            param_dict (dict): Dictionary containing the parameter configuration.
+            
+        Raises:
+            KeyError: If the parameter name already exists.
+            KeyError: If the parameter is missing the 'type' or 'value' key.
+            TypeError: If the parameter 'type' is not a string.
+            TypeError: If the parameter 'constant' is not a bool.
+            TypeError: If the parameter 'options' is not a list of strings.
+            TypeError: If the parameter value is not of the specified type.
+            TypeError: If the parameter 'min' or 'max' is not of the specified type.
+            ValueError: If the parameter 'min' or 'max' is not of type int or float.
+            ValueError: If the parameter 'options' is not a list of strings.
+        """
+
+        if param_name in self.params_dict:
+            raise KeyError(f"Parameter {param_name} already exists")
+        
+        dict_to_update = self._get_raw_yaml_param_dict(
+            param_name, 
+            create_missing_namespaces=True
+        )
+        
+        for key in param_dict.keys():
+            dict_to_update[key] = param_dict[key]
+            
+        self.params_dict[param_name] = param_dict
+
+        self.validate_param(
+            param_name,
+            self.get_param_value(param_name)
+        )
+        
+    def remove_param(
+        self,
+        param_name: str
+    ):
+        """
+        Removes a parameter.
+
+        Parameters:
+            param_name (str): Name of the parameter.
+            
+        Raises:
+            KeyError: If the parameter name is not found.
+        """
+
+        if param_name not in self.params_dict:
+            raise KeyError(f"Parameter {param_name} not found")
+        
+        parent_dict, param_final_key = self._get_raw_yaml_param_dict(
+            param_name,
+            get_parent_dict=True
+        )
+
+        del parent_dict[param_final_key]
+        
+        del self.params_dict[param_name]
+        
+    def validate(self):
+        """
+        Validates all parameters.
+
+        Raises:
+            ValueError: If a parameter name is not found.
+            TypeError: If a parameter value is not of the specified type.
+            ValueError: If a parameter value is less than the minimum value.
+            ValueError: If a parameter value is greater than the maximum value.
+            ValueError: If a parameter value is not one of the allowed options.
+        """
+
+        for param_name, param in self.params_dict.items():
+            self.validate_param(
+                param_name,
+                param['value']
+            )
 
     def _load_params(
         self,

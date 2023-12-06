@@ -1,3 +1,4 @@
 /**:
   ros__parameters:
-    parameters_file_path: "~/.config/iii_drone/parameters.yaml"
+    parameters_dir: "~/.config/iii_drone/parameters/"
+    default_parameter_file: "parameters.yaml"
