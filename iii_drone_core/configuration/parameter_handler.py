@@ -6,6 +6,7 @@
 
 import yaml
 import os
+from copy import deepcopy
 
 ###############################################################################
 # Class
@@ -25,6 +26,7 @@ class ParameterHandler:
         self.raw_yaml_dict = {}
         self.params_dict = {}
         self._any_params_changed = False
+        self._ignore_changed_parameter_names = []
         
     @staticmethod
     def from_parameter_file(file_path: str) -> "ParameterHandler":
@@ -121,11 +123,19 @@ class ParameterHandler:
 
         return yaml.dump(self.raw_yaml_dict, sort_keys=False)
     
-    def reset_changed_parameters(self):
+    def reset_changed_parameters(
+        self,
+        changed_parameter_names: "list[str]" = []
+    ):
         """
-        Resets the changed parameters flag.
+        Resets the changed parameters flag. 
+        If changed_parameter_names is specified, the next change to these parameters will not be counted as a change.
+        
+        Parameters:
+            changed_parameter_names (list[str]): List of parameter names that were changed, default [].
         """
         self._any_params_changed = False
+        self._ignore_changed_parameter_names = changed_parameter_names
     
     def load_new_parameter_file(
         self,
@@ -423,17 +433,7 @@ class ParameterHandler:
             (not parameter_initialized) or force_constant
         )
 
-        param_namespaces = param_name.split("/")[1:]
-        
-        dict_to_update = self.raw_yaml_dict
-        
-        for param_namespace in param_namespaces:
-            if param_namespace not in dict_to_update:
-                raise KeyError(f"Parameter namespace {param_namespace} not found")
-            dict_to_update = dict_to_update[param_namespace]
-            
-        if 'value' not in dict_to_update:
-            raise KeyError(f"Parameter {param_name} not found")
+        dict_to_update = self._get_raw_yaml_param_dict(param_name)
 
         self.params_dict[param_name]['value'] = param_value
         
@@ -441,7 +441,53 @@ class ParameterHandler:
         dict_to_update['value'] = param_value
         
         if previous_value != param_value:
-            self._any_params_changed = True
+            if param_name not in self._ignore_changed_parameter_names:
+                self._any_params_changed = True
+            else:
+                self._ignore_changed_parameter_names.remove(param_name)
+                
+    def _get_raw_yaml_param_dict(
+        self,
+        param_name: str,
+        create_missing_namespaces: bool = False,
+        get_parent_dict: bool = False
+    ) -> "dict|tuple[dict,str]":
+        """
+        Returns the raw yaml dict of a parameter.
+
+        Parameters:
+            param_name (str): Name of the parameter.
+            create_missing_namespaces (bool): Whether to create missing namespaces in case of adding a new parameter, default False.
+            get_parent_dict (bool): Whether to return the parent dict of the parameter instead of the parameter dict, default False.
+
+        Returns:
+            dict: Dictionary containing the parameter information.
+
+        Raises:
+            KeyError: If the parameter name is not found.
+        """
+
+        param_namespaces = param_name.split("/")[1:]
+        
+        dict_to_update = self.raw_yaml_dict
+        
+        for i, param_namespace in enumerate(param_namespaces):
+            if i == len(param_namespaces) - 1 and get_parent_dict:
+                break
+            
+            if param_namespace not in dict_to_update and not create_missing_namespaces:
+                raise KeyError(f"Parameter namespace {param_namespace} not found")
+            elif param_namespace not in dict_to_update and create_missing_namespaces:
+                dict_to_update[param_namespace] = {}
+            dict_to_update = dict_to_update[param_namespace]
+            
+        if 'value' not in dict_to_update and not create_missing_namespaces and not get_parent_dict:
+            raise KeyError(f"Parameter {param_name} not found")
+
+        if not get_parent_dict:
+            return dict_to_update
+        else:
+            return dict_to_update, param_namespaces[-1]
 
     def can_set_param(
         self,
@@ -479,6 +525,151 @@ class ParameterHandler:
         """
 
         return self.params_dict
+    
+    def update_param(
+        self,
+        param_name: str,
+        param_dict: dict,
+        keep_value: bool = False
+    ):
+        """
+        Updates a parameter dict.
+        Attention: Updates the full parameter configuration, not just the value.
+        If only updating the value, use set_param() instead.
+
+        Parameters:
+            param_name (str): Name of the parameter.
+            param_dict (dict): Dictionary containing the parameter configuration.
+            keep_value (bool): Whether to keep the current value of the parameter, default False.
+            
+        Raises:
+            KeyError: If the parameter name is not found.
+            KeyError: If the parameter is missing the 'type' or 'value' key.
+            TypeError: If the parameter 'type' is not a string.
+            TypeError: If the parameter 'constant' is not a bool.
+            TypeError: If the parameter 'options' is not a list of strings.
+            TypeError: If the parameter value is not of the specified type.
+            TypeError: If the parameter 'min' or 'max' is not of the specified type.
+            ValueError: If the parameter 'min' or 'max' is not of type int or float.
+            ValueError: If the parameter 'options' is not a list of strings.
+        """
+
+        if param_name not in self.params_dict:
+            raise KeyError(f"Parameter {param_name} not found")
+        
+        dict_to_update = self._get_raw_yaml_param_dict(param_name)
+        
+        old_keys = list(dict_to_update.keys())
+        new_keys = list(param_dict.keys())
+        new_keys_copy = deepcopy(new_keys)
+
+        for key in new_keys_copy:
+            old_keys.remove(key)
+            new_keys.remove(key)
+
+            if key == "value" and keep_value:
+                continue
+            
+            if key == "type" and dict_to_update[key] != param_dict[key]:
+                raise ValueError(f"Attempted change of parameter type from {dict_to_update[key]} to {param_dict[key]} for parameter {param_name}")
+            
+            dict_to_update[key] = param_dict[key]
+
+        for key in old_keys:
+            del dict_to_update[key]
+
+        self.params_dict[param_name] = param_dict
+        
+        self.validate_param(
+            param_name,
+            self.get_param_value(param_name)
+        )
+        
+    def add_param(
+        self,
+        param_name: str,
+        param_dict: dict
+    ):
+        """
+        Adds a parameter dict.
+
+        Parameters:
+            param_name (str): Name of the parameter.
+            param_dict (dict): Dictionary containing the parameter configuration.
+            
+        Raises:
+            KeyError: If the parameter name already exists.
+            KeyError: If the parameter is missing the 'type' or 'value' key.
+            TypeError: If the parameter 'type' is not a string.
+            TypeError: If the parameter 'constant' is not a bool.
+            TypeError: If the parameter 'options' is not a list of strings.
+            TypeError: If the parameter value is not of the specified type.
+            TypeError: If the parameter 'min' or 'max' is not of the specified type.
+            ValueError: If the parameter 'min' or 'max' is not of type int or float.
+            ValueError: If the parameter 'options' is not a list of strings.
+        """
+
+        if param_name in self.params_dict:
+            raise KeyError(f"Parameter {param_name} already exists")
+        
+        dict_to_update = self._get_raw_yaml_param_dict(
+            param_name, 
+            create_missing_namespaces=True
+        )
+        
+        for key in param_dict.keys():
+            dict_to_update[key] = param_dict[key]
+            
+        self.params_dict[param_name] = param_dict
+
+        self.validate_param(
+            param_name,
+            self.get_param_value(param_name)
+        )
+        
+    def remove_param(
+        self,
+        param_name: str
+    ):
+        """
+        Removes a parameter.
+
+        Parameters:
+            param_name (str): Name of the parameter.
+            
+        Raises:
+            KeyError: If the parameter name is not found.
+        """
+
+        if param_name not in self.params_dict:
+            raise KeyError(f"Parameter {param_name} not found")
+        
+        parent_dict, param_final_key = self._get_raw_yaml_param_dict(
+            param_name,
+            get_parent_dict=True
+        )
+
+        del parent_dict[param_final_key]
+        
+        del self.params_dict[param_name]
+        
+    def validate(self):
+        """
+        Validates all parameters.
+
+        Raises:
+            ValueError: If a parameter name is not found.
+            TypeError: If a parameter value is not of the specified type.
+            ValueError: If a parameter value is less than the minimum value.
+            ValueError: If a parameter value is greater than the maximum value.
+            ValueError: If a parameter value is not one of the allowed options.
+        """
+
+        for param_name, param in self.params_dict.items():
+            self.validate_param(
+                param_name,
+                param['value']
+            )
 
     def _load_params(
         self,
