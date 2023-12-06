@@ -18,7 +18,8 @@ HoughTransformerNode::HoughTransformerNode(
 	node_name, 
 	node_namespace,
 	options
-), configurator_(this) {
+), configurator_(this),
+hough_transformer_(configurator_.hough_transformer_parameters()) {
 
 	// Topics:
 	cable_yaw_publisher_ = this->create_publisher<iii_drone_interfaces::msg::PowerlineDirection>(
@@ -44,35 +45,9 @@ HoughTransformerNode::HoughTransformerNode(
 
 HoughTransformerNode::~HoughTransformerNode() {
 
-	RCLCPP_INFO(this->get_logger(),  "Shutting down hough_tf_pub..");
+	RCLCPP_INFO(this->get_logger(),  "Shutting down hough transformer node..");
 
 }
-
-int HoughTransformerNode::getBestLineIndex(
-	std::vector<cv::Vec2f> lines, 
-	int img_height, 
-	int img_width
-) {
-
-	int best_idx = -1;
-	float best_dist = 100000.;
-
-	float x0 = img_width/2;
-	float y0 = img_height/2;
-
-    for( size_t i = 0; i < lines.size(); i++ ) {
-		
-		float a = -cos(lines[i][1])/sin(lines[i][1]);
-		float b = lines[i][0]/sin(lines[i][1]);
-
-		float dist = abs(a*x0 - y0 + b) / sqrt(a*a+1);
-
-		if (dist < best_dist) {
-			best_idx = i;
-		}
-	}
-}
-
 
 // mmwave message callback function
 void HoughTransformerNode::OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg){
@@ -84,49 +59,20 @@ void HoughTransformerNode::OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr 
 
 	cv::Mat img = cv_ptr->image;
 
-	cv::Mat edge;
-
-	cv::Canny(
-		img, 
-		edge, 
-		configurator_.canny_low_threshold(), 
-		configurator_.canny_low_threshold() * configurator_.canny_ratio(),
-		configurator_.canny_kernel_size()
-	); // edge detection
-
-	// Standard Hough Line Transform
-    std::vector<cv::Vec2f> lines; // will hold the results of the detection
-    cv::HoughLines(
-		edge, 
-		lines, 
-		1, 
-		M_PI/180, 
-		150, 
-		0, 
-		0
-	); // runs the actual detection
-
-	float avg_theta_tmp = 0.0;
+	std::vector<cv::Vec2f> lines = hough_transformer_.GetHoughLines(img);
 
 	if (lines.size() > 0){
 
-		int idx = getBestLineIndex(
+		PowerlineDirection pl_direction(
 			lines, 
 			img.rows, 
 			img.cols
 		);
 
-		avg_theta_tmp = lines[idx][1];
-
-		avg_theta_ = -avg_theta_tmp;
-
-		iii_drone_interfaces::msg::PowerlineDirection pl_msg;
-
-		pl_msg.angle = avg_theta_;
-		cable_yaw_publisher_->publish(pl_msg);
+		cable_yaw_publisher_->publish(pl_direction.ToMsg());
 
 		// RCLCPP debug published hough angle
-		RCLCPP_DEBUG(this->get_logger(), "Hough angle: %f", avg_theta_);
+		RCLCPP_DEBUG(this->get_logger(), "Hough angle: %f", pl_direction.angle());
 
 	} else {
 

@@ -8,11 +8,17 @@
 // III-Drone-Core:
 
 #include <iii_drone_core/configuration/configurator.hpp>
+#include <iii_drone_core/perception/hough_transformer_parameters.hpp>
 
 /*****************************************************************************/
 // ROS2:
 
 #include <rclcpp/rclcpp.hpp>
+
+/*****************************************************************************/
+// Std:
+
+#include <memory>
 
 /*****************************************************************************/
 // Class
@@ -110,6 +116,13 @@ namespace hough_transformer_node {
          */
         const int n_lines_include() const;
 
+        /**
+         * @brief HoughTransformerParameters getter
+         * 
+         * @return HoughTransformerParameters
+         */
+        std::shared_ptr<HoughTransformerParameters> hough_transformer_parameters() const;
+
     private:
         /**
          * @brief Declares the node specific parameters
@@ -117,6 +130,32 @@ namespace hough_transformer_node {
          * @return void
          */
         void declareNodeParameters();
+
+        /**
+         * @brief Initialises the HoughTransformer parameters
+         * 
+         * @return void
+         */
+        void initHoughTransformerParameters();
+
+        /**
+         * @brief The HoughTransformer parameters
+         */
+        std::shared_ptr<HoughTransformerParameters> hough_transformer_parameters_;
+
+        /**
+         * @brief The callback function called after successful parameter change
+         */
+        std::function<void(const rclcpp::Parameter &)> after_parameter_change_callback_ = nullptr;
+
+        /**
+         * @brief the HoughTransformerConfiguration callback function called after successful parameter change
+         * 
+         * @param parameter The parameter that was changed
+         * 
+         * @return void
+        */
+        void houghTransformerConfiguratorParameterChangeCallback(const rclcpp::Parameter & parameter);
 
     };
 

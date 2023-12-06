@@ -87,6 +87,9 @@ set(III_DRONE_LIBRARY_HEADERS
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/single_line.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/powerline.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/powerline_direction.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/hough_transformer_parameters.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/hough_transformer.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/mpc_parameters.hpp"
 )
@@ -107,6 +110,9 @@ set(III_DRONE_LIBRARY_SOURCES
 
   "${PROJECT_SOURCE_DIR}/src/perception/single_line.cpp"
   "${PROJECT_SOURCE_DIR}/src/perception/powerline.cpp"
+  "${PROJECT_SOURCE_DIR}/src/perception/powerline_direction.cpp"
+  "${PROJECT_SOURCE_DIR}/src/perception/hough_transformer_parameters.cpp"
+  "${PROJECT_SOURCE_DIR}/src/perception/hough_transformer.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/control/mpc_parameters.cpp"
 )
