@@ -18,13 +18,19 @@ Powerline::Powerline(std::shared_ptr<PowerlineParameters> powerline_parameters) 
 
 }
 
-const iii_drone::adapters::PowerlineAdapter Powerline::ToAdapter() const {
+const iii_drone::adapters::PowerlineAdapter Powerline::ToAdapter(bool only_visible) const {
 
     std::shared_lock<std::shared_mutex> lines_lock(lines_mutex_);
 
     std::vector<iii_drone::adapters::SingleLineAdapter> line_adapters;
 
     for (unsigned int i = 0; i < lines_.size(); i++) {
+
+        if (only_visible && !lines_[i].IsVisible()) {
+
+            continue;
+
+        }
 
         line_adapters.push_back(lines_[i].ToAdapter());
 
