@@ -218,15 +218,7 @@ void PowerlineMapperNode::plDirectionCallback(const geometry_msgs::msg::Quaterni
 
 void PowerlineMapperNode::publishPowerline() const {
 
-    std::vector<SingleLine> lines = powerline_.GetVisibleLines();
-
-    auto msg = iii_drone_interfaces::msg::Powerline();
-
-    msg.stamp = powerline_.stamp();
-
-    msg.projection_plane = iii_drone::adapters::ProjectionPlaneAdapter(
-        powerline_.projection_plane()
-    ).ToMsg();
+    auto msg = powerline_.ToAdapter(true).ToMsg();
 
     iii_drone::adapters::PointCloudAdapter pcl_adapter = powerline_.ToPointCloudAdapter(true);
 

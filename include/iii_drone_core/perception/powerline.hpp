@@ -75,9 +75,11 @@ namespace perception {
         /**
          * @brief Converts to a PowerlineAdapter.
          * 
+         * @param only_visible Whether to only return the visible lines, default false.
+         * 
          * @return The PowerlineAdapter.
          */
-        const iii_drone::adapters::PowerlineAdapter ToAdapter() const;
+        const iii_drone::adapters::PowerlineAdapter ToAdapter(bool only_visible = false) const;
 
         /**
          * @brief Converts to a PointCloudAdapter.
