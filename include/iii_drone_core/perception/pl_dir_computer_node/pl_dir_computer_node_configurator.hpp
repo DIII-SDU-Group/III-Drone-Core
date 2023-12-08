@@ -9,10 +9,17 @@
 
 #include <iii_drone_core/configuration/configurator.hpp>
 
+#include <iii_drone_core/perception/powerline_direction_parameters.hpp>
+
 /*****************************************************************************/
 // ROS2:
 
 #include <rclcpp/rclcpp.hpp>
+
+/*****************************************************************************/
+// Std:
+
+#include <memory>
 
 /*****************************************************************************/
 // Class
@@ -59,49 +66,49 @@ namespace pl_dir_computer_node {
          *
          * @return Kalman filter r coefficient
          */
-        const float kf_r() const;
+        float kf_r() const;
 
         /**
          * @brief Get the Kalman filter q coefficient
          *
          * @return Kalman filter q coefficient
          */
-        const float kf_q() const;
+        float kf_q() const;
 
         /**
          * @brief Get the initial ms sleep time
          *
          * @return Initial ms sleep time
          */
-        const int init_sleep_time_ms() const;
+        int init_sleep_time_ms() const;
 
         /**
          * @brief Get the odometry callback period ms
          * 
          * @return Odometry callback period ms
          */
-        const int odometry_callback_period_ms() const;
+        int odometry_callback_period_ms() const;
 
         /**
          * @brief Get the pl_mapper min_point_dist parameter
          * 
          * @return pl_mapper min_point_dist parameter
          */
-        const float min_point_dist() const;
+        float min_point_dist() const;
 
         /**
          * @brief Get the pl_mapper max_point_dist parameter
          * 
          * @return pl_mapper max_point_dist parameter
          */
-        const float max_point_dist() const;
+        float max_point_dist() const;
 
         /**
          * @brief Get the pl_mapper view_cone_slope parameter
          * 
          * @return pl_mapper view_cone_slope parameter
          */
-        const float view_cone_slope() const;
+        float view_cone_slope() const;
 
         /**
          * @brief Get the drone frame ID
@@ -131,6 +138,11 @@ namespace pl_dir_computer_node {
          */
         const std::string mmwave_frame_id() const;
 
+        /**
+         * @brief Get the PowerlineDirectionParameters
+        */
+        std::shared_ptr<PowerlineDirectionParameters> powerline_direction_parameters() const;
+
     private:
         /**
          * @brief Declares the node specific parameters
@@ -138,6 +150,28 @@ namespace pl_dir_computer_node {
          * @return void
          */
         void declareNodeParameters();
+
+        /**
+         * @brief Initializes the parameters.
+         */
+        void initializeParameters();
+
+        /**
+         * @brief The parameters for the PowerlineDirectionComputer
+         */
+        std::shared_ptr<PowerlineDirectionParameters> powerline_direction_parameters_;
+
+        /**
+         * @brief After parameter change callback.
+        */
+        std::function<void(const rclcpp::Parameter &)> after_parameter_change_callback_;
+
+        /**
+         * @brief PowerlineDirectionComputer after parameter change callback.
+         * 
+         * @param parameter The changed parameter.
+        */
+        void powerlineDirectionComputerAfterParameterChangeCallback(const rclcpp::Parameter & parameter);
 
     };
 

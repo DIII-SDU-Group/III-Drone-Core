@@ -15,9 +15,12 @@
 #include <memory>
 #include <string>
 
-#include "iii_drone_core/utils/math.hpp"
+#include <iii_drone_core/utils/types.hpp>
+#include <iii_drone_core/utils/math.hpp>
 
 #include <iii_drone_core/utils/drone_frame_broadcaster_node/drone_frame_broadcaster_node_configurator.hpp>
+
+#include <iii_drone_core/adapters/px4/vehicle_odometry_adapter.hpp>
 
 /*****************************************************************************/
 // Class

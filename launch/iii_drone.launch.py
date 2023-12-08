@@ -74,7 +74,7 @@ def generate_launch_description():
         )
     )
     
-    launch_list = [micro_ros_agent, sensors, tf, perception, control]
+    launch_list = [micro_ros_agent, sensors, tf, perception]#, control]
 
     cmd = "ros2 node list"
     running_nodes = os.popen(cmd).read().split("\n")

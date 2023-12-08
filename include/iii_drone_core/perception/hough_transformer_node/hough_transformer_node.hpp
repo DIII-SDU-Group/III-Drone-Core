@@ -8,8 +8,11 @@
 // ROS2:
 
 #include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/image.hpp>
 #include <rclcpp/qos.hpp>
+
+#include <sensor_msgs/msg/image.hpp>
+
+#include <std_msgs/msg/float32.hpp>
 
 /*****************************************************************************/
 // CV:
@@ -25,14 +28,11 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 /*****************************************************************************/
-// III-Drone-Interfaces:
-
-#include "iii_drone_interfaces/msg/powerline_direction.hpp"
-
-/*****************************************************************************/
 // III-Drone-Core:
 
 #include <iii_drone_core/perception/hough_transformer_node/hough_transformer_node_configurator.hpp>
+#include <iii_drone_core/perception/hough_transformer_parameters.hpp>
+#include <iii_drone_core/perception/hough_transformer.hpp>
 
 /*****************************************************************************/
 // Std:
@@ -86,6 +86,11 @@ namespace hough_transformer_node {
 		HoughTransformerConfigurator configurator_;
 
 		/**
+		 * @brief HoughTransformer object
+		 */
+		HoughTransformer hough_transformer_;
+
+		/**
 		 *	@brief Subscription object for the image topic
 		 */
 		rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr camera_subscription_;
@@ -100,27 +105,7 @@ namespace hough_transformer_node {
 		/**
 		 * @brief Publisher object for the cable yaw angle
 		 */
-		rclcpp::Publisher<iii_drone_interfaces::msg::PowerlineDirection>::SharedPtr cable_yaw_publisher_;
-
-		/**
-		 * @brief Computes the best line index from the hough transform
-		 * 
-		 * @param lines Vector of lines from the hough transform
-		 * @param img_height Height of the image
-		 * @param img_width Width of the image
-		 * 
-		 * @return Index of the best line
-		 */
-		int getBestLineIndex(
-			std::vector<cv::Vec2f> lines, 
-			int img_height, 
-			int img_width
-		);
-
-		/**
-		 * @brief Average of the angles of the lines
-		 */
-		float avg_theta_;
+		rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr cable_yaw_publisher_;
 
 	};
 

@@ -225,7 +225,7 @@ void Configurator::SyncParameters(const std::vector<std::string> & names) {
     }
 
     // Check if the parameters are correct:
-    for (int i = 0; i < parameters.size(); i++) {
+    for (unsigned int i = 0; i < parameters.size(); i++) {
 
         if (parameters[i].get_type() != parameters_[i].get_type() || parameters[i].get_name() != parameters_[i].get_name()) {
 
@@ -330,7 +330,7 @@ void Configurator::parameterEventCallback(rcl_interfaces::msg::ParameterEvent pa
     for (auto & p : parameter_event.changed_parameters) {
 
         // Check if the parameter is in the list of parameters:
-        for (int i = 0; i < parameters_.size(); i++) {
+        for (unsigned int i = 0; i < parameters_.size(); i++) {
 
             rclcpp::Parameter & parameter = parameters_[i];
 
@@ -393,6 +393,7 @@ bool Configurator::sendDeclareParameterRequest(
     bool finished = false;
 
     auto callback = [&finished](rclcpp::Client<iii_drone_interfaces::srv::DeclareParameter>::SharedFuture result_future) {
+        (void)result_future;
         finished = true;
     };
 
@@ -482,6 +483,7 @@ bool Configurator::sendGetParametersRequest(
     bool finished = false;
 
     auto callback = [&finished](rclcpp::Client<rcl_interfaces::srv::GetParameters>::SharedFuture result_future) {
+        (void)result_future;
         finished = true;
     };
 
@@ -524,7 +526,7 @@ bool Configurator::sendGetParametersRequest(
 
     parameters.resize(names.size());
 
-    for (int i = 0; i < names.size(); i++) {
+    for (unsigned int i = 0; i < names.size(); i++) {
 
         parameters[i] = rclcpp::Parameter(
             names[i], 
