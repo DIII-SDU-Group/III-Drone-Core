@@ -18,9 +18,9 @@ const std::vector<cv::Vec2f> HoughTransformer::GetHoughLines(const cv::Mat img) 
 
 	cv::Mat edge;
 
-    const int canny_low_threshold = parameters_->canny_low_threshold();
-    const int canny_ratio = parameters_->canny_ratio();
-    const int canny_kernel_size = parameters_->canny_kernel_size();
+    int canny_low_threshold = parameters_->canny_low_threshold();
+    int canny_ratio = parameters_->canny_ratio();
+    int canny_kernel_size = parameters_->canny_kernel_size();
 
 	cv::Canny(
 		img, 
@@ -46,10 +46,10 @@ const std::vector<cv::Vec2f> HoughTransformer::GetHoughLines(const cv::Mat img) 
 
 }
 
-const float HoughTransformer::ComputeAngle(
+float HoughTransformer::ComputeAngle(
     const std::vector<cv::Vec2f> lines,
-    const int rows,
-    const int cols
+    int rows,
+    int cols
 ) const {
 
     if (lines.size() == 0) {
@@ -58,7 +58,7 @@ const float HoughTransformer::ComputeAngle(
 
 	float theta = 0.0;
 
-    const int idx = getBestLineIndex(
+    int idx = getBestLineIndex(
         lines, 
         rows,
         cols
@@ -70,7 +70,7 @@ const float HoughTransformer::ComputeAngle(
 
 }
 
-const bool HoughTransformer::ComputeAngle(
+bool HoughTransformer::ComputeAngle(
 	const cv::Mat img,
 	float & angle
 ) const {
@@ -91,10 +91,10 @@ const bool HoughTransformer::ComputeAngle(
 
 }
 
-const int HoughTransformer::getBestLineIndex(
+int HoughTransformer::getBestLineIndex(
     const std::vector<cv::Vec2f> lines,
-    const int rows,
-    const int cols
+    int rows,
+    int cols
 ) const {
 
 	int best_idx = -1;

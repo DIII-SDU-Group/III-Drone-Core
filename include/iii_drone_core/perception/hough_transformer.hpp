@@ -69,10 +69,10 @@ namespace perception {
          * 
          * @return The hough lines direction angle.
         */
-        const float ComputeAngle(
+        float ComputeAngle(
             const std::vector<cv::Vec2f> lines,
-            const int rows,
-            const int cols
+            int rows,
+            int cols
         ) const;
 
         /**
@@ -83,7 +83,7 @@ namespace perception {
          * 
          * @return True if the angle was computed successfully, false otherwise.
         */
-        const bool ComputeAngle(
+        bool ComputeAngle(
             const cv::Mat img,
             float & angle
         ) const;
@@ -103,10 +103,10 @@ namespace perception {
          * 
          * @return The index of the best line match.
          */
-        const int getBestLineIndex(
+        int getBestLineIndex(
             const std::vector<cv::Vec2f> lines,
-            const int rows,
-            const int cols
+            int rows,
+            int cols
         ) const;
 
         
