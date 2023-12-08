@@ -22,7 +22,7 @@ HoughTransformerNode::HoughTransformerNode(
 hough_transformer_(configurator_.hough_transformer_parameters()) {
 
 	// Topics:
-	cable_yaw_publisher_ = this->create_publisher<iii_drone_interfaces::msg::PowerlineDirection>(
+	cable_yaw_publisher_ = this->create_publisher<std_msgs::msg::Float32>(
 		"cable_yaw_angle", 
 		10
 	);
@@ -59,20 +59,20 @@ void HoughTransformerNode::OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr 
 
 	cv::Mat img = cv_ptr->image;
 
-	std::vector<cv::Vec2f> lines = hough_transformer_.GetHoughLines(img);
+	float angle;
+	bool success = hough_transformer_.ComputeAngle(
+		img, 
+		angle
+	);
 
-	if (lines.size() > 0){
+	if (success){
 
-		PowerlineDirection pl_direction(
-			lines, 
-			img.rows, 
-			img.cols
-		);
-
-		cable_yaw_publisher_->publish(pl_direction.ToMsg());
+		std_msgs::msg::Float32 pl_direction;
+		pl_direction.data = angle;
+		cable_yaw_publisher_->publish(pl_direction);
 
 		// RCLCPP debug published hough angle
-		RCLCPP_DEBUG(this->get_logger(), "Hough angle: %f", pl_direction.angle());
+		RCLCPP_DEBUG(this->get_logger(), "Hough angle: %f", angle);
 
 	} else {
 

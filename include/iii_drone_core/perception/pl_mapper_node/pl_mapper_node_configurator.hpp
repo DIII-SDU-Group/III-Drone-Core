@@ -9,10 +9,17 @@
 
 #include <iii_drone_core/configuration/configurator.hpp>
 
+#include <iii_drone_core/perception/powerline_parameters.hpp>
+
 /*****************************************************************************/
 // ROS2:
 
 #include <rclcpp/rclcpp.hpp>
+
+/*****************************************************************************/
+// Std:
+
+#include <memory>
 
 /*****************************************************************************/
 // Class
@@ -59,126 +66,119 @@ namespace pl_mapper_node {
          * 
          * @return Kalman filter r coefficient
          */
-        const float kf_r() const;
+        float kf_r() const;
 
         /**
          * @brief Get the Powerline Kalman filter q coefficient
          * 
          * @return Kalman filter q coefficient
          */
-        const float kf_q() const;
+        float kf_q() const;
 
         /**
          * @brief Get the alive counter low threshold 
          * 
          * @return Alive counter low threshold
          */
-        const int alive_cnt_low_thresh() const;
+        int alive_cnt_low_thresh() const;
 
         /**
          * @brief Get the alive counter high threshold
          * 
          * @return Alive counter high threshold
          */
-        const int alive_cnt_high_thresh() const;
+        int alive_cnt_high_thresh() const;
 
         /**
          * @brief Get the alive counter ceiling
          * 
          * @return Alive counter ceiling
          */
-        const int alive_cnt_ceiling() const;
+        int alive_cnt_ceiling() const;
 
         /**
          * @brief Get the minimum distance between two points in the point cloud
          * 
          * @return Minimum distance between two points in the point cloud
          */
-        const float min_point_dist() const;
+        float min_point_dist() const;
 
         /**
          * @brief Get the maximum distance between two points in the point cloud
          * 
          * @return Maximum distance between two points in the point cloud
          */
-        const float max_point_dist() const;
+        float max_point_dist() const;
 
         /**
          * @brief Get the slope of the view cone
          * 
          * @return Slope of the view cone
          */
-        const float view_cone_slope() const;
+        float view_cone_slope() const;
 
         /**
          * @brief Get the minimum distance between two points in the point cloud (strict)
          * 
          * @return Minimum distance between two points in the point cloud (strict)
          */
-        const float strict_min_point_dist() const;
+        float strict_min_point_dist() const;
 
         /**
          * @brief Get the maximum distance between two points in the point cloud (strict)
          * 
          * @return Maximum distance between two points in the point cloud (strict)
          */
-        const float strict_max_point_dist() const;
+        float strict_max_point_dist() const;
 
         /**
          * @brief Get the slope of the view cone (strict)
          * 
          * @return Slope of the view cone (strict)
          */
-        const float strict_view_cone_slope() const;
+        float strict_view_cone_slope() const;
 
         /**
          * @brief Get the maximum distance between two points in the point cloud (for line matching)
          * 
          * @return Maximum distance between two points in the point cloud (for line matching)
          */
-        const float matching_line_max_dist() const;
+        float matching_line_max_dist() const;
 
         /**
          * @brief Get the initial sleep time in milliseconds
          * 
          * @return Initial sleep time in milliseconds
          */
-        const int init_sleep_time_ms() const;
+        int init_sleep_time_ms() const;
 
         /**
          * @brief Get the odometry callback period in milliseconds
          * 
          * @return Odometry callback period in milliseconds
          */
-        const int odometry_callback_period_ms() const;
+        int odometry_callback_period_ms() const;
 
         /**
          * @brief Get the maximum number of lines
          * 
          * @return Maximum number of lines
          */
-        const int max_lines() const;
-
-        /**
-         * @brief Get the skip predict when on cable flag
-         * 
-         * @return Skip predict when on cable flag
-         */
-        const bool skip_predict_when_on_cable() const;
+        int max_lines() const;
 
         /**
          * @brief Get the inter line position window size
          * 
          * @return Inter line position window size
          */
-        const int inter_pos_window_size() const;
+        int inter_pos_window_size() const;
 
         /**
          * @brief Get simulation mode flag
          * 
          * @return Simulation mode flag
          */
-        const bool simulation() const;
+        bool simulation() const;
 
         /**
          * @brief Get the drone frame ID
@@ -208,6 +208,11 @@ namespace pl_mapper_node {
          */
         const std::string mmwave_frame_id() const;
 
+        /**
+         * @brief PowerlineParameters getter
+        */
+        std::shared_ptr<PowerlineParameters> powerline_parameters() const;
+
     private:
         /**
          * @brief Declares the node specific parameters
@@ -215,6 +220,26 @@ namespace pl_mapper_node {
          * @return void
          */
         void declareNodeParameters();
+
+        /**
+         * @brief Initialize the parameters
+        */
+        void initializeParameters();
+
+        /**
+         * @brief On changed parameter callback.
+        */
+        void plMapperOnParameterChange(const rclcpp::Parameter &parameter);
+
+        /**
+         * @brief On parameter change callback handle.
+        */
+        std::function<void(const rclcpp::Parameter &)> after_parameter_change_callback_;
+
+        /**
+         * @brief The Powerline parameters.
+        */
+        std::shared_ptr<PowerlineParameters> parameters_;
 
     };
 

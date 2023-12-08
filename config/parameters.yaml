@@ -110,9 +110,6 @@ perception:
       value: 10
       min: 1
       max: 20
-    skip_predict_when_on_cable:
-      type: "bool"
-      value: false
     inter_pos_window_size:
       type: "int"
       value: 5

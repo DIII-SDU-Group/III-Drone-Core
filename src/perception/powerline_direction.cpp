@@ -10,91 +10,368 @@ using namespace iii_drone::perception;
 // Implementation
 /*****************************************************************************/
 
-PowerlineDirection::PowerlineDirection(const float angle) : angle_(angle) { }
+PowerlineDirection::PowerlineDirection(std::shared_ptr<PowerlineDirectionParameters> parameters) : parameters_(parameters) {
 
-PowerlineDirection::PowerlineDirection(
-    const std::vector<cv::Vec2f> lines,
-    const int rows,
-    const int cols
-) {
+    pl_quat_ = iii_drone::types::quaternion_t::Identity();
 
-    if (lines.size() == 0) {
-        throw std::runtime_error("PowerlineDirection::PowerlineDirection(): Empty lines vector.");
-    }
+    resetKalmanFilter();
 
-    angle_ = computeAngle(
-        lines, 
-        rows, 
-        cols
-    );
+    stamp_.Update();
 
 }
 
-PowerlineDirection::PowerlineDirection(const iii_drone_interfaces::msg::PowerlineDirection::SharedPtr msg) : angle_(msg->angle) { }
-
 PowerlineDirection::~PowerlineDirection() { }
 
-const iii_drone_interfaces::msg::PowerlineDirection PowerlineDirection::ToMsg() const {
+const geometry_msgs::msg::PoseStamped PowerlineDirection::ToPoseStampedMsg(const std::string & drone_frame_id) const {
 
-    iii_drone_interfaces::msg::PowerlineDirection msg;
-    msg.angle = angle_;
+    geometry_msgs::msg::PoseStamped msg;
+
+    msg.header.stamp = (rclcpp::Time)stamp_;
+    msg.header.frame_id = drone_frame_id;
+
+    iii_drone::types::quaternion_t pl_quat = pl_quat_;
+
+    msg.pose = iii_drone::types::poseMsgFromPose(
+        iii_drone::types::point_t::Zero(),
+        pl_quat
+    );
 
     return msg;
 
 }
 
-const float & PowerlineDirection::angle() const {
-    return angle_;
+const geometry_msgs::msg::QuaternionStamped PowerlineDirection::ToQuaternionStampedMsg(const std::string & drone_frame_id) const {
+
+    geometry_msgs::msg::QuaternionStamped msg;
+
+    msg.header.stamp = (rclcpp::Time)stamp_;
+    msg.header.frame_id = drone_frame_id;
+
+    msg.quaternion = iii_drone::types::quaternionMsgFromQuaternion(pl_quat_);
+
+    return msg;
+
 }
 
-const float PowerlineDirection::computeAngle(
-    const std::vector<cv::Vec2f> lines,
-    const int rows,
-    const int cols
-) const {
+void PowerlineDirection::Update(float pl_yaw) {
 
-    if (lines.size() == 0) {
-        throw std::runtime_error("HoughTransformer::GetHoughLineAngle(): Empty lines vector.");
+    using namespace iii_drone::types;
+    using namespace iii_drone::math;
+
+    quaternion_t drone_quat = (quaternion_t)drone_quat_;
+
+    if (!received_first_odom_) {
+
+        return;
+
     }
 
-	float theta = 0.0;
+    if (!received_angle_) {
 
-    const int idx = getBestLineIndex(
-        lines, 
-        rows,
-        cols
-    );
+        euler_angles_t pl_eul = computePowerlineEulerAngles(pl_yaw, drone_quat);
+        quaternion_t pl_quat = eulToQuat(pl_eul);
 
-    theta = -lines[idx][1];
+        pl_quat_ = pl_quat;
 
-    return theta;
+        received_angle_ = true;
+
+        resetKalmanFilter();
+
+        stamp_.Update();
+
+        return;
+
+    }
+
+    if (!anyCableInFOV()) {
+
+        return;
+
+    }
+
+    euler_angles_t D_eul_P = computePowerlineEulerAngles(pl_yaw, drone_quat);
+
+    for (int i = 0; i < 3; i++) {
+
+        float angle = false ? mapAngle2(pl_angle_est_[i].state_est, D_eul_P(i)) : D_eul_P(i);
+
+        if (!received_angle_) {
+
+            pl_angle_est_[i].state_est = backmapAngle(angle);
+
+            if (i==2) {
+
+                received_angle_ = true;
+
+            }
+
+        } else {
+
+            float y_bar = angle - pl_angle_est_[i].state_est;
+            float s = pl_angle_est_[i].var_est + parameters_->kf_r();
+
+            float k = pl_angle_est_[i].var_est / s;
+
+            pl_angle_est_[i].state_est += k*y_bar;
+            pl_angle_est_[i].var_est *= 1-k;
+
+            pl_angle_est_[i].state_est = backmapAngle(pl_angle_est_[i].state_est);
+
+        }
+
+        D_eul_P(i) = pl_angle_est_[i].state_est;
+
+        pl_quat_ = eulToQuat(D_eul_P);
+
+    }
+
+    stamp_.Update();
 
 }
 
-const int PowerlineDirection::getBestLineIndex(
-    const std::vector<cv::Vec2f> lines,
-    const int rows,
-    const int cols
+void PowerlineDirection::Predict(const iii_drone::types::quaternion_t & drone_quat) {
+
+    using namespace iii_drone::types;
+    using namespace iii_drone::math;
+
+    quaternion_t last_drone_quat = drone_quat_;
+
+    last_drone_quat_ = last_drone_quat;
+    drone_quat_ = drone_quat;
+
+    if (!received_first_odom_) {
+
+        received_first_odom_ = true;
+        return;
+
+    }
+
+    if (!received_second_odom_) {
+
+        received_second_odom_ = true;
+        return;
+
+    }
+
+    if (!received_angle_) {
+
+        return;
+
+    }
+
+    quaternion_t inv_last_drone_quat = quatInv(last_drone_quat);
+    quaternion_t delta_drone_quat = quatMultiply(drone_quat, inv_last_drone_quat); /// Works!!!!! #impericalmethod
+
+    pl_quat_ = quatMultiply(
+        delta_drone_quat, 
+        pl_quat_
+    );   //// WORKS!!! #impericalmethodAKAnoideawhyitworks
+
+    euler_angles_t eul = quatToEul(pl_quat_);
+
+    for (int i = 0; i < 3; i++) { 
+        
+        pl_angle_est_[i].var_est += parameters_->kf_q(); 
+        pl_angle_est_[i].state_est = backmapAngle(eul(i)); 
+        
+    }
+
+    stamp_.Update();
+
+}
+
+void PowerlineDirection::UpdatePowerlineAdapter(const iii_drone_interfaces::msg::Powerline::SharedPtr msg) {
+
+    std::unique_lock<std::shared_mutex> lock(pl_mutex_);
+
+    pl_.UpdateFromMsg(*msg);
+
+}
+
+bool PowerlineDirection::anyCableInFOV() const {
+
+    std::shared_lock<std::shared_mutex> lock(pl_mutex_);
+
+    if (pl_.single_line_adapters().size() == 0) {
+
+        return true;
+
+    }
+
+    if (pl_.GetVisibleLineAdapters().size() == 0) {
+
+        return false;
+
+    }
+
+    return true;
+
+}
+
+const iii_drone::types::quaternion_t PowerlineDirection::quaternion() const {
+
+    return pl_quat_;
+
+}
+
+const rclcpp::Time PowerlineDirection::stamp() const {
+
+    return stamp_;
+
+}
+
+const iii_drone::types::euler_angles_t PowerlineDirection::computePowerlineEulerAngles(
+    const float & pl_yaw,
+    const iii_drone::types::quaternion_t & drone_quat
+) {
+
+    using namespace iii_drone::types;
+    using namespace iii_drone::math;
+
+    static float W_pl_yaw_ = 0;
+
+    quaternion_t W_Q_D = drone_quat;
+
+    rotation_matrix_t W_R_D = quatToMat(W_Q_D);
+
+    vector_t unit_x(1,0,0);
+    euler_angles_t pl_eul(0,0,pl_yaw);
+
+    vector_t D_v = eulToMat(pl_eul) * unit_x;
+
+    vector_t W_v(
+        -(D_v(1)*W_R_D(0,1) - D_v(0)*W_R_D(1,1))/(W_R_D(0,0)*W_R_D(1,1) - W_R_D(0,1)*W_R_D(1,0)),
+        (D_v(1)*W_R_D(0,0) - D_v(0)*W_R_D(1,0))/(W_R_D(0,0)*W_R_D(1,1) - W_R_D(0,1)*W_R_D(1,0)),
+        0
+    );
+
+    float pl_angle = atan2(W_v[1], W_v[0]);
+    pl_angle = mapAngle(W_pl_yaw_, pl_angle);
+    W_pl_yaw_ = pl_angle;
+
+    euler_angles_t W_pl_eul(0,0,pl_angle);
+    W_v = eulToMat(W_pl_eul) * unit_x;
+
+    W_v /= W_v.norm();
+
+    euler_angles_t pi_2_yaw(0,0,M_PI_2);
+
+    vector_t W_P_x = W_v;
+    vector_t W_P_y = eulToMat(pi_2_yaw)*W_P_x;
+    vector_t W_P_z(0,0,1);
+
+    rotation_matrix_t W_R_P;
+
+    for (int i = 0; i < 3; i++) {
+
+        W_R_P(i,0) = W_P_x(i);
+        W_R_P(i,1) = W_P_y(i);
+        W_R_P(i,2) = W_P_z(i);
+
+    }
+
+    rotation_matrix_t D_R_P = W_R_D * W_R_P;
+
+    quaternion_t D_Q_P = matToQuat(D_R_P);
+
+    euler_angles_t D_eul_P = quatToEul(D_Q_P);
+
+    return D_eul_P;
+
+}
+
+float PowerlineDirection::mapAngle(
+    float curr_angle, 
+    float new_angle
 ) const {
 
-	int best_idx = -1;
-	float best_dist = 100000.;
+    float angle_candidates[5];
+    angle_candidates[0] = new_angle;
 
-	float x0 = cols/2;
-	float y0 = rows/2;
+    if (new_angle > 0) {
 
-    for( size_t i = 0; i < lines.size(); i++ ) {
-		
-		float a = -cos(lines[i][1])/sin(lines[i][1]);
-		float b = lines[i][0]/sin(lines[i][1]);
+        angle_candidates[1] = new_angle - M_PI;
+        angle_candidates[2] = new_angle - 2*M_PI;
+        angle_candidates[3] = new_angle + M_PI;
+        angle_candidates[4] = new_angle + 2*M_PI;
 
-		float dist = abs(a*x0 - y0 + b) / sqrt(a*a+1);
+    } else {
 
-		if (dist < best_dist) {
-			best_idx = i;
-		}
-	}
+        angle_candidates[1] = new_angle + M_PI;
+        angle_candidates[2] = new_angle + 2*M_PI;
+        angle_candidates[3] = new_angle - M_PI;
+        angle_candidates[4] = new_angle - 2*M_PI;
 
-    return best_idx;
+    }
+
+    float best_angle = angle_candidates[0];
+    float best_angle_diff = abs(angle_candidates[0]-curr_angle);
+
+    for (int i = 0; i < 5; i++) {
+
+        float diff = abs(angle_candidates[i]-curr_angle);
+        if (diff < best_angle_diff) {
+            best_angle_diff = diff;
+            best_angle = angle_candidates[i];
+        }
+
+    }
+
+    return best_angle;
+
+}
+
+float PowerlineDirection::mapAngle2(
+    float curr_angle, 
+    float new_angle
+) const {
+
+    float angle_candidates[3];
+    angle_candidates[0] = new_angle;
+    angle_candidates[1] = new_angle + M_PI;
+    angle_candidates[2] = new_angle - M_PI;
+
+    float best_angle = angle_candidates[0];
+    float best_angle_diff = abs(angle_candidates[0]-curr_angle);
+
+    for (int i = 0; i < 3; i++) {
+
+        float diff = abs(angle_candidates[i]-curr_angle);
+        if (diff < best_angle_diff) {
+            best_angle_diff = diff;
+            best_angle = angle_candidates[i];
+        }
+
+    }
+
+    return best_angle;
+
+}
+
+float PowerlineDirection::backmapAngle(float angle) const {
+
+    if (angle > M_PI) {
+        return angle-2*M_PI;
+    } else if (angle < -M_PI) {
+        return angle+2*M_PI;
+    } else {
+        return angle;
+    }
+
+}
+
+
+void PowerlineDirection::resetKalmanFilter() {
+
+    iii_drone::types::euler_angles_t pl_eul = iii_drone::math::quatToEul(pl_quat_);
+
+    pl_angle_est_[0].state_est = pl_eul(0);
+    pl_angle_est_[0].var_est = 0.1;
+
+    pl_angle_est_[1].state_est = pl_eul(1);
+    pl_angle_est_[1].var_est = 0.1;
+
+    pl_angle_est_[2].state_est = pl_eul(2);
+    pl_angle_est_[2].var_est = 0.1;
 
 }

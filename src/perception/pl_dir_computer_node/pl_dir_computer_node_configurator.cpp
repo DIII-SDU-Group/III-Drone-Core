@@ -16,10 +16,18 @@ PowerlineDirectionComputerConfigurator::PowerlineDirectionComputerConfigurator(
     std::function<void(const rclcpp::Parameter &)> after_parameter_change_callback
 ) : Configurator(
         node,
-        after_parameter_change_callback
+        std::bind(
+            &PowerlineDirectionComputerConfigurator::powerlineDirectionComputerAfterParameterChangeCallback,
+            this,
+            std::placeholders::_1
+        )
     ) {
 
+    after_parameter_change_callback_ = after_parameter_change_callback;
+
     declareNodeParameters();
+
+    initializeParameters();
 
 }
 
@@ -30,50 +38,58 @@ PowerlineDirectionComputerConfigurator::PowerlineDirectionComputerConfigurator(
 ) : Configurator(
         node, 
         qos,
-        after_parameter_change_callback
+        std::bind(
+            &PowerlineDirectionComputerConfigurator::powerlineDirectionComputerAfterParameterChangeCallback,
+            this,
+            std::placeholders::_1
+        )
     ) {
+
+    after_parameter_change_callback_ = after_parameter_change_callback;
 
     declareNodeParameters();
 
+    initializeParameters();
+
 }
 
-const float PowerlineDirectionComputerConfigurator::kf_r() const {
+float PowerlineDirectionComputerConfigurator::kf_r() const {
 
     return GetParameter("/perception/pl_dir_computer/kf_r").as_double();
 
 }
 
-const float PowerlineDirectionComputerConfigurator::kf_q() const {
+float PowerlineDirectionComputerConfigurator::kf_q() const {
 
     return GetParameter("/perception/pl_dir_computer/kf_q").as_double();
 
 }
 
-const int PowerlineDirectionComputerConfigurator::init_sleep_time_ms() const {
+int PowerlineDirectionComputerConfigurator::init_sleep_time_ms() const {
 
     return GetParameter("/perception/pl_dir_computer/init_sleep_time_ms").as_int();
 
 }
 
-const int PowerlineDirectionComputerConfigurator::odometry_callback_period_ms() const {
+int PowerlineDirectionComputerConfigurator::odometry_callback_period_ms() const {
 
     return GetParameter("/perception/pl_dir_computer/odometry_callback_period_ms").as_int();
 
 }
 
-const float PowerlineDirectionComputerConfigurator::min_point_dist() const {
+float PowerlineDirectionComputerConfigurator::min_point_dist() const {
 
     return GetParameter("/perception/pl_mapper/min_point_dist").as_double();
 
 }
 
-const float PowerlineDirectionComputerConfigurator::max_point_dist() const {
+float PowerlineDirectionComputerConfigurator::max_point_dist() const {
 
     return GetParameter("/perception/pl_mapper/max_point_dist").as_double();
 
 }
 
-const float PowerlineDirectionComputerConfigurator::view_cone_slope() const {
+float PowerlineDirectionComputerConfigurator::view_cone_slope() const {
 
     return GetParameter("/perception/pl_mapper/view_cone_slope").as_double();
 
@@ -103,6 +119,12 @@ const std::string PowerlineDirectionComputerConfigurator::mmwave_frame_id() cons
 
 }
 
+std::shared_ptr<iii_drone::perception::PowerlineDirectionParameters> PowerlineDirectionComputerConfigurator::powerline_direction_parameters() const {
+
+    return powerline_direction_parameters_;
+
+}
+
 void PowerlineDirectionComputerConfigurator::declareNodeParameters() {
 
     DeclareParameter<float>("/perception/pl_dir_computer/kf_r");
@@ -118,5 +140,36 @@ void PowerlineDirectionComputerConfigurator::declareNodeParameters() {
     DeclareParameter<std::string>("/tf/world_frame_id");
     DeclareParameter<std::string>("/tf/cable_gripper_frame_id");
     DeclareParameter<std::string>("/tf/mmwave_frame_id");
+
+}
+
+void PowerlineDirectionComputerConfigurator::initializeParameters() {
+
+    powerline_direction_parameters_ = std::make_shared<iii_drone::perception::PowerlineDirectionParameters>(
+        drone_frame_id(),
+        kf_r(),
+        kf_q()
+    );
+
+}
+
+void PowerlineDirectionComputerConfigurator::PowerlineDirectionComputerConfigurator::powerlineDirectionComputerAfterParameterChangeCallback(const rclcpp::Parameter & parameter) {
+
+    if (parameter.get_name() == "/perception/pl_dir_computer/kf_r") {
+
+        powerline_direction_parameters_->kf_r() = parameter.as_double();
+
+    } else if (parameter.get_name() == "/perception/pl_dir_computer/kf_q") {
+
+        powerline_direction_parameters_->kf_q() = parameter.as_double();
+
+    } else if (parameter.get_name() == "/tf/drone_frame_id") {
+
+        powerline_direction_parameters_->drone_frame_id() = parameter.as_string();
+
+    }
+
+    if (after_parameter_change_callback_ != nullptr)
+        after_parameter_change_callback_(parameter);
 
 }

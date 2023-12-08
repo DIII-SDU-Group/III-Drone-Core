@@ -8,8 +8,11 @@
 // ROS2:
 
 #include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/image.hpp>
 #include <rclcpp/qos.hpp>
+
+#include <sensor_msgs/msg/image.hpp>
+
+#include <std_msgs/msg/float32.hpp>
 
 /*****************************************************************************/
 // CV:
@@ -25,18 +28,11 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 /*****************************************************************************/
-// III-Drone-Interfaces:
-
-#include "iii_drone_interfaces/msg/powerline_direction.hpp"
-
-/*****************************************************************************/
 // III-Drone-Core:
 
 #include <iii_drone_core/perception/hough_transformer_node/hough_transformer_node_configurator.hpp>
 #include <iii_drone_core/perception/hough_transformer_parameters.hpp>
 #include <iii_drone_core/perception/hough_transformer.hpp>
-
-#include <iii_drone_core/perception/powerline_direction.hpp>
 
 /*****************************************************************************/
 // Std:
@@ -109,7 +105,7 @@ namespace hough_transformer_node {
 		/**
 		 * @brief Publisher object for the cable yaw angle
 		 */
-		rclcpp::Publisher<iii_drone_interfaces::msg::PowerlineDirection>::SharedPtr cable_yaw_publisher_;
+		rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr cable_yaw_publisher_;
 
 	};
 

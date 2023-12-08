@@ -83,15 +83,32 @@ set(III_DRONE_LIBRARY_HEADERS
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_controller_node/trajectory_controller_node_configurator.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/math.hpp"
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/blocking_queue.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/types.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/timestamp.hpp"
+  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/blocking_queue.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/atomic.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/single_line.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/powerline_parameters.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/powerline.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/powerline_direction_parameters.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/powerline_direction.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/hough_transformer_parameters.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/hough_transformer.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/mpc_parameters.hpp"
+
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/single_line_adapter.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/projection_plane_adapter.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/powerline_adapter.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/control_state_adapter.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/point_cloud_adapter.hpp"
+
+  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/offboard_control_mode_adapter.hpp"
+  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/trajectory_setpoint_adapter.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/vehicle_odometry_adapter.hpp"
+  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/vehicle_status_adapter.hpp"
+
 )
 
 set(III_DRONE_LIBRARY_SOURCES
@@ -107,14 +124,30 @@ set(III_DRONE_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/control/trajectory_controller_node/trajectory_controller_node_configurator.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/utils/math.cpp"
+  "${PROJECT_SOURCE_DIR}/src/utils/types.cpp"
+  "${PROJECT_SOURCE_DIR}/src/utils/timestamp.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/perception/single_line.cpp"
+  "${PROJECT_SOURCE_DIR}/src/perception/powerline_parameters.cpp"
   "${PROJECT_SOURCE_DIR}/src/perception/powerline.cpp"
+  "${PROJECT_SOURCE_DIR}/src/perception/powerline_direction_parameters.cpp"
   "${PROJECT_SOURCE_DIR}/src/perception/powerline_direction.cpp"
   "${PROJECT_SOURCE_DIR}/src/perception/hough_transformer_parameters.cpp"
   "${PROJECT_SOURCE_DIR}/src/perception/hough_transformer.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/control/mpc_parameters.cpp"
+
+  "${PROJECT_SOURCE_DIR}/src/adapters/single_line_adapter.cpp"
+  "${PROJECT_SOURCE_DIR}/src/adapters/projection_plane_adapter.cpp"
+  "${PROJECT_SOURCE_DIR}/src/adapters/powerline_adapter.cpp"
+  "${PROJECT_SOURCE_DIR}/src/adapters/control_state_adapter.cpp"
+  "${PROJECT_SOURCE_DIR}/src/adapters/point_cloud_adapter.cpp"
+
+  # "${PROJECT_SOURCE_DIR}/src/adapters/px4/offboard_control_mode_adapter.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/adapters/px4/trajectory_setpoint_adapter.cpp"
+  "${PROJECT_SOURCE_DIR}/src/adapters/px4/vehicle_odometry_adapter.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/adapters/px4/vehicle_status_adapter.cpp"
+
 )
 
 include_directories(${III_DRONE_INCLUDE_DIRS})
@@ -223,18 +256,18 @@ custom_cpp_target(pl_mapper
   "${PROJECT_SOURCE_DIR}/src/perception/pl_mapper_node/pl_mapper_node.cpp"
 )
 
-# Trajectory controller:
-custom_cpp_target(trajectory_controller 
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_controller_node/trajectory_controller_node.hpp"
-  "${PROJECT_SOURCE_DIR}/src/control/trajectory_controller_node/trajectory_controller_node.cpp"
-)
-target_include_directories(trajectory_controller 
-  PRIVATE
-  ${MATLAB_MPC_INCLUDE_DIRS}
-)
-target_link_libraries(trajectory_controller 
-  matlab_mpc
-)
+# # Trajectory controller:
+# custom_cpp_target(trajectory_controller 
+#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_controller_node/trajectory_controller_node.hpp"
+#   "${PROJECT_SOURCE_DIR}/src/control/trajectory_controller_node/trajectory_controller_node.cpp"
+# )
+# target_include_directories(trajectory_controller 
+#   PRIVATE
+#   ${MATLAB_MPC_INCLUDE_DIRS}
+# )
+# target_link_libraries(trajectory_controller 
+#   matlab_mpc
+# )
 
 # # Continuous mission orchestrator:
 # custom_cpp_target(continuous_mission_orchestrator

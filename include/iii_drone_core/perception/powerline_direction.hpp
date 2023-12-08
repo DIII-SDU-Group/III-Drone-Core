@@ -8,21 +8,35 @@
 // III-Drone-Interfaces:
 
 #include <iii_drone_interfaces/msg/powerline_direction.hpp>
+#include <iii_drone_interfaces/msg/powerline.hpp>
 
 /*****************************************************************************/
-// CV:
+// III-Drone-Core:
 
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/opencv.hpp>
-#include <opencv2/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
+#include <iii_drone_core/utils/math.hpp>
+#include <iii_drone_core/utils/types.hpp>
+#include <iii_drone_core/utils/timestamp.hpp>
+#include <iii_drone_core/utils/atomic.hpp>
+
+#include <iii_drone_core/perception/powerline_direction_parameters.hpp>
+
+#include <iii_drone_core/adapters/powerline_adapter.hpp>
 
 /*****************************************************************************/
 // Std:
 
 #include <vector>
+#include <mutex>
+#include <shared_mutex>
+#include <memory>
+
+/*****************************************************************************/
+// ROS2:
+
+#include <rclcpp/rclcpp.hpp>
+
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/quaternion_stamped.hpp>
 
 /*****************************************************************************/
 // Class
@@ -32,36 +46,16 @@ namespace iii_drone {
 namespace perception {
 
     /**
-     * @brief Class for computing the powerline direction and converting to ROS2 message.
+     * @brief Class for computing the powerline direction and converting to ROS2 message, as well as Kalman Filtering.
      */
     class PowerlineDirection {
     public:
         /**
-         * @brief Constructor.
+         * @brief Default constructor.
          * 
-         * @param angle The powerline direction angle.
+         * @param parameters The powerline direction parameters.
          */
-        PowerlineDirection(const float angle);
-
-        /**
-         * @brief Constructs a PowerlineDirection object from hough lines and image dimensions.
-         * 
-         * @param lines The hough lines.
-         * @param rows The number of rows in the image.
-         * @param cols The number of columns in the image.
-         */
-        PowerlineDirection(
-            const std::vector<cv::Vec2f> lines,
-            const int rows,
-            const int cols
-        );
-
-        /**
-         * @brief Constructs a PowerlineDirection object from a ROS2 message.
-         * 
-         * @param msg The powerline direction ROS2 message.
-         */
-        PowerlineDirection(const iii_drone_interfaces::msg::PowerlineDirection::SharedPtr msg);
+        PowerlineDirection(std::shared_ptr<PowerlineDirectionParameters> parameters);
 
         /**
          * @brief Destructor.
@@ -69,52 +63,174 @@ namespace perception {
         ~PowerlineDirection();
 
         /**
-         * @brief Converts the powerline direction to a ROS2 message.
+         * @brief Converts to pose stamped message.
          * 
-         * @return The powerline direction ROS2 message.
+         * @param drone_frame_id The drone frame id.
+         * 
+         * @return geometry_msgs::msg::PoseStamped The pose stamped message.
          */
-        const iii_drone_interfaces::msg::PowerlineDirection ToMsg() const;
+        const geometry_msgs::msg::PoseStamped ToPoseStampedMsg(const std::string & drone_frame_id) const;
 
         /**
-         * @brief Powerline direction angle getter
+         * @brief Converts to quaternion stamped message.
          * 
-         * @return The powerline direction angle.
-        */
-        const float & angle() const;
+         * @param drone_frame_id The drone frame id.
+         * 
+         * @return geometry_msgs::msg::QuaternionStamped The quaternion stamped message.
+         */
+        const geometry_msgs::msg::QuaternionStamped ToQuaternionStampedMsg(const std::string & drone_frame_id) const;
+
+        /**
+         * @brief Runs the Kalman Filter update step from an observed yaw angle.
+         * 
+         * @param pl_yaw The observed powerline yaw.
+         */
+        void Update(float pl_yaw);
+
+        /**
+         * @brief Runs the Kalman Filter predict step from a drone quaternion.
+         * 
+         * @param drone_quat The drone quaternion.
+         */
+        void Predict(const iii_drone::types::quaternion_t & drone_quat);
+
+        /**
+         * @brief Updates the PowerlineAdapter object.
+         * 
+         * @param msg The powerline ROS2 message.
+         */
+        void UpdatePowerlineAdapter(const iii_drone_interfaces::msg::Powerline::SharedPtr msg);
+
+        /**
+         * @brief Powerline quaternion getter.
+         */
+        const iii_drone::types::quaternion_t quaternion() const;
+
+        /**
+         * @brief Stamp getter.
+         */
+        const rclcpp::Time stamp() const;
 
     private:
         /**
-         * @brief Powerline direction angle.
-         */
-        float angle_;
-
-        /**
-         * @brief Computes the powerline direction angle.
-         * 
-         * @param lines The hough lines.
-         * @param rows The number of rows in the image.
-         * @param cols The number of columns in the image.
+         * @brief Time stamp for latest change.
         */
-        const float computeAngle(
-            const std::vector<cv::Vec2f> lines,
-            const int rows,
-            const int cols
+        iii_drone::utils::Timestamp stamp_;
+
+        /**
+         * @brief The powerline direction parameters.
+        */
+        std::shared_ptr<PowerlineDirectionParameters> parameters_;
+
+        /**
+         * @brief Checks if any cable is in the field of view
+         * 
+         * @return bool True if any cable is in the field of view
+         */
+        bool anyCableInFOV() const;
+
+        /**
+         * @brief Computes the powerline euler angles from observed powerline yaw.
+         * 
+         * @param pl_yaw The observed powerline yaw.
+         * @param drone_quat The drone quaternion.
+         * 
+         * @return iii_drone::types::euler_angles_t The powerline euler angles.
+        */
+        const iii_drone::types::euler_angles_t computePowerlineEulerAngles(
+            const float & pl_yaw,
+            const iii_drone::types::quaternion_t & drone_quat
+        );
+
+        /**
+         * @brief Maps the angle into continuous range based on current angle
+         * 
+         * @param curr_angle Current angle
+         * @param new_angle New angle
+         * 
+         * @return float Mapped angle
+         */
+        float mapAngle(
+            float curr_angle, 
+            float new_angle
         ) const;
 
         /**
-         * @brief Finds the index of the best line match.
+         * @brief Maps the angle into continuous range based on current angle
          * 
-         * @param lines The hough lines.
-         * @param rows The number of rows in the image.
-         * @param cols The number of columns in the image.
+         * @param curr_angle Current angle
+         * @param new_angle New angle
          * 
-         * @return The index of the best line match.
+         * @return float Mapped angle
          */
-        const int getBestLineIndex(
-            const std::vector<cv::Vec2f> lines,
-            const int rows,
-            const int cols
+        float mapAngle2(
+            float curr_angle, 
+            float new_angle
         ) const;
+
+        /**
+         * @brief Maps the angle back into the correct range after having performed the Kalman filter
+         * 
+         * @param angle Angle to map
+         * 
+         * @return float Back mapped angle
+         */
+        float backmapAngle( float angle) const;
+
+        /**
+         * @brief Struct for holding Kalman filtering data
+         */
+        typedef struct {
+
+            float state_est;
+            float var_est;
+
+        } kf_est_t;
+
+        /**
+         * @brief Kalman filter estimates
+        */
+        kf_est_t pl_angle_est_[3];
+
+        /**
+         * @brief Resets the Kalman filter estimates
+         */
+        void resetKalmanFilter();
+
+        /**
+         * @brief Whether an angle message has been received.
+         */
+        iii_drone::utils::Atomic<bool> received_angle_ = false;
+
+        /**
+         * @brief Whether the first odometry message has been received.
+         */
+        iii_drone::utils::Atomic<bool> received_first_odom_ = false;
+
+        /**
+         * @brief Whether the second odometry message has been received.
+         */
+        iii_drone::utils::Atomic<bool> received_second_odom_ = false;
+
+        /**
+         * @brief The drone quaternions
+        */
+        iii_drone::utils::Atomic<iii_drone::types::quaternion_t> drone_quat_, last_drone_quat_;
+
+        /**
+         * @brief The powerline quaternion
+        */
+        iii_drone::utils::Atomic<iii_drone::types::quaternion_t> pl_quat_;
+
+        /**
+         * @brief The Powerline object
+        */
+        iii_drone::adapters::PowerlineAdapter pl_;
+
+        /**
+         * @brief Mutex for powerline access.
+        */
+        mutable std::shared_mutex pl_mutex_;
 
     };
 

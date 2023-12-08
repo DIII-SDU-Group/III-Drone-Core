@@ -60,11 +60,55 @@ namespace perception {
          */
         const std::vector<cv::Vec2f> GetHoughLines(const cv::Mat img) const;
 
+        /**
+         * @brief Computes the hough lines direction angle from hough lines.
+         * 
+         * @param lines The hough lines.
+         * @param rows The number of rows in the image.
+         * @param cols The number of columns in the image.
+         * 
+         * @return The hough lines direction angle.
+        */
+        const float ComputeAngle(
+            const std::vector<cv::Vec2f> lines,
+            const int rows,
+            const int cols
+        ) const;
+
+        /**
+         * @brief Computes the hough lines direction angle from an image.
+         * 
+         * @param img The image to perform the hough transform on.
+         * @param angle The computed angle output.
+         * 
+         * @return True if the angle was computed successfully, false otherwise.
+        */
+        const bool ComputeAngle(
+            const cv::Mat img,
+            float & angle
+        ) const;
+
     private:
         /**
          * @brief The hough transformer parameters.
          */
         std::shared_ptr<HoughTransformerParameters> parameters_;
+
+        /**
+         * @brief Finds the index of the best hough line match.
+         * 
+         * @param lines The hough lines.
+         * @param rows The number of rows in the image.
+         * @param cols The number of columns in the image.
+         * 
+         * @return The index of the best line match.
+         */
+        const int getBestLineIndex(
+            const std::vector<cv::Vec2f> lines,
+            const int rows,
+            const int cols
+        ) const;
+
         
 
     };
