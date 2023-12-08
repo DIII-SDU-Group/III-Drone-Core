@@ -11,6 +11,8 @@ using namespace iii_drone::configuration;
 // Implementation
 /*****************************************************************************/
 
+#include <iostream>
+
 HoughTransformerConfigurator::HoughTransformerConfigurator(
     rclcpp::Node *node,
     std::function<void(const rclcpp::Parameter &)> after_parameter_change_callback
@@ -26,6 +28,7 @@ HoughTransformerConfigurator::HoughTransformerConfigurator(
     after_parameter_change_callback_ = after_parameter_change_callback;
 
     declareNodeParameters();
+
     initHoughTransformerParameters();
 
 }
@@ -51,25 +54,25 @@ HoughTransformerConfigurator::HoughTransformerConfigurator(
 
 }
 
-const int HoughTransformerConfigurator::canny_low_threshold() const {
+int HoughTransformerConfigurator::canny_low_threshold() const {
 
     return GetParameter("/perception/hough_transformer/canny_low_threshold").as_int();
 
 }
 
-const int HoughTransformerConfigurator::canny_ratio() const {
+int HoughTransformerConfigurator::canny_ratio() const {
 
     return GetParameter("/perception/hough_transformer/canny_ratio").as_int();
 
 }
 
-const int HoughTransformerConfigurator::canny_kernel_size() const {
+int HoughTransformerConfigurator::canny_kernel_size() const {
 
     return GetParameter("/perception/hough_transformer/canny_kernel_size").as_int();
 
 }
 
-const int HoughTransformerConfigurator::n_lines_include() const {
+int HoughTransformerConfigurator::n_lines_include() const {
 
     return GetParameter("/perception/hough_transformer/n_lines_include").as_int();
 

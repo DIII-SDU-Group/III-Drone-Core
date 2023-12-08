@@ -93,28 +93,28 @@ namespace hough_transformer_node {
          *
          * @return Canny low threshold
          */
-        const int canny_low_threshold() const;
+        int canny_low_threshold() const;
 
         /**
          * @brief Get the Canny ratio
          *
          * @return Canny ratio
          */
-        const int canny_ratio() const;
+        int canny_ratio() const;
 
         /**
          * @brief Get the Canny kernel size
          *
          * @return Canny kernel size
          */
-        const int canny_kernel_size() const;
+        int canny_kernel_size() const;
 
         /**
          * @brief Get the number of lines to include
          *
          * @return Number of lines to include
          */
-        const int n_lines_include() const;
+        int n_lines_include() const;
 
         /**
          * @brief HoughTransformerParameters getter
