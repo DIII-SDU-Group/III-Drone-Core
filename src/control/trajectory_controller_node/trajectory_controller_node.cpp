@@ -24,7 +24,8 @@ TrajectoryController::TrajectoryController(
 positional_mpc_configurator_(
 	this,
 	"/control/trajectory_controller/position_MPC_"
-), cable_landing_mpc_configurator_(
+), 
+cable_landing_mpc_configurator_(
 	this,
 	"/control/trajectory_controller/cable_landing_MPC_"
 ),
@@ -48,7 +49,7 @@ request_completion_poll_rate_(100ms) {
 
 	}
 
-	quat_t temp_q(1,0,0,0);
+	quaternion_t temp_q(1,0,0,0);
 	vector_t temp_vec(0,0,0);
 
 	odom_q_ = temp_q;
@@ -558,14 +559,14 @@ rclcpp_action::GoalResponse TrajectoryController::handleGoalFlyToPosition(
 	target_pose.pose = goal->target_pose.pose;
 	target_pose = tf_buffer_->transform(target_pose, "world");
 
-	quat_t quat(
+	quaternion_t quat(
 		target_pose.pose.orientation.w,
 		target_pose.pose.orientation.x,
 		target_pose.pose.orientation.y,
 		target_pose.pose.orientation.z
 	);
 
-	orientation_t eul = quatToEul(quat);
+	euler_angles_t eul = quatToEul(quat);
 
 	pos4_t target_position;
 	target_position(0) = target_pose.pose.position.x;
@@ -842,26 +843,26 @@ void TrajectoryController::followFlyUnderCableCompletion(const std::shared_ptr<G
 			feedback->vehicle_pose = vehicle_pose;
 			feedback->planned_path = planned_path;
 
-			quat_t veh_quat(
+			quaternion_t veh_quat(
 				vehicle_pose.pose.orientation.w,
 				vehicle_pose.pose.orientation.x,
 				vehicle_pose.pose.orientation.y,
 				vehicle_pose.pose.orientation.z
 			);
-			orientation_t veh_eul = quatToEul(veh_quat);
+			euler_angles_t veh_eul = quatToEul(veh_quat);
 			pos4_t veh_state(
 				vehicle_pose.pose.position.x,
 				vehicle_pose.pose.position.y,
 				vehicle_pose.pose.position.z,
 				veh_eul(2)
 			);
-			quat_t target_quat(
+			quaternion_t target_quat(
 				target.pose.orientation.w,
 				target.pose.orientation.x,
 				target.pose.orientation.y,
 				target.pose.orientation.z
 			);
-			orientation_t target_eul = quatToEul(target_quat);
+			euler_angles_t target_eul = quatToEul(target_quat);
 			pos4_t target_state(
 				target.pose.position.x,
 				target.pose.position.y,
@@ -3888,7 +3889,7 @@ void TrajectoryController::stateMachineCallback() {
 
 void TrajectoryController::odometryCallback(px4_msgs::msg::VehicleOdometry::SharedPtr msg) {
 
-	quat_t q(
+	quaternion_t q(
 		msg->q[0],
 		msg->q[1],
 		msg->q[2],
@@ -4273,7 +4274,7 @@ void TrajectoryController::publishControlState() {
  */
 void TrajectoryController::publishTrajectorySetpoint(state4_t set_point) {
 
-	static rotation_matrix_t R_NED_to_body_frame = eulToR(orientation_t(M_PI, 0, 0));
+	static rotation_matrix_t R_NED_to_body_frame = eulToMat(euler_angles_t(M_PI, 0, 0));
 
 	vector_t pos(
 		set_point(0),
@@ -4416,7 +4417,7 @@ void TrajectoryController::publishSetpointPose(state4_t set_point) {
 	msg.pose.position.y = set_point(1);
 	msg.pose.position.z = set_point(2);
  
-	quat_t q = eulToQuat(orientation_t(0, 0, set_point(3)));
+	quaternion_t q = eulToQuat(euler_angles_t(0, 0, set_point(3)));
 
 	msg.pose.orientation.w = q(0);
 	msg.pose.orientation.x = q(1);
@@ -4512,9 +4513,9 @@ void TrajectoryController::publishGroundAltitudeOffsetTf(state3_t ground_altitud
 
 state4_t TrajectoryController::loadVehicleState() {
 
-	static rotation_matrix_t R_NED_to_body_frame = eulToR(orientation_t(M_PI, 0, 0));
+	static rotation_matrix_t R_NED_to_body_frame = eulToMat(euler_angles_t(M_PI, 0, 0));
 
-	quat_t q;
+	quaternion_t q;
 	vector_t ang_vel;
 	vector_t pos;
 	vector_t vel;
@@ -4533,7 +4534,7 @@ state4_t TrajectoryController::loadVehicleState() {
 	pos = R_NED_to_body_frame * pos;
 	vel = R_NED_to_body_frame * vel;
 
-	orientation_t eul = quatToEul(q);
+	euler_angles_t eul = quatToEul(q);
 
 	state4_t vehicle_state;
 	vehicle_state(0) = pos(0);
@@ -4566,8 +4567,8 @@ geometry_msgs::msg::PoseStamped TrajectoryController::loadVehiclePose() {
 	pose.pose.position.y = veh_state(1);
 	pose.pose.position.z = veh_state(2);
 
-	orientation_t eul(0,0,veh_state(3));
-	quat_t quat = eulToQuat(eul);
+	euler_angles_t eul(0,0,veh_state(3));
+	quaternion_t quat = eulToQuat(eul);
 
 	pose.pose.orientation.w = quat(0);
 	pose.pose.orientation.x = quat(1);
@@ -4609,8 +4610,8 @@ nav_msgs::msg::Path TrajectoryController::loadPlannedPath() {
 		pose.pose.position.y = state(1);
 		pose.pose.position.z = state(2);
 
-		orientation_t eul(0,0,state(3));
-		quat_t quat = eulToQuat(eul);
+		euler_angles_t eul(0,0,state(3));
+		quaternion_t quat = eulToQuat(eul);
 
 		pose.pose.orientation.w = quat(0);
 		pose.pose.orientation.x = quat(1);
@@ -4646,8 +4647,8 @@ geometry_msgs::msg::PoseStamped TrajectoryController::loadPlannedTarget() {
 	target_pose.pose.position.y = target_cp(1);
 	target_pose.pose.position.z = target_cp(2);
 
-	orientation_t eul(0,0,target_cp(3));
-	quat_t quat = eulToQuat(eul);
+	euler_angles_t eul(0,0,target_cp(3));
+	quaternion_t quat = eulToQuat(eul);
 
 	target_pose.pose.orientation.w = quat(0);
 	target_pose.pose.orientation.x = quat(1);
@@ -4670,25 +4671,25 @@ state4_t TrajectoryController::loadTargetCableState() {
 
 	} powerline_mutex_.unlock();
 
-	quat_t cable_quat(
+	quaternion_t cable_quat(
 		cable_pose.orientation.w,
 		cable_pose.orientation.x,
 		cable_pose.orientation.y,
 		cable_pose.orientation.z
 	);
 
-	orientation_t cable_eul = quatToEul(cable_quat);
+	euler_angles_t cable_eul = quatToEul(cable_quat);
 
 	geometry_msgs::msg::TransformStamped T_drone_to_cable_gripper = tf_buffer_->lookupTransform("cable_gripper", "drone", tf2::TimePointZero);
 
-	quat_t q_drone_to_cable_gripper(
+	quaternion_t q_drone_to_cable_gripper(
 		T_drone_to_cable_gripper.transform.rotation.w,
 		T_drone_to_cable_gripper.transform.rotation.x,
 		T_drone_to_cable_gripper.transform.rotation.y,
 		T_drone_to_cable_gripper.transform.rotation.z
 	);
 
-	orientation_t eul_drone_to_cable_gripper = quatToEul(q_drone_to_cable_gripper);
+	euler_angles_t eul_drone_to_cable_gripper = quatToEul(q_drone_to_cable_gripper);
 
 	float target_yaw;
 
@@ -4746,25 +4747,25 @@ state4_t TrajectoryController::loadTargetUnderCableState() {
 
 	} powerline_mutex_.unlock();
 
-	quat_t cable_quat(
+	quaternion_t cable_quat(
 		cable_pose.orientation.w,
 		cable_pose.orientation.x,
 		cable_pose.orientation.y,
 		cable_pose.orientation.z
 	);
 
-	orientation_t cable_eul = quatToEul(cable_quat);
+	euler_angles_t cable_eul = quatToEul(cable_quat);
 
 	geometry_msgs::msg::TransformStamped T_drone_to_cable_gripper = tf_buffer_->lookupTransform("cable_gripper", "drone", tf2::TimePointZero);
 
-	quat_t q_drone_to_cable_gripper(
+	quaternion_t q_drone_to_cable_gripper(
 		T_drone_to_cable_gripper.transform.rotation.w,
 		T_drone_to_cable_gripper.transform.rotation.x,
 		T_drone_to_cable_gripper.transform.rotation.y,
 		T_drone_to_cable_gripper.transform.rotation.z
 	);
 
-	orientation_t eul_drone_to_cable_gripper = quatToEul(q_drone_to_cable_gripper);
+	euler_angles_t eul_drone_to_cable_gripper = quatToEul(q_drone_to_cable_gripper);
 
 	float target_yaw;
 
@@ -5268,7 +5269,7 @@ bool TrajectoryController::updateTargetCablePose(state4_t vehicle_state, int new
 				target_cable_pose_ = tf_buffer_->transform(tmp_pose, "world");
 
 				vector_t unit_x(1,0,0);
-				quat_t cable_quat(
+				quaternion_t cable_quat(
 					target_cable_pose_.pose.orientation.w,
 					target_cable_pose_.pose.orientation.x,
 					target_cable_pose_.pose.orientation.y,

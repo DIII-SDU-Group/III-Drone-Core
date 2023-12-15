@@ -770,7 +770,7 @@ namespace trajectory_controller_node {
 		/**
 		 * @brief The PX4 odometry quaternion orientation
 		*/
-		iii_drone::types::quat_t odom_q_;
+		iii_drone::types::quaternion_t odom_q_;
 
 		/**
 		 * @brief The PX4 odometry angular velocity
