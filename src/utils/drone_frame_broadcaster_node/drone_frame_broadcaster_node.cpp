@@ -36,49 +36,18 @@ DroneFrameBroadcasterNode::DroneFrameBroadcasterNode(
         sub_qos,
         std::bind(&DroneFrameBroadcasterNode::odometryCallback, this, std::placeholders::_1));
 
-    R_NED_to_body_frame = eulToR(orientation_t(M_PI, 0, 0));
+    R_NED_to_body_frame = eulToMat(euler_angles_t(M_PI, 0, 0));
 
 }
 
 void DroneFrameBroadcasterNode::odometryCallback(const std::shared_ptr<px4_msgs::msg::VehicleOdometry> msg) {
 
-    rclcpp::Time now = this->get_clock()->now();
-    geometry_msgs::msg::TransformStamped t;
+    iii_drone::adapters::px4::VehicleOdometryAdapter adapter(*msg);
 
-    // Read message content and assign it to
-    // corresponding tf variables
-    t.header.stamp = now;
-    t.header.frame_id = tf_configurator_.world_frame_id();
-    t.child_frame_id = tf_configurator_.drone_frame_id();
-
-    point_t position(
-        msg->position[0],
-        msg->position[1], 
-        msg->position[2]
+    geometry_msgs::msg::TransformStamped t = adapter.ToTransformStamped(
+        tf_configurator_.drone_frame_id(),
+        tf_configurator_.world_frame_id()
     );
-
-    position = R_NED_to_body_frame * position;
-
-    quat_t quat(
-        msg->q[0],
-        msg->q[1],
-        msg->q[2],
-        msg->q[3]
-    );
-
-    orientation_t eul = quatToEul(quat);
-    eul(1) = -eul(1);                       // Dirty hack
-    eul(2) = -eul(2);
-    quat = eulToQuat(eul);
-
-    t.transform.translation.x = position(0);
-    t.transform.translation.y = position(1);
-    t.transform.translation.z = position(2);
-
-    t.transform.rotation.w = quat(0);
-    t.transform.rotation.x = quat(1);
-    t.transform.rotation.y = quat(2);
-    t.transform.rotation.z = quat(3);
 
     // Send the transformation
     tf_broadcaster_->sendTransform(t);

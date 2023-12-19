@@ -16,16 +16,17 @@ MPCConfigurator::MPCConfigurator(
     rclcpp::Node *node,
     std::string parameter_prefix,
     std::function<void(const rclcpp::Parameter &)> after_parameter_change_callback
-) : after_parameter_change_callback_(after_parameter_change_callback),
-parameter_prefix_(parameter_prefix),
-Configurator(
-    node,
-    std::bind(
-        &MPCConfigurator::updateMPCParametersObjectCallback,
-        this,
-        std::placeholders::_1
-    )
-) {
+) : Configurator(
+        node,
+        std::bind(
+            &MPCConfigurator::updateMPCParametersObjectCallback,
+            this,
+            std::placeholders::_1
+        )
+    ),
+    parameter_prefix_(parameter_prefix),
+    after_parameter_change_callback_(after_parameter_change_callback)
+{
 
     declareMPCParameters();
     initMPCParametersObject();
@@ -37,17 +38,18 @@ MPCConfigurator::MPCConfigurator(
     const rclcpp::QoS & qos,
     std::string parameter_prefix,
     std::function<void(const rclcpp::Parameter &)> after_parameter_change_callback
-) : after_parameter_change_callback_(after_parameter_change_callback),
-parameter_prefix_(parameter_prefix),
-Configurator(
-    node, 
-    qos,
-    std::bind(
-        &MPCConfigurator::updateMPCParametersObjectCallback,
-        this,
-        std::placeholders::_1
-    )
-) {
+) : Configurator(
+        node, 
+        qos,
+        std::bind(
+            &MPCConfigurator::updateMPCParametersObjectCallback,
+            this,
+            std::placeholders::_1
+        )
+    ),
+    parameter_prefix_(parameter_prefix),
+    after_parameter_change_callback_(after_parameter_change_callback)
+{
 
     declareMPCParameters();
     initMPCParametersObject();

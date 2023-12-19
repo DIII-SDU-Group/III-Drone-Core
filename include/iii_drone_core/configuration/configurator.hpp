@@ -28,6 +28,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <memory>
+#include <atomic>
 
 /*****************************************************************************/
 // Class

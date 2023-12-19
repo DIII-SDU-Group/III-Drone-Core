@@ -15,36 +15,36 @@
 namespace iii_drone {
 namespace math {
 
-    iii_drone::types::rotation_matrix_t eulToR(iii_drone::types::orientation_t eul);
-
-    iii_drone::types::vector_t rotateVector(
-        iii_drone::types::rotation_matrix_t R, 
-        iii_drone::types::vector_t v
+    const iii_drone::types::vector_t rotateVector(
+        const iii_drone::types::rotation_matrix_t & R, 
+        const iii_drone::types::vector_t & v
     );
 
-    iii_drone::types::point_t projectPointOnPlane(
-        iii_drone::types::point_t point, 
-        iii_drone::types::plane_t plane
+    const iii_drone::types::point_t projectPointOnPlane(
+        const iii_drone::types::point_t & point, 
+        const iii_drone::types::plane_t & plane
     );
 
-    iii_drone::types::orientation_t quatToEul(iii_drone::types::quat_t quat);
+    const iii_drone::types::euler_angles_t quatToEul(const iii_drone::types::quaternion_t & quat);
 
-    iii_drone::types::quat_t quatInv(iii_drone::types::quat_t quat);
+    const iii_drone::types::quaternion_t quatInv(const iii_drone::types::quaternion_t & quat);
 
-    iii_drone::types::quat_t quatMultiply(
-        iii_drone::types::quat_t quat1,
-        iii_drone::types::quat_t quat2
+    const iii_drone::types::quaternion_t quatMultiply(
+        const iii_drone::types::quaternion_t & quat1,
+        const iii_drone::types::quaternion_t & quat2
     );
 
-    iii_drone::types::rotation_matrix_t quatToMat(iii_drone::types::quat_t quat);
+    const iii_drone::types::rotation_matrix_t eulToMat(const iii_drone::types::euler_angles_t & eul);
 
-    iii_drone::types::quat_t matToQuat(iii_drone::types::rotation_matrix_t R);
+    const iii_drone::types::rotation_matrix_t quatToMat(const iii_drone::types::quaternion_t & quat);
 
-    iii_drone::types::quat_t eulToQuat(iii_drone::types::orientation_t eul);
+    const iii_drone::types::quaternion_t matToQuat(const iii_drone::types::rotation_matrix_t & R);
 
-    iii_drone::types::transform_t getTransformMatrix(
-        iii_drone::types::vector_t vec, 
-        iii_drone::types::quat_t quat
+    const iii_drone::types::quaternion_t eulToQuat(const iii_drone::types::euler_angles_t & eul);
+
+    const iii_drone::types::transform_matrix_t createTransformMatrix(
+        const iii_drone::types::vector_t & vector, 
+        const iii_drone::types::quaternion_t & quaternion
     );
 
 } // namespace math

@@ -19,30 +19,31 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/qos.hpp>
 
+#include <std_msgs/msg/float32.hpp>
+
 #include <sensor_msgs/msg/point_cloud2.hpp>
 
-#include <geometry_msgs/msg/point.hpp>
-#include <geometry_msgs/msg/quaternion.hpp>
+#include <geometry_msgs/msg/quaternion_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
 #include <tf2/exceptions.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 /*****************************************************************************/
 // III-Drone-Interfaces:
 
-#include "iii_drone_interfaces/msg/powerline_direction.hpp"
-#include "iii_drone_interfaces/msg/powerline.hpp"
+#include <iii_drone_interfaces/msg/powerline.hpp>
 
 /*****************************************************************************/
 // III-Drone-Core:
 
-#include "iii_drone_core/utils/math.hpp"
-#include "iii_drone_core/utils/types.hpp"
+#include <iii_drone_core/utils/math.hpp>
+#include <iii_drone_core/utils/types.hpp>
 
-#include "iii_drone_core/perception/pl_dir_computer_node/pl_dir_computer_node_configurator.hpp"
+#include <iii_drone_core/perception/pl_dir_computer_node/pl_dir_computer_node_configurator.hpp>
+#include <iii_drone_core/perception/powerline_direction.hpp>
 
 /*****************************************************************************/
 // Class
@@ -78,19 +79,14 @@ namespace pl_dir_computer_node {
         PowerlineDirectionComputerConfigurator configurator_;
 
         /**
-         * @brief Struct for holding Kalman filtering data
+         * @brief Powerline direction object
          */
-        typedef struct {
-
-            float state_est;
-            float var_est;
-
-        } kf_est_t;
+        PowerlineDirection pl_direction_;
 
         /**
-         * @brief Subscription object to PowerlineDirection topic
+         * @brief Subscription object to powerline yaw angle
          */
-        rclcpp::Subscription<iii_drone_interfaces::msg::PowerlineDirection>::SharedPtr pl_direction_sub_;
+        rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr pl_angle_sub_;
 
         /**
          * @brief Subscription object to powerline topic
@@ -98,31 +94,18 @@ namespace pl_dir_computer_node {
         rclcpp::Subscription<iii_drone_interfaces::msg::Powerline>::SharedPtr pl_sub_;
 
         /**
-         * @brief Estimated powerline direction publisher
+         * @brief Estimated powerline direction pose publisher
          */
-        rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pl_direction_pub_;
+        rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pl_direction_pose_pub_;
+
+        /**
+         * @brief Estimated powerline direction quaternion publisher.
+         */
+        rclcpp::Publisher<geometry_msgs::msg::QuaternionStamped>::SharedPtr pl_direction_quat_pub_;
 
         std::shared_ptr<tf2_ros::TransformListener> transform_listener_{nullptr};
         std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
         rclcpp::TimerBase::SharedPtr drone_tf_timer_{nullptr};
-
-        bool received_angle = false;
-        bool received_first_quat = false;
-        bool received_second_quat = false;
-
-        iii_drone::types::quat_t drone_quat_, last_drone_quat_;
-
-        iii_drone_interfaces::msg::Powerline pl_;
-
-        iii_drone::types::quat_t pl_direction_;
-
-        float W_pl_yaw_ = 0.;
-
-        kf_est_t pl_angle_est[3];
-
-        std::mutex direction_mutex_;
-        std::mutex kf_mutex_;
-        std::mutex pl_mutex_;
 
         /**
          * @brief Callback function for the odometry timer
@@ -132,87 +115,11 @@ namespace pl_dir_computer_node {
         void odometryCallback();
 
         /**
-         * @brief Callback function for the powerline direction subscription
-         * 
-         * @param msg Message containing the powerline direction
-         * 
-         * @return void
-         */
-        void plDirectionCallback(const iii_drone_interfaces::msg::PowerlineDirection::SharedPtr msg);
-
-        /**
-         * @brief Callback function for the powerline subscription
-         * 
-         * @param msg Message containing the powerline
-         * 
-         * @return void
-         */
-        void plCallback(const iii_drone_interfaces::msg::Powerline::SharedPtr msg);
-
-        /**
-         * @brief Performs the predition step of the Kalman filter
-         * 
-         * @return void
-         */
-        void predict();
-
-        /**
-         * @brief Performs the update step of the Kalman filter
-         * 
-         * @param angle Angle to update the Kalman filter with
-         * 
-         * @return void
-         */
-        void update(float angle);
-
-        /**
          * @brief Publishes the estimated powerline direction
          * 
          * @return void
          */
         void publishPowerlineDirection();
-
-        /**
-         * @brief Maps the angle into continuous range based on current angle
-         * 
-         * @param curr_angle Current angle
-         * @param new_angle New angle
-         * 
-         * @return float Mapped angle
-         */
-        float mapAngle(
-            float curr_angle, 
-            float new_angle
-        );
-
-        /**
-         * @brief Maps the angle into continuous range based on current angle
-         * 
-         * @param curr_angle Current angle
-         * @param new_angle New angle
-         * 
-         * @return float Mapped angle
-         */
-        float mapAngle2(
-            float curr_angle, 
-            float new_angle
-        );
-
-        /**
-         * @brief Maps the angle back into the correct range after having performed the Kalman filter
-         * 
-         * @param angle Angle to map
-         * 
-         * @return float Back mapped angle
-         */
-        float backmapAngle(float angle);
-
-        /**
-         * @brief Checks if any cable is in the field of view
-         * 
-         * @return bool True if any cable is in the field of view
-         */
-        bool anyCableInFOV();
 
     };
 

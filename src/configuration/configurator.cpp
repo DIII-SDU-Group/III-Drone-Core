@@ -10,6 +10,8 @@ using namespace iii_drone::configuration;
 // Implementation
 /*****************************************************************************/
 
+#include <iostream>
+
 Configurator::Configurator(
     rclcpp::Node *node,
     std::function<void(const rclcpp::Parameter &)> after_parameter_change_callback
@@ -69,21 +71,24 @@ void Configurator::DeclareParameter(const std::string & name) {
 
     RCLCPP_DEBUG(node_->get_logger(), "Configurator::DeclareParameter(): Declaring parameter %s", name.c_str());
 
-    // std::unique_lock<std::shared_mutex> lock(parameters_mutex_);
+    {
 
-    // Check if parameter is already declared:
-    for (auto & p : parameters_) {
+        std::shared_lock<std::shared_mutex> shared_lock(parameters_mutex_);
 
-        if (p.get_name() == name) {
+        // Check if parameter is already declared:
+        for (auto & p : parameters_) {
 
-            RCLCPP_WARN(
-                node_->get_logger(),
-                "Configurator::DeclareParameter(): Parameter %s already declared.",
-                name.c_str()
-            );
+            if (p.get_name() == name) {
 
-            return;
+                RCLCPP_WARN(
+                    node_->get_logger(),
+                    "Configurator::DeclareParameter(): Parameter %s already declared.",
+                    name.c_str()
+                );
 
+                return;
+
+            }
         }
     }
 
@@ -129,7 +134,9 @@ void Configurator::DeclareParameter(const std::string & name) {
     }
 
 
+
     // Add parameter to the list of parameters:
+    std::unique_lock<std::shared_mutex> unique_lock(parameters_mutex_);
     parameters_.push_back(parameter);
 
 
@@ -147,7 +154,7 @@ rclcpp::Parameter Configurator::GetParameter(const std::string & name) const {
 
 std::vector<rclcpp::Parameter> Configurator::GetParameters(const std::vector<std::string> & names) const {
 
-    // std::shared_lock<std::shared_mutex> lock(parameters_mutex_);
+    std::shared_lock<std::shared_mutex> lock(parameters_mutex_);
 
     std::vector<rclcpp::Parameter> parameters;  
 
@@ -186,8 +193,6 @@ std::vector<rclcpp::Parameter> Configurator::GetParameters(const std::vector<std
 
 void Configurator::SyncParameters(const std::vector<std::string> & names) {
 
-    // std::unique_lock<std::shared_mutex> lock(parameters_mutex_);
-
     std::vector<std::string> names_to_sync;
 
     if (names.size() == 0) {
@@ -225,7 +230,7 @@ void Configurator::SyncParameters(const std::vector<std::string> & names) {
     }
 
     // Check if the parameters are correct:
-    for (int i = 0; i < parameters.size(); i++) {
+    for (unsigned int i = 0; i < parameters.size(); i++) {
 
         if (parameters[i].get_type() != parameters_[i].get_type() || parameters[i].get_name() != parameters_[i].get_name()) {
 
@@ -241,6 +246,8 @@ void Configurator::SyncParameters(const std::vector<std::string> & names) {
         }
 
     }
+
+    std::unique_lock<std::shared_mutex> lock(parameters_mutex_);
 
     // Update parameters:
     parameters_ = parameters;
@@ -302,7 +309,7 @@ std::string Configurator::GetParameterTypeString() {
 
 void Configurator::PrintParameters() const {
 
-    // std::shared_lock<std::shared_mutex> lock(parameters_mutex_);
+    std::shared_lock<std::shared_mutex> lock(parameters_mutex_);
 
     RCLCPP_INFO(
         node_->get_logger(),
@@ -324,13 +331,13 @@ void Configurator::PrintParameters() const {
 
 void Configurator::parameterEventCallback(rcl_interfaces::msg::ParameterEvent parameter_event) {
 
-    // std::unique_lock<std::shared_mutex> lock(parameters_mutex_);
+    std::unique_lock<std::shared_mutex> lock(parameters_mutex_);
 
     // Search for the parameter:
     for (auto & p : parameter_event.changed_parameters) {
 
         // Check if the parameter is in the list of parameters:
-        for (int i = 0; i < parameters_.size(); i++) {
+        for (unsigned int i = 0; i < parameters_.size(); i++) {
 
             rclcpp::Parameter & parameter = parameters_[i];
 
@@ -390,42 +397,56 @@ bool Configurator::sendDeclareParameterRequest(
 
     }
 
-    bool finished = false;
+    if (!declare_parameter_client_->service_is_ready()) {
 
-    auto callback = [&finished](rclcpp::Client<iii_drone_interfaces::srv::DeclareParameter>::SharedFuture result_future) {
-        finished = true;
-    };
+        std::string fatal_message = "Configurator::DeclareParameter(): Service DeclareParameter not available.";
 
-    // Call service:
-    auto result = declare_parameter_client_->async_send_request(request, callback);
+        RCLCPP_FATAL(
+            node_->get_logger(),
+            fatal_message.c_str()
+        );
 
-    // Wait for result:
-    while (!finished) {
-        rclcpp::spin_some(node_->get_node_base_interface());
+        throw std::runtime_error(fatal_message);
+
     }
 
-    // // Wait for result:
-    // if (rclcpp::spin_until_future_complete(
-    //         node_->get_node_base_interface(), 
-    //         result,
-    //         std::chrono::seconds(1)
-    //     ) != rclcpp::FutureReturnCode::SUCCESS
-    // ) {
+    // Call service:
+    auto future = declare_parameter_client_->async_send_request(request);
 
-    //     std::string fatal_message = "Configurator::DeclareParameter(): Service DeclareParameter timed out.";
+    if(rclcpp::spin_until_future_complete(
+        node_->get_node_base_interface(), 
+        future
+    ) != rclcpp::FutureReturnCode::SUCCESS) {
 
-    //     RCLCPP_FATAL(
-    //         node_->get_logger(),
-    //         fatal_message.c_str()
-    //     );
+        std::cout << "6.7" << std::endl;
 
-    //     throw std::runtime_error(fatal_message);
+        RCLCPP_FATAL(
+            node_->get_logger(),
+            "Configurator::sendDeclareParameterRequest(): Service DeclareParameter timed out."
+        );
 
-    // }
+        throw std::runtime_error("Failed to call service DeclareParameter.");
 
-    message = result.get()->message;
+    }
 
-    return result.get()->succeeded;
+    if (!future.valid()) {
+
+        std::cout << "6.8" << std::endl;
+
+        RCLCPP_FATAL(
+            node_->get_logger(),
+            "Configurator::sendDeclareParameterRequest(): Service DeclareParameter failed."
+        );
+
+        throw std::runtime_error("Failed to call service DeclareParameter.");
+
+    }
+
+    auto result = future.get();
+
+    message = result->message;
+
+    return result->succeeded;
 
 }
 
@@ -479,39 +500,40 @@ bool Configurator::sendGetParametersRequest(
 
     }
 
-    bool finished = false;
-
-    auto callback = [&finished](rclcpp::Client<rcl_interfaces::srv::GetParameters>::SharedFuture result_future) {
-        finished = true;
-    };
-
     // Call service:
-    auto result = get_parameters_client_->async_send_request(request, callback);
+    auto future = get_parameters_client_->async_send_request(request);
 
     // Wait for result:
-    while (!finished) {
-        rclcpp::spin_some(node_->get_node_base_interface());
+    if (rclcpp::spin_until_future_complete(
+            node_->get_node_base_interface(), 
+            future
+        ) != rclcpp::FutureReturnCode::SUCCESS
+    ) {
+
+        RCLCPP_FATAL(
+            node_->get_logger(),
+            "Configurator::sendGetParametersRequest(): Service GetParameters timed out."
+        );
+
+        throw std::runtime_error("Failed to call service GetParameters.");
+
     }
 
-    // // Wait for result:
-    // if (rclcpp::spin_until_future_complete(
-    //         node_->get_node_base_interface(), 
-    //         result,
-    //         std::chrono::seconds(1)
-    //     ) != rclcpp::FutureReturnCode::SUCCESS
-    // ) {
+    if (!future.valid()) {
 
-    //     RCLCPP_FATAL(
-    //         node_->get_logger(),
-    //         "Configurator::sendGetParametersRequest(): Service GetParameters timed out."
-    //     );
+        RCLCPP_FATAL(
+            node_->get_logger(),
+            "Configurator::sendGetParametersRequest(): Service GetParameters failed."
+        );
 
-    //     throw std::runtime_error("Failed to call service GetParameters.");
+        throw std::runtime_error("Failed to call service GetParameters.");
 
-    // }
+    }
+
+    auto result = future.get();
 
     // Check if the service call was successful:
-    if (result.get()->values.size() != names.size()) {
+    if (result->values.size() != names.size()) {
 
         RCLCPP_FATAL(
             node_->get_logger(),
@@ -524,11 +546,11 @@ bool Configurator::sendGetParametersRequest(
 
     parameters.resize(names.size());
 
-    for (int i = 0; i < names.size(); i++) {
+    for (unsigned int i = 0; i < names.size(); i++) {
 
         parameters[i] = rclcpp::Parameter(
             names[i], 
-            result.get()->values[i]
+            result->values[i]
         );
 
     }

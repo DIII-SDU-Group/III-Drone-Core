@@ -13,7 +13,9 @@
 #include <thread>
 #include <vector>
 #include <mutex>
+#include <shared_mutex>
 #include <memory>
+#include <atomic>
 
 /*****************************************************************************/
 // ROS2:
@@ -34,23 +36,28 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
 #include <tf2/exceptions.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 /*****************************************************************************/
 // III-Drone-Interfaces:
 
-#include "iii_drone_interfaces/msg/powerline_direction.hpp"
-#include "iii_drone_interfaces/msg/powerline.hpp"
-#include "iii_drone_interfaces/msg/control_state.hpp"
+#include <iii_drone_interfaces/msg/powerline_direction.hpp>
+#include <iii_drone_interfaces/msg/powerline.hpp>
 
 /*****************************************************************************/
 // III-Drone-Core:
 
-#include "iii_drone_core/perception/powerline.hpp"
-#include "iii_drone_core/utils/math.hpp"
-#include "iii_drone_core/utils/types.hpp"
+#include <iii_drone_core/utils/math.hpp>
+#include <iii_drone_core/utils/types.hpp>
 
 #include <iii_drone_core/perception/pl_mapper_node/pl_mapper_node_configurator.hpp>
+#include <iii_drone_core/perception/powerline.hpp>
+#include <iii_drone_core/perception/powerline_parameters.hpp>
+
+#include <iii_drone_core/adapters/powerline_adapter.hpp>
+#include <iii_drone_core/adapters/single_line_adapter.hpp>
+#include <iii_drone_core/adapters/projection_plane_adapter.hpp>
+#include <iii_drone_core/adapters/point_cloud_adapter.hpp>
 
 /*****************************************************************************/
 // Class
@@ -89,17 +96,12 @@ private:
     /**
      * @brief Subscriber for powerline direction
     */
-    rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pl_direction_sub_;
+    rclcpp::Subscription<geometry_msgs::msg::QuaternionStamped>::SharedPtr pl_direction_sub_;
 
     /**
      * @brief Subscriber for mmwave point cloud data
     */
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr mmwave_sub_;
-
-    /**
-     * @brief Subscriber for trajecotry controller state
-    */
-    rclcpp::Subscription<iii_drone_interfaces::msg::ControlState>::SharedPtr control_state_sub_;
 
     /**
      * @brief Publisher for powerline message
@@ -122,7 +124,7 @@ private:
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr projected_points_pub_;
 
     std::shared_ptr<tf2_ros::TransformListener> transform_listener_{nullptr};
-    std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+    std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
 
     /**
      * @brief Timer for fetching drone transform
@@ -137,36 +139,17 @@ private:
     /**
      * @brief Rotation matrix from drone to mmWave frame
     */
-    iii_drone::types::rotation_matrix_t R_drone_to_mmw;
+    iii_drone::types::rotation_matrix_t R_drone_to_mmw_;
 
     /**
      * @brief Translation vector from drone to mmWave frame
     */
-    iii_drone::types::vector_t v_drone_to_mmw;
+    iii_drone::types::vector_t v_drone_to_mmw_;
 
     /**
-     * @brief Quaternion direction of detected powerline
+     * @brief Direction of detected powerline
     */
-    iii_drone::types::quat_t pl_direction_; 
-
-    /**
-     * @brief Mutex protecting access to the control state
-    */
-    std::mutex control_state_mutex_;
-
-    /**
-     * @brief Trajectory controller state
-    */
-    iii_drone_interfaces::msg::ControlState control_state_;
-
-    /**
-     * @brief Callback for trajectory controller state topic
-     * 
-     * @param msg Message containing the trajectory controller state
-     * 
-     * @return void
-    */
-    void controlStateCallback(const iii_drone_interfaces::msg::ControlState::SharedPtr msg);
+    iii_drone::types::quaternion_t pl_direction_;
 
     /**
      * @brief Callback for fetching drone transform
@@ -191,14 +174,14 @@ private:
      * 
      * @return void
     */
-    void plDirectionCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
+    void plDirectionCallback(const geometry_msgs::msg::QuaternionStamped::SharedPtr msg);
 
     /**
      * @brief Publishes the powerline message
      * 
      * @return void
     */
-    void publishPowerline();
+    void publishPowerline() const;
 
     /**
      * @brief Publishes point cloud data on a given publisher
@@ -211,7 +194,7 @@ private:
     void publishPoints(
         std::vector<iii_drone::types::point_t> points, 
         rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub
-    );
+    ) const;
 
 };
 
