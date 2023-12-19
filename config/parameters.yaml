@@ -316,12 +316,6 @@ control:
       value: 100
       min: 1
       max: 1000
-    dt:
-      type: "float"
-      value: 0.2
-      min: 0.01
-      max: 0.5
-      constant: true
     use_cartesian_PID:
       type: "bool"
       value: false
@@ -342,15 +336,6 @@ control:
       value: 0.05
       min: 0.01
       max: 0.5
-    MPC_N:
-      type: "int"
-      value: 10
-      min: 1
-      max: 100
-      constant: true
-    MPC_use_state_feedback:
-      type: "bool"
-      value: false
     direct_target_setpoint_dist_threshold:
       type: "float"
       value: 0.05
@@ -361,6 +346,23 @@ control:
       value: 0.5
       min: 0.0
       max: 5.0
+  
+  MPC:
+    MPC_N:
+      type: "int"
+      value: 10
+      min: 1
+      max: 100
+      constant: true
+    MPC_use_state_feedback:
+      type: "bool"
+      value: false
+    dt:
+      type: "float"
+      value: 0.2
+      min: 0.01
+      max: 0.5
+      constant: true
     position_MPC_vx_max:
       type: "float"
       value: 0.5

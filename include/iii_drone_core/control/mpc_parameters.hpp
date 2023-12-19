@@ -31,6 +31,9 @@ namespace control {
         /**
          * @brief Constructor
          * 
+         * @param use_state_feedback Whether to use state feedback
+         * @param N Number of steps in the MPC horizon
+         * @param dt Time step
          * @param v_max Maximum velocity vector plus/minus
          * @param a_max Maximum acceleration vector plus/minus
          * @param wp Position tracking weights vector
@@ -39,6 +42,9 @@ namespace control {
          * @param wj Jerk tracking weights vector
         */
         MPCParameters(
+            bool use_state_feedback,
+            int N,
+            double dt,
             const types::vector_t & v_max,
             const types::vector_t & a_max,
             const types::vector_t & wp,
@@ -46,6 +52,32 @@ namespace control {
             const types::vector_t & wa,
             const types::vector_t & wj
         );
+
+        /**
+         * @brief Get whether to use state feedback
+         * 
+         * @return Whether to use state feedback
+        */
+        bool use_state_feedback() const;
+
+        /**
+         * @brief Get/set whether to use state feedback
+        */
+        bool & use_state_feedback();
+
+        /**
+         * @brief Get the number of steps in the MPC horizon
+         * 
+         * @return Number of steps in the MPC horizon
+        */
+        int N() const;
+
+        /**
+         * @brief Get the time step
+         * 
+         * @return Time step
+        */
+        double dt() const;
 
         /**
          * @brief Get the maximum velocity vector plus/minus
@@ -134,8 +166,23 @@ namespace control {
     private:
         /**
          * @brief Shared mutex protecting the parameter access
-        */
+         */
         mutable std::shared_mutex parameters_mutex_;
+
+        /**
+         * @brief Whether to use state feedback
+         */
+        bool use_state_feedback_;
+
+        /**
+         * @brief Number of steps in the MPC horizon
+         */
+        int N_;
+
+        /**
+         * @brief Time step
+         */
+        double dt_;
 
         /**
          * @brief Maximum velocity vector plus/minus

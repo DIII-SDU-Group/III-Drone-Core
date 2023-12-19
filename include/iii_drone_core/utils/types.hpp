@@ -21,11 +21,24 @@ namespace types {
 
     typedef Eigen::Vector3f point_t;
 
+    typedef Eigen::Vector4f point4_t;
+
     typedef Eigen::Vector3f euler_angles_t;
 
     typedef Eigen::Vector4f quaternion_t;
 
     typedef Eigen::Vector3f vector_t;
+
+	// /**
+	//  * @brief State in 3D space with first derivative
+	// */
+	// typedef Eigen::Matrix<float, 6, 1> state3_t;
+
+	// /**
+	//  * @brief State in 4D space with yaw and second derivative
+	// */
+	// typedef Eigen::Matrix<float, 12, 1> state4_t;
+
 
     typedef struct {
 

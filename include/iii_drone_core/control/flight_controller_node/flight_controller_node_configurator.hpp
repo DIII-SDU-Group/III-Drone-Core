@@ -22,12 +22,12 @@ namespace iii_drone {
 
 namespace control {
 
-namespace trajectory_controller_node {
+namespace flight_controller_node {
 
     /**
-     * @brief Class for handling parameters for TrajectoryController.
+     * @brief Class for handling parameters for FlightController.
     */
-    class TrajectoryControllerConfigurator : public configuration::Configurator {
+    class FlightControllerConfigurator : public configuration::Configurator {
 
     public:
         /**
@@ -36,7 +36,7 @@ namespace trajectory_controller_node {
          * @param node Reference to the handling node
          * @param after_parameter_change_callback Callback function called after successful parameter change, default is nullptr
          */
-        TrajectoryControllerConfigurator(
+        FlightControllerConfigurator(
             rclcpp::Node *node,
             std::function<void(const rclcpp::Parameter &)> after_parameter_change_callback = nullptr
         );
@@ -48,7 +48,7 @@ namespace trajectory_controller_node {
          * @param qos QoS profile for the parameter event subscription
          * @param after_parameter_change_callback Callback function called after successful parameter change, default is nullptr
          */
-        TrajectoryControllerConfigurator(
+        FlightControllerConfigurator(
             rclcpp::Node *node, 
             const rclcpp::QoS & qos,
             std::function<void(const rclcpp::Parameter &)> after_parameter_change_callback = nullptr
@@ -386,6 +386,6 @@ namespace trajectory_controller_node {
 
     };
 
-} // namespace trajectory_controller_node
+} // namespace flight_controller_node
 } // namespace control
 } // namespace iii_drone

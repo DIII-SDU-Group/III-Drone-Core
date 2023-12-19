@@ -1,6 +1,3 @@
-# Set the minimum required version of CMake
-cmake_minimum_required(VERSION 3.8)
-
 set(MATLAB_MPC_HEADERS
   "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/minOrMax.h"
   "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcblock_optimizer.h"

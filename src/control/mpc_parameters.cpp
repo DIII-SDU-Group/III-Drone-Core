@@ -12,18 +12,56 @@ using namespace iii_drone::types;
 /*****************************************************************************/
 
 MPCParameters::MPCParameters(
+    bool use_state_feedback,
+    int N,
+    double dt,
     const vector_t & v_max,
     const vector_t & a_max,
     const vector_t & wp,
     const vector_t & wv,
     const vector_t & wa,
     const vector_t & wj
-) : v_max_(v_max),
-a_max_(a_max),
-wp_(wp),
-wv_(wv),
-wa_(wa),
-wj_(wj) { }
+) : use_state_feedback_(use_state_feedback),
+    N_(N),
+    dt_(dt),
+    v_max_(v_max),
+    a_max_(a_max),
+    wp_(wp),
+    wv_(wv),
+    wa_(wa),
+    wj_(wj) { }
+
+bool MPCParameters::use_state_feedback() const {
+    
+    std::shared_lock<std::shared_mutex> lock(parameters_mutex_);
+    
+    return use_state_feedback_;
+
+}
+
+bool & MPCParameters::use_state_feedback() {
+    
+    std::unique_lock<std::shared_mutex> lock(parameters_mutex_);
+    
+    return use_state_feedback_;
+
+}
+
+int MPCParameters::N() const {
+    
+    std::shared_lock<std::shared_mutex> lock(parameters_mutex_);
+    
+    return N_;
+
+}
+
+double MPCParameters::dt() const {
+        
+    std::shared_lock<std::shared_mutex> lock(parameters_mutex_);
+    
+    return dt_;
+
+}
 
 const vector_t & MPCParameters::v_max() const {
 

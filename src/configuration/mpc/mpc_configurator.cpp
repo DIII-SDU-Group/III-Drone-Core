@@ -64,6 +64,10 @@ const std::shared_ptr<const MPCParameters> MPCConfigurator::mpc_parameters() con
 
 void MPCConfigurator::declareMPCParameters() {
 
+    DeclareParameter<bool>("/control/MPC/MPC_use_state_feedback");
+    DeclareParameter<int>("/control/MPC/MPC_N");
+    DeclareParameter<float>("/control/MPC/dt");
+
     DeclareParameter<float>(parameter_prefix_ + "vx_max");
     DeclareParameter<float>(parameter_prefix_ + "vy_max");
     DeclareParameter<float>(parameter_prefix_ + "vz_max");
@@ -91,6 +95,10 @@ void MPCConfigurator::declareMPCParameters() {
 }
 
 void MPCConfigurator::initMPCParametersObject() {
+
+    bool use_state_feedback = GetParameter("/control/MPC/MPC_use_state_feedback").as_bool();
+    int N = GetParameter("/control/MPC/MPC_N").as_int();
+    double dt = GetParameter("/control/MPC/dt").as_double();
 
     vector_t v_max = {
         (float)GetParameter(parameter_prefix_ + "vx_max").as_double(),
@@ -129,6 +137,9 @@ void MPCConfigurator::initMPCParametersObject() {
     };
 
     mpc_parameters_ = std::make_shared<MPCParameters>(
+        use_state_feedback,
+        N,
+        dt,
         v_max,
         a_max,
         wp,

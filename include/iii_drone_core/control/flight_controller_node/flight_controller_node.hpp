@@ -63,39 +63,33 @@
 /*****************************************************************************/
 // III-Drone-Interfaces:
 
-#include "iii_drone_interfaces/msg/control_state.hpp"
-#include "iii_drone_interfaces/msg/powerline.hpp"
-#include "iii_drone_interfaces/msg/gripper_status.hpp"
+#include <iii_drone_interfaces/msg/control_state.hpp>
+#include <iii_drone_interfaces/msg/powerline.hpp>
+#include <iii_drone_interfaces/msg/gripper_status.hpp>
               
-#include "iii_drone_interfaces/srv/set_general_target_yaw.hpp"
+#include <iii_drone_interfaces/srv/set_general_target_yaw.hpp>
               
-#include "iii_drone_interfaces/action/takeoff.hpp"
-#include "iii_drone_interfaces/action/landing.hpp"
-#include "iii_drone_interfaces/action/fly_to_position.hpp"
-#include "iii_drone_interfaces/action/cable_landing.hpp"
-#include "iii_drone_interfaces/action/cable_takeoff.hpp"
-#include "iii_drone_interfaces/action/fly_under_cable.hpp"
-#include "iii_drone_interfaces/action/disarm_on_cable.hpp"
-#include "iii_drone_interfaces/action/arm_on_cable.hpp"
+#include <iii_drone_interfaces/action/takeoff.hpp>
+#include <iii_drone_interfaces/action/landing.hpp>
+#include <iii_drone_interfaces/action/fly_to_position.hpp>
+#include <iii_drone_interfaces/action/cable_landing.hpp>
+#include <iii_drone_interfaces/action/cable_takeoff.hpp>
+#include <iii_drone_interfaces/action/fly_under_cable.hpp>
+#include <iii_drone_interfaces/action/disarm_on_cable.hpp>
+#include <iii_drone_interfaces/action/arm_on_cable.hpp>
 
 /*****************************************************************************/
 // III-Drone-Core:
 
-#include "iii_drone_core/utils/blocking_queue.hpp"
-#include "iii_drone_core/utils/math.hpp"
-#include "iii_drone_core/utils/types.hpp"
+#include <iii_drone_core/utils/math.hpp>
+#include <iii_drone_core/utils/types.hpp>
+#include <iii_drone_core/utils/blocking_queue.hpp>
+#include <iii_drone_core/utils/atomic.hpp>
 
-#include <iii_drone_core/configuration/mpc/mpc_configurator.hpp>
-#include <iii_drone_core/control/trajectory_controller_node/trajectory_controller_node_configurator.hpp>
+#include <iii_drone_core/control/flight_controller_node/flight_controller_node_configurator.hpp>
 #include <iii_drone_core/control/mpc_parameters.hpp>
+#include <iii_drone_core/control/flight_control_requests.hpp>
 
-/*****************************************************************************/
-// MATLAB MPC generated code:
-
-#include "matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration.h"
-#include "matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_terminate.h"
-#include "matlab_MPC_5Hz_hp10/mpcmoveCodeGeneration_types.h"
-#include "matlab_MPC_5Hz_hp10/rt_nonfinite.h"
 
 /*****************************************************************************/
 // Defines
@@ -103,27 +97,7 @@
 
 namespace iii_drone {
 namespace control {
-namespace trajectory_controller_node {
-
-	/**
-	 * @brief Position in 3D space
-	*/
-	typedef Eigen::Matrix<float, 3, 1> pos3_t;
-
-	/**
-	 * @brief Position in 4D space including yaw
-	*/
-	typedef Eigen::Matrix<float, 4, 1> pos4_t;
-
-	/**
-	 * @brief State in 3D space with first derivative
-	*/
-	typedef Eigen::Matrix<float, 6, 1> state3_t;
-
-	/**
-	 * @brief State in 4D space with yaw and second derivative
-	*/
-	typedef Eigen::Matrix<float, 12, 1> state4_t;
+namespace flight_controller_node {
 
 	/**
 	 * @brief Trajectory controller FSM state
@@ -148,133 +122,7 @@ namespace trajectory_controller_node {
 		setting_offboard_on_cable
 	};
 
-	/**
-	 * @brief Types of action requests
-	 */
-	enum request_type_t {
-		cancel_request,
-		takeoff_request,
-		landing_request,
-		fly_to_position_request,
-		cable_landing_request,
-		cable_takeoff_request,
-		fly_under_cable_request,
-		disarm_on_cable_request,
-		arm_on_cable_request
-	};
-
-	/**
-	 * @brief Takeoff request parameters
-	 */
-	struct takeoff_request_params_t {
-		float takeoff_altitude;
-	};
-
-	/**
-	 * @brief FlyToPosition request parameters
-	 */
-	struct fly_to_position_request_params_t {
-		pos4_t target_position;
-	};
-
-	/**
-	 * @brief CableLanding request parameters
-	 */
-	struct cable_landing_request_params_t {
-		int cable_id;
-	};
-
-	/**
-	 * @brief CableTakeoff request parameters
-	 */
-	struct cable_takeoff_request_params_t {
-		float target_cable_distance;
-	};
-
-	/**
-	 * @brief FlyUnderCable request parameters
-	 */
-	struct fly_under_cable_request_params_t {
-		int cable_id;
-		float target_cable_distance;
-	};
-
-	/**
-	 * @brief Request structure, used to communicate action requests to the main state machine
-	 */
-	struct request_t {
-		rclcpp_action::GoalUUID action_id;
-		request_type_t request_type;
-		void *request_params;
-
-
-		bool operator==(const request_t & rhs) const {
-
-			return action_id == rhs.action_id && request_type == rhs.request_type && 
-				request_params == rhs.request_params;
-
-		}
-
-		void operator=(const request_t & rhs) {
-
-			action_id = rhs.action_id;
-			request_type = rhs.request_type;
-			request_params = rhs.request_params;
-
-		}
-	};
-
-	/**
-	 * @brief Request reply types, used to communicate action request replies to the action callbacks
-	 */
-	enum request_reply_type_t {
-		accept,
-		reject,
-		success,
-		fail,
-		cancel
-	};
-
-	/**
-	 * @brief Request reply structure, used to communicate action request replies to the action callbacks
-	 */
-	struct request_reply_t {
-		rclcpp_action::GoalUUID action_id;
-		request_reply_type_t reply_type;
-
-		bool operator==(const request_reply_t & rhs) const {
-
-			return action_id == rhs.action_id && reply_type == rhs.reply_type;
-
-		}
-
-		void operator=(const request_reply_t & rhs) {
-
-			action_id = rhs.action_id;
-			reply_type = rhs.reply_type;
-
-		}
-	};
-
-	/**
-	 * @brief Request queue action types
-	 */
-	enum request_queue_action_t {
-		yes,
-		no,
-		if_match
-	};
-
-	/**
-	 * @brief The supported MPC modes
-	 */
-	enum MPC_mode_t {
-		positional,
-		cable_landing,
-		cable_takeoff
-	};
-
-} // namespace trajectory_controller_node
+} // namespace flight_controller_node
 } // namespace control
 } // namespace iii_drone
 
@@ -284,12 +132,12 @@ namespace trajectory_controller_node {
 
 namespace iii_drone {
 namespace control {
-namespace trajectory_controller_node {
+namespace flight_controller_node {
 
 	/**
 	 * @brief The trajectory controller node
 	*/
-	class TrajectoryController : public rclcpp::Node {
+	class FlightController : public rclcpp::Node {
 	public:
 		using Takeoff = iii_drone_interfaces::action::Takeoff;
 		using GoalHandleTakeoff = rclcpp_action::ServerGoalHandle<Takeoff>;
@@ -322,9 +170,9 @@ namespace trajectory_controller_node {
 		 * @param node_namespace The namespace of the node
 		 * @param options The node options
 		 */
-		TrajectoryController(
-			const std::string & node_name="trajectory_controller", 
-			const std::string & node_namespace="/control/trajectory_controller", 
+		FlightController(
+			const std::string & node_name="flight_controller", 
+			const std::string & node_namespace="/control/flight_controller", 
 			const rclcpp::NodeOptions & options = rclcpp::NodeOptions()
 		);
 
@@ -332,7 +180,7 @@ namespace trajectory_controller_node {
 		 * @brief Destroy the Trajectory Controller object
 		 * 
 		 */
-		~TrajectoryController();
+		~FlightController();
 
 	private:
 		// Takeoff action:
@@ -730,27 +578,12 @@ namespace trajectory_controller_node {
 		/**
 		 * @brief The trajectory controller node configurator
 		*/
-		TrajectoryControllerConfigurator configurator_;
-
-		/**
-		 * @brief the positional MPC configurator
-		*/
-		configuration::MPCConfigurator positional_mpc_configurator_;
-
-		/**
-		 * @brief the cable landing MPC configurator
-		*/
-		configuration::MPCConfigurator cable_landing_mpc_configurator_;
-
-		/**
-		 * @brief the cable takeoff MPC configurator
-		*/
-		configuration::MPCConfigurator cable_takeoff_mpc_configurator_;
+		FlightControllerConfigurator configurator_;
 
 		/**
 		 * @brief The FSM state of the node
 		*/
-		state_t state_ = init;
+		iii_drone::utils::Atomic<state_t> state_ = init;
 
 		/**
 		 * @brief The PX4 arming state
@@ -976,26 +809,6 @@ namespace trajectory_controller_node {
 		 * @brief Publisher for current target cable id
 		*/
 		rclcpp::Publisher<std_msgs::msg::Int16>::SharedPtr target_cable_id_pub_;
-
-		/**
-		 * @brief The thread for computing the MPC
-		*/
-		std::thread MPC_thread_;
-
-		/**
-		 * @brief The computed MPC control input
-		*/
-		double MPC_u_[3];
-
-		/**
-		 * @brief The MPC state to use for computation
-		*/
-		double MPC_x_[6];
-
-		/**
-		 * @brief The MPC planned trajectory
-		*/
-		double MPC_planned_traj_[120];
 
 		/**
 		 * @brief The most recent PX4 home position
@@ -1309,51 +1122,6 @@ namespace trajectory_controller_node {
 			bool reset
 		);
 
-		/**
-		 * @brief Forwards the MPC one step
-		 * 
-		 * @param vehicle_state The current vehicle state
-		 * @param target_state The target state
-		 * @param set_target Whether to update the target state
-		 * @param reset Whether to reset the MPC
-		 * @param mpc_mode The MPC mode
-		 * 
-		 * @return The MPC output trajectory setpoint
-		*/
-		state4_t stepMPC(
-			state4_t vehicle_state, 
-			state4_t target_state, 
-			bool set_target, 
-			bool reset, 
-			MPC_mode_t mpc_mode
-		);
-
-		/**
-		 * @brief The thread function executing the MPC computation in parallel.
-		 * 
-		 * @param x The MPC state
-		 * @param u The MPC control input
-		 * @param planned_traj The MPC planned trajectory
-		 * @param target The MPC target state
-		 * @param reset_target Whether to reset the MPC target state
-		 * @param reset_trajectory Whether to reset the MPC trajectory
-		 * @param reset_bounds Whether to reset the MPC bounds
-		 * @param reset_weights Whether to reset the MPC weights
-		 * @param mpc_mode The MPC mode
-		 * 
-		 * @return void
-		*/
-		void threadFunctionMPC(
-			double *x, 
-			double *u, 
-			double *planned_traj, 
-			double *target, 
-			int reset_target, 
-			int reset_trajectory, 
-			int reset_bounds, 
-			int reset_weights, 
-			MPC_mode_t mpc_mode
-		);
 
 		/**
 		 * @brief Clears the planned trajectory and trajectory target objects.
@@ -1393,7 +1161,7 @@ namespace trajectory_controller_node {
 
 	};
 
-} // namespace trajectory_controller_node
+} // namespace flight_controller_node
 } // namespace control
 } // namespace iii_drone
 
