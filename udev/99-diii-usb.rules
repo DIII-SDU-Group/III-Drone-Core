@@ -1,0 +1,7 @@
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea70", ATTRS{serial}=="00E241A0", ENV{ID_USB_INTERFACE_NUM}=="00", SYMLINK+="mmWaveCli"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea70", ATTRS{serial}=="00E241A0", ENV{ID_USB_INTERFACE_NUM}=="01", SYMLINK+="mmWaveData"
+
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", ATTRS{serial}=="FTU7T6R7", SYMLINK+="FMU"
+
+SUBSYSTEM=="tty", ATTRS{idVendor}=="2341", ATTRS{idProduct}=="8054", ATTRS{serial}=="A80C029250555733362E3120FF010319", SYMLINK+="charger"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="2341", ATTRS{idProduct}=="8054", ATTRS{serial}=="3A7343B65154384153202020FF102A2B", SYMLINK+="charger"
