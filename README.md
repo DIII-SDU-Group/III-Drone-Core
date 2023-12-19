@@ -72,7 +72,7 @@ If desired, new topics can be added for MicroDDS to forward from PX4 to the onbo
 cd <PX4-Autopilot-dir>
 gvim src/modules/uxrce_dds_client/dds_topics.yaml
 ```
-Make the modifications as required. The syntax needs to obey the syntax seen in the file. A list of available topics can be seen [here](https://github.com/DIII-SDU-Group/px4_msgs/tree/v1.14).
+Make the modifications as required. The syntax needs to obey the syntax seen in the file. A list of available message types can be seen [here](https://github.com/DIII-SDU-Group/px4_msgs/tree/v1.14/msg).
 
 Save the file, and build the firmware for the matching flight controller, in this case ´fmu-v6x`:
 ```
