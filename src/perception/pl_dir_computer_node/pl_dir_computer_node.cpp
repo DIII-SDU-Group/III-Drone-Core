@@ -105,9 +105,10 @@ void PowerlineDirectionComputerNode::publishPowerlineDirection() {
     RCLCPP_DEBUG(this->get_logger(), "Publishing powerline direction");
 
     geometry_msgs::msg::PoseStamped pose_msg = pl_direction_.ToPoseStampedMsg(configurator_.drone_frame_id());
+    geometry_msgs::msg::QuaternionStamped quat_msg = pl_direction_.ToQuaternionStampedMsg(configurator_.drone_frame_id());
 
     pl_direction_pose_pub_->publish(pose_msg);
-    pl_direction_quat_pub_->publish(pl_direction_.ToQuaternionStampedMsg(configurator_.drone_frame_id()));
+    pl_direction_quat_pub_->publish(quat_msg);
 
 }
 

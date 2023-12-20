@@ -318,6 +318,18 @@ void SingleLine::SetPosition(const point_t & position) {
 
 }
 
+void SingleLine::SetDirection(const quaternion_t & quaternion) {
+
+    std::unique_lock<std::shared_mutex> lock(mutex_);
+
+    quaternion_ = quaternion;
+
+    lock.unlock();
+
+    stamp_.Update();
+
+}
+
 const point_t SingleLine::position() const {
 
     std::shared_lock<std::shared_mutex> lock(mutex_);

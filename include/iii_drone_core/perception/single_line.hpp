@@ -216,6 +216,13 @@ namespace perception {
         void SetPosition(const iii_drone::types::point_t & position);
 
         /**
+         * @brief Sets the direction.
+         * 
+         * @param quaternion The new quaternion.
+         */
+        void SetDirection(const iii_drone::types::quaternion_t & quaternion);
+
+        /**
          * @brief position getter.
          */
         const iii_drone::types::point_t position() const;

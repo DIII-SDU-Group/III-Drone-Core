@@ -39,6 +39,7 @@
 #include <iii_drone_core/utils/types.hpp>
 #include <iii_drone_core/utils/timestamp.hpp>
 #include <iii_drone_core/utils/atomic.hpp>
+#include <iii_drone_core/utils/history.hpp>
 
 #include <iii_drone_core/perception/powerline_parameters.hpp>
 #include <iii_drone_core/perception/single_line.hpp>
@@ -206,21 +207,6 @@ namespace perception {
         };
 
         /**
-         * @brief Whether the powerline direction has been received.
-        */
-        iii_drone::utils::Atomic<bool> received_pl_dir_ = false;
-
-        /**
-         * @brief Whether the first odometry has been received.
-        */
-        iii_drone::utils::Atomic<bool> received_first_odom_ = false;
-
-        /**
-         * @brief Whether the second odometry has been received.
-        */
-        iii_drone::utils::Atomic<bool> received_second_odom_ = false;
-
-        /**
          * @brief The currently tracked lines.
         */
         std::vector<SingleLine> lines_;
@@ -236,19 +222,14 @@ namespace perception {
         mutable std::shared_mutex lines_mutex_;
 
         /**
-         * @brief The powerline direction quaternion.
+         * @brief The powerline direction quaternion history.
         */
-        iii_drone::utils::Atomic<iii_drone::types::quaternion_t> direction_;
+        iii_drone::utils::History<iii_drone::types::quaternion_t> pl_dir_history_;
 
         /**
-         * @brief The drone pose.
+         * @brief The drone pose history.
         */
-        iii_drone::utils::Atomic<iii_drone::types::pose_t> drone_pose_;
-
-        /**
-         * @brief The last drone pose.
-        */
-        iii_drone::utils::Atomic<iii_drone::types::pose_t> last_drone_pose_;
+        iii_drone::utils::History<iii_drone::types::pose_t> drone_pose_history_;
 
         /**
          * @brief The powerline projection plane.

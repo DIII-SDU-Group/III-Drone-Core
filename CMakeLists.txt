@@ -90,6 +90,7 @@ set(III_DRONE_LIBRARY_HEADERS
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/timestamp.hpp"
   # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/blocking_queue.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/atomic.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/history.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/single_line.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/powerline_parameters.hpp"
@@ -118,7 +119,7 @@ set(III_DRONE_LIBRARY_HEADERS
   # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/offboard_control_mode_adapter.hpp"
   # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/trajectory_setpoint_adapter.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/vehicle_odometry_adapter.hpp"
-  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/vehicle_status_adapter.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/vehicle_status_adapter.hpp"
 
 )
 
@@ -165,7 +166,7 @@ set(III_DRONE_LIBRARY_SOURCES
   # "${PROJECT_SOURCE_DIR}/src/adapters/px4/offboard_control_mode_adapter.cpp"
   # "${PROJECT_SOURCE_DIR}/src/adapters/px4/trajectory_setpoint_adapter.cpp"
   "${PROJECT_SOURCE_DIR}/src/adapters/px4/vehicle_odometry_adapter.cpp"
-  # "${PROJECT_SOURCE_DIR}/src/adapters/px4/vehicle_status_adapter.cpp"
+  "${PROJECT_SOURCE_DIR}/src/adapters/px4/vehicle_status_adapter.cpp"
 
 )
 
