@@ -1,0 +1,18 @@
+<map id="iii_drone::utils::Token::has_token" name="iii_drone::utils::Token::has_token">
+<area shape="rect" id="Node000001" title="Whether the token is held by the calling thread." alt="" coords="419,133,577,173"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1Token.html#a6921bbeec7648c4338b1667b4e55d2c1" title="Request to acquire the token, to be called by a slave." alt="" coords="212,5,371,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="462,126,419,92,369,60,346,48,348,43,372,55,422,88,465,122"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1Token.html#aa11a9de7f7554a4332bd458be1da4d21" title="Assignment operator." alt="" coords="212,69,371,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="419,132,356,112,357,107,421,127"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1utils_1_1Token.html#a5db10c0379a034b931907b666efe5388" title="Releases the token, to be called by a slave." alt="" coords="212,133,371,173"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="405,156,371,156,371,151,405,151"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1utils_1_1Token.html#a5c977ed761af829cc8426c96419864ef" title="Destructor." alt="" coords="5,159,164,199"/>
+<area shape="poly" id="edge8_Node000001_Node000005" title=" " alt="" coords="418,179,371,188,263,194,164,189,164,184,263,188,370,183,417,174"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1utils_1_1Token.html#af148ea73a4a71657f67da885012b8768" title="Get the resource." alt="" coords="212,248,371,288"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="454,183,372,232,336,250,333,246,369,227,452,179"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="199,167,164,172,164,166,198,162"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1utils_1_1Token.html#ad2dbe96a256bcb2192af2d94a041951f" title="Constructor from shared ptr." alt="" coords="5,235,164,275"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="198,265,164,262,164,257,199,259"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1utils_1_1Token.html#a752779c5bedec6dfe41d63954aaf701d" title="Constructor." alt="" coords="5,299,164,339"/>
+<area shape="poly" id="edge7_Node000006_Node000008" title=" " alt="" coords="199,293,165,302,163,297,198,288"/>
+</map>

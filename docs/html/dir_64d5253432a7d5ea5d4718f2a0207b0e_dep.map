@@ -1,0 +1,26 @@
+<map id="include/iii_drone_core/control" name="include/iii_drone_core/control">
+<area shape="rect" id="node1" href="dir_8d2df975878b3889d1f4f27f142f8b6b.html" title="adapters" alt="" coords="43,209,122,235"/>
+<area shape="rect" id="node2" href="dir_8d5fce3f9f0b3f85e2b55e571fc75ab3.html" title="utils" alt="" coords="161,209,212,235"/>
+<area shape="rect" id="node3" href="dir_0266f6c656cc8031115a442d81d571fa.html" title="configuration" alt="" coords="344,136,451,161"/>
+<area shape="poly" id="edge2" href="dir_000010_000000.html" alt="" coords="68,89,57,127,55,149,57,171,68,196,64,198,52,173,49,149,52,126,63,88"/>
+<area shape="rect" id="edge2-headlabel" href="dir_000010_000000.html" title="8" alt="" coords="66,182,75,197"/>
+<area shape="poly" id="edge3" href="dir_000010_000043.html" alt="" coords="105,85,143,104,161,118,176,135,188,165,191,195,186,196,183,166,171,137,157,122,140,108,103,90"/>
+<area shape="rect" id="edge3-headlabel" href="dir_000010_000043.html" title="16" alt="" coords="188,184,205,199"/>
+<area shape="rect" id="node5" href="dir_247bbb6d8d0c93492fe6f07c87a0dd1d.html" title="maneuvers" alt="" coords="66,136,161,161"/>
+<area shape="poly" id="edge1" href="dir_000010_000021.html" alt="" coords="80,87,102,123,97,126,75,90"/>
+<area shape="rect" id="edge1-headlabel" href="dir_000010_000021.html" title="2" alt="" coords="100,109,109,123"/>
+<area shape="poly" id="edge4" href="dir_000021_000000.html" alt="" coords="111,163,95,198,91,196,106,161"/>
+<area shape="rect" id="edge4-headlabel" href="dir_000021_000000.html" title="1" alt="" coords="98,189,107,203"/>
+<area shape="poly" id="edge5" href="dir_000021_000043.html" alt="" coords="127,160,167,198,163,202,124,164"/>
+<area shape="rect" id="edge5-headlabel" href="dir_000021_000043.html" title="5" alt="" coords="163,183,172,198"/>
+<area shape="rect" id="node6" href="dir_cee43c1cef40170ce2f79dd4c52dc888.html" title="trajectory_controller_node" alt="" coords="129,63,322,88"/>
+<area shape="poly" id="edge8" href="dir_000039_000043.html" alt="" coords="225,89,196,197,191,195,220,88"/>
+<area shape="rect" id="edge8-headlabel" href="dir_000039_000043.html" title="3" alt="" coords="198,186,207,201"/>
+<area shape="poly" id="edge6" href="dir_000039_000004.html" alt="" coords="254,86,358,128,356,133,252,90"/>
+<area shape="rect" id="edge6-headlabel" href="dir_000039_000004.html" title="2" alt="" coords="351,114,360,128"/>
+<area shape="rect" id="node7" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html" title="src" alt="" coords="475,136,517,161"/>
+<area shape="poly" id="edge7" href="dir_000039_000038.html" alt="" coords="281,85,364,105,463,132,461,137,362,110,279,91"/>
+<area shape="rect" id="edge7-headlabel" href="dir_000039_000038.html" title="4" alt="" coords="456,118,465,133"/>
+<area shape="rect" id="clust2" href="dir_64d5253432a7d5ea5d4718f2a0207b0e.html" alt="" coords="27,52,333,172"/>
+<area shape="rect" id="clust1" href="dir_675c2ae8dc1cdd323b7308c72e2b5eff.html" title="iii_drone_core" alt="" coords="16,16,461,245"/>
+</map>

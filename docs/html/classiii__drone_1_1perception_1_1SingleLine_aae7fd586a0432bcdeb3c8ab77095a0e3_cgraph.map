@@ -1,0 +1,5 @@
+<map id="iii_drone::perception::SingleLine::OverwriteStamp" name="iii_drone::perception::SingleLine::OverwriteStamp">
+<area shape="rect" id="Node000001" title="Overwrites the timestamp." alt="" coords="5,5,216,45"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1SingleLine.html#affa629468056b5ad8c8ac57dd6d93425" title="Stamp getter." alt="" coords="264,5,419,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="217,23,251,23,251,28,217,28"/>
+</map>

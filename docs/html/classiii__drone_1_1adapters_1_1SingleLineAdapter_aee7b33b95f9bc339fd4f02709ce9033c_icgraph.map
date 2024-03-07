@@ -1,0 +1,15 @@
+<map id="iii_drone::adapters::SingleLineAdapter::position" name="iii_drone::adapters::SingleLineAdapter::position">
+<area shape="rect" id="Node000001" title="position getter." alt="" coords="652,113,800,168"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1BehaviorState.html#a950f5d0c9562cdfa1f03a2409ce9f682" title="Return the id of the cable that the drone is on if it is on a cable, &#45;1 otherwise." alt="" coords="445,41,591,96"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="638,113,590,96,592,91,640,108"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1perception_1_1SingleLine.html#ad17dc959fe4f359c46b226c98e616e4b" title="Constructor from SingleLineAdapter." alt="" coords="432,121,604,161"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="638,143,604,143,604,138,638,138"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a04f02d018320742a79f473e1dd502b31" title="Constructor from members." alt="" coords="444,185,592,240"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="640,173,593,190,591,185,638,168"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1BehaviorState.html#a1b5262b99d96767ebdc0be10fb29bdf5" title="Returns the drone location, checks the drone location and sets the on_cable_id if the drone is on a c..." alt="" coords="207,5,373,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="430,58,373,48,374,43,431,52"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1BehaviorState.html#a90c3fb2cdaf884b43aed4d8b15306ff9" title="Whether the drone is on a cable." alt="" coords="196,85,384,125"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="431,85,385,92,384,87,431,80"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1BehaviorState.html#a2a8726ede2d3f2dab883e9c4f0d63fb5" title="Whether the drone is in flight." alt="" coords="5,77,148,132"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="182,107,148,107,148,102,182,102"/>
+</map>

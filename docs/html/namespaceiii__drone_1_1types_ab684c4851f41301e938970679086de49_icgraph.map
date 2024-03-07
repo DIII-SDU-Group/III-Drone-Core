@@ -1,0 +1,21 @@
+<map id="iii_drone::types::quaternionFromQuaternionMsg" name="iii_drone::types::quaternionFromQuaternionMsg">
+<area shape="rect" id="Node000001" title=" " alt="" coords="561,133,761,173"/>
+<area shape="rect" id="Node000002" href="$namespaceiii__drone_1_1types.html#a0f2e38f39e75d541ec3429c76b866229" title=" " alt="" coords="316,5,511,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="621,127,571,93,512,60,484,48,486,43,514,55,573,88,624,123"/>
+<area shape="rect" id="Node000003" href="$namespaceiii__drone_1_1types.html#ae491cdaf54bd55874ba38675234f35b9" title=" " alt="" coords="316,69,511,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="569,132,491,112,492,107,571,127"/>
+<area shape="rect" id="Node000004" href="$namespaceiii__drone_1_1types.html#a25802a3ab0d3c28800d37b3c6a9a6578" title=" " alt="" coords="313,133,513,173"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="548,156,514,156,514,151,548,151"/>
+<area shape="rect" id="Node000008" href="$namespaceiii__drone_1_1types.html#a131af051a39eb6c37544ecdad43a68bb" title=" " alt="" coords="313,197,513,237"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="571,179,492,200,491,195,569,174"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1perception_1_1SingleLine.html#a0394950ec7fe3fd5a4210267495c9929" title="Constructor from Pose msg." alt="" coords="327,261,499,301"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="624,184,573,219,514,252,486,264,484,259,512,247,571,214,621,180"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a691df92d58f0f358ddad6a9b6b2f1e1f" title="Constructor from msg." alt="" coords="61,9,209,63"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="324,130,312,124,297,112,287,100,278,88,264,77,209,54,211,49,267,72,282,84,291,96,301,108,315,119,326,125"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a524b57b8a93818b95e35323ec8533749" title="Constructor from PoseStamped msg." alt="" coords="61,87,209,142"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="299,140,209,128,210,122,300,135"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#ad5ca1a5d6a90a4f67c5b9bb59f9c8066" title="Constructor from pose msg." alt="" coords="61,166,209,221"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="300,172,210,185,209,180,299,167"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#a703ae72ba683ae11154ce597b8bbad9d" title="Constructor." alt="" coords="5,245,265,299"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="300,242,266,249,265,244,299,237"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="iii_drone::control::trajectory_controller_node::TrajectoryControllerConfigurator::reached_position_euclidean_distance_threshold" name="iii_drone::control::trajectory_controller_node::TrajectoryControllerConfigurator::reached_position_euclidean_distance_threshold">
+<area shape="rect" id="Node000001" title="The threshold for considering the drone reached the target position." alt="" coords="5,5,347,75"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="395,20,603,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="347,37,381,37,381,43,347,43"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="651,20,865,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="603,37,637,37,637,43,603,43"/>
+</map>

@@ -1,0 +1,6 @@
+<map id="iii_drone::control::BehaviorState::ProjectExpectedBehaviorState" name="iii_drone::control::BehaviorState::ProjectExpectedBehaviorState">
+<area shape="rect" id="Node000001" title="Returns the expected behavior state upon completion or failure of given maneuver type,..." alt="" coords="268,29,503,84"/>
+<area shape="poly" id="edge2_Node000001_Node000001" title=" " alt="" coords="431,18,415,11,385,8,361,10,345,15,338,21,338,29,333,29,333,19,342,10,360,5,385,3,416,6,433,14"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1BehaviorState.html#ab4ed76614b4f7e6dd264d8006c4ddbea" title="Returns whether a given maneuver can execute later." alt="" coords="5,37,220,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="254,59,220,59,220,54,254,54"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="iii_drone::perception::SingleLine::stamp" name="iii_drone::perception::SingleLine::stamp">
+<area shape="rect" id="Node000001" title="Stamp getter." alt="" coords="264,69,419,109"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1SingleLine.html#a0133f9ac4eaac14f379b35313e6dfcbe" title="Assignment operator overload." alt="" coords="25,5,196,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="255,68,183,48,184,43,256,63"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1SingleLine.html#aae7fd586a0432bcdeb3c8ab77095a0e3" title="Overwrites the timestamp." alt="" coords="5,69,216,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="250,92,216,92,216,87,250,87"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1SingleLine.html#a23ed739c4d3315789dfc2b62cc586833" title="Copy constructor." alt="" coords="25,133,197,173"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="256,116,184,136,183,131,255,110"/>
+</map>

@@ -1,0 +1,13 @@
+<map id="include/iii_drone_core/control/trajectory_controller_node" name="include/iii_drone_core/control/trajectory_controller_node">
+<area shape="rect" id="node1" href="dir_cee43c1cef40170ce2f79dd4c52dc888.html" title="trajectory_controller_node" alt="" coords="61,52,254,77"/>
+<area shape="rect" id="node2" href="dir_0266f6c656cc8031115a442d81d571fa.html" title="configuration" alt="" coords="5,125,112,151"/>
+<area shape="poly" id="edge1" href="dir_000039_000004.html" alt="" coords="143,80,87,119,84,115,140,75"/>
+<area shape="rect" id="edge1-headlabel" href="dir_000039_000004.html" title="2" alt="" coords="90,114,99,129"/>
+<area shape="rect" id="node3" href="dir_68267d1309a1af8e8297ef4c3efbcdba.html" title="src" alt="" coords="137,125,178,151"/>
+<area shape="poly" id="edge2" href="dir_000039_000038.html" alt="" coords="160,78,160,112,155,112,155,78"/>
+<area shape="rect" id="edge2-headlabel" href="dir_000039_000038.html" title="4" alt="" coords="161,100,170,114"/>
+<area shape="rect" id="node4" href="dir_8d5fce3f9f0b3f85e2b55e571fc75ab3.html" title="utils" alt="" coords="203,125,253,151"/>
+<area shape="poly" id="edge3" href="dir_000039_000043.html" alt="" coords="171,76,209,114,205,118,167,80"/>
+<area shape="rect" id="edge3-headlabel" href="dir_000039_000043.html" title="3" alt="" coords="205,99,214,114"/>
+<area shape="rect" id="clust1" href="dir_64d5253432a7d5ea5d4718f2a0207b0e.html" title="control" alt="" coords="49,16,265,88"/>
+</map>

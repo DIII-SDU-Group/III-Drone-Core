@@ -1,0 +1,30 @@
+<map id="iii_drone::types::pointFromPointMsg" name="iii_drone::types::pointFromPointMsg">
+<area shape="rect" id="Node000001" title=" " alt="" coords="525,289,721,329"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1SingleLine.html#aa63a08c0e3ed8294ea894bba24314324" title="Returns whether the line is in FOV, non strict." alt="" coords="283,72,437,112"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="600,279,548,211,514,174,476,142,451,127,424,115,426,110,453,122,479,138,517,171,552,208,604,276"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1SingleLine.html#ad54f59f23516a68b495cbd198c985833" title="Returns whether the line is in FOV, using the strict parameters." alt="" coords="5,133,195,173"/>
+<area shape="poly" id="edge6_Node000001_Node000004" title=" " alt="" coords="586,283,536,248,476,217,405,194,330,178,195,160,195,155,331,173,406,189,478,212,539,243,589,278"/>
+<area shape="rect" id="Node000006" href="$namespaceiii__drone_1_1types.html#a68ca357a87fb655434d05d6c6bdac45f" title=" " alt="" coords="262,257,458,297"/>
+<area shape="poly" id="edge7_Node000001_Node000006" title=" " alt="" coords="512,298,458,292,459,287,512,293"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a691df92d58f0f358ddad6a9b6b2f1e1f" title="Constructor from msg." alt="" coords="26,198,174,253"/>
+<area shape="poly" id="edge14_Node000001_Node000007" title=" " alt="" coords="573,285,527,264,477,248,397,234,316,226,174,224,174,219,316,221,398,228,478,243,529,260,576,281"/>
+<area shape="rect" id="Node000010" href="$namespaceiii__drone_1_1types.html#a0f2e38f39e75d541ec3429c76b866229" title=" " alt="" coords="263,321,457,361"/>
+<area shape="poly" id="edge11_Node000001_Node000010" title=" " alt="" coords="512,326,458,332,457,327,511,320"/>
+<area shape="rect" id="Node000011" href="$structiii__drone_1_1control_1_1maneuver_1_1maneuver__t.html#a08a0dd3ddb9ad28558cc799db62a7993" title="Sets type and parameters from goal." alt="" coords="275,386,445,441"/>
+<area shape="poly" id="edge12_Node000001_Node000011" title=" " alt="" coords="568,337,478,376,445,388,443,383,476,371,566,332"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1perception_1_1SingleLine.html#a0394950ec7fe3fd5a4210267495c9929" title="Constructor from Pose msg." alt="" coords="274,465,446,505"/>
+<area shape="poly" id="edge13_Node000001_Node000012" title=" " alt="" coords="601,342,549,400,515,430,479,456,448,470,445,465,476,451,512,426,545,396,597,339"/>
+<area shape="rect" id="Node000013" href="$structiii__drone_1_1control_1_1maneuver_1_1fly__to__position__maneuver__params__t.html#af186f455a9c83cd42e413d152f4d34ff" title=" " alt="" coords="243,529,477,599"/>
+<area shape="poly" id="edge15_Node000001_Node000013" title=" " alt="" coords="609,343,588,383,559,430,522,477,479,519,461,531,458,527,476,515,518,474,555,427,584,380,605,340"/>
+<area shape="poly" id="edge3_Node000002_Node000002" title=" " alt="" coords="404,60,389,53,360,51,335,53,320,57,314,63,317,71,312,72,309,62,317,53,334,47,360,45,390,48,406,55"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1SingleLine.html#ae9804a282e066e92081c54528f9c4a7e" title="Returns whether the line is alive, i.e. whether it is not in the FOV or alive_cnt_ is above alive_cnt..." alt="" coords="23,5,177,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="269,71,177,48,178,43,270,66"/>
+<area shape="poly" id="edge4_Node000002_Node000004" title=" " alt="" coords="270,116,186,136,185,131,269,111"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1perception_1_1SingleLine.html#a572bd83d5f2d58b19895bedce97abf57" title="Converts to SingleLineAdapter." alt="" coords="15,69,185,109"/>
+<area shape="poly" id="edge5_Node000002_Node000005" title=" " alt="" coords="269,94,185,93,185,88,269,88"/>
+<area shape="poly" id="edge8_Node000006_Node000007" title=" " alt="" coords="248,258,174,243,175,237,249,252"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a524b57b8a93818b95e35323ec8533749" title="Constructor from PoseStamped msg." alt="" coords="26,277,174,331"/>
+<area shape="poly" id="edge9_Node000006_Node000008" title=" " alt="" coords="249,291,174,299,174,294,248,286"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#ad5ca1a5d6a90a4f67c5b9bb59f9c8066" title="Constructor from pose msg." alt="" coords="26,355,174,410"/>
+<area shape="poly" id="edge10_Node000006_Node000009" title=" " alt="" coords="262,304,244,312,220,328,196,345,171,358,169,353,193,340,217,323,241,307,259,299"/>
+</map>

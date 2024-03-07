@@ -1,0 +1,5 @@
+<map id="iii_drone::adapters::GripperStatusAdapter::GripperStatusAdapter" name="iii_drone::adapters::GripperStatusAdapter::GripperStatusAdapter">
+<area shape="rect" id="Node000001" title="Constructor from III&#45;Drone&#45;Interfaces::GripperStatus msg." alt="" coords="5,5,176,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1GripperStatusAdapter.html#afb2fead6307a20d34edde998a1cde0ee" title="Update the adapter from a III&#45;Drone&#45;Interfaces::GripperStatus msg." alt="" coords="224,5,395,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="176,30,210,30,210,35,176,35"/>
+</map>

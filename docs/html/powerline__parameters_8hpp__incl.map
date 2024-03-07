@@ -1,0 +1,7 @@
+<map id="include/iii_drone_core/perception/powerline_parameters.hpp" name="include/iii_drone_core/perception/powerline_parameters.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="11,5,175,60"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,108,69,133"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="78,62,55,98,50,95,74,59"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="93,108,208,133"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="113,59,137,95,133,98,109,62"/>
+</map>

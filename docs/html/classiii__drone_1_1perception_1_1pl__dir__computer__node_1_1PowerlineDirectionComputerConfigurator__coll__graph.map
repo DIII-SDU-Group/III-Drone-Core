@@ -1,0 +1,5 @@
+<map id="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerConfigurator" name="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerConfigurator">
+<area shape="rect" id="Node000001" title="Class for handling parameters for PowerlineDirectionComputer." alt="" coords="5,93,303,148"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html" title="Class for handling parameters of a node. The class works in conjunction with the ConfigurationServer ..." alt="" coords="69,5,239,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="157,59,157,93,151,93,151,59"/>
+</map>

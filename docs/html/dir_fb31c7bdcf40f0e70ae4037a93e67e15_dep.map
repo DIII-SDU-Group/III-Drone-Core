@@ -1,0 +1,7 @@
+<map id="include/iii_drone_core/perception/hough_transformer_node" name="include/iii_drone_core/perception/hough_transformer_node">
+<area shape="rect" id="node1" href="dir_fb31c7bdcf40f0e70ae4037a93e67e15.html" title="hough_transformer_node" alt="" coords="27,52,213,77"/>
+<area shape="rect" id="node2" href="dir_0266f6c656cc8031115a442d81d571fa.html" title="configuration" alt="" coords="67,125,173,151"/>
+<area shape="poly" id="edge1" href="dir_000015_000004.html" alt="" coords="123,78,123,112,117,112,117,78"/>
+<area shape="rect" id="edge1-headlabel" href="dir_000015_000004.html" title="1" alt="" coords="124,100,133,114"/>
+<area shape="rect" id="clust1" href="dir_48cbf7624d6e369bbb294b7c2e607f94.html" title="perception" alt="" coords="16,16,224,88"/>
+</map>

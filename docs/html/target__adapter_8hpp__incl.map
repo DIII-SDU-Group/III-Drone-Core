@@ -1,0 +1,21 @@
+<map id="include/iii_drone_core/adapters/target_adapter.hpp" name="include/iii_drone_core/adapters/target_adapter.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="747,5,958,45"/>
+<area shape="rect" id="Node000002" href="$types_8hpp.html" title=" " alt="" coords="608,93,753,133"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="816,48,732,90,729,85,814,43"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="777,93,928,133"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="855,46,855,79,850,79,850,46"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="953,101,1011,126"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="883,43,954,91,951,95,880,48"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,181,145,207"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="608,126,160,184,159,179,608,121"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="170,181,394,207"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="608,132,354,181,353,176,607,126"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="418,181,679,207"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="650,136,582,176,579,172,648,131"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="703,181,925,207"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="714,131,784,172,781,177,711,136"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="949,181,1204,207"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="754,128,767,131,1002,176,1001,181,765,136,753,133"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="1229,181,1469,207"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="754,129,766,131,968,155,1215,178,1215,183,967,160,766,136,753,134"/>
+</map>

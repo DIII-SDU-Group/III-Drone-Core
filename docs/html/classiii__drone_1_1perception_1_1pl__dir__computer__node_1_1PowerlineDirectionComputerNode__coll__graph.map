@@ -1,0 +1,5 @@
+<map id="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerNode" name="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerNode">
+<area shape="rect" id="Node000001" title="Node for kalman filtering the powerline direction based on hough transform output." alt="" coords="5,79,256,133"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="79,5,182,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="133,44,133,79,128,79,128,44"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="iii_drone::perception::Powerline::UpdateOdometry" name="iii_drone::perception::Powerline::UpdateOdometry">
+<area shape="rect" id="Node000001" title="Updates the powerline from odometry." alt="" coords="5,37,220,77"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1Powerline.html#ae01313af26d0faefd560f290feb28daf" title="Returns the drone quaternion orientation." alt="" coords="277,5,455,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="220,41,263,36,264,41,221,46"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1Timestamp.html#a373bc0de94c27153e2372c30f0eedbb1" title="Updates the timestamp to now." alt="" coords="268,69,464,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="221,68,255,73,254,78,220,74"/>
+</map>

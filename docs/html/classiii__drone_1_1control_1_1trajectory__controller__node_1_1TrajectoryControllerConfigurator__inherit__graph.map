@@ -1,0 +1,5 @@
+<map id="iii_drone::control::trajectory_controller_node::TrajectoryControllerConfigurator" name="iii_drone::control::trajectory_controller_node::TrajectoryControllerConfigurator">
+<area shape="rect" id="Node000001" title="Class for handling parameters for TrajectoryController." alt="" coords="5,93,283,148"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html" title="Class for handling parameters of a node. The class works in conjunction with the ConfigurationServer ..." alt="" coords="59,5,229,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="147,59,147,93,141,93,141,59"/>
+</map>

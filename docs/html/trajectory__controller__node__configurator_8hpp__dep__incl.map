@@ -1,0 +1,9 @@
+<map id="include/iii_drone_core/control/trajectory_controller_node/trajectory_controller_node_configurator.hpp" name="include/iii_drone_core/control/trajectory_controller_node/trajectory_controller_node_configurator.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="129,5,336,75"/>
+<area shape="rect" id="Node000002" href="$trajectory__controller__node_8hpp.html" title=" " alt="" coords="5,123,212,192"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="188,86,147,124,143,121,184,83"/>
+<area shape="rect" id="Node000004" href="$trajectory__controller__node__configurator_8cpp.html" title=" " alt="" coords="236,130,477,185"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="281,82,330,128,326,132,277,86"/>
+<area shape="rect" id="Node000003" href="$trajectory__controller__node_8cpp.html" title=" " alt="" coords="10,240,207,295"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="111,206,111,240,106,240,106,206"/>
+</map>

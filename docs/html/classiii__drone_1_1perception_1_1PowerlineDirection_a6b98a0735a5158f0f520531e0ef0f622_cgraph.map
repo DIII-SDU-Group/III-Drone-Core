@@ -1,0 +1,5 @@
+<map id="iii_drone::perception::PowerlineDirection::ToQuaternionStampedMsg" name="iii_drone::perception::PowerlineDirection::ToQuaternionStampedMsg">
+<area shape="rect" id="Node000001" title="Converts to quaternion stamped message." alt="" coords="5,5,207,60"/>
+<area shape="rect" id="Node000002" href="$namespaceiii__drone_1_1types.html#a345601fdf3366d6af6d7c2003d74275b" title=" " alt="" coords="255,13,455,53"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="207,30,241,30,241,35,207,35"/>
+</map>

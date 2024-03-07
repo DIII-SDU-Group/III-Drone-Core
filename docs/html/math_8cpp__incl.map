@@ -1,0 +1,21 @@
+<map id="src/utils/math.cpp" name="src/utils/math.cpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="423,5,562,31"/>
+<area shape="rect" id="Node000002" href="$math_8hpp.html" title=" " alt="" coords="365,79,511,119"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="487,32,461,69,457,66,482,29"/>
+<area shape="rect" id="Node000004" href="$types_8hpp.html" title=" " alt="" coords="476,167,621,207"/>
+<area shape="poly" id="edge10_Node000001_Node000004" title=" " alt="" coords="502,30,524,78,545,152,540,154,520,80,497,32"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,255,145,280"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="398,121,114,251,112,246,396,116"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="464,117,515,156,512,160,461,121"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="476,203,158,255,157,250,475,197"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="170,255,394,280"/>
+<area shape="poly" id="edge5_Node000004_Node000005" title=" " alt="" coords="486,209,335,253,334,248,484,204"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="418,255,679,280"/>
+<area shape="poly" id="edge6_Node000004_Node000006" title=" " alt="" coords="551,207,551,241,546,241,546,207"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="703,255,925,280"/>
+<area shape="poly" id="edge7_Node000004_Node000007" title=" " alt="" coords="613,204,763,248,761,253,611,209"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="949,255,1204,280"/>
+<area shape="poly" id="edge8_Node000004_Node000008" title=" " alt="" coords="622,196,987,250,986,255,621,201"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="1229,255,1469,280"/>
+<area shape="poly" id="edge9_Node000004_Node000009" title=" " alt="" coords="622,192,1219,251,1218,256,621,198"/>
+</map>

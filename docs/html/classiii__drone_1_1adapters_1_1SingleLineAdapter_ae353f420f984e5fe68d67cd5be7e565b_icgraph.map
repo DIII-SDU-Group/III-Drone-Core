@@ -1,0 +1,15 @@
+<map id="iii_drone::adapters::SingleLineAdapter::stamp" name="iii_drone::adapters::SingleLineAdapter::stamp">
+<area shape="rect" id="Node000001" title="Timestamp getter." alt="" coords="745,84,893,139"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#ad5ca1a5d6a90a4f67c5b9bb59f9c8066" title="Constructor from pose msg." alt="" coords="547,5,695,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="736,81,689,63,691,58,738,76"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a04f02d018320742a79f473e1dd502b31" title="Constructor from members." alt="" coords="547,84,695,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="731,114,695,114,695,109,731,109"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1adapters_1_1PowerlineAdapter.html#aef819ac0c9aae37561e82c687446a718" title="Updates the powerline adapter object from a message." alt="" coords="544,163,697,217"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="738,146,691,165,689,160,736,142"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1adapters_1_1PowerlineAdapter.html#a103e03296fccb8a4a89307566a19eaff" title="Constructor from message." alt="" coords="323,123,477,177"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="530,176,476,166,477,161,531,171"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a53c5f053feca67888e972a889476ccc8" title="Updates the PowerlineAdapter object." alt="" coords="304,201,496,256"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="531,208,497,214,496,209,530,203"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerNode.html#a7d69d952785cf09e8cd381bd624480f2" title="Construct a new Powerline Direction Computer Node object." alt="" coords="5,194,256,263"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="290,231,256,231,256,226,290,226"/>
+</map>

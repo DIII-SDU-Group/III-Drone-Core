@@ -1,0 +1,7 @@
+<map id="iii_drone::control::trajectory_controller_node::TrajectoryControllerConfigurator::disarm_on_cable_thrust_decrease_time_s" name="iii_drone::control::trajectory_controller_node::TrajectoryControllerConfigurator::disarm_on_cable_thrust_decrease_time_s">
+<area shape="rect" id="Node000001" title="The time to decrease the thrust to zero when disarming the drone on the cable." alt="" coords="5,5,308,75"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="356,20,564,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="308,37,342,37,342,43,308,43"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="612,20,827,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="564,37,598,37,598,43,564,43"/>
+</map>

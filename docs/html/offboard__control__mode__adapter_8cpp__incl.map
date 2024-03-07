@@ -1,0 +1,9 @@
+<map id="src/adapters/px4/offboard_control_mode_adapter.cpp" name="src/adapters/px4/offboard_control_mode_adapter.cpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="60,5,261,45"/>
+<area shape="rect" id="Node000002" href="$offboard__control__mode__adapter_8hpp.html" title=" " alt="" coords="73,93,248,148"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="163,45,163,80,158,80,158,45"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,203,137,229"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="137,150,94,195,90,191,133,146"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="162,196,341,236"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="188,146,226,184,222,188,184,150"/>
+</map>

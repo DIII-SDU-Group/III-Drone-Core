@@ -1,0 +1,29 @@
+<map id="include/iii_drone_core/adapters/target_adapter.hpp" name="include/iii_drone_core/adapters/target_adapter.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="399,5,610,45"/>
+<area shape="rect" id="Node000002" href="$maneuver__types_8hpp.html" title=" " alt="" coords="293,93,511,148"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="476,56,433,95,429,91,472,52"/>
+<area shape="rect" id="Node000012" href="$target__adapter_8cpp.html" title=" " alt="" coords="536,101,681,141"/>
+<area shape="poly" id="edge15_Node000001_Node000012" title=" " alt="" coords="538,53,589,99,586,103,534,57"/>
+<area shape="rect" id="Node000003" href="$behavior__state_8hpp.html" title=" " alt="" coords="302,299,502,339"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="405,162,405,298,399,298,399,162"/>
+<area shape="rect" id="Node000009" href="$maneuver__queue_8hpp.html" title=" " alt="" coords="146,196,365,251"/>
+<area shape="poly" id="edge9_Node000002_Node000009" title=" " alt="" coords="354,158,295,198,292,194,351,154"/>
+<area shape="rect" id="Node000011" href="$maneuver__types_8cpp.html" title=" " alt="" coords="440,203,607,243"/>
+<area shape="poly" id="edge14_Node000002_Node000011" title=" " alt="" coords="446,155,502,201,499,205,443,159"/>
+<area shape="rect" id="Node000004" href="$maneuver__server_8hpp.html" title=" " alt="" coords="9,387,227,441"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="333,345,199,389,197,384,331,340"/>
+<area shape="rect" id="Node000005" href="$takeoff__maneuver__server_8hpp.html" title=" " alt="" coords="197,489,394,544"/>
+<area shape="poly" id="edge7_Node000003_Node000005" title=" " alt="" coords="440,346,456,364,468,386,477,415,475,428,468,443,454,461,436,475,396,497,393,492,433,471,450,457,464,440,470,427,472,415,464,388,452,368,436,350"/>
+<area shape="rect" id="Node000008" href="$behavior__state_8cpp.html" title=" " alt="" coords="303,394,453,434"/>
+<area shape="poly" id="edge8_Node000003_Node000008" title=" " alt="" coords="396,353,385,395,380,393,391,351"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="177,446,250,487,248,491,175,450"/>
+<area shape="rect" id="Node000007" href="$maneuver__server_8cpp.html" title=" " alt="" coords="5,497,172,537"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="109,455,97,497,92,495,104,454"/>
+<area shape="rect" id="Node000006" href="$takeoff__maneuver__server_8cpp.html" title=" " alt="" coords="186,592,405,632"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="298,558,298,592,293,592,293,558"/>
+<area shape="poly" id="edge10_Node000009_Node000003" title=" " alt="" coords="310,256,374,296,371,301,307,260"/>
+<area shape="poly" id="edge11_Node000009_Node000004" title=" " alt="" coords="238,264,191,340,148,388,144,385,187,337,234,262"/>
+<area shape="poly" id="edge12_Node000009_Node000005" title=" " alt="" coords="263,264,294,489,289,490,258,265"/>
+<area shape="rect" id="Node000010" href="$maneuver__queue_8cpp.html" title=" " alt="" coords="9,299,176,339"/>
+<area shape="poly" id="edge13_Node000009_Node000010" title=" " alt="" coords="199,260,127,301,124,296,197,255"/>
+</map>

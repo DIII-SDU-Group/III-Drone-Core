@@ -1,0 +1,9 @@
+<map id="iii_drone::control::maneuver::ManeuverQueue::Peak" name="iii_drone::control::maneuver::ManeuverQueue::Peak">
+<area shape="rect" id="Node000001" title="Peeks an item from the queue." alt="" coords="5,46,256,86"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#a6ba6788f60421f28a651fcefadf2361d" title="Whether the queue is empty." alt="" coords="304,5,515,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="256,48,290,44,291,50,257,54"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#a321a716c08d254346dd25c50c42f6093" title="Gets the vector of maneuvers in the queue." alt="" coords="563,39,773,93"/>
+<area shape="poly" id="edge4_Node000001_Node000003" title=" " alt="" coords="256,68,304,69,515,69,549,68,549,73,515,74,304,74,256,73"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="515,44,550,48,549,53,514,49"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="618,39,619,28,627,20,644,14,668,12,697,15,713,23,711,28,695,20,668,17,645,19,630,24,623,30,624,39"/>
+</map>

@@ -1,0 +1,33 @@
+<map id="iii_drone::utils::Timestamp::Update" name="iii_drone::utils::Timestamp::Update">
+<area shape="rect" id="Node000001" title="Updates the timestamp to now." alt="" coords="571,435,767,475"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1Powerline.html#ac41b155797547f943848004171fb7c61" title="Cleans up the lines that are not in the sensor FOV." alt="" coords="319,5,508,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="662,421,652,347,629,249,610,198,587,147,557,100,521,59,505,48,508,43,524,55,561,97,591,145,615,196,634,248,657,346,668,421"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1Powerline.html#a07f90dc6a742a7f921e041d3b3734d8b" title="Computes the inter line positions." alt="" coords="304,70,523,125"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="659,422,643,361,617,285,598,245,577,207,551,170,521,138,506,127,509,123,524,134,555,167,581,204,603,243,622,283,648,360,664,420"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a896518120e987d3be288e56dd34410b9" title="Default constructor." alt="" coords="336,149,491,203"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="653,423,634,377,606,322,568,265,521,217,489,198,492,193,524,213,572,262,610,319,639,375,658,421"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a1f751f8f0562b55f31d42142c6b55ffc" title="Runs the Kalman Filter predict step from a drone quaternion." alt="" coords="336,227,491,282"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="644,425,592,361,559,327,521,297,489,280,492,275,524,292,562,323,596,357,648,422"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1perception_1_1SingleLine.html#a07932346f3f532051cf105e92c1a2ed4" title="Runs the Kalman Filter predict step." alt="" coords="336,307,491,347"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="630,428,580,394,522,361,490,349,492,344,524,356,583,389,633,424"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1perception_1_1Powerline.html#aca2026f294b1aa4c3447240d56422c2c" title="Resets the powerline object." alt="" coords="336,371,491,411"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="574,434,490,413,492,407,576,429"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1perception_1_1SingleLine.html#a8147790cb624bf4e00ab997e44ab4bd4" title="Sets the position and updates the Kalman Filter estimates." alt="" coords="324,435,503,475"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="557,457,503,457,503,452,557,452"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1utils_1_1Timestamp.html#a2e610487ef16d9d5a8d6dc8ad457a3e7" title="Default constructor." alt="" coords="315,499,511,539"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="575,481,494,501,493,496,574,476"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1perception_1_1SingleLine.html#aaa9fb467e21d3eb1a5e38002b0e3a72b" title="Runs the Kalman Filter update step and increments the alive counter." alt="" coords="336,563,491,603"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="633,485,583,520,524,553,492,566,490,561,522,548,580,516,630,481"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a15ab1216adf0aff5c7be05e851c70040" title="Runs the Kalman Filter update step from an observed yaw angle." alt="" coords="336,627,491,682"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="648,488,596,552,562,587,524,617,492,634,489,629,521,612,559,583,592,549,644,484"/>
+<area shape="rect" id="Node000014" href="$classiii__drone_1_1perception_1_1Powerline.html#ac0f0ef699ab1cca6ab024e2f9549ce8e" title="Updates the powerline direction and updates the projection plane." alt="" coords="309,707,517,747"/>
+<area shape="poly" id="edge13_Node000001_Node000014" title=" " alt="" coords="659,489,640,535,611,591,573,648,550,674,524,697,505,709,502,704,521,693,546,670,569,645,607,589,635,533,654,487"/>
+<area shape="rect" id="Node000015" href="$classiii__drone_1_1perception_1_1Powerline.html#a287872d7937bc69956dbeb938aff884e" title="Updates from a point. If match is found, runs the Kalman Filter update step for the matching line,..." alt="" coords="325,771,501,811"/>
+<area shape="poly" id="edge14_Node000001_Node000015" title=" " alt="" coords="663,489,648,547,621,620,603,659,581,696,555,730,524,761,503,774,500,770,521,757,551,727,576,693,598,656,616,618,643,546,658,487"/>
+<area shape="rect" id="Node000016" href="$classiii__drone_1_1perception_1_1Powerline.html#ae0f6a983c3039c6a41bda6258ec2b70d" title="Updates the powerline from odometry." alt="" coords="306,835,521,875"/>
+<area shape="poly" id="edge15_Node000001_Node000016" title=" " alt="" coords="667,489,655,559,630,649,611,697,588,743,559,786,524,825,507,837,504,832,521,821,555,783,583,740,607,694,625,647,649,557,661,488"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1perception_1_1Powerline.html#a500b7393d0366ea7ff3d165cc0c91d7f" title="Constructor." alt="" coords="47,371,214,411"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="322,393,214,393,214,388,322,388"/>
+<area shape="rect" id="Node000013" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerNode.html#a7d69d952785cf09e8cd381bd624480f2" title="Construct a new Powerline Direction Computer Node object." alt="" coords="5,620,256,689"/>
+<area shape="poly" id="edge12_Node000012_Node000013" title=" " alt="" coords="322,657,256,657,256,652,322,652"/>
+</map>

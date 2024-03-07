@@ -1,0 +1,6 @@
+<map id="iii_drone::perception::Powerline::ToAdapter" name="iii_drone::perception::Powerline::ToAdapter">
+<area shape="rect" id="Node000001" title="Converts to a PowerlineAdapter." alt="" coords="5,29,172,69"/>
+<area shape="poly" id="edge2_Node000001_Node000001" title=" " alt="" coords="45,30,42,20,49,10,65,5,89,3,116,6,131,13,129,18,115,11,89,8,66,10,52,15,47,21,50,28"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1Powerline.html#a210005c21c48227d8b6961e2a8f6cb86" title="Returns the powerline projection plane." alt="" coords="220,29,431,69"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="172,47,206,47,206,52,172,52"/>
+</map>

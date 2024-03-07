@@ -1,0 +1,9 @@
+<map id="iii_drone::adapters::px4::VehicleOdometryAdapter::VehicleOdometryAdapter" name="iii_drone::adapters::px4::VehicleOdometryAdapter::VehicleOdometryAdapter">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,16,231,71"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1px4_1_1VehicleOdometryAdapter.html#add458b12c101a10e2ab7d75e46186ea9" title="Updates the object from a new PX4 odometry message." alt="" coords="279,16,504,71"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="231,41,265,41,265,46,231,46"/>
+<area shape="rect" id="Node000003" href="$namespaceiii__drone_1_1math.html#a531ed4bd8183770d77ec20b37a8709c2" title=" " alt="" coords="552,5,745,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="504,30,538,26,538,32,505,35"/>
+<area shape="rect" id="Node000004" href="$namespaceiii__drone_1_1math.html#a8e7d7e25d07b368363d6da9939a9abed" title=" " alt="" coords="553,55,744,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="505,51,540,55,539,60,504,57"/>
+</map>

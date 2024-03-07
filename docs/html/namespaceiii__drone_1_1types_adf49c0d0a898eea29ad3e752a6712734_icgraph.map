@@ -1,0 +1,28 @@
+<map id="iii_drone::types::pointMsgFromPoint" name="iii_drone::types::pointMsgFromPoint">
+<area shape="rect" id="Node000001" title=" " alt="" coords="525,241,716,281"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1SingleLine.html#aa63a08c0e3ed8294ea894bba24314324" title="Returns whether the line is in FOV, non strict." alt="" coords="283,72,437,112"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="590,233,540,184,476,137,428,114,430,110,479,132,543,180,594,229"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1SingleLine.html#ad54f59f23516a68b495cbd198c985833" title="Returns whether the line is in FOV, using the strict parameters." alt="" coords="5,133,195,173"/>
+<area shape="poly" id="edge6_Node000001_Node000004" title=" " alt="" coords="561,239,477,209,404,193,329,180,194,163,195,158,330,175,405,188,478,204,563,233"/>
+<area shape="rect" id="Node000006" href="$namespaceiii__drone_1_1types.html#a2b1316cd0e6d4f226b2e11e7f9dd03c9" title=" " alt="" coords="266,241,454,281"/>
+<area shape="poly" id="edge7_Node000001_Node000006" title=" " alt="" coords="511,264,454,264,454,259,511,259"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a4706fbf203ef8a62bde3fd67246e4871" title="Converts to SingleLine msg." alt="" coords="26,198,174,253"/>
+<area shape="poly" id="edge11_Node000001_Node000007" title=" " alt="" coords="531,241,477,232,396,225,315,222,174,224,174,219,315,217,397,220,478,227,531,236"/>
+<area shape="rect" id="Node000009" href="$namespaceiii__drone_1_1types.html#a8137b60448e08ccea971658dc2b64cd0" title=" " alt="" coords="266,305,454,345"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="526,287,443,308,441,303,525,282"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a93dc5170f28f0b86439146049989ce60" title="Converts to Pose msg." alt="" coords="286,370,434,425"/>
+<area shape="poly" id="edge12_Node000001_Node000010" title=" " alt="" coords="585,292,536,326,479,360,435,378,433,373,476,355,533,322,582,288"/>
+<area shape="rect" id="Node000012" href="$structiii__drone_1_1control_1_1maneuver_1_1fly__to__position__maneuver__params__t.html#af186f455a9c83cd42e413d152f4d34ff" title=" " alt="" coords="243,449,477,519"/>
+<area shape="poly" id="edge14_Node000001_Node000012" title=" " alt="" coords="603,295,552,366,518,405,479,439,460,451,457,447,476,435,514,401,548,363,599,292"/>
+<area shape="poly" id="edge3_Node000002_Node000002" title=" " alt="" coords="404,60,389,53,360,51,335,53,320,57,314,63,317,71,312,72,309,62,317,53,334,47,360,45,390,48,406,55"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1SingleLine.html#ae9804a282e066e92081c54528f9c4a7e" title="Returns whether the line is alive, i.e. whether it is not in the FOV or alive_cnt_ is above alive_cnt..." alt="" coords="23,5,177,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="269,71,177,48,178,43,270,66"/>
+<area shape="poly" id="edge4_Node000002_Node000004" title=" " alt="" coords="270,116,186,136,185,131,269,111"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1perception_1_1SingleLine.html#a572bd83d5f2d58b19895bedce97abf57" title="Converts to SingleLineAdapter." alt="" coords="15,69,185,109"/>
+<area shape="poly" id="edge5_Node000002_Node000005" title=" " alt="" coords="269,94,185,93,185,88,269,88"/>
+<area shape="poly" id="edge8_Node000006_Node000007" title=" " alt="" coords="252,249,174,238,175,233,253,244"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a2c93fe708f8c700a005e6dd6d8c08e53" title="Converts to pose stamped message." alt="" coords="20,277,180,331"/>
+<area shape="poly" id="edge9_Node000006_Node000008" title=" " alt="" coords="253,282,181,294,180,288,252,276"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a0e51bbd6fad04d9daf990a9f228c12bf" title="Converts to PoseStamped msg." alt="" coords="20,370,180,425"/>
+<area shape="poly" id="edge13_Node000010_Node000011" title=" " alt="" coords="273,400,180,400,180,395,273,395"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="iii_drone::adapters::ControlStateAdapter::UpdateFromMsg" name="iii_drone::adapters::ControlStateAdapter::UpdateFromMsg">
+<area shape="rect" id="Node000001" title="Updates from message." alt="" coords="216,5,379,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1ControlStateAdapter.html#a816e795778516f62537320f8da20418a" title="Constructor from control state message." alt="" coords="5,5,168,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="202,35,168,35,168,30,202,30"/>
+</map>

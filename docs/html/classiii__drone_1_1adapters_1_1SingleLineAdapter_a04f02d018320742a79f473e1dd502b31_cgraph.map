@@ -1,0 +1,17 @@
+<map id="iii_drone::adapters::SingleLineAdapter::SingleLineAdapter" name="iii_drone::adapters::SingleLineAdapter::SingleLineAdapter">
+<area shape="rect" id="Node000001" title="Constructor from members." alt="" coords="5,228,153,283"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a5348a1eb9e8f868cee28cf108fa0dd5a" title="Frame id getter." alt="" coords="211,5,359,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="91,227,133,151,163,109,200,71,206,66,209,70,203,75,167,112,137,154,95,229"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a094ffe670b1d879fa9bd9012255a6173" title="Id getter." alt="" coords="201,85,369,125"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="101,226,144,180,200,134,210,128,213,133,203,139,148,184,105,229"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a6ffd87a0b1e2778edceec92aa9673cf2" title="In FOV getter." alt="" coords="211,149,359,204"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="151,225,200,206,201,211,153,230"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#aee7b33b95f9bc339fd4f02709ce9033c" title="position getter." alt="" coords="211,228,359,283"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="154,253,198,253,198,258,154,258"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a23cee2565e8322262133adf8bb71e29e" title="Projected position getter." alt="" coords="210,307,361,361"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="153,280,201,299,200,304,151,285"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#afd88bc8f611f1c64105958f1abff6df5" title="Quaternion getter." alt="" coords="211,385,359,440"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="106,281,149,326,203,371,211,376,209,381,200,375,146,330,103,285"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#ae353f420f984e5fe68d67cd5be7e565b" title="Timestamp getter." alt="" coords="211,464,359,519"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="94,282,135,363,166,409,203,449,209,454,205,458,199,453,162,412,131,366,89,284"/>
+</map>

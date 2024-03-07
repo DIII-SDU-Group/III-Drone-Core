@@ -1,0 +1,5 @@
+<map id="iii_drone::perception::PowerlineDirection::Update" name="iii_drone::perception::PowerlineDirection::Update">
+<area shape="rect" id="Node000001" title="Runs the Kalman Filter update step from an observed yaw angle." alt="" coords="5,5,160,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1Timestamp.html#a373bc0de94c27153e2372c30f0eedbb1" title="Updates the timestamp to now." alt="" coords="208,13,404,53"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="161,30,194,30,194,35,161,35"/>
+</map>

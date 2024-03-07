@@ -1,0 +1,9 @@
+<map id="iii_drone::perception::SingleLine::SingleLine" name="iii_drone::perception::SingleLine::SingleLine">
+<area shape="rect" id="Node000001" title="Constructor from position and quaternion." alt="" coords="5,69,177,109"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1SingleLine.html#abfb685964e0af6f5d46fc2c70e6c9412" title="Id getter." alt="" coords="235,5,390,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="161,67,229,47,231,52,162,72"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1SingleLine.html#aeb05d9d3ca876e323a7e46b228d63e0c" title="position getter." alt="" coords="234,69,391,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="178,87,221,87,221,92,178,92"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1SingleLine.html#a49650269a9ab4cdd4fa225534700a21e" title="quaternion getter." alt="" coords="225,133,400,173"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="162,107,231,127,229,132,161,112"/>
+</map>

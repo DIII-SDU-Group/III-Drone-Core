@@ -1,0 +1,7 @@
+<map id="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator::kf_r" name="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator::kf_r">
+<area shape="rect" id="Node000001" title="Get the Powerline Kalman filter r coefficient." alt="" coords="5,5,216,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="264,13,472,53"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="216,30,250,30,250,35,216,35"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="520,13,735,53"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="472,30,506,30,506,35,472,35"/>
+</map>

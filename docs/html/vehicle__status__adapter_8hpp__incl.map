@@ -1,0 +1,9 @@
+<map id="include/iii_drone_core/adapters/px4/vehicle_status_adapter.hpp" name="include/iii_drone_core/adapters/px4/vehicle_status_adapter.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="76,5,240,60"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,115,68,141"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="125,62,64,109,61,105,122,58"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="92,115,224,141"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="161,60,161,101,155,101,155,60"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="249,108,419,148"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="209,58,288,99,285,104,206,62"/>
+</map>

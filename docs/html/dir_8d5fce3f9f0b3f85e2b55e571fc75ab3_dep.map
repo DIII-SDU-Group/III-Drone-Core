@@ -1,0 +1,11 @@
+<map id="include/iii_drone_core/utils" name="include/iii_drone_core/utils">
+<area shape="rect" id="node1" href="dir_0266f6c656cc8031115a442d81d571fa.html" title="configuration" alt="" coords="63,136,169,161"/>
+<area shape="rect" id="node2" href="dir_8d2df975878b3889d1f4f27f142f8b6b.html" title="adapters" alt="" coords="194,136,273,161"/>
+<area shape="rect" id="node4" href="dir_dbd26cfcf55381b6a99157bfb709d4ef.html" title="drone_frame_broadcaster_node" alt="" coords="38,63,266,88"/>
+<area shape="poly" id="edge1" href="dir_000012_000004.html" alt="" coords="148,90,130,125,126,122,144,87"/>
+<area shape="rect" id="edge1-headlabel" href="dir_000012_000004.html" title="1" alt="" coords="133,116,142,131"/>
+<area shape="poly" id="edge2" href="dir_000012_000000.html" alt="" coords="167,86,212,125,208,129,163,90"/>
+<area shape="rect" id="edge2-headlabel" href="dir_000012_000000.html" title="1" alt="" coords="207,110,217,125"/>
+<area shape="rect" id="clust2" href="dir_8d5fce3f9f0b3f85e2b55e571fc75ab3.html" alt="" coords="27,52,352,99"/>
+<area shape="rect" id="clust1" href="dir_675c2ae8dc1cdd323b7308c72e2b5eff.html" title="iii_drone_core" alt="" coords="16,16,363,172"/>
+</map>

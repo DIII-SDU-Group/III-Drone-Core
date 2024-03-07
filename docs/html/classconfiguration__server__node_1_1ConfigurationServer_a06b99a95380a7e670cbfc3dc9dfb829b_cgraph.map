@@ -1,0 +1,9 @@
+<map id="configuration_server_node.ConfigurationServer.on_delete" name="configuration_server_node.ConfigurationServer.on_delete">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,45,219,100"/>
+<area shape="rect" id="Node000002" href="$classconfiguration__server__node_1_1ConfigurationServer.html#a10b8065e4178e03917ab03976817ba5c" title=" " alt="" coords="267,45,495,100"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="219,70,253,70,253,75,219,75"/>
+<area shape="rect" id="Node000003" href="$classconfiguration__server__node_1_1ConfigurationServer.html#aff58be0cdb93ba1f38febf85d588ea1e" title=" " alt="" coords="559,5,777,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="495,54,545,47,546,52,495,59"/>
+<area shape="rect" id="Node000004" href="$classconfiguration__server__node_1_1ConfigurationServer.html#a1438a172ffa608941faab84d93cf1d20" title=" " alt="" coords="543,84,793,139"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="495,85,530,90,529,95,495,91"/>
+</map>

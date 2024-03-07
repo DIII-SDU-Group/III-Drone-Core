@@ -1,0 +1,9 @@
+<map id="iii_drone::perception::SingleLine::projected_position" name="iii_drone::perception::SingleLine::projected_position">
+<area shape="rect" id="Node000001" title="projected_position getter." alt="" coords="225,62,392,117"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1SingleLine.html#a0133f9ac4eaac14f379b35313e6dfcbe" title="Assignment operator overload." alt="" coords="6,5,177,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="211,63,159,48,161,43,212,58"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1SingleLine.html#a23ed739c4d3315789dfc2b62cc586833" title="Copy constructor." alt="" coords="5,69,177,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="211,92,178,92,178,87,211,87"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1SingleLine.html#aaa9fb467e21d3eb1a5e38002b0e3a72b" title="Runs the Kalman Filter update step and increments the alive counter." alt="" coords="14,133,169,173"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="212,120,161,136,159,131,211,115"/>
+</map>

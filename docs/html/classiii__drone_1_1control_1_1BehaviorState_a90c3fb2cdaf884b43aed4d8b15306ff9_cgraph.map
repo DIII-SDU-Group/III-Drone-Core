@@ -1,0 +1,15 @@
+<map id="iii_drone::control::BehaviorState::on_cable" name="iii_drone::control::BehaviorState::on_cable">
+<area shape="rect" id="Node000001" title="Whether the drone is on a cable." alt="" coords="5,117,193,157"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1BehaviorState.html#a950f5d0c9562cdfa1f03a2409ce9f682" title="Return the id of the cable that the drone is on if it is on a cable, &#45;1 otherwise." alt="" coords="241,110,388,165"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="194,135,228,135,228,140,194,140"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a094ffe670b1d879fa9bd9012255a6173" title="Id getter." alt="" coords="465,5,633,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="350,108,389,80,435,55,452,48,454,53,437,60,392,85,353,112"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1adapters_1_1px4_1_1VehicleOdometryAdapter.html#a82c0aa2397ba3aa4df53c8ca6f97e487" title="Position getter." alt="" coords="436,70,661,125"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="388,122,422,116,423,122,389,127"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#aee7b33b95f9bc339fd4f02709ce9033c" title="position getter." alt="" coords="475,149,623,203"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="389,147,462,159,461,164,388,152"/>
+<area shape="rect" id="Node000006" href="$namespaceiii__drone_1_1types.html#a91daf68da0f0ed4ca21d3d61efddc99c" title=" " alt="" coords="463,228,634,268"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="354,163,393,188,437,212,458,221,456,226,435,217,391,193,351,167"/>
+<area shape="rect" id="Node000007" href="$namespaceiii__drone_1_1types.html#a42473d6c26ea6e0c7c0eeda54448907c" title=" " alt="" coords="709,228,880,268"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="634,245,695,245,695,251,634,251"/>
+</map>

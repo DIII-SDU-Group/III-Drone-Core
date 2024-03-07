@@ -1,0 +1,7 @@
+<map id="iii_drone::types::poseMsgFromPose" name="iii_drone::types::poseMsgFromPose">
+<area shape="rect" id="Node000001" title=" " alt="" coords="213,53,401,93"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a4706fbf203ef8a62bde3fd67246e4871" title="Converts to SingleLine msg." alt="" coords="11,5,159,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="199,56,159,49,160,43,200,51"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a2c93fe708f8c700a005e6dd6d8c08e53" title="Converts to pose stamped message." alt="" coords="5,84,165,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="200,94,166,100,165,95,199,89"/>
+</map>

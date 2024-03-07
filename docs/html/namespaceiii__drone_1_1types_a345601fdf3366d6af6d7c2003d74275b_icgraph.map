@@ -1,0 +1,21 @@
+<map id="iii_drone::types::quaternionMsgFromQuaternion" name="iii_drone::types::quaternionMsgFromQuaternion">
+<area shape="rect" id="Node000001" title=" " alt="" coords="528,198,728,238"/>
+<area shape="rect" id="Node000002" href="$namespaceiii__drone_1_1types.html#a2b1316cd0e6d4f226b2e11e7f9dd03c9" title=" " alt="" coords="285,62,473,102"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="591,191,540,153,479,116,451,105,453,100,481,112,543,149,594,187"/>
+<area shape="rect" id="Node000005" href="$namespaceiii__drone_1_1types.html#a8137b60448e08ccea971658dc2b64cd0" title=" " alt="" coords="285,126,473,166"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="544,197,449,169,450,164,546,192"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a93dc5170f28f0b86439146049989ce60" title="Converts to Pose msg." alt="" coords="305,191,453,245"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="514,221,453,221,453,215,514,215"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a6b98a0735a5158f0f520531e0ef0f622" title="Converts to quaternion stamped message." alt="" coords="279,269,480,324"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="552,245,467,272,466,267,550,240"/>
+<area shape="rect" id="Node000009" href="$namespaceiii__drone_1_1types.html#aa98e988d47c7d29c21cc73c1acdf2478" title=" " alt="" coords="282,349,477,389"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="598,250,546,295,481,339,455,351,452,346,479,334,543,291,595,246"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a4706fbf203ef8a62bde3fd67246e4871" title="Converts to SingleLine msg." alt="" coords="44,5,192,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="271,64,192,49,193,44,272,59"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a2c93fe708f8c700a005e6dd6d8c08e53" title="Converts to pose stamped message." alt="" coords="38,84,198,139"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="272,97,199,105,198,100,271,91"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a0e51bbd6fad04d9daf990a9f228c12bf" title="Converts to PoseStamped msg." alt="" coords="38,191,198,245"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="292,221,198,221,198,215,292,215"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1adapters_1_1px4_1_1VehicleOdometryAdapter.html#adc2654d2abd16ac83fa1ce8d211ac247" title="Converts the object to a geometry_msgs::msg::TransformStamped object." alt="" coords="5,341,231,396"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="268,371,231,371,231,366,268,366"/>
+</map>

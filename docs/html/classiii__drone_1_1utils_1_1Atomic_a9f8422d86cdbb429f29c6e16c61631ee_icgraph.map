@@ -1,0 +1,60 @@
+<map id="iii_drone::utils::Atomic::Load" name="iii_drone::utils::Atomic::Load">
+<area shape="rect" id="Node000001" title="Get the value." alt="" coords="1293,366,1461,406"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1Atomic.html#a6912a3be971959600e780f8700261d8e" title="Copy constructor." alt="" coords="1073,47,1241,87"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1366,353,1351,301,1326,235,1291,168,1269,136,1244,108,1218,90,1221,85,1247,104,1273,133,1295,165,1331,233,1356,299,1371,352"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1BehaviorState.html#a74a7c96bc968843d24044aa448d57055" title="Get the current maneuver." alt="" coords="1069,264,1245,319"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="1317,363,1221,321,1223,316,1319,358"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1BehaviorState.html#ad608deaa322e450c9cfc95d6febcec84" title="Returns the expected behavior state upon completion or failure of given maneuver type,..." alt="" coords="268,279,503,333"/>
+<area shape="poly" id="edge30_Node000001_Node000006" title=" " alt="" coords="1279,381,502,318,503,313,1280,376"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1BehaviorState.html#a631f3ff6ee982738366e0e730485a0c4" title="Get whether a maneuver is being executed." alt="" coords="825,163,1021,217"/>
+<area shape="poly" id="edge24_Node000001_Node000008" title=" " alt="" coords="1353,356,1307,302,1277,276,1244,254,1190,230,1132,213,1074,202,1021,196,1022,191,1075,197,1133,208,1191,225,1247,249,1280,271,1311,299,1357,353"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1control_1_1BehaviorState.html#af9764ecd11994dfb3b36480689b2c7e3" title="Whether the drone has a target cable." alt="" coords="847,5,1000,60"/>
+<area shape="poly" id="edge12_Node000001_Node000009" title=" " alt="" coords="1363,354,1346,310,1321,258,1287,205,1244,160,1221,144,1201,134,1161,124,1119,118,1068,102,1020,74,995,62,998,58,1023,69,1070,97,1120,113,1162,119,1202,129,1224,140,1247,156,1291,202,1325,255,1351,308,1368,352"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1utils_1_1Token.html#af0160e7c7f1f4c358ce903f3490c1026" title="Whether the token is held by the calling thread." alt="" coords="1078,394,1237,434"/>
+<area shape="poly" id="edge14_Node000001_Node000010" title=" " alt="" coords="1280,401,1237,407,1237,401,1279,396"/>
+<area shape="rect" id="Node000018" href="$classiii__drone_1_1utils_1_1Token.html#a5e724f831e2c20aa7eed03d7b264560f" title="Whether the token is held by a thread." alt="" coords="1078,458,1237,498"/>
+<area shape="poly" id="edge23_Node000001_Node000018" title=" " alt="" coords="1323,414,1246,448,1216,460,1214,455,1244,444,1321,409"/>
+<area shape="rect" id="Node000019" href="$classiii__drone_1_1utils_1_1Token.html#a7f242bea6b8c01922066812119e6d5d1" title="Whether the token is held by the master." alt="" coords="1078,522,1237,562"/>
+<area shape="poly" id="edge25_Node000001_Node000019" title=" " alt="" coords="1352,418,1306,466,1247,512,1224,524,1221,519,1244,508,1302,462,1349,415"/>
+<area shape="rect" id="Node000020" href="$classiii__drone_1_1control_1_1BehaviorState.html#a16d05fccc5e39380c8d449ab2a4abcd0" title="Whether the drone is on the ground." alt="" coords="1084,587,1231,641"/>
+<area shape="poly" id="edge26_Node000001_Node000020" title=" " alt="" coords="1363,420,1317,496,1285,539,1247,576,1229,589,1226,584,1244,572,1281,535,1313,493,1358,417"/>
+<area shape="rect" id="Node000023" href="$classiii__drone_1_1utils_1_1Atomic.html#a77f54dcc778d4ca711cee51a864451d7" title="Assignment operator." alt="" coords="1073,666,1241,706"/>
+<area shape="poly" id="edge29_Node000001_Node000023" title=" " alt="" coords="1371,420,1355,471,1330,534,1295,598,1272,628,1247,655,1228,668,1225,664,1244,651,1268,625,1290,595,1326,531,1350,469,1366,419"/>
+<area shape="rect" id="Node000024" href="$classiii__drone_1_1control_1_1BehaviorState.html#a2c4d98de7af0a2a0a461d90fa2f794af" title="Whether the position of the target cable is known." alt="" coords="837,84,1010,139"/>
+<area shape="poly" id="edge31_Node000001_Node000024" title=" " alt="" coords="1358,355,1339,320,1313,281,1281,242,1244,210,1203,189,1143,169,1009,133,1011,128,1145,163,1205,184,1247,205,1285,239,1318,278,1344,318,1363,352"/>
+<area shape="rect" id="Node000025" href="$classiii__drone_1_1utils_1_1Token.html#a95c2aa2b2de56df7afff42eda241a502" title="Get the token holder name." alt="" coords="1078,730,1237,770"/>
+<area shape="poly" id="edge33_Node000001_Node000025" title=" " alt="" coords="1374,420,1363,483,1340,563,1323,605,1302,647,1277,685,1247,720,1231,732,1228,728,1244,716,1273,682,1298,644,1318,603,1335,561,1357,482,1369,419"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1BehaviorState.html#ae413bc1424de620b59ad39f17550cd59" title="Get the behavior state of the drone." alt="" coords="551,170,777,210"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="1055,276,825,231,744,213,746,207,826,226,1056,271"/>
+<area shape="poly" id="edge11_Node000003_Node000006" title=" " alt="" coords="1056,296,503,306,503,301,1056,291"/>
+<area shape="poly" id="edge9_Node000003_Node000008" title=" " alt="" coords="1080,261,986,220,988,215,1082,256"/>
+<area shape="poly" id="edge4_Node000004_Node000004" title=" " alt="" coords="708,158,693,151,664,149,639,151,624,155,618,161,621,169,616,170,613,160,621,151,638,145,664,143,694,146,710,153"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1BehaviorState.html#aedb61a6110864484c564c923e659d31f" title="Returns the expected behavior state upon completion or failure of given maneuver type,..." alt="" coords="282,170,489,210"/>
+<area shape="poly" id="edge5_Node000004_Node000005" title=" " alt="" coords="537,193,489,193,489,187,537,187"/>
+<area shape="poly" id="edge6_Node000004_Node000006" title=" " alt="" coords="603,218,453,281,451,276,601,213"/>
+<area shape="poly" id="edge8_Node000006_Node000006" title=" " alt="" coords="431,268,415,260,385,257,361,259,345,264,338,271,338,279,333,279,333,268,342,260,360,254,385,252,416,255,433,263"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1BehaviorState.html#ab4ed76614b4f7e6dd264d8006c4ddbea" title="Returns whether a given maneuver can execute later." alt="" coords="5,286,220,326"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="254,309,220,309,220,303,254,303"/>
+<area shape="poly" id="edge10_Node000008_Node000004" title=" " alt="" coords="812,193,777,193,777,187,812,187"/>
+<area shape="poly" id="edge13_Node000009_Node000004" title=" " alt="" coords="837,68,827,74,750,124,690,172,687,168,747,120,824,69,834,64"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1utils_1_1Token.html#a6921bbeec7648c4338b1667b4e55d2c1" title="Request to acquire the token, to be called by a slave." alt="" coords="844,458,1003,498"/>
+<area shape="poly" id="edge15_Node000010_Node000011" title=" " alt="" coords="1071,440,998,461,996,455,1070,435"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1utils_1_1Token.html#aa11a9de7f7554a4332bd458be1da4d21" title="Assignment operator." alt="" coords="844,522,1003,562"/>
+<area shape="poly" id="edge16_Node000010_Node000012" title=" " alt="" coords="1079,443,1071,448,1056,464,1048,479,1039,496,1023,512,1002,524,999,520,1020,508,1035,493,1043,477,1052,460,1068,444,1076,439"/>
+<area shape="rect" id="Node000013" href="$classiii__drone_1_1utils_1_1Token.html#a5db10c0379a034b931907b666efe5388" title="Releases the token, to be called by a slave." alt="" coords="844,637,1003,677"/>
+<area shape="poly" id="edge17_Node000010_Node000013" title=" " alt="" coords="1075,444,1071,448,1056,469,1049,490,1048,532,1046,575,1039,597,1023,620,999,639,995,634,1019,616,1034,595,1041,574,1042,532,1044,489,1052,467,1067,444,1071,440"/>
+<area shape="rect" id="Node000014" href="$classiii__drone_1_1utils_1_1Token.html#a5c977ed761af829cc8426c96419864ef" title="Destructor." alt="" coords="585,607,743,647"/>
+<area shape="poly" id="edge22_Node000010_Node000014" title=" " alt="" coords="1076,444,1071,448,1059,464,1053,479,1050,512,1045,545,1037,561,1023,576,1002,588,974,598,902,613,820,622,744,627,743,622,820,617,901,608,973,593,1000,583,1020,572,1033,558,1040,543,1044,511,1048,478,1055,461,1067,444,1072,440"/>
+<area shape="rect" id="Node000015" href="$classiii__drone_1_1utils_1_1Token.html#af148ea73a4a71657f67da885012b8768" title="Get the resource." alt="" coords="844,394,1003,434"/>
+<area shape="poly" id="edge19_Node000010_Node000015" title=" " alt="" coords="1064,417,1003,417,1003,411,1064,411"/>
+<area shape="poly" id="edge18_Node000013_Node000014" title=" " alt="" coords="830,649,743,639,744,634,831,644"/>
+<area shape="rect" id="Node000016" href="$classiii__drone_1_1utils_1_1Token.html#ad2dbe96a256bcb2192af2d94a041951f" title="Constructor from shared ptr." alt="" coords="585,394,743,434"/>
+<area shape="poly" id="edge20_Node000015_Node000016" title=" " alt="" coords="830,417,743,417,743,411,830,411"/>
+<area shape="rect" id="Node000017" href="$classiii__drone_1_1utils_1_1Token.html#a752779c5bedec6dfe41d63954aaf701d" title="Constructor." alt="" coords="585,458,743,498"/>
+<area shape="poly" id="edge21_Node000015_Node000017" title=" " alt="" coords="831,439,744,461,743,456,830,434"/>
+<area shape="rect" id="Node000021" href="$classiii__drone_1_1control_1_1BehaviorState.html#a1b5262b99d96767ebdc0be10fb29bdf5" title="Returns the drone location, checks the drone location and sets the on_cable_id if the drone is on a c..." alt="" coords="840,701,1007,756"/>
+<area shape="poly" id="edge27_Node000020_Node000021" title=" " alt="" coords="1082,650,1071,656,1047,674,1023,691,998,704,995,699,1020,686,1044,669,1068,652,1080,645"/>
+<area shape="rect" id="Node000022" href="$classiii__drone_1_1control_1_1BehaviorState.html#a2a8726ede2d3f2dab883e9c4f0d63fb5" title="Whether the drone is in flight." alt="" coords="852,780,995,835"/>
+<area shape="poly" id="edge28_Node000020_Node000022" title=" " alt="" coords="1076,652,1071,656,1060,670,1054,684,1048,712,1043,741,1035,756,1023,771,996,789,993,785,1020,767,1031,753,1038,739,1043,711,1049,682,1056,667,1067,652,1072,648"/>
+<area shape="poly" id="edge32_Node000024_Node000004" title=" " alt="" coords="824,144,732,172,730,167,823,139"/>
+</map>

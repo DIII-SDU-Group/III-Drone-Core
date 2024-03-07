@@ -1,0 +1,17 @@
+<map id="iii_drone::configuration::Configurator" name="iii_drone::configuration::Configurator">
+<area shape="rect" id="Node000001" title="Class for handling parameters of a node. The class works in conjunction with the ConfigurationServer ..." alt="" coords="5,251,176,291"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1MPCConfigurator.html" title="Class for handling parameters for a positional MPC." alt="" coords="287,5,458,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="101,237,118,195,144,145,179,96,222,55,253,39,286,29,288,34,255,44,226,60,183,100,148,148,123,197,105,239"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1trajectory__controller__node_1_1TrajectoryControllerConfigurator.html" title="Class for handling parameters for TrajectoryController." alt="" coords="234,70,511,125"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="113,238,160,185,190,158,223,135,249,122,251,127,225,140,193,162,163,189,117,241"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1mission_1_1continuous__mission__orchestrator__node_1_1ContinuousMissionOrchestratorConfigurator.html" title="Class for handling parameters for ContinuousMissionOrchestrator." alt="" coords="256,149,489,219"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="169,244,258,216,260,221,170,249"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1perception_1_1hough__transformer__node_1_1HoughTransformerConfigurator.html" title="Class for handling parameters for HoughTransformer." alt="" coords="257,243,488,298"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="190,268,257,268,257,273,190,273"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerConfigurator.html" title="Class for handling parameters for PowerlineDirectionComputer." alt="" coords="224,322,521,377"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="173,292,225,307,270,319,269,325,223,312,172,297"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html" title="Class for handling parameters for PowerlineMapper." alt="" coords="267,401,478,455"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="120,299,166,344,195,366,225,386,268,404,266,409,223,390,192,371,163,348,116,303"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1utils_1_1drone__frame__broadcaster__node_1_1DroneFrameBroadcasterConfigurator.html" title="Class for handling parameters for HoughTransformer." alt="" coords="239,479,507,534"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="108,302,126,340,152,384,185,428,226,465,246,477,244,481,222,469,181,431,148,387,121,343,103,304"/>
+</map>

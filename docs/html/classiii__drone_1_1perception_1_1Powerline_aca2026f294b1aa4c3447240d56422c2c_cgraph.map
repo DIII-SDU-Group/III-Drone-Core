@@ -1,0 +1,7 @@
+<map id="iii_drone::perception::Powerline::Reset" name="iii_drone::perception::Powerline::Reset">
+<area shape="rect" id="Node000001" title="Resets the powerline object." alt="" coords="5,37,160,77"/>
+<area shape="rect" id="Node000002" href="$namespaceiii__drone_1_1types.html#a3c643a86317f9f8c192979766cdfbc51" title=" " alt="" coords="221,5,391,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="160,44,206,37,207,42,161,49"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1Timestamp.html#a373bc0de94c27153e2372c30f0eedbb1" title="Updates the timestamp to now." alt="" coords="208,69,404,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="161,66,195,71,194,76,160,71"/>
+</map>

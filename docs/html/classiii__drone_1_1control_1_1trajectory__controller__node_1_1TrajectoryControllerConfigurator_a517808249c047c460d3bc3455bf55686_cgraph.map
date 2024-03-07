@@ -1,0 +1,7 @@
+<map id="iii_drone::control::trajectory_controller_node::TrajectoryControllerConfigurator::target_cable_safety_margin_max_yaw_distance" name="iii_drone::control::trajectory_controller_node::TrajectoryControllerConfigurator::target_cable_safety_margin_max_yaw_distance">
+<area shape="rect" id="Node000001" title="The maximum yaw distance between the drone and the target position to consider the target position re..." alt="" coords="5,5,283,89"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="331,27,539,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="283,45,317,45,317,50,283,50"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="587,27,801,67"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="539,45,573,45,573,50,539,50"/>
+</map>

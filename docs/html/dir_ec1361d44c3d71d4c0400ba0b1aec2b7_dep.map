@@ -1,0 +1,10 @@
+<map id="include/iii_drone_core/perception/pl_dir_computer_node" name="include/iii_drone_core/perception/pl_dir_computer_node">
+<area shape="rect" id="node1" href="dir_ec1361d44c3d71d4c0400ba0b1aec2b7.html" title="pl_dir_computer_node" alt="" coords="27,52,194,77"/>
+<area shape="rect" id="node2" href="dir_0266f6c656cc8031115a442d81d571fa.html" title="configuration" alt="" coords="7,125,113,151"/>
+<area shape="poly" id="edge1" href="dir_000031_000004.html" alt="" coords="104,79,78,116,74,113,100,76"/>
+<area shape="rect" id="edge1-headlabel" href="dir_000031_000004.html" title="1" alt="" coords="81,108,90,123"/>
+<area shape="rect" id="node3" href="dir_8d5fce3f9f0b3f85e2b55e571fc75ab3.html" title="utils" alt="" coords="137,125,188,151"/>
+<area shape="poly" id="edge2" href="dir_000031_000043.html" alt="" coords="121,76,148,113,144,116,117,79"/>
+<area shape="rect" id="edge2-headlabel" href="dir_000031_000043.html" title="2" alt="" coords="146,98,155,113"/>
+<area shape="rect" id="clust1" href="dir_48cbf7624d6e369bbb294b7c2e607f94.html" title="perception" alt="" coords="16,16,205,88"/>
+</map>

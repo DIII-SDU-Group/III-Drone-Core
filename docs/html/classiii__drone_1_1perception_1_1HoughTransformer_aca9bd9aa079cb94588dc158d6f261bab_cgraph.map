@@ -1,0 +1,7 @@
+<map id="iii_drone::perception::HoughTransformer::ComputeAngle" name="iii_drone::perception::HoughTransformer::ComputeAngle">
+<area shape="rect" id="Node000001" title="Computes the hough lines direction angle from an image." alt="" coords="5,45,223,100"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1HoughTransformer.html#ae2985861ff2375cf65841827824dcd7c" title="Computes the hough lines direction angle from hough lines." alt="" coords="273,5,491,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="222,54,259,48,260,54,223,59"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1HoughTransformer.html#acbe9deada60754526c5bcbf5309f5daf" title="Performs the hough transform on the given image." alt="" coords="271,84,493,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="223,86,257,91,257,96,222,91"/>
+</map>

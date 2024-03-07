@@ -1,0 +1,7 @@
+<map id="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator::inter_pos_window_size" name="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator::inter_pos_window_size">
+<area shape="rect" id="Node000001" title="Get the inter line position window size." alt="" coords="5,5,216,75"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="264,20,472,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="216,37,250,37,250,43,216,43"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="520,20,735,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="472,37,506,37,506,43,472,43"/>
+</map>

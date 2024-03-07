@@ -1,0 +1,17 @@
+<map id="pos_MPC::coder::mpcblock_optimizer" name="pos_MPC::coder::mpcblock_optimizer">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,92,201,132"/>
+<area shape="rect" id="Node000002" href="$namespacepos__MPC_1_1coder_1_1internal.html#a47a5ebaa446e2a54cc916673de4d8d55" title=" " alt="" coords="249,5,432,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="156,89,248,55,268,48,270,53,250,60,158,94"/>
+<area shape="rect" id="Node000003" href="$namespacepos__MPC_1_1coder.html#aaae2248b840070902e3c18dc1a472eab" title=" " alt="" coords="251,70,431,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="201,97,237,93,238,98,202,103"/>
+<area shape="rect" id="Node000006" href="$namespacepos__MPC_1_1coder_1_1internal.html#a468a43db34a801eab0c02e719a7a4a99" title=" " alt="" coords="249,120,432,160"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="202,121,236,125,236,130,201,126"/>
+<area shape="rect" id="Node000007" href="$namespacepos__MPC_1_1coder_1_1internal_1_1lapack.html#a3379db57facf655c9276e0efeccc2870" title=" " alt="" coords="249,184,432,224"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="152,130,250,170,270,177,268,182,248,174,150,135"/>
+<area shape="rect" id="Node000004" href="$namespacepos__MPC_1_1coder.html#ae2a2d8c1528681afb62fcdff789e1f95" title=" " alt="" coords="480,42,663,67"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="430,69,466,65,467,70,431,74"/>
+<area shape="rect" id="Node000005" href="$namespacepos__MPC_1_1coder_1_1internal.html#aee16aca65e5c056291ee323099733942" title=" " alt="" coords="480,92,663,132"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="431,91,467,96,466,101,430,97"/>
+<area shape="rect" id="Node000008" href="$namespacepos__MPC.html#a1b161cbb191ab2d22a30569c19e00085" title=" " alt="" coords="486,184,657,224"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="432,201,472,201,472,207,432,207"/>
+</map>

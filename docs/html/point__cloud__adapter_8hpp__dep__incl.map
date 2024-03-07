@@ -1,0 +1,14 @@
+<map id="include/iii_drone_core/adapters/point_cloud_adapter.hpp" name="include/iii_drone_core/adapters/point_cloud_adapter.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="157,5,321,60"/>
+<area shape="rect" id="Node000002" href="$pl__mapper__node_8hpp.html" title=" " alt="" coords="5,196,207,251"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="176,70,154,88,135,110,124,130,116,153,109,196,104,195,111,152,119,128,130,106,150,84,173,66"/>
+<area shape="rect" id="Node000004" href="$powerline_8hpp.html" title=" " alt="" coords="144,108,335,148"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="242,74,242,108,237,108,237,74"/>
+<area shape="rect" id="Node000006" href="$point__cloud__adapter_8cpp.html" title=" " alt="" coords="359,108,506,148"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="307,64,395,105,392,110,305,68"/>
+<area shape="rect" id="Node000003" href="$pl__mapper__node_8cpp.html" title=" " alt="" coords="6,299,206,339"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="109,264,109,299,103,299,103,264"/>
+<area shape="poly" id="edge4_Node000004_Node000002" title=" " alt="" coords="203,158,145,198,142,194,200,154"/>
+<area shape="rect" id="Node000005" href="$powerline_8cpp.html" title=" " alt="" coords="231,211,440,236"/>
+<area shape="poly" id="edge5_Node000004_Node000005" title=" " alt="" coords="270,155,325,208,321,212,267,159"/>
+</map>

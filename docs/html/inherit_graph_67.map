@@ -1,0 +1,15 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="Node000000" title=" " alt="" coords="5,233,108,259"/>
+<area shape="rect" id="Node000001" href="$classiii__drone_1_1control_1_1trajectory__controller__node_1_1TrajectoryController.html" title="The trajectory controller node." alt="" coords="183,5,380,60"/>
+<area shape="poly" id="edge11_Node000000_Node000001" title=" " alt="" coords="63,219,76,186,95,146,121,105,154,71,181,54,184,59,158,75,125,109,100,148,81,188,68,221"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1mission_1_1continuous__mission__orchestrator__node_1_1ContinuousMissionOrchestrator.html" title=" " alt="" coords="167,85,395,154"/>
+<area shape="poly" id="edge12_Node000000_Node000002" title=" " alt="" coords="79,222,113,192,155,164,178,152,180,156,157,168,117,196,83,226"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1hough__transformer__node_1_1HoughTransformerNode.html" title="Node for computing hough transform on images to detect powerline direction." alt="" coords="185,179,378,233"/>
+<area shape="poly" id="edge13_Node000000_Node000003" title=" " alt="" coords="121,232,184,221,185,226,122,237"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerNode.html" title="Node for kalman filtering the powerline direction based on hough transform output." alt="" coords="156,257,407,312"/>
+<area shape="poly" id="edge14_Node000000_Node000004" title=" " alt="" coords="122,254,156,260,155,266,121,260"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html" title="Class for computing position of powerlines from mmWave data fused with powerline direction and odomet..." alt="" coords="176,336,387,391"/>
+<area shape="poly" id="edge15_Node000000_Node000005" title=" " alt="" coords="83,266,117,294,157,321,184,333,182,338,155,326,113,299,79,270"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1utils_1_1drone__frame__broadcaster__node_1_1DroneFrameBroadcasterNode.html" title=" " alt="" coords="170,415,393,469"/>
+<area shape="poly" id="edge16_Node000000_Node000006" title=" " alt="" coords="70,270,103,335,127,370,158,400,177,412,174,417,154,404,123,374,98,338,65,273"/>
+</map>

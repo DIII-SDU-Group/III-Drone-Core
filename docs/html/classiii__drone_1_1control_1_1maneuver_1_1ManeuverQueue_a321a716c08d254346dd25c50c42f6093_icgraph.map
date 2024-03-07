@@ -1,0 +1,24 @@
+<map id="iii_drone::control::maneuver::ManeuverQueue::vector" name="iii_drone::control::maneuver::ManeuverQueue::vector">
+<area shape="rect" id="Node000001" title="Gets the vector of maneuvers in the queue." alt="" coords="603,248,813,303"/>
+<area shape="poly" id="edge12_Node000001_Node000001" title=" " alt="" coords="755,237,738,230,708,227,683,229,667,233,660,240,660,248,654,248,655,238,664,229,682,223,708,221,739,224,757,232"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#afc039e2eeb8e4587c1bdb1a61f664739" title="Clears the queue." alt="" coords="324,5,535,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="685,237,662,198,632,154,596,111,553,73,534,62,537,57,556,69,599,107,637,151,667,195,689,234"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#ad1f4e6b8426785cde3ecaa001614ba42" title="Clears the queue from a specific maneuver." alt="" coords="324,84,535,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="665,241,613,200,553,160,513,141,515,136,556,156,616,195,668,237"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#a6ba6788f60421f28a651fcefadf2361d" title="Whether the queue is empty." alt="" coords="324,215,535,269"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="588,264,534,257,535,252,589,258"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#ad929d15908d2985da9fa208ae47a3567" title="Peeks an item from the queue." alt="" coords="5,190,256,230"/>
+<area shape="poly" id="edge7_Node000001_Node000005" title=" " alt="" coords="650,244,604,221,554,205,478,192,400,188,325,189,256,195,256,189,325,184,400,183,479,187,555,199,606,216,653,239"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#a37871188e5b19b2a9583c2cc8f14ce0a" title="Pops an item from the queue." alt="" coords="9,271,252,311"/>
+<area shape="poly" id="edge8_Node000001_Node000006" title=" " alt="" coords="589,282,555,283,252,291,252,286,555,278,589,277"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#a5a5d6a5301af857ad1ee1667c2ecac54" title="Whether the queue is full." alt="" coords="309,345,549,385"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="613,310,555,329,497,347,495,342,554,323,612,305"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#a5742e997424e638a64161467fad40bc6" title="Pushes an item to the queue." alt="" coords="304,409,555,449"/>
+<area shape="poly" id="edge9_Node000001_Node000008" title=" " alt="" coords="671,315,619,359,556,399,527,411,525,406,553,394,616,354,668,311"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#a46ce86f86f31bfe8ea475a5d56c5b1ad" title="Get the current size of the queue." alt="" coords="307,473,552,513"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="687,316,664,352,634,391,598,430,556,463,533,475,531,470,553,458,594,426,630,388,660,349,682,313"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="310,232,256,226,256,221,310,227"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="311,264,253,274,252,269,310,259"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#a75519f58c5d0c29cb4f85007d425eb52" title="Constructor." alt="" coords="25,465,236,520"/>
+<area shape="poly" id="edge11_Node000009_Node000010" title=" " alt="" coords="293,495,236,495,236,490,293,490"/>
+</map>

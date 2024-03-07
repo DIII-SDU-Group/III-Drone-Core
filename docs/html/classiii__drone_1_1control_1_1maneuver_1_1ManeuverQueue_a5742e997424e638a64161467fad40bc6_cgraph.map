@@ -1,0 +1,6 @@
+<map id="iii_drone::control::maneuver::ManeuverQueue::Push" name="iii_drone::control::maneuver::ManeuverQueue::Push">
+<area shape="rect" id="Node000001" title="Pushes an item to the queue." alt="" coords="5,37,256,77"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#a321a716c08d254346dd25c50c42f6093" title="Gets the vector of maneuvers in the queue." alt="" coords="304,29,515,84"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="256,54,290,54,290,59,256,59"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="356,29,356,19,366,10,383,5,409,3,440,6,458,14,456,18,439,11,409,8,384,10,368,15,361,21,361,29"/>
+</map>

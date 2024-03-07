@@ -1,0 +1,7 @@
+<map id="iii_drone::utils::Token::resource" name="iii_drone::utils::Token::resource">
+<area shape="rect" id="Node000001" title="Get the resource." alt="" coords="212,37,371,77"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1Token.html#ad2dbe96a256bcb2192af2d94a041951f" title="Constructor from shared ptr." alt="" coords="5,5,164,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="198,46,164,40,164,35,199,40"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1Token.html#a752779c5bedec6dfe41d63954aaf701d" title="Constructor." alt="" coords="5,69,164,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="199,74,164,80,164,74,198,69"/>
+</map>

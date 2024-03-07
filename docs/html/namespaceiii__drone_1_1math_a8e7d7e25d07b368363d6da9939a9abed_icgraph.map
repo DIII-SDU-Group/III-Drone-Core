@@ -1,0 +1,17 @@
+<map id="iii_drone::math::quatToEul" name="iii_drone::math::quatToEul">
+<area shape="rect" id="Node000001" title=" " alt="" coords="587,236,777,261"/>
+<area shape="rect" id="Node000002" href="$namespaceiii__drone_1_1math.html#af8c96a0fa3940e1034c8db8425586ba8" title=" " alt="" coords="328,164,524,189"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="622,235,471,192,473,187,624,230"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1adapters_1_1px4_1_1VehicleOdometryAdapter.html#add458b12c101a10e2ab7d75e46186ea9" title="Updates the object from a new PX4 odometry message." alt="" coords="313,253,539,308"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="573,265,539,269,539,264,572,260"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1Powerline.html#a07f90dc6a742a7f921e041d3b3734d8b" title="Computes the inter line positions." alt="" coords="26,5,245,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="396,158,337,117,264,75,234,62,236,58,267,70,340,112,399,154"/>
+<area shape="rect" id="Node000004" href="$namespaceiii__drone_1_1math.html#a7bf2d65f6ca43a8f7a1c5385a29808fe" title=" " alt="" coords="18,85,253,125"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="360,163,265,139,217,127,218,122,266,134,362,158"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#a703ae72ba683ae11154ce597b8bbad9d" title="Constructor." alt="" coords="5,149,265,204"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="315,179,265,179,265,174,315,174"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1perception_1_1SingleLine.html#a07932346f3f532051cf105e92c1a2ed4" title="Runs the Kalman Filter predict step." alt="" coords="58,229,213,269"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="361,195,214,232,212,227,360,190"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1adapters_1_1px4_1_1VehicleOdometryAdapter.html#a85fa7bce8bfbef3bc55befb8b8c510f7" title=" " alt="" coords="23,293,248,348"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="300,301,249,308,248,303,299,295"/>
+</map>

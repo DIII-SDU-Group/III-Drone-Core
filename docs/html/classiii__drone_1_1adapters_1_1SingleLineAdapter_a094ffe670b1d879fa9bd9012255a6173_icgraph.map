@@ -1,0 +1,19 @@
+<map id="iii_drone::adapters::SingleLineAdapter::id" name="iii_drone::adapters::SingleLineAdapter::id">
+<area shape="rect" id="Node000001" title="Id getter." alt="" coords="652,193,820,233"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1BehaviorState.html#a950f5d0c9562cdfa1f03a2409ce9f682" title="Return the id of the cable that the drone is on if it is on a cable, &#45;1 otherwise." alt="" coords="445,41,591,96"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="701,186,655,148,603,111,580,98,583,94,605,106,659,144,704,182"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1perception_1_1SingleLine.html#ad17dc959fe4f359c46b226c98e616e4b" title="Constructor from SingleLineAdapter." alt="" coords="432,121,604,161"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="661,191,579,163,580,158,663,186"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a524b57b8a93818b95e35323ec8533749" title="Constructor from PoseStamped msg." alt="" coords="444,185,592,240"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="638,215,592,215,592,210,638,210"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#ad5ca1a5d6a90a4f67c5b9bb59f9c8066" title="Constructor from pose msg." alt="" coords="444,264,592,319"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="668,240,593,267,591,262,666,235"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a04f02d018320742a79f473e1dd502b31" title="Constructor from members." alt="" coords="444,343,592,397"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="709,244,663,289,605,334,586,345,583,340,603,329,659,285,705,241"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1BehaviorState.html#a1b5262b99d96767ebdc0be10fb29bdf5" title="Returns the drone location, checks the drone location and sets the on_cable_id if the drone is on a c..." alt="" coords="207,5,373,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="430,58,373,48,374,43,431,52"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1BehaviorState.html#a90c3fb2cdaf884b43aed4d8b15306ff9" title="Whether the drone is on a cable." alt="" coords="196,85,384,125"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="431,85,385,92,384,87,431,80"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1BehaviorState.html#a2a8726ede2d3f2dab883e9c4f0d63fb5" title="Whether the drone is in flight." alt="" coords="5,77,148,132"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="182,107,148,107,148,102,182,102"/>
+</map>

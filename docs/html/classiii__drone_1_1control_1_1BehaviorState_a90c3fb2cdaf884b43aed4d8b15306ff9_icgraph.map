@@ -1,0 +1,5 @@
+<map id="iii_drone::control::BehaviorState::on_cable" name="iii_drone::control::BehaviorState::on_cable">
+<area shape="rect" id="Node000001" title="Whether the drone is on a cable." alt="" coords="196,13,384,53"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1BehaviorState.html#a2a8726ede2d3f2dab883e9c4f0d63fb5" title="Whether the drone is in flight." alt="" coords="5,5,148,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="182,35,148,35,148,30,182,30"/>
+</map>

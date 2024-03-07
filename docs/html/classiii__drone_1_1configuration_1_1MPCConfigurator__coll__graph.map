@@ -1,0 +1,5 @@
+<map id="iii_drone::configuration::MPCConfigurator" name="iii_drone::configuration::MPCConfigurator">
+<area shape="rect" id="Node000001" title="Class for handling parameters for a positional MPC." alt="" coords="5,93,176,133"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html" title="Class for handling parameters of a node. The class works in conjunction with the ConfigurationServer ..." alt="" coords="5,5,176,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="93,59,93,93,88,93,88,59"/>
+</map>

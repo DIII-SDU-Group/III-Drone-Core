@@ -1,0 +1,9 @@
+<map id="iii_drone::types::createPlane" name="iii_drone::types::createPlane">
+<area shape="rect" id="Node000001" title=" " alt="" coords="423,49,593,89"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1PowerlineAdapter.html#a3fabec056cea35a9facca5235b7d3490" title="Constructor." alt="" coords="221,5,374,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="409,54,374,48,375,43,410,49"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1Powerline.html#aca2026f294b1aa4c3447240d56422c2c" title="Resets the powerline object." alt="" coords="220,85,375,125"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="410,88,375,94,374,89,409,83"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1Powerline.html#a500b7393d0366ea7ff3d165cc0c91d7f" title="Constructor." alt="" coords="5,85,172,125"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="206,107,172,107,172,102,206,102"/>
+</map>

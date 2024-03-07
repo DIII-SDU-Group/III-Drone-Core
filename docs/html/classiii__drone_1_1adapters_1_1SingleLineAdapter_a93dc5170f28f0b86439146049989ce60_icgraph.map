@@ -1,0 +1,5 @@
+<map id="iii_drone::adapters::SingleLineAdapter::ToPoseMsg" name="iii_drone::adapters::SingleLineAdapter::ToPoseMsg">
+<area shape="rect" id="Node000001" title="Converts to Pose msg." alt="" coords="213,5,361,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a0e51bbd6fad04d9daf990a9f228c12bf" title="Converts to PoseStamped msg." alt="" coords="5,5,165,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="199,35,165,35,165,30,199,30"/>
+</map>
