@@ -101,6 +101,14 @@ namespace types {
 
     const geometry_msgs::msg::Transform transformMsgFromTransform(const vector_t & vector, const quaternion_t & quaternion);
 
+    const geometry_msgs::msg::Transform transformMsgFromTransformMatrix(const transform_matrix_t & transform_matrix);
+
+    const transform_matrix_t transformMatrixFromTransformMsg(const geometry_msgs::msg::Transform & transform_msg);
+
+    const quaternion_t quaternionFromTransformMatrix(const transform_matrix_t & transform_matrix);
+
+    const pose_t poseFromTransformMatrix(const transform_matrix_t & transform_matrix);
+
 
 } // namespace types
 } // namespace iii_drone

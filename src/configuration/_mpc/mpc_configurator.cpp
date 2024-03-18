@@ -56,7 +56,7 @@ MPCConfigurator::MPCConfigurator(
 
 }
 
-const std::shared_ptr<const MPCParameters> MPCConfigurator::mpc_parameters() const {
+const std::shared_ptr<MPCParameters> MPCConfigurator::mpc_parameters() const {
     
     return mpc_parameters_;
 

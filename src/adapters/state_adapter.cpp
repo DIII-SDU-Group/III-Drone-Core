@@ -67,6 +67,22 @@ iii_drone_interfaces::msg::State StateAdapter::ToMsg() const {
 
 }
 
+geometry_msgs::msg::PoseStamped StateAdapter::ToPoseStampedMsg(std::string frame_id) const {
+
+    geometry_msgs::msg::PoseStamped msg;
+
+    msg.header.stamp = state_.stamp();
+    msg.header.frame_id = frame_id;
+
+    msg.pose = poseMsgFromPose(
+        state_.position(),
+        state_.quaternion()
+    );
+
+    return msg;
+
+}
+
 iii_drone::control::State StateAdapter::state() const {
     return state_;
 }

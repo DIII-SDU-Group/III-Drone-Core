@@ -5,6 +5,11 @@
 /*****************************************************************************/
 
 /*****************************************************************************/
+// ROS2:
+
+#include <nav_msgs/msg/path.hpp>
+
+/*****************************************************************************/
 // III-Drone-Core:
 
 #include <iii_drone_core/utils/types.hpp>
@@ -59,11 +64,27 @@ namespace adapters {
         ReferenceTrajectoryAdapter(const iii_drone_interfaces::msg::ReferenceTrajectory::SharedPtr &reference_trajectory);
 
         /**
+         * @brief Constructor from Reference.
+         * 
+         * @param reference The III-Drone-Core::Reference.
+         */
+        ReferenceTrajectoryAdapter(const iii_drone::control::Reference &reference);
+
+        /**
          * @brief Converts to msg.
          * 
          * @return The III-Drone-Interfaces::ReferenceTrajectory msg.
          */
         iii_drone_interfaces::msg::ReferenceTrajectory ToMsg() const;
+
+        /**
+         * @brief Converts to path msg.
+         * 
+         * @param frame_id The frame id.
+         * 
+         * @return The path msg.
+         */
+        nav_msgs::msg::Path ToPathMsg(std::string frame_id) const;
 
         /**
          * @brief ReferenceTrajectory getter.

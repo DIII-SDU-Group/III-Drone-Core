@@ -312,6 +312,23 @@ namespace utils {
             values_.clear();
         }
 
+        /**
+         * @brief Returns a copy of the contained vector.
+         * 
+         * @return The vector.
+         */
+        std::vector<T> vector() const {
+            std::shared_lock<std::shared_mutex> lock(mutex_);
+
+            return values_;
+
+        }
+
+        /**
+         * @brief Shared pointer.
+         */
+        typedef std::shared_ptr<History<T>> SharedPtr;
+
     private:
         /**
          * @brief The values.

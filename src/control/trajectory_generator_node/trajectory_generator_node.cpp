@@ -15,22 +15,13 @@ TrajectoryGeneratorNode::TrajectoryGeneratorNode(
     const std::string node_namespace,
     const rclcpp::NodeOptions & options
 ) : Node(node_name, node_namespace, options),
-    positional_mpc_configurator_(
-        this,
-        "/control/MPC/position_MPC_"
+    configurator_(
+        this
     ), 
-    cable_landing_mpc_configurator_(
-        this,
-        "/control/MPC/cable_landing_MPC_"
-    ),
-    cable_takeoff_mpc_configurator_(
-        this,
-        "/control/MPC/cable_takeoff_MPC_"
-    ),
     trajectory_generator_(
-        positional_mpc_configurator_.mpc_parameters(),
-        cable_landing_mpc_configurator_.mpc_parameters(),
-        cable_takeoff_mpc_configurator_.mpc_parameters()
+        configurator_.positional_mpc_parameters(),
+        configurator_.cable_landing_mpc_parameters(),
+        configurator_.cable_takeoff_mpc_parameters()
     )
 {
 

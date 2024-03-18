@@ -199,3 +199,19 @@ const transform_matrix_t iii_drone::math::createTransformMatrix(
     return T;
 
 }
+
+const transform_matrix_t iii_drone::types::transformMatrixFromTransformMsg(const geometry_msgs::msg::Transform & transform_msg) {
+
+    transform_matrix_t transform_matrix;
+
+    transform_matrix.block<3, 1>(0, 3) = vectorFromVectorMsg(transform_msg.translation);
+    transform_matrix.block<3, 3>(0, 0) = quatToMat(quaternionFromTransformMsg(transform_msg));
+
+    transform_matrix(3, 0) = 0.0f;
+    transform_matrix(3, 1) = 0.0f;
+    transform_matrix(3, 2) = 0.0f;
+    transform_matrix(3, 3) = 1.0f;
+
+    return transform_matrix;
+
+}

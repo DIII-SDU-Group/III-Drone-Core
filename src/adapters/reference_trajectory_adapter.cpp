@@ -40,11 +40,31 @@ ReferenceTrajectoryAdapter::ReferenceTrajectoryAdapter(const iii_drone_interface
 
 }
 
+ReferenceTrajectoryAdapter::ReferenceTrajectoryAdapter(const iii_drone::control::Reference &reference) {
+
+    std::vector<iii_drone::control::Reference> references;
+    references.push_back(reference);
+
+    reference_trajectory_ = iii_drone::control::ReferenceTrajectory(references);
+
+}
+
 iii_drone_interfaces::msg::ReferenceTrajectory ReferenceTrajectoryAdapter::ToMsg() const {
     iii_drone_interfaces::msg::ReferenceTrajectory msg;
 
     for (auto reference : reference_trajectory_.references()) {
         msg.references.push_back(ReferenceAdapter(reference).ToMsg());
+    }
+
+    return msg;
+}
+
+nav_msgs::msg::Path ReferenceTrajectoryAdapter::ToPathMsg(std::string frame_id) const {
+
+    nav_msgs::msg::Path msg;
+
+    for (auto reference : reference_trajectory_.references()) {
+        msg.poses.push_back(ReferenceAdapter(reference).ToPoseStampedMsg(frame_id));
     }
 
     return msg;

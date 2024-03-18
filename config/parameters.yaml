@@ -168,184 +168,281 @@ sensor:
       constant: true
 
 control:
-  trajectory_controller:
-    always_armed_for_debug:
-      type: "bool"
-      value: false
+  maneuver_controller:
+    ground_estimate_window_size:
+      # Window size for ground estimate average filter
+      type: "int"
+      value: 10
+      min: 1
+      max: 100
+      constant: true
+    ground_estimate_update_period_ms:
+      # Period for updating ground estimate when on the ground
+      type: "int"
+      value: 50
+      min: 10
+      max: 1000
       constant: true
     landed_altitude_threshold:
+      # Altitude threshold for considering the drone as landed
       type: "float"
       value: 0.1
       min: 0.1
       max: 1.0
-    use_ground_altitude_offset:
+    on_cable_max_euc_distance:
+      # Maximum euclidean distance between the gripper and the cable for considering the drone as on the cable
+      type: "float"
+      value: 0.1
+      min: 0.05
+      max: 0.5
+    fail_on_unable_to_locate:
+      # Fail the maneuver if the combined drone awareness handler is unable to find the drone location
       type: "bool"
       value: true
+      constant: true
+    maneuver_register_update_timeout_s:
+      # Timeout for updating a registered maneuver with a goal handle
+      type: "float"
+      value: 0.5
+      min: 0.01
+      max: 1.
+      constant: true
+    maneuver_start_timeout_s:
+      # Timeout for a maneuver server to start execution of a maneuver after instructed to start by the scheduler
+      type: "float"
+      value: 1.
+      min: 0.01
+      max: 1.
+      constant: true
+    maneuver_queue_size:
+      # Size of the maneuver queue for the maneuver scheduler
+      type: "int"
+      value: 5
+      min: 1
+      max: 10
+      constant: true
+    maneuver_execution_period_ms:
+      # Period for the maneuver execution scheduler and reference computation callback (running multi threaded)
+      type: "int"
+      value: 50
+      min: 10
+      max: 500
+      constant: true
+    use_nans_when_hovering:
+      # Use NaNs for the velocities and accelerations in the reference when in a hovering mode
+      type: "bool"
+      value: true
+      constant: true
+    no_maneuver_idle_cnt_s:
+      # Time to wait before considering the drone as idle when no maneuver is running, keeping the drone in a hovering mode
+      type: "float"
+      value: 5.0
+      min: 0.1
+      max: 10.0
+      constant: true
+    hover_by_object_max_euc_dist:
+      # Maximum euclidean distance between the drone and a target object for hovering by an object
+      # before failing/rejecting hover by object request
+      type: "float"
+      value: 0.25
+      min: 0.1
+      max: 1.0
+    hover_on_cable_default_z_velocity:
+      # Default z velocity to apply when hovering on the cable
+      type: "float"
+      value: 0.1
+      min: 0.0
+      max: 5.0
+    hover_on_cable_default_yaw_rate:
+      # Default yaw rate to apply when hovering on the cable
+      type: "float"
+      value: 0.
+      min: -3.1415
+      max: 3.1415
+    maneuver_wait_for_execute_poll_ms:
+      # Polling period for maneuver server to wait for starting execution of a maneuver
+      type: "int"
+      value: 100
+      min: 10
+      max: "/control/maneuver_controller/maneuver_start_timeout_s*1000"
+      constant: true
+    maneuver_evaluate_done_poll_ms:
+      # Polling period for maneuver server to execute loop evaluating if a maneuver is done, sending feedback and result
+      type: "int"
+      value: 50
+      min: 10
+      max: 100
+      constant: true
     reached_position_euclidean_distance_threshold:
+      # Euclidean distance threshold for considering the drone as reached a position
       type: "float"
       value: 0.20
       min: 0.05
-      max: 0.5
+      max: "/control/maneuver_controller/hover_by_object_max_euc_dist"
     minimum_target_altitude:
+      # Minimum altitude for a target position
       type: "float"
       value: 1.
       min: 0.5
       max: 2.0
-    target_cable_fixed_position_distance_threshold:
-      type: "float"
-      value: 0.5
-      min: 0.1
-      max: 1.0
-    target_cable_safety_margin_distance_threshold:
-      type: "float"
-      value: 0.25
-      min: 0.1
-      max: 1.0
-    target_cable_safety_margin_max_euc_distance:
-      type: "float"
-      value: 0.15
-      min: 0.05
-      max: 1.0
-    target_cable_safety_margin_max_euc_velocity:
-      type: "float"
-      value: 5.
-      min: 0.1
-      max: 10.0
-    target_cable_safety_margin_max_euc_acceleration:
-      type: "float"
-      value: 2.
-      min: 0.1
-      max: 10.0
-    target_cable_safety_margin_max_yaw_distance:
-      type: "float"
-      value: 0.314159265
-      min: 0.1
-      max: 1.0
-    target_cable_safety_margin_max_yaw_velocity:
-      type: "float"
-      value: 1.570796327
-      min: 0.1
-      max: 10.0
-    target_cable_set_point_truncate_distance_threshold:
-      type: "float"
-      value: 0.25
-      min: 0.1
-      max: 1.0
-    landed_on_powerline_non_offboard_max_euc_distance:
-      type: "float"
-      value: 0.1
-      min: 0.05
-      max: 0.5
-    always_hover_in_offboard:
-      type: "bool"
-      value: false
-    on_cable_control_mode:
-      type: "string"
-      value: "position" # "thrust" or "position"
-      options: ["thrust", "position"]
-    on_cable_upwards_thrust:
-      type: "float"
-      value: 0.75
-      min: 0.5
-      max: 1.0
-    on_cable_upwards_velocity:
-      type: "float"
-      value: 0.1
-      min: 0.0
-      max: 5.
-    hover_under_cable_on_aborted_cable_landing:
+    generate_trajectories_asynchronously_with_delay:
+      # Generate trajectories asynchronously in a separate thread, 
+      # using the second entry in the previously generated trajectory as reference.
+      # If false, will request trajectory generation and block until it is finished.
       type: "bool"
       value: true
-    use_gripper_status_condition:
-      type: "bool"
-      value: true
-    disarming_on_cable_max_descend_distance:
-      type: "float"
-      value: 0.25
-      min: 0.05
-      max: 0.5
-    disarm_on_cable_mode:
-      type: "string"
-      value: "land" # "land" or "thrust"
-      options: ["land", "thrust"]
-    disarm_on_cable_thrust_decrease_time_s:
-      type: "float"
-      value: 5.0
-      min: 1.0
-      max: 10.0
-    disarm_on_cable_thrust_wait_for_disarm_time_s:
-      type: "float"
-      value: 5.0
-      min: 1.0
-      max: 10.0
-    disarm_on_cable_flight_termination_timeout_s:
-      type: "float"
-      value: -1
-      min: -1
-      max: 10.0
-    arming_on_cable_spool_up_time_s:
-      type: "float"
-      value: 5.0
-      min: 1.0
-      max: 10.0
-    update_home_position:
-      type: "bool"
-      value: false
-    arm_cnt_timeout:
+      constant: true
+    generate_trajectories_poll_period_ms:
+      # Polling period for waiting for trajectory generation to finish
       type: "int"
-      value: 10
+      value: 1
       min: 1
-      max: 100
-    offboard_cnt_timeout:
-      type: "int"
-      value: 10
-      min: 1
-      max: 100
-    land_cnt_timeout:
-      type: "int"
-      value: 100
-      min: 1
-      max: 1000
-    target_cable_cnt_timeout:
-      type: "int"
-      value: 10
-      min: 1
-      max: 100
-    disarm_on_cable_cnt_timeout:
-      type: "int"
-      value: 100
-      min: 1
-      max: 1000
-    use_cartesian_PID:
-      type: "bool"
-      value: false
-    cartesian_PID_Kp:
-      type: "float"
-      value: 1.5
-      min: 0.
-    cartesian_PID_Ki:
-      type: "float"
-      value: 0.2
-      min: 0.
-    cartesian_PID_Kd:
-      type: "float"
-      value: 0.2
-      min: 0.
-    cartesian_PID_integral_reset_error_threshold:
-      type: "float"
-      value: 0.05
-      min: 0.01
-      max: 0.5
-    direct_target_setpoint_dist_threshold:
-      type: "float"
-      value: 0.05
-      min: 0.0
-      max: 0.5
-    cable_landing_target_upwards_velocity:
-      type: "float"
-      value: 0.5
-      min: 0.0
-      max: 5.0
+      max: "/control/maneuver_controller/maneuver_execution_period_ms / 10"
+      constant: true
+    # always_armed_for_debug:
+    #   type: "bool"
+    #   value: false
+    #   constant: true
+    # use_ground_altitude_offset:
+    #   type: "bool"
+    #   value: true
+    # reached_position_euclidean_distance_threshold:
+    #   type: "float"
+    #   value: 0.20
+    #   min: 0.05
+    #   max: 0.5
+    # minimum_target_altitude:
+    #   type: "float"
+    #   value: 1.
+    #   min: 0.5
+    #   max: 2.0
+    # target_cable_fixed_position_distance_threshold:
+    #   type: "float"
+    #   value: 0.5
+    #   min: 0.1
+    #   max: 1.0
+    # target_cable_safety_margin_distance_threshold:
+    #   type: "float"
+    #   value: 0.25
+    #   min: 0.1
+    #   max: 1.0
+    # target_cable_safety_margin_max_euc_distance:
+    #   type: "float"
+    #   value: 0.15
+    #   min: 0.05
+    #   max: 1.0
+    # target_cable_safety_margin_max_euc_velocity:
+    #   type: "float"
+    #   value: 5.
+    #   min: 0.1
+    #   max: 10.0
+    # target_cable_safety_margin_max_euc_acceleration:
+    #   type: "float"
+    #   value: 2.
+    #   min: 0.1
+    #   max: 10.0
+    # target_cable_safety_margin_max_yaw_distance:
+    #   type: "float"
+    #   value: 0.314159265
+    #   min: 0.1
+    #   max: 1.0
+    # target_cable_safety_margin_max_yaw_velocity:
+    #   type: "float"
+    #   value: 1.570796327
+    #   min: 0.1
+    #   max: 10.0
+    # target_cable_set_point_truncate_distance_threshold:
+    #   type: "float"
+    #   value: 0.25
+    #   min: 0.1
+    #   max: 1.0
+    # always_hover_in_offboard:
+    #   type: "bool"
+    #   value: false
+    # on_cable_upwards_velocity:
+    #   type: "float"
+    #   value: 0.1
+    #   min: 0.0
+    #   max: 5.
+    # hover_under_cable_on_aborted_cable_landing:
+    #   type: "bool"
+    #   value: true
+    # use_gripper_status_condition:
+    #   type: "bool"
+    #   value: true
+    # disarming_on_cable_max_descend_distance:
+    #   type: "float"
+    #   value: 0.25
+    #   min: 0.05
+    #   max: 0.5
+    # disarm_on_cable_flight_termination_timeout_s:
+    #   type: "float"
+    #   value: -1
+    #   min: -1
+    #   max: 10.0
+    # arming_on_cable_spool_up_time_s:
+    #   type: "float"
+    #   value: 5.0
+    #   min: 1.0
+    #   max: 10.0
+    # update_home_position:
+    #   type: "bool"
+    #   value: false
+    # arm_cnt_timeout:
+    #   type: "int"
+    #   value: 10
+    #   min: 1
+    #   max: 100
+    # offboard_cnt_timeout:
+    #   type: "int"
+    #   value: 10
+    #   min: 1
+    #   max: 100
+    # land_cnt_timeout:
+    #   type: "int"
+    #   value: 100
+    #   min: 1
+    #   max: 1000
+    # target_cable_cnt_timeout:
+    #   type: "int"
+    #   value: 10
+    #   min: 1
+    #   max: 100
+    # disarm_on_cable_cnt_timeout:
+    #   type: "int"
+    #   value: 100
+    #   min: 1
+    #   max: 1000
+    # use_cartesian_PID:
+    #   type: "bool"
+    #   value: false
+    # cartesian_PID_Kp:
+    #   type: "float"
+    #   value: 1.5
+    #   min: 0.
+    # cartesian_PID_Ki:
+    #   type: "float"
+    #   value: 0.2
+    #   min: 0.
+    # cartesian_PID_Kd:
+    #   type: "float"
+    #   value: 0.2
+    #   min: 0.
+    # cartesian_PID_integral_reset_error_threshold:
+    #   type: "float"
+    #   value: 0.05
+    #   min: 0.01
+    #   max: 0.5
+    # direct_target_setpoint_dist_threshold:
+    #   type: "float"
+    #   value: 0.05
+    #   min: 0.0
+    #   max: 0.5
+    # cable_landing_target_upwards_velocity:
+    #   type: "float"
+    #   value: 0.5
+    #   min: 0.0
+    #   max: 5.0
   
   MPC:
     MPC_N:
@@ -743,6 +840,12 @@ mission:
       value: -1
       min: -1
 
+px4:
+  px4_offboard_mode_ids:
+    type: "int_array"
+    value: [14]
+    constant: true
+
 tf:
   world_frame_id:
     type: "string"
@@ -759,6 +862,10 @@ tf:
   mmwave_frame_id:
     type: "string"
     value: "mmwave"
+    constant: true
+  ground_frame_id:
+    type: "string"
+    value: "ground"
     constant: true
 
   drone_to_cable_gripper:

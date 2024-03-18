@@ -56,6 +56,34 @@ iii_drone_interfaces::msg::Reference ReferenceAdapter::ToMsg() const {
     return msg;
 }
 
+geometry_msgs::msg::Pose ReferenceAdapter::ToPoseMsg() const {
+    geometry_msgs::msg::Pose msg;
+
+    msg.position = pointMsgFromPoint(reference_.position());
+    msg.orientation = quaternionMsgFromQuaternion(
+        eulToQuat(
+            euler_angles_t(0.0, 0.0, reference_.yaw())
+        )
+    );
+
+    return msg;
+}
+
+geometry_msgs::msg::PoseStamped ReferenceAdapter::ToPoseStampedMsg(std::string frame_id) const {
+    geometry_msgs::msg::PoseStamped msg;
+
+    msg.header.frame_id = frame_id;
+    msg.header.stamp = reference_.stamp();
+
+    msg.pose = ToPoseMsg();
+
+    return msg;
+}
+
 iii_drone::control::Reference ReferenceAdapter::reference() const {
     return reference_;
+}
+
+rclcpp::Time ReferenceAdapter::stamp() const {
+    return reference_.stamp();
 }

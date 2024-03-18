@@ -5,7 +5,7 @@
 /*****************************************************************************/
 
 /*****************************************************************************/
-// Standard includes:
+// Std:
 
 #include <vector>
 
@@ -26,7 +26,8 @@
 // Enums
 /*****************************************************************************/
 
-namespace iii_ros2 {
+namespace iii_drone {
+namespace adapters {
 namespace px4 {
 
     /*
@@ -124,31 +125,32 @@ namespace px4 {
         VEHICLE_TYPE_AIRSHIP = 4
     } vehicle_type_t;
 
-}}
+}}}
 
 /*****************************************************************************/
 // Class
 /*****************************************************************************/
 
-namespace iii_ros2 {
+namespace iii_drone {
+namespace adapters {
 namespace px4 {
 
     /* 
     * @brief PX4 vehicle status adapter class
     */
-    class VehicleStatus {
+    class VehicleStatusAdapter {
     public:
         /*
         * @brief Default constructor
         */
-        VehicleStatus();
+        VehicleStatusAdapter();
 
         /*
         * @brief Constructor from PX4 vehicle status message
         *
         * @param vehicle_status_msg PX4 vehicle status message
         */
-        VehicleStatus(const px4_msgs::msg::VehicleStatus& vehicle_status_msg);
+        VehicleStatusAdapter(const px4_msgs::msg::VehicleStatus& vehicle_status_msg);
 
         /*
         * @brief Updates from a PX4 vehicle status message
@@ -451,4 +453,4 @@ namespace px4 {
         bool pre_flight_checks_pass_;
 
     };
-}}
+}}}

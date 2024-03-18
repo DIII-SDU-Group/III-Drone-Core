@@ -24,7 +24,7 @@
 /*****************************************************************************/
 // III-Drone-Core:
 
-#include <iii_drone_core/configuration/mpc/mpc_configurator.hpp>
+#include <iii_drone_core/control/trajectory_generator_node/trajectory_generator_node_configurator.hpp>
 
 #include <iii_drone_core/control/mpc_parameters.hpp>
 #include <iii_drone_core/control/trajectory_generator.hpp>
@@ -65,19 +65,9 @@ namespace trajectory_generator_node {
 
     private:
 		/**
-		 * @brief the positional MPC configurator
-		*/
-		configuration::MPCConfigurator positional_mpc_configurator_;
-
-		/**
-		 * @brief the cable landing MPC configurator
-		*/
-		configuration::MPCConfigurator cable_landing_mpc_configurator_;
-
-		/**
-		 * @brief the cable takeoff MPC configurator
-		*/
-		configuration::MPCConfigurator cable_takeoff_mpc_configurator_;
+		 * @brief The configurator
+		 */
+		TrajectoryGeneratorNodeConfigurator configurator_;
 
         /**
          * @brief The trajectory generator object

@@ -69,7 +69,7 @@ namespace configuration {
          * 
          * @return MPC parameters object reference
          */
-        const std::shared_ptr<const control::MPCParameters> mpc_parameters() const;
+        const std::shared_ptr<control::MPCParameters> mpc_parameters() const;
 
     private:
         /**

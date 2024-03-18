@@ -5,9 +5,6 @@
 /*****************************************************************************/
 
 /*****************************************************************************/
-// Standard includes:
-
-/*****************************************************************************/
 // ROS2:
 
 #include <rclcpp/rclcpp.hpp>
@@ -24,73 +21,59 @@
 #include <px4_msgs/msg/trajectory_setpoint.hpp>
 
 /*****************************************************************************/
-// III:
+// III-Drone-Core:
 
-#include <iii/iii.hpp>
-#include <iii/math.hpp>
-#include <iii/control/reference.hpp>
-#include <iii/control/state.hpp>
+#include <iii_drone_core/utils/types.hpp>
+#include <iii_drone_core/utils/math.hpp>
 
-/*****************************************************************************/
-// Package includes:
-
-#include <iii_ros2/control/flight_control_reference.hpp>
+#include <iii_drone_core/control/reference.hpp>
+#include <iii_drone_core/control/state.hpp>
 
 /*****************************************************************************/
 // Class
 /*****************************************************************************/
 
-namespace iii_ros2 {
+namespace iii_drone {
+namespace adapters {
 namespace px4 {
 
     /*
     * @brief PX4 trajectory setpoint adapter class
     */
-    class TrajectorySetpoint {
+    class TrajectorySetpointAdapter {
     public:
         /*
         * @brief Default constructor
         */
-        TrajectorySetpoint();
+        TrajectorySetpointAdapter();
 
         /*
         * @brief Constructor
         *
         * @param stamp ROS2 time stamp
         */
-        TrajectorySetpoint(const rclcpp::Time & stamp);
+        TrajectorySetpointAdapter(const rclcpp::Time & stamp);
 
         /*
         * @brief Constructor from iii::control::Reference
         *
         * @param stamp ROS2 time stamp
-        * @param reference iii::control::Reference
+        * @param reference iii_drone::control::Reference
         */
-        TrajectorySetpoint(
+        TrajectorySetpointAdapter(
             const rclcpp::Time & stamp,
-            const iii::control::Reference & reference
+            const iii_drone::control::Reference & reference
         );
 
         /*
-        * @brief Constructor from iii_ros2::control::FlightControlReference
+        * @brief Constructor from iii_drone::control::State
         *
         * @param stamp ROS2 time stamp
-        * @param flight_control_reference iii_ros2::control::FlightControlReference
+        * @param state iii_drone::control::State
         */
-        TrajectorySetpoint(
+        TrajectorySetpointAdapter(
             const rclcpp::Time & stamp,
-            const iii_ros2::control::FlightControlReference & flight_control_reference
-        );
-
-        /*
-        * @brief Constructor from iii::control::State
-        *
-        * @param stamp ROS2 time stamp
-        * @param state iii::control::State
-        */
-        TrajectorySetpoint(
-            const rclcpp::Time & stamp,
-            const iii::control::State & state
+            const iii_drone::control::State & state
         );
 
         /**
@@ -119,21 +102,21 @@ namespace px4 {
         *
         * @return Setpoint position
         */
-        const iii::types::position_t & position() const;
+        const iii_drone::types::point_t & position() const;
 
         /*
         * @brief Velocity getter
         *
         * @return Setpoint velocity
         */
-        const iii::types::velocity_t & velocity() const;
+        const iii_drone::types::vector_t & velocity() const;
 
         /*
         * @brief Acceleration getter
         *
         * @return Setpoint acceleration
         */
-        const iii::types::acceleration_t & acceleration() const;
+        const iii_drone::types::vector_t & acceleration() const;
 
         /*
         * @brief Yaw getter
@@ -164,9 +147,9 @@ namespace px4 {
         */
         void init(
             const rclcpp::Time & stamp,
-            const iii::types::position_t & position,
-            const iii::types::velocity_t & velocity,
-            const iii::types::acceleration_t & acceleration,
+            const iii_drone::types::point_t & position,
+            const iii_drone::types::vector_t & velocity,
+            const iii_drone::types::vector_t & acceleration,
             const double & yaw,
             const double & yawspeed
         );
@@ -179,17 +162,17 @@ namespace px4 {
         /*
         * @brief Setpoint position
         */
-        iii::types::position_t position_;
+        iii_drone::types::point_t position_;
 
         /*
         * @brief Setpoint velocity
         */
-        iii::types::velocity_t velocity_;
+        iii_drone::types::vector_t velocity_;
 
         /*
         * @brief Setpoint acceleration
         */
-        iii::types::acceleration_t acceleration_;
+        iii_drone::types::vector_t acceleration_;
 
         /*
         * @brief Setpoint yaw
@@ -203,4 +186,4 @@ namespace px4 {
 
 
     };
-}}
+}}}

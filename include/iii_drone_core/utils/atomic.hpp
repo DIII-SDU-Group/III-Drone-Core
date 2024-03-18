@@ -161,6 +161,36 @@ namespace utils {
 
         }
 
+        /**
+         * @brief -> operator overload.
+         * 
+         * @return Pointer to the object.
+         */
+        T * operator->() {
+                
+            std::unique_lock<std::shared_mutex> lock(mutex_);
+
+            return &value_;
+
+        }
+
+        /** 
+         * @brief Dereference operator overload.
+         * 
+         * @return Reference to the object.
+         */
+        T & operator*() {
+                
+            std::unique_lock<std::shared_mutex> lock(mutex_);
+
+            return value_;
+        }
+
+        /**
+         * @brief Shared pointer type.
+         */
+        typedef std::shared_ptr<Atomic<T>> SharedPtr;
+
     private:
         /**
          * @brief The value.

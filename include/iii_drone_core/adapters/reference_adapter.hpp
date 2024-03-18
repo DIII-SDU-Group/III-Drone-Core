@@ -9,6 +9,8 @@
 
 #include <rclcpp/rclcpp.hpp>
 
+#include <geometry_msgs/msg/pose_stamped.hpp>
+
 /*****************************************************************************/
 // III-Drone-Core:
 
@@ -69,11 +71,32 @@ namespace adapters {
         iii_drone_interfaces::msg::Reference ToMsg() const;
 
         /**
+         * @brief Converts to a pose msg.
+         * 
+         * @return The geometry_msgs::msg::Pose msg.
+         */
+        geometry_msgs::msg::Pose ToPoseMsg() const;
+
+        /**
+         * @brief Converts to a pose stamped msg.
+         * 
+         * @param frame_id The frame id.
+         * 
+         * @return The geometry_msgs::msg::PoseStamped msg.
+         */
+        geometry_msgs::msg::PoseStamped ToPoseStampedMsg(std::string frame_id) const;
+
+        /**
          * @brief Reference getter.
          * 
          * @return The III-Drone-Core::Reference.
          */
         iii_drone::control::Reference reference() const;
+
+        /**
+         * @brief Stamp getter.
+         */
+        rclcpp::Time stamp() const;
 
     private:
         iii_drone::control::Reference reference_;
