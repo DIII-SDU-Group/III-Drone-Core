@@ -1,0 +1,5 @@
+<map id="iii_drone::control::maneuver::HoverOnCableManeuverServer::validateAwareness" name="iii_drone::control::maneuver::HoverOnCableManeuverServer::validateAwareness">
+<area shape="rect" id="Node000001" title="Validates that the drone is on the cable." alt="" coords="5,5,268,60"/>
+<area shape="rect" id="Node000002" href="$structiii__drone_1_1control_1_1combined__drone__awareness__t.html#aeba579c277752c404e5a8a6c7298eab8" title=" " alt="" coords="316,5,531,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="268,30,302,30,302,35,268,35"/>
+</map>

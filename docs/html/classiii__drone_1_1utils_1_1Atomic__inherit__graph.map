@@ -1,0 +1,23 @@
+<map id="iii_drone::utils::Atomic&lt; T &gt;" name="iii_drone::utils::Atomic&lt; T &gt;">
+<area shape="rect" id="Node000001" title=" " alt="" coords="879,5,1076,31"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1Atomic.html" title=" " alt="" coords="5,108,195,163"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="864,24,487,34,313,44,251,50,214,57,168,81,129,110,126,106,165,76,212,52,250,45,312,39,487,29,864,18"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1Atomic.html" title=" " alt="" coords="225,115,383,155"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="865,25,652,36,552,45,479,57,402,85,337,118,335,113,400,80,478,52,551,40,651,31,865,20"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1utils_1_1Atomic.html" title=" " alt="" coords="407,115,564,155"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="865,26,767,37,665,57,586,86,520,118,518,113,584,81,663,52,766,32,865,21"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1utils_1_1Atomic.html" title=" " alt="" coords="588,115,745,155"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="887,36,810,57,748,86,696,118,693,113,745,82,808,52,885,31"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1utils_1_1Atomic.html" title=" " alt="" coords="769,108,980,163"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="898,39,878,56,870,81,871,108,865,108,864,80,874,53,894,35"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1utils_1_1Atomic.html" title=" " alt="" coords="1004,108,1233,163"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="1022,34,1054,53,1081,79,1103,106,1099,110,1077,82,1050,57,1020,38"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1utils_1_1Atomic.html" title=" " alt="" coords="1257,115,1415,155"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="1090,16,1154,19,1218,25,1272,36,1310,53,1322,66,1330,82,1337,114,1332,116,1325,84,1317,69,1306,57,1271,41,1217,30,1154,24,1090,21"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1utils_1_1Atomic.html" title=" " alt="" coords="1439,108,1649,163"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="1090,21,1261,32,1339,41,1395,52,1455,76,1507,106,1504,110,1453,81,1394,57,1338,46,1260,38,1090,26"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1utils_1_1Atomic.html" title=" " alt="" coords="1673,115,1897,155"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="1090,18,1378,26,1520,36,1622,52,1660,64,1697,80,1757,113,1755,118,1694,85,1658,69,1621,57,1519,42,1378,31,1090,23"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1utils_1_1Atomic.html" title=" " alt="" coords="1921,115,2119,155"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="1090,16,1483,23,1684,34,1767,42,1830,52,1873,64,1916,80,1987,113,1984,118,1914,85,1872,69,1829,57,1766,47,1684,39,1482,28,1090,22"/>
+</map>

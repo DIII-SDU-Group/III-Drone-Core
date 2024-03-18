@@ -1,0 +1,11 @@
+<map id="iii_drone::adapters::TargetAdapter::TargetAdapter" name="iii_drone::adapters::TargetAdapter::TargetAdapter">
+<area shape="rect" id="Node000001" title="Constructor from members." alt="" coords="5,121,225,161"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1TargetAdapter.html#adc6afc7adf9cc134e12fe65902100471" title="Gets the reference frame id." alt="" coords="280,5,471,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="161,118,272,70,290,63,292,68,274,75,163,123"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1adapters_1_1TargetAdapter.html#af4648a3bc6fd3ac93e610700e24b2d14" title="Gets the target id." alt="" coords="282,85,469,125"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="225,123,268,117,269,122,226,128"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1adapters_1_1TargetAdapter.html#a5b378f4de1effed87e2309d5f052d74a" title="Gets the target transform." alt="" coords="291,149,459,204"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="226,153,278,161,277,166,225,159"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1adapters_1_1TargetAdapter.html#a7b5c36b234213f1d19fa8f1943c26c4a" title="Gets the target type." alt="" coords="273,229,477,269"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="156,158,274,213,297,221,295,226,272,218,154,163"/>
+</map>

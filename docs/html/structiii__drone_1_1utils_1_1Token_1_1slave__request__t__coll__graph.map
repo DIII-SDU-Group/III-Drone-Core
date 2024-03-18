@@ -1,0 +1,9 @@
+<map id="iii_drone::utils::Token&lt; T &gt;::slave_request_t" name="iii_drone::utils::Token&lt; T &gt;::slave_request_t">
+<area shape="rect" id="Node000001" title="Slave request struct." alt="" coords="63,277,225,357"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="31,142,110,207"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="70,207,72,230,78,252,85,263,80,266,74,254,67,231,65,208"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,5,136,85"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="73,99,73,142,68,142,68,99"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="134,135,282,215"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="195,216,178,254,174,264,169,261,174,252,190,214"/>
+</map>

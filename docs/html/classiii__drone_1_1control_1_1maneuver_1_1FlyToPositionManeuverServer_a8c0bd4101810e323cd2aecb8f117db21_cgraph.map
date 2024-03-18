@@ -1,0 +1,5 @@
+<map id="iii_drone::control::maneuver::FlyToPositionManeuverServer::hasFailed" name="iii_drone::control::maneuver::FlyToPositionManeuverServer::hasFailed">
+<area shape="rect" id="Node000001" title="Whether the maneuver has failed." alt="" coords="5,5,260,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#aa25571ba492acf43cd9af009c02cf72e" title="Combined drone awareness handler, accessible to derived classes through the protected method." alt="" coords="308,5,519,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="260,30,294,30,294,35,260,35"/>
+</map>

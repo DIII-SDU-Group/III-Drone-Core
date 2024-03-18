@@ -1,0 +1,7 @@
+<map id="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator::world_frame_id" name="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator::world_frame_id">
+<area shape="rect" id="Node000001" title="Get the world frame ID." alt="" coords="593,5,804,75"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#ae98c3a40fb32f1305c1528467205ba33" title="Callback for fetching drone transform." alt="" coords="313,13,545,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="579,43,545,43,545,37,579,37"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#a703ae72ba683ae11154ce597b8bbad9d" title="Constructor." alt="" coords="5,13,265,67"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="300,43,266,43,266,37,300,37"/>
+</map>

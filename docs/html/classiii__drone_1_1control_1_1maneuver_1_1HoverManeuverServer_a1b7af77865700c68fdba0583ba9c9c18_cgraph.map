@@ -1,0 +1,7 @@
+<map id="iii_drone::control::maneuver::HoverManeuverServer::registerReferenceCallbackOnSuccess" name="iii_drone::control::maneuver::HoverManeuverServer::registerReferenceCallbackOnSuccess">
+<area shape="rect" id="Node000001" title="Registers the hover reference callback on success." alt="" coords="5,45,277,100"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverManeuverServer.html#ac5152adf55a287fa83ad29f4a9f0709b" title="Gets the hover reference." alt="" coords="325,5,576,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="277,52,311,48,312,53,278,58"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#ad50ebd57620bbb5863a8d8e40fca2f12" title="Registers a callback function for the reference. The callback function should be registered with the ..." alt="" coords="345,84,556,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="278,87,332,94,331,99,277,92"/>
+</map>

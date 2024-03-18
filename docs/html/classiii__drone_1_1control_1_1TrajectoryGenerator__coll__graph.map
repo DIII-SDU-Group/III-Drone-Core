@@ -1,0 +1,9 @@
+<map id="iii_drone::control::TrajectoryGenerator" name="iii_drone::control::TrajectoryGenerator">
+<area shape="rect" id="Node000001" title=" " alt="" coords="18,837,246,997"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,636,259,716"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="135,716,135,821,129,821,129,716"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1MPCParameters.html" title="Class for handling parameters for positional MPC." alt="" coords="47,133,217,573"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="135,573,135,619,129,619,129,573"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="65,5,199,71"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="135,71,135,117,129,117,129,71"/>
+</map>

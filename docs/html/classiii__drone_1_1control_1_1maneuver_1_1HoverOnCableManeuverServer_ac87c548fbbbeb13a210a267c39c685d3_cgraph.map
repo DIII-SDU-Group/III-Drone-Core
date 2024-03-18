@@ -1,0 +1,9 @@
+<map id="iii_drone::control::maneuver::HoverOnCableManeuverServer::GetReference" name="iii_drone::control::maneuver::HoverOnCableManeuverServer::GetReference">
+<area shape="rect" id="Node000001" title="Gets the hover on cable reference. Will call the on fail callback if the drone is not on the cable." alt="" coords="5,45,268,100"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#aa25571ba492acf43cd9af009c02cf72e" title="Combined drone awareness handler, accessible to derived classes through the protected method." alt="" coords="342,5,553,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="268,53,328,45,329,51,269,58"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverOnCableManeuverServer.html#a7ebbdce1a5988daf4eb40334583432e4" title="Validates that the drone is on the cable." alt="" coords="316,84,579,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="269,86,303,91,302,96,268,92"/>
+<area shape="rect" id="Node000004" href="$structiii__drone_1_1control_1_1combined__drone__awareness__t.html#aeba579c277752c404e5a8a6c7298eab8" title=" " alt="" coords="627,84,841,139"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="579,109,613,109,613,114,579,114"/>
+</map>

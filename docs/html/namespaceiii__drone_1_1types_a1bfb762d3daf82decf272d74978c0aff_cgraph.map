@@ -1,0 +1,7 @@
+<map id="iii_drone::types::poseFromTransformMatrix" name="iii_drone::types::poseFromTransformMatrix">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,200,45"/>
+<area shape="rect" id="Node000002" href="$namespaceiii__drone_1_1types.html#a697d4ff4e536df203d0c6acf6daf0751" title=" " alt="" coords="248,5,448,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="200,23,234,23,234,28,200,28"/>
+<area shape="rect" id="Node000003" href="$namespaceiii__drone_1_1math.html#af4cd05fd620f368b776def1c899e2f17" title=" " alt="" coords="496,13,695,38"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="448,23,482,23,482,28,448,28"/>
+</map>

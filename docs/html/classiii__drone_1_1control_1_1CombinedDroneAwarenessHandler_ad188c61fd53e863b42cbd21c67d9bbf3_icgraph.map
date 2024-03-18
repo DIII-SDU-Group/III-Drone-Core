@@ -1,0 +1,20 @@
+<map id="iii_drone::control::CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromTarget" name="iii_drone::control::CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromTarget">
+<area shape="rect" id="Node000001" title="Updates the combined drone awareness from the target adapter. Triggers updates of target_adapter,..." alt="" coords="625,241,949,296"/>
+<area shape="poly" id="edge9_Node000001_Node000001" title=" " alt="" coords="845,231,824,223,787,220,757,222,737,227,728,233,728,241,722,241,723,231,734,222,756,217,787,215,825,218,847,226"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#afa1110206b605274871d3a74bbfe253f" title="Clears the current target." alt="" coords="320,163,577,217"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="655,241,567,220,568,215,656,236"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a884a60310da87efcba07a047865cc183" title="Sets the current target." alt="" coords="320,241,577,296"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="612,271,578,271,578,266,612,266"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a8bcf29ada285948eeeff00d694d185c2" title="Updates the combined drone awareness based on current information. To be called after updating the an..." alt="" coords="320,320,577,375"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="656,302,568,322,567,317,655,297"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a2afb702a953aa331d30fa250830ec4b0" title="Publishes the result and finalizes the maneuver according to the maneuver result type." alt="" coords="16,5,261,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="401,156,341,114,271,74,244,63,246,58,273,69,344,109,404,152"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a80336b2dc5cac8ed93bfe98b420c8e4d" title="Publishes the result and finalizes the maneuver according to the maneuver result type." alt="" coords="5,84,272,139"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="326,162,247,141,248,136,328,157"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverOnCableManeuverServer.html#aa06efd9bfb0a37553e8599a3bc5060f8" title="Publish the result and finalize the maneuver based on the maneuver result type." alt="" coords="7,163,270,217"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="306,193,270,193,270,187,306,187"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverManeuverServer.html#a95f116b1ce7f283f69b3f2a5d5a5fe4d" title="Starts the execution of the maneuver. Registers the current drone state as the hover reference." alt="" coords="13,241,264,296"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="328,223,248,244,247,239,326,218"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a45046cb4335f9a4fe757b195ae4851ca" title="Construct a new CombinedDroneAwarenessHandler object, initializing all the subscriptions." alt="" coords="10,320,267,375"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="306,350,268,350,268,345,306,345"/>
+</map>

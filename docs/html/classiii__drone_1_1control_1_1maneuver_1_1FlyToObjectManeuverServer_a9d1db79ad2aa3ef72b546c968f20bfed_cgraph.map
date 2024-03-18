@@ -1,0 +1,15 @@
+<map id="iii_drone::control::maneuver::FlyToObjectManeuverServer::getUpdatedTargetReference" name="iii_drone::control::maneuver::FlyToObjectManeuverServer::getUpdatedTargetReference">
+<area shape="rect" id="Node000001" title="Get updated target reference. Sets the has_failed flag if the target is not visible." alt="" coords="5,141,260,196"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#aa25571ba492acf43cd9af009c02cf72e" title="Combined drone awareness handler, accessible to derived classes through the protected method." alt="" coords="308,5,519,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="178,139,239,105,307,70,324,63,326,68,309,75,241,110,181,144"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1State.html#ac7d02a667c215a72d7f7f2fdf1501eb4" title=" " alt="" coords="348,85,479,125"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="253,139,334,120,335,125,254,144"/>
+<area shape="rect" id="Node000004" href="$namespaceiii__drone_1_1types.html#a697d4ff4e536df203d0c6acf6daf0751" title=" " alt="" coords="313,149,513,189"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="260,166,300,166,300,171,260,171"/>
+<area shape="rect" id="Node000006" href="$namespaceiii__drone_1_1math.html#a8e7d7e25d07b368363d6da9939a9abed" title=" " alt="" coords="318,213,509,239"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="261,192,337,208,336,213,260,197"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1State.html#a9853d9f35c2c0ebf0976a472b2624dc2" title=" " alt="" coords="348,263,479,303"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="189,194,309,248,336,257,334,262,307,252,187,199"/>
+<area shape="rect" id="Node000005" href="$namespaceiii__drone_1_1math.html#af4cd05fd620f368b776def1c899e2f17" title=" " alt="" coords="567,156,765,181"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="513,166,553,166,553,171,513,171"/>
+</map>

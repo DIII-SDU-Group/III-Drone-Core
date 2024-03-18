@@ -1,0 +1,15 @@
+<map id="iii_drone::perception::Powerline::UpdateLine" name="iii_drone::perception::Powerline::UpdateLine">
+<area shape="rect" id="Node000001" title="Updates from a point. If match is found, runs the Kalman Filter update step for the matching line,..." alt="" coords="5,133,181,173"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1Powerline.html#a9b87d73cd3bd8843b500824d3dd029d8" title="Finds the matching line for a point." alt="" coords="229,5,443,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="116,131,166,93,228,55,244,48,246,53,231,60,169,97,120,135"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1History.html#ad80957391e0cd45d17f023760daf0350" title="Returns true if the history is full." alt="" coords="251,69,421,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="169,131,246,110,247,115,171,136"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1Powerline.html#a5a693a6ba3b403a06a85d150eae9ae38" title="Projects a point onto the powerline projection plane." alt="" coords="246,133,426,173"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="182,151,233,151,233,156,182,156"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1perception_1_1Powerline.html#aaf01bd6fa116d375dd13f236780aff61" title="Registers a new line." alt="" coords="232,197,440,237"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="171,171,247,191,246,196,169,176"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1utils_1_1Timestamp.html#a373bc0de94c27153e2372c30f0eedbb1" title="Updates the timestamp to now." alt="" coords="238,261,434,301"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="120,171,169,209,231,247,246,254,244,259,228,252,166,214,116,176"/>
+<area shape="rect" id="Node000005" href="$namespaceiii__drone_1_1math.html#aae5152700f4f75e55960b3a9d6962774" title=" " alt="" coords="491,133,664,173"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="426,151,477,151,477,156,426,156"/>
+</map>

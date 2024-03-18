@@ -1,0 +1,18 @@
+<map id="iii_drone::adapters::px4::TrajectorySetpointAdapter::TrajectorySetpointAdapter" name="iii_drone::adapters::px4::TrajectorySetpointAdapter::TrajectorySetpointAdapter">
+<area shape="rect" id="Node000001" title="Constructor." alt="" coords="5,135,236,189"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1px4_1_1TrajectorySetpointAdapter.html#ac412a4c6fef458db64699b319ca604d3" title="Initialize the object." alt="" coords="284,170,544,210"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="236,170,270,174,270,179,236,176"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1adapters_1_1px4_1_1TrajectorySetpointAdapter.html#aa220453513f72d6de1f984ed50af4056" title="Timestamp getter." alt="" coords="610,5,841,60"/>
+<area shape="poly" id="edge8_Node000001_Node000005" title=" " alt="" coords="236,135,596,58,597,63,237,140"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1adapters_1_1px4_1_1TrajectorySetpointAdapter.html#afdb97aa623ed4bbdba01705942d797e2" title="Acceleration getter." alt="" coords="610,84,841,139"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="493,167,602,140,604,145,495,173"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1adapters_1_1px4_1_1TrajectorySetpointAdapter.html#a6a77ca7a8da2020329f59fe33cc9163b" title="Position getter." alt="" coords="610,163,841,217"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="544,187,596,187,596,193,544,193"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="443,168,591,69,606,62,608,67,593,74,446,172"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1adapters_1_1px4_1_1TrajectorySetpointAdapter.html#ad6e151d9077c859e50d370c2aeee73aa" title="Velocity getter." alt="" coords="610,241,841,296"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="495,207,604,235,602,240,493,213"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1adapters_1_1px4_1_1TrajectorySetpointAdapter.html#a4afea8bb50884930a0a31e4d88d07c59" title="Yaw getter." alt="" coords="592,321,859,361"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="441,208,507,257,549,284,593,306,613,314,611,319,591,311,546,288,504,262,438,212"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1adapters_1_1px4_1_1TrajectorySetpointAdapter.html#aee68f8c1701397296c4db6d6600d48e6" title="Yaw speed getter." alt="" coords="610,385,841,440"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="431,209,496,287,542,332,593,370,606,377,603,382,591,375,538,336,492,291,427,212"/>
+</map>

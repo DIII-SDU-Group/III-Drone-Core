@@ -1,0 +1,7 @@
+<map id="iii_drone::adapters::StateAdapter::state" name="iii_drone::adapters::StateAdapter::state">
+<area shape="rect" id="Node000001" title="State getter." alt="" coords="607,20,763,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNode.html#aefc447399b185fef5b912770b5059936" title="The compute reference trajectory service callback." alt="" coords="285,5,559,75"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="593,43,559,43,559,37,593,37"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNode.html#ac58d9ceab1e2ecc71cb971a5f360bc00" title=" " alt="" coords="5,5,237,75"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="272,43,238,43,238,37,272,37"/>
+</map>

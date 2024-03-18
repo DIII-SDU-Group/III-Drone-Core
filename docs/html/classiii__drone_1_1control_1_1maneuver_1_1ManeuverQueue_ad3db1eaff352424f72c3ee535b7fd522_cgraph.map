@@ -1,0 +1,8 @@
+<map id="iii_drone::control::maneuver::ManeuverQueue::Update" name="iii_drone::control::maneuver::ManeuverQueue::Update">
+<area shape="rect" id="Node000001" title="Updates a maneuver in the queue. Replace the first occurrence of the maneuver." alt="" coords="5,27,216,82"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#a5d1aebf4c43998899389737a1b50b6a7" title="Finds a maneuver in the queue by its UUID." alt="" coords="264,5,507,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="216,41,250,37,251,42,217,46"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a0490fe188e37c65b3e33ea5d82875c92" title="UUID getter." alt="" coords="555,35,760,75"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="216,54,264,55,507,55,541,54,541,60,507,60,264,60,216,59"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="507,36,542,40,541,45,506,41"/>
+</map>

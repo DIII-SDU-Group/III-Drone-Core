@@ -1,0 +1,5 @@
+<map id="iii_drone::utils::Token::Acquire" name="iii_drone::utils::Token::Acquire">
+<area shape="rect" id="Node000001" title="Request to acquire the token, to be called by a slave." alt="" coords="264,13,423,53"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#a44d261b91fb3178ab005fbd642df9b23" title="Execute." alt="" coords="5,5,216,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="250,35,216,35,216,30,250,30"/>
+</map>

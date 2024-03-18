@@ -1,0 +1,5 @@
+<map id="iii_drone::perception::PowerlineDirection::quaternion" name="iii_drone::perception::PowerlineDirection::quaternion">
+<area shape="rect" id="Node000001" title="Powerline quaternion getter." alt="" coords="5,5,160,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1History.html#a4b015ee2da0e8a06ec7ac24e9fff5da3" title="Returns true if the history is empty." alt="" coords="208,13,377,53"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="160,30,194,30,194,35,160,35"/>
+</map>

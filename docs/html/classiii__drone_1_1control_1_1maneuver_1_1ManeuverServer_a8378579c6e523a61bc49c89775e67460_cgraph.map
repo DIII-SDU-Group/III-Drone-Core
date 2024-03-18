@@ -1,0 +1,13 @@
+<map id="iii_drone::control::maneuver::ManeuverServer::ManeuverServer" name="iii_drone::control::maneuver::ManeuverServer::ManeuverServer">
+<area shape="rect" id="Node000001" title="Constructor." alt="" coords="5,84,216,139"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#ab26a6fab643c98429b5f7963520a10c3" title="Handle accepted callback." alt="" coords="264,5,475,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="200,81,265,62,266,67,202,86"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#a474472c186eb6280c28bab0fe043b6e7" title="Handle cancel callback." alt="" coords="264,84,475,139"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="216,109,251,109,251,114,216,114"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#ad0bea8650490a43c4651e50c9bacd443" title="Handle goal callback." alt="" coords="264,163,475,217"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="202,136,266,156,265,161,200,141"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#a351eaab981ef2f8023d814b116391218" title="Execute." alt="" coords="523,5,733,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="475,30,509,30,509,35,475,35"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#a2e1d61a952417f23bb49b7c7b012075c" title="Get reference callback." alt="" coords="781,5,992,60"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="733,30,768,30,768,35,733,35"/>
+</map>

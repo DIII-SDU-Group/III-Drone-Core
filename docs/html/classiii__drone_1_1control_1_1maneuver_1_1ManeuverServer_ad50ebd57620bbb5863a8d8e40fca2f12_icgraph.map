@@ -1,0 +1,13 @@
+<map id="iii_drone::control::maneuver::ManeuverServer::registerCallback" name="iii_drone::control::maneuver::ManeuverServer::registerCallback">
+<area shape="rect" id="Node000001" title="Registers a callback function for the reference. The callback function should be registered with the ..." alt="" coords="325,199,536,254"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a8cd7c6981d54cd5aa868f25d843ad0d0" title="Registers the hover by object reference callback on success." alt="" coords="10,5,273,75"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="395,191,342,138,310,112,276,89,253,77,256,72,279,84,313,108,345,134,398,187"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServer.html#ae4530a3fb2d86a28ddbbcce170bf4a59" title="Registers the hover reference callback on success." alt="" coords="10,99,273,168"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="332,198,248,171,250,165,333,193"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a42d65b247ee89440e63ed7c992c4772e" title="Registers the hover by object reference callback on success." alt="" coords="8,192,275,261"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="311,229,275,229,275,224,311,224"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverManeuverServer.html#a1b7af77865700c68fdba0583ba9c9c18" title="Registers the hover reference callback on success." alt="" coords="5,286,277,341"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="329,261,278,276,236,288,235,283,277,271,327,255"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverOnCableManeuverServer.html#ad2050fc9fadc5279e5b3a359ceef2151" title="Register the hover on cable reference callback on success." alt="" coords="10,365,273,435"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="394,266,341,311,279,354,252,368,250,363,276,350,338,307,390,262"/>
+</map>

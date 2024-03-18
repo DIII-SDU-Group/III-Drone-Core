@@ -1,0 +1,9 @@
+<map id="iii_drone::perception::Powerline::updateProjectionPlane" name="iii_drone::perception::Powerline::updateProjectionPlane">
+<area shape="rect" id="Node000001" title="Updates the projection plane." alt="" coords="857,5,1069,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1Powerline.html#ac0f0ef699ab1cca6ab024e2f9549ce8e" title="Updates the powerline direction and updates the projection plane." alt="" coords="601,13,809,53"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="843,35,810,35,810,30,843,30"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#a18e832f380107069f279ecf1203f3f16" title="Callback for powerline direction topic." alt="" coords="313,5,553,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="587,35,553,35,553,30,587,30"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#a703ae72ba683ae11154ce597b8bbad9d" title="Constructor." alt="" coords="5,5,265,60"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="300,35,265,35,265,30,300,30"/>
+</map>

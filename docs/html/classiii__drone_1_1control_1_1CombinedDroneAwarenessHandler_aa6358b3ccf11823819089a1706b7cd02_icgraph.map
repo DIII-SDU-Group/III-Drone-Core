@@ -1,0 +1,13 @@
+<map id="iii_drone::control::CombinedDroneAwarenessHandler::GetState" name="iii_drone::control::CombinedDroneAwarenessHandler::GetState">
+<area shape="rect" id="Node000001" title="Get the current drone state." alt="" coords="967,84,1224,139"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#ab8f37f3486e4fd495946feb71ed4dcf3" title="Fetches the next reference and publishes it. Will fetch the reference using the registered callback,..." alt="" coords="637,5,870,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="962,83,870,62,871,57,963,78"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a207c2c72ecfb7376ef44bd986e00ccce" title="Publishes the feedback." alt="" coords="631,84,876,139"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="953,114,876,114,876,109,953,109"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a197c146061816403499a4e652a8fe646" title="Updates the given combined drone awareness from the vehicle odometry. Triggers updates of ground alti..." alt="" coords="588,163,919,233"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="974,145,891,166,890,161,973,139"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a3f6d63fc07809f25313347856ffdcd78" title="The maneuver execution timer callback." alt="" coords="287,5,540,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="623,35,541,35,541,30,623,30"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#ab930f227bbd30171806a49ab06c4e3b8" title="Constructor." alt="" coords="5,5,239,60"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="273,35,239,35,239,30,273,30"/>
+</map>

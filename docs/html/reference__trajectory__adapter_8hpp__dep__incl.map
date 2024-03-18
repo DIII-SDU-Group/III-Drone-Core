@@ -1,0 +1,29 @@
+<map id="/home/ffn/Workspace/ros2_humble_ws/src/III&#45;Drone&#45;Core/include/iii_drone_core/adapters/reference_trajectory_adapter.hpp" name="/home/ffn/Workspace/ros2_humble_ws/src/III&#45;Drone&#45;Core/include/iii_drone_core/adapters/reference_trajectory_adapter.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="550,5,793,89"/>
+<area shape="rect" id="Node000002" href="$fly__to__object__maneuver__server_8hpp.html" title=" " alt="" coords="110,284,289,383"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="537,69,442,95,395,115,352,140,312,172,278,210,249,249,227,285,222,283,245,246,274,206,309,168,348,135,393,110,440,90,536,63"/>
+<area shape="rect" id="Node000006" href="$fly__to__position__maneuver__server_8hpp.html" title=" " alt="" coords="617,284,808,383"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="681,103,699,236,707,283,702,284,694,236,676,104"/>
+<area shape="rect" id="Node000008" href="$trajectory__generator__client_8hpp.html" title=" " alt="" coords="363,145,593,229"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="604,100,538,147,534,142,601,95"/>
+<area shape="rect" id="Node000010" href="$trajectory__generator__node_8hpp.html" title=" " alt="" coords="709,137,935,236"/>
+<area shape="poly" id="edge13_Node000001_Node000010" title=" " alt="" coords="728,97,771,135,767,139,725,101"/>
+<area shape="rect" id="Node000012" href="$reference__trajectory__adapter_8cpp.html" title=" " alt="" coords="960,152,1201,221"/>
+<area shape="poly" id="edge15_Node000001_Node000012" title=" " alt="" coords="807,88,948,135,990,149,988,155,946,140,805,93"/>
+<area shape="rect" id="Node000003" href="$maneuver__controller__node_8hpp.html" title=" " alt="" coords="281,431,509,529"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="278,389,331,428,328,433,274,393"/>
+<area shape="rect" id="Node000005" href="$fly__to__object__maneuver__server_8cpp.html" title=" " alt="" coords="5,438,257,522"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="173,397,153,439,148,437,168,394"/>
+<area shape="rect" id="Node000004" href="$maneuver__controller__node_8cpp.html" title=" " alt="" coords="282,577,509,661"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="398,543,398,577,393,577,393,543"/>
+<area shape="poly" id="edge6_Node000006_Node000003" title=" " alt="" coords="606,386,502,433,500,428,604,381"/>
+<area shape="rect" id="Node000007" href="$fly__to__position__maneuver__server_8cpp.html" title=" " alt="" coords="617,438,808,522"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="715,397,715,438,710,438,710,397"/>
+<area shape="poly" id="edge9_Node000008_Node000002" title=" " alt="" coords="389,237,290,288,287,283,386,232"/>
+<area shape="poly" id="edge11_Node000008_Node000003" title=" " alt="" coords="392,239,370,260,354,285,344,321,346,359,356,396,370,429,365,432,351,398,341,360,339,321,349,283,366,257,389,235"/>
+<area shape="poly" id="edge10_Node000008_Node000006" title=" " alt="" coords="558,234,636,282,633,286,555,238"/>
+<area shape="rect" id="Node000009" href="$trajectory__generator__client_8cpp.html" title=" " alt="" coords="363,299,593,368"/>
+<area shape="poly" id="edge12_Node000008_Node000009" title=" " alt="" coords="481,243,481,298,475,298,475,243"/>
+<area shape="rect" id="Node000011" href="$trajectory__generator__node_8cpp.html" title=" " alt="" coords="832,291,1057,375"/>
+<area shape="poly" id="edge14_Node000010_Node000011" title=" " alt="" coords="874,245,912,289,908,293,870,248"/>
+</map>

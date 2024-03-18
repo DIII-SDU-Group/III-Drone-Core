@@ -1,0 +1,11 @@
+<map id="iii_drone::utils::Token::master_has_token" name="iii_drone::utils::Token::master_has_token">
+<area shape="rect" id="Node000001" title="Whether the token is held by the master." alt="" coords="915,53,1073,93"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#afa9c39ec85ed4c05e1cac71ebb197a78" title="Callback function for when the token is yielded from a maneuver server. Registers the hovering refere..." alt="" coords="588,5,867,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="901,61,867,56,867,51,902,56"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a99d218271b8aa908b0e179076f2ca733" title="Progresses the scheduler. If a maneuver is executing, evaluates whether it has terminated...." alt="" coords="611,84,844,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="901,89,845,97,844,92,900,83"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a3f6d63fc07809f25313347856ffdcd78" title="The maneuver execution timer callback." alt="" coords="287,84,540,139"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="597,114,540,114,540,109,597,109"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#ab930f227bbd30171806a49ab06c4e3b8" title="Constructor." alt="" coords="5,84,239,139"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="273,114,239,114,239,109,273,109"/>
+</map>

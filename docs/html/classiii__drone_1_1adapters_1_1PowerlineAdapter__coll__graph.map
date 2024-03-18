@@ -1,0 +1,13 @@
+<map id="iii_drone::adapters::PowerlineAdapter" name="iii_drone::adapters::PowerlineAdapter">
+<area shape="rect" id="Node000001" title="Powerline message adapter class." alt="" coords="131,853,321,1153"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,708,225,788"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="132,787,148,828,152,837,147,839,144,830,127,789"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html" title="SingleLine message adapter class." alt="" coords="31,263,200,643"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="118,643,118,692,113,692,113,643"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="76,135,155,200"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="118,201,118,246,113,246,113,201"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="50,5,181,85"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="118,99,118,134,113,134,113,99"/>
+<area shape="rect" id="Node000006" href="$structiii__drone_1_1types_1_1plane__t.html" title=" " alt="" coords="250,705,421,791"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="320,792,299,840,294,837,315,790"/>
+</map>

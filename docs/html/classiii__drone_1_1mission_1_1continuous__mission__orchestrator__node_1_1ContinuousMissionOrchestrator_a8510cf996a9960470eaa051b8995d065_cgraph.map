@@ -1,0 +1,11 @@
+<map id="iii_drone::mission::continuous_mission_orchestrator_node::ContinuousMissionOrchestrator::startFlyUnderCable" name="iii_drone::mission::continuous_mission_orchestrator_node::ContinuousMissionOrchestrator::startFlyUnderCable">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,175,292,245"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1mission_1_1continuous__mission__orchestrator__node_1_1ContinuousMissionOrchestrator.html#ad64c71b10a835f9b9ca4f2a75bcb4ad5" title=" " alt="" coords="349,5,602,89"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="204,173,268,136,339,98,351,93,353,97,341,103,271,140,207,178"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1mission_1_1continuous__mission__orchestrator__node_1_1ContinuousMissionOrchestrator.html#ad1c975a261da7abe1b70e31a3f80d975" title=" " alt="" coords="349,113,602,197"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="292,183,334,176,335,181,293,189"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1mission_1_1continuous__mission__orchestrator__node_1_1ContinuousMissionOrchestrator.html#a118e1dc4efddf652e359e97d9c5c34ad" title=" " alt="" coords="349,221,602,305"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="293,231,335,238,334,243,292,236"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1mission_1_1continuous__mission__orchestrator__node_1_1ContinuousMissionOrchestrator.html#a4efeaba4750d2187fc340118bdb55cd3" title=" " alt="" coords="340,330,611,399"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="207,242,271,279,341,314,360,322,358,327,339,319,268,283,205,247"/>
+</map>

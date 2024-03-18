@@ -1,0 +1,11 @@
+<map id="iii_drone::perception::PowerlineDirection::PowerlineDirection" name="iii_drone::perception::PowerlineDirection::PowerlineDirection">
+<area shape="rect" id="Node000001" title="Default constructor." alt="" coords="5,62,160,117"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a045bf2524790cddf13b531d46d548280" title="Resets the Kalman filter estimates." alt="" coords="229,26,383,81"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="160,74,215,65,215,71,161,79"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1utils_1_1Timestamp.html#a373bc0de94c27153e2372c30f0eedbb1" title="Updates the timestamp to now." alt="" coords="208,105,404,145"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="161,99,195,105,194,110,160,104"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1History.html#a4b015ee2da0e8a06ec7ac24e9fff5da3" title="Returns true if the history is empty." alt="" coords="463,5,632,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="383,42,449,34,449,39,384,47"/>
+<area shape="rect" id="Node000004" href="$namespaceiii__drone_1_1math.html#a8e7d7e25d07b368363d6da9939a9abed" title=" " alt="" coords="452,70,643,95"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="384,60,439,67,438,72,383,65"/>
+</map>

@@ -1,0 +1,12 @@
+<map id="iii_drone::control::CombinedDroneAwarenessHandler::SetTarget" name="iii_drone::control::CombinedDroneAwarenessHandler::SetTarget">
+<area shape="rect" id="Node000001" title="Sets the current target." alt="" coords="5,77,263,132"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a210daa5f6654327a96c6d24dae007816" title="Returns the current target adapter, will have TARGET_TYPE_NONE if no target." alt="" coords="344,5,601,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="262,75,330,60,331,65,263,80"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1adapters_1_1TargetAdapter.html#a7b5c36b234213f1d19fa8f1943c26c4a" title="Gets the target type." alt="" coords="371,85,575,125"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="263,102,357,102,357,107,263,107"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#ad188c61fd53e863b42cbd21c67d9bbf3" title="Updates the combined drone awareness from the target adapter. Triggers updates of target_adapter,..." alt="" coords="311,173,635,228"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="232,129,363,167,362,172,230,135"/>
+<area shape="poly" id="edge5_Node000004_Node000004" title=" " alt="" coords="408,173,408,163,420,154,441,149,473,147,510,150,532,158,530,163,509,155,473,152,442,154,422,159,413,165,413,173"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a7489deb4a1885f6b4985a3f6de205b64" title="Getter for the combined drone awareness simple type by copy." alt="" coords="683,173,940,228"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="635,198,669,198,669,203,635,203"/>
+</map>

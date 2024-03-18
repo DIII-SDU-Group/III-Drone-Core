@@ -1,0 +1,59 @@
+<map id="iii_drone::perception::pl_mapper_node::PowerlineMapperNode::mmWaveCallback" name="iii_drone::perception::pl_mapper_node::PowerlineMapperNode::mmWaveCallback">
+<area shape="rect" id="Node000001" title="Callback for mmwave data topic." alt="" coords="5,483,236,537"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1Powerline.html#ac41b155797547f943848004171fb7c61" title="Cleans up the lines that are not in the sensor FOV." alt="" coords="301,155,490,195"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="132,481,190,375,233,311,282,251,313,224,345,201,348,205,316,228,286,255,237,314,195,378,137,484"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1Powerline.html#a07f90dc6a742a7f921e041d3b3734d8b" title="Computes the inter line positions." alt="" coords="286,52,505,107"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="125,482,143,416,174,327,220,230,249,184,282,141,318,112,322,116,286,145,253,187,224,233,179,329,148,417,131,483"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a9194f1052a84687ba3d387ea76ef2ac1" title="Get the drone frame ID." alt="" coords="556,475,767,545"/>
+<area shape="poly" id="edge9_Node000001_Node000009" title=" " alt="" coords="236,501,284,499,507,499,542,501,542,506,507,505,284,505,236,506"/>
+<area shape="rect" id="Node000013" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#af4cab9cef3c74407e65605f40d0f85bb" title="Get the mmWave frame ID." alt="" coords="285,370,505,439"/>
+<area shape="poly" id="edge15_Node000001_Node000013" title=" " alt="" coords="192,480,291,442,293,447,194,485"/>
+<area shape="rect" id="Node000014" href="$namespaceiii__drone_1_1types.html#a8215048242190c57b9ff2de3f1daba73" title=" " alt="" coords="297,594,493,634"/>
+<area shape="poly" id="edge17_Node000001_Node000014" title=" " alt="" coords="181,535,285,578,311,587,309,592,283,583,179,540"/>
+<area shape="rect" id="Node000015" href="$namespaceiii__drone_1_1types.html#adf49c0d0a898eea29ad3e752a6712734" title=" " alt="" coords="300,658,491,698"/>
+<area shape="poly" id="edge18_Node000001_Node000015" title=" " alt="" coords="149,535,208,590,246,619,285,644,300,650,297,655,283,648,243,623,205,594,146,539"/>
+<area shape="rect" id="Node000016" href="$classiii__drone_1_1adapters_1_1PointCloudAdapter.html#a598a5eb2f039f49655a9fa1be90bca9b" title="Point cloud data getter." alt="" coords="320,723,471,777"/>
+<area shape="poly" id="edge19_Node000001_Node000016" title=" " alt="" coords="140,536,164,574,197,620,238,667,286,708,309,721,306,726,282,712,235,671,193,624,160,577,135,539"/>
+<area shape="rect" id="Node000017" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a38d2b0a7368b792db067c0cc08555c1e" title="PowerlineParameters getter." alt="" coords="284,802,507,871"/>
+<area shape="poly" id="edge20_Node000001_Node000017" title=" " alt="" coords="134,536,154,589,186,656,230,726,257,759,286,788,290,792,287,796,282,792,253,762,226,729,182,658,149,591,129,538"/>
+<area shape="rect" id="Node000018" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#ab169bb89cd56cc2d80d1888a38196c0d" title="Publishes point cloud data on a given publisher." alt="" coords="290,515,501,569"/>
+<area shape="poly" id="edge21_Node000001_Node000018" title=" " alt="" coords="236,521,277,526,276,531,236,526"/>
+<area shape="rect" id="Node000021" href="$classiii__drone_1_1perception_1_1Powerline.html#a287872d7937bc69956dbeb938aff884e" title="Updates from a point. If match is found, runs the Kalman Filter update step for the matching line,..." alt="" coords="307,265,483,305"/>
+<area shape="poly" id="edge25_Node000001_Node000021" title=" " alt="" coords="147,480,207,421,282,356,348,310,351,314,286,360,211,425,151,484"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1Timestamp.html#a373bc0de94c27153e2372c30f0eedbb1" title="Updates the timestamp to now." alt="" coords="563,105,759,145"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="490,155,549,143,550,149,491,160"/>
+<area shape="poly" id="edge8_Node000004_Node000003" title=" " alt="" coords="505,95,550,103,549,108,504,101"/>
+<area shape="rect" id="Node000005" href="$namespaceiii__drone_1_1math.html#a3efad56e6eb85aa0c255b020ab254874" title=" " alt="" coords="573,5,750,31"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="504,51,554,39,590,31,591,36,555,45,506,56"/>
+<area shape="rect" id="Node000006" href="$namespaceiii__drone_1_1math.html#af8c96a0fa3940e1034c8db8425586ba8" title=" " alt="" coords="563,55,759,80"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="505,72,550,70,550,75,505,77"/>
+<area shape="rect" id="Node000007" href="$namespaceiii__drone_1_1math.html#a7f61d7905e9118b077f713da7e65e8df" title=" " alt="" coords="827,31,1013,56"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="759,56,813,51,813,56,760,61"/>
+<area shape="rect" id="Node000008" href="$namespaceiii__drone_1_1math.html#a8e7d7e25d07b368363d6da9939a9abed" title=" " alt="" coords="825,80,1015,105"/>
+<area shape="poly" id="edge7_Node000006_Node000008" title=" " alt="" coords="760,74,811,79,810,85,759,80"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="816,454,1024,494"/>
+<area shape="poly" id="edge10_Node000009_Node000010" title=" " alt="" coords="766,493,802,488,803,493,767,498"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="1072,482,1287,522"/>
+<area shape="poly" id="edge11_Node000010_Node000011" title=" " alt="" coords="1025,483,1059,486,1058,492,1024,488"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="1335,447,1573,501"/>
+<area shape="poly" id="edge14_Node000010_Node000012" title=" " alt="" coords="1024,468,1072,467,1287,467,1321,468,1321,473,1287,473,1072,473,1024,474"/>
+<area shape="poly" id="edge12_Node000011_Node000012" title=" " alt="" coords="1287,488,1321,485,1321,490,1287,494"/>
+<area shape="poly" id="edge13_Node000012_Node000012" title=" " alt="" coords="1401,447,1401,436,1411,428,1428,422,1454,420,1485,423,1502,431,1500,436,1483,428,1454,425,1429,427,1413,432,1406,439,1406,447"/>
+<area shape="poly" id="edge16_Node000013_Node000010" title=" " alt="" coords="506,416,803,456,802,461,505,422"/>
+<area shape="poly" id="edge22_Node000018_Node000009" title=" " alt="" coords="500,527,542,522,543,527,501,532"/>
+<area shape="rect" id="Node000019" href="$classiii__drone_1_1perception_1_1Powerline.html#ab2546d0e9953b7c265537e43e277768e" title="Stamp getter." alt="" coords="584,649,739,689"/>
+<area shape="poly" id="edge23_Node000018_Node000019" title=" " alt="" coords="486,567,508,580,524,594,533,607,542,620,556,633,572,642,570,647,553,638,538,624,528,610,520,597,505,584,483,572"/>
+<area shape="rect" id="Node000020" href="$classiii__drone_1_1adapters_1_1PointCloudAdapter.html#abc0d1153908b68c2ad22cd5f6a70596f" title="Convert to ROS2 message." alt="" coords="586,569,737,624"/>
+<area shape="poly" id="edge24_Node000018_Node000020" title=" " alt="" coords="501,561,573,576,572,581,500,566"/>
+<area shape="poly" id="edge31_Node000021_Node000003" title=" " alt="" coords="427,262,505,205,528,179,537,167,553,154,564,148,567,153,556,159,541,171,532,182,508,209,430,267"/>
+<area shape="rect" id="Node000022" href="$classiii__drone_1_1perception_1_1Powerline.html#a9b87d73cd3bd8843b500824d3dd029d8" title="Finds the matching line for a point." alt="" coords="555,361,768,401"/>
+<area shape="poly" id="edge26_Node000021_Node000022" title=" " alt="" coords="444,302,556,346,578,354,577,359,554,351,442,307"/>
+<area shape="rect" id="Node000023" href="$classiii__drone_1_1utils_1_1History.html#ad80957391e0cd45d17f023760daf0350" title="Returns true if the history is full." alt="" coords="577,169,746,209"/>
+<area shape="poly" id="edge27_Node000021_Node000023" title=" " alt="" coords="442,262,554,218,577,210,578,215,556,223,444,267"/>
+<area shape="rect" id="Node000024" href="$classiii__drone_1_1perception_1_1Powerline.html#a5a693a6ba3b403a06a85d150eae9ae38" title="Projects a point onto the powerline projection plane." alt="" coords="571,233,751,273"/>
+<area shape="poly" id="edge28_Node000021_Node000024" title=" " alt="" coords="483,271,557,262,558,268,484,277"/>
+<area shape="rect" id="Node000026" href="$classiii__drone_1_1perception_1_1Powerline.html#aaf01bd6fa116d375dd13f236780aff61" title="Registers a new line." alt="" coords="557,297,765,337"/>
+<area shape="poly" id="edge30_Node000021_Node000026" title=" " alt="" coords="484,293,544,300,543,305,483,298"/>
+<area shape="rect" id="Node000025" href="$namespaceiii__drone_1_1math.html#aae5152700f4f75e55960b3a9d6962774" title=" " alt="" coords="833,233,1007,273"/>
+<area shape="poly" id="edge29_Node000024_Node000025" title=" " alt="" coords="751,250,819,250,819,255,751,255"/>
+</map>

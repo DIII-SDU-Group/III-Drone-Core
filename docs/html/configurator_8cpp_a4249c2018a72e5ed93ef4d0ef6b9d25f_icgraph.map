@@ -1,0 +1,45 @@
+<map id="DeclareParameter&lt; std::string &gt;" name="DeclareParameter&lt; std::string &gt;">
+<area shape="rect" id="Node000001" title=" " alt="" coords="713,687,888,727"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNodeConfigurator.html#a7c07f8693b45f13db4baa4e3ab3e9721" title="Declares the MPC specific parameters." alt="" coords="377,121,639,190"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="791,674,777,603,752,508,714,404,690,353,663,305,639,272,611,242,555,192,559,188,615,238,643,269,668,302,695,350,719,402,757,507,782,602,796,673"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1flight__controller__node_1_1FlightControllerConfigurator.html#a9895bfe8ec46f5fab03ffbd77844f7d4" title="Declares the node specific parameters." alt="" coords="383,315,633,385"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="777,677,728,601,663,514,602,445,545,387,548,383,606,442,667,511,732,598,782,674"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNodeConfigurator.html#abd77e5713ebe64eaf5a2b1ab19ced0b0" title="Declares the node specific parameters." alt="" coords="375,525,641,594"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="746,683,576,596,579,592,749,678"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1perception_1_1hough__transformer__node_1_1HoughTransformerConfigurator.html#af66523ad555b752f0ca805c6de6ba1b6" title="Declares the node specific parameters." alt="" coords="393,673,623,742"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="700,710,624,710,624,705,700,705"/>
+<area shape="rect" id="Node000014" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerConfigurator.html#aa128c669065ce0f4d3efe887218d7c4e" title="Declares the node specific parameters." alt="" coords="359,813,657,882"/>
+<area shape="poly" id="edge13_Node000001_Node000014" title=" " alt="" coords="747,736,583,815,580,810,744,731"/>
+<area shape="rect" id="Node000017" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#aa60e38bdfdbfbe8bdc3b009371ccee66" title="Declares the node specific parameters." alt="" coords="351,1007,665,1061"/>
+<area shape="poly" id="edge16_Node000001_Node000017" title=" " alt="" coords="782,740,732,813,667,896,605,958,546,1008,542,1004,601,954,663,892,728,810,777,737"/>
+<area shape="rect" id="Node000020" href="$classiii__drone_1_1utils_1_1drone__frame__broadcaster__node_1_1DroneFrameBroadcasterConfigurator.html#a69ce8409e104c5afcd84cf32bd2cc832" title="Declares the node specific parameters." alt="" coords="374,1186,642,1255"/>
+<area shape="poly" id="edge19_Node000001_Node000020" title=" " alt="" coords="795,741,779,806,753,891,716,985,693,1031,668,1074,643,1107,614,1138,558,1188,554,1184,611,1134,639,1104,663,1071,689,1028,711,983,748,890,774,805,790,740"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNodeConfigurator.html#a48dca84d90364face67ca9dce68a5243" title="Constructor." alt="" coords="17,5,291,89"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="380,119,290,92,292,86,382,114"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNodeConfigurator.html#aa21ab199241f4bc45d37715613fb0772" title="Constructor." alt="" coords="17,113,291,197"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="363,158,291,158,291,153,363,153"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1flight__controller__node_1_1FlightControllerConfigurator.html#a4fc660595cbf71c673e46bba36fe5143" title="Constructor." alt="" coords="29,222,279,291"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="369,316,279,292,280,287,370,311"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1flight__controller__node_1_1FlightControllerConfigurator.html#a18e2ebf5d4e0fdd8e496692c05d1eedb" title="Constructor." alt="" coords="29,315,279,385"/>
+<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="369,353,280,353,280,347,369,347"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNodeConfigurator.html#a750254b64abf7c8009c8b72c811cf607" title="Constructor." alt="" coords="17,409,291,493"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="380,523,290,496,292,490,382,518"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNodeConfigurator.html#a1f8a74bf54ba2ab85b87d178fc1f9291" title="Constructor." alt="" coords="17,517,291,601"/>
+<area shape="poly" id="edge9_Node000008_Node000010" title=" " alt="" coords="361,562,291,562,291,557,361,557"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1perception_1_1hough__transformer__node_1_1HoughTransformerConfigurator.html#a3e58a88efa1b9f468ccccbcba2c7c6b0" title="Constructor." alt="" coords="39,626,269,695"/>
+<area shape="poly" id="edge11_Node000011_Node000012" title=" " alt="" coords="379,693,269,678,270,673,379,688"/>
+<area shape="rect" id="Node000013" href="$classiii__drone_1_1perception_1_1hough__transformer__node_1_1HoughTransformerConfigurator.html#acaaebc90c58dcb3a460fdbb199f0c6bb" title="Constructor." alt="" coords="39,719,269,789"/>
+<area shape="poly" id="edge12_Node000011_Node000013" title=" " alt="" coords="379,727,270,741,269,736,379,722"/>
+<area shape="rect" id="Node000015" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerConfigurator.html#ac55d8c63ff14590a78b5f29130b77305" title="Constructor." alt="" coords="5,813,303,882"/>
+<area shape="poly" id="edge14_Node000014_Node000015" title=" " alt="" coords="346,850,303,850,303,845,346,845"/>
+<area shape="rect" id="Node000016" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerConfigurator.html#a7ad671bdb9545e64ff2cadb8adf24882" title="Constructor." alt="" coords="5,906,303,975"/>
+<area shape="poly" id="edge15_Node000014_Node000016" title=" " alt="" coords="363,888,287,908,286,903,362,883"/>
+<area shape="rect" id="Node000018" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a16671ee9cf2190f4753a79c381e70912" title="Constructor." alt="" coords="18,999,290,1069"/>
+<area shape="poly" id="edge17_Node000017_Node000018" title=" " alt="" coords="337,1037,290,1037,290,1031,337,1031"/>
+<area shape="rect" id="Node000019" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a31bd150be2affd0af20b334d7efea8ba" title="Constructor." alt="" coords="18,1093,290,1162"/>
+<area shape="poly" id="edge18_Node000017_Node000019" title=" " alt="" coords="391,1067,287,1095,285,1090,390,1062"/>
+<area shape="rect" id="Node000021" href="$classiii__drone_1_1utils_1_1drone__frame__broadcaster__node_1_1DroneFrameBroadcasterConfigurator.html#a5b87e7b0ce446eb6930ae56194ca086b" title="Constructor." alt="" coords="20,1186,288,1255"/>
+<area shape="poly" id="edge20_Node000020_Node000021" title=" " alt="" coords="360,1223,288,1223,288,1218,360,1218"/>
+<area shape="rect" id="Node000022" href="$classiii__drone_1_1utils_1_1drone__frame__broadcaster__node_1_1DroneFrameBroadcasterConfigurator.html#a9e3c14a6d024e05933ac7fa3ef3145c7" title="Constructor." alt="" coords="20,1279,288,1349"/>
+<area shape="poly" id="edge21_Node000020_Node000022" title=" " alt="" coords="363,1261,287,1282,286,1277,362,1256"/>
+</map>

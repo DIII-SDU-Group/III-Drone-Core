@@ -1,0 +1,20 @@
+<map id="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator" name="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator">
+<area shape="rect" id="Node000001" title="Class for handling parameters for PowerlineMapper." alt="" coords="205,1072,439,1441"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html" title="Class for handling parameters of a node. The class works in conjunction with the ConfigurationServer ..." alt="" coords="131,365,371,779"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="277,793,306,1072,300,1072,271,793"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,135,143,215"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="94,214,154,348,150,351,89,216"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="167,135,333,215"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="253,215,253,348,248,348,247,215"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="392,142,527,207"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="393,194,354,213,336,225,321,240,290,292,269,349,264,348,285,289,317,237,333,221,351,208,391,189"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1perception_1_1PowerlineParameters.html" title="Class for storing the parameters of the powerline object." alt="" coords="395,292,590,852"/>
+<area shape="poly" id="edge7_Node000007_Node000005" title=" " alt="" coords="465,207,470,275,465,276,459,208"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="364,915,571,1009"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="447,1011,423,1058,418,1056,442,1008"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="477,852,474,899,469,898,472,852"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="617,142,696,207"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="646,209,599,322,594,320,641,207"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="591,5,722,85"/>
+<area shape="poly" id="edge9_Node000008_Node000009" title=" " alt="" coords="659,99,659,142,654,142,654,99"/>
+</map>

@@ -1,0 +1,20 @@
+<map id="iii_drone::control::maneuver::ManeuverQueue::find" name="iii_drone::control::maneuver::ManeuverQueue::find">
+<area shape="rect" id="Node000001" title="Finds a maneuver in the queue by its UUID." alt="" coords="1423,41,1665,81"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#a76acc1a7540ee1b506f7b72607b4081f" title="Finds a maneuver from UUID." alt="" coords="1128,5,1375,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1409,47,1375,43,1375,38,1410,42"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#ad3db1eaff352424f72c3ee535b7fd522" title="Updates a maneuver in the queue. Replace the first occurrence of the maneuver." alt="" coords="1146,70,1357,125"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="1410,81,1357,87,1357,82,1409,75"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#ab393b4204a5c4368ee503e9af8b27a22" title="Registers a maneuver type with a maneuver server." alt="" coords="565,30,799,85"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1114,16,984,12,915,14,847,20,779,33,778,27,846,15,915,9,984,7,1114,11"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a0c01b257aa516fb896fdc59e91304540" title="Updates a maneuver entry which has been registered with the correct goal handle after the maneuver ha..." alt="" coords="847,30,1080,85"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="1115,43,1081,47,1080,42,1114,38"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNode.html#a1c587895df3c61bd6b748e97942cd619" title="Creates and registers all maneuver servers with the maneuver scheduler." alt="" coords="285,23,517,92"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="552,60,517,60,517,55,552,55"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNode.html#a291f0abf320443ed6ad4a248ba028b8c" title="Constructor. Creates the node, initializes the configurator, the transform buffer and listener,..." alt="" coords="5,23,237,92"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="272,60,237,60,237,55,272,55"/>
+<area shape="poly" id="edge6_Node000006_Node000003" title=" " alt="" coords="833,60,799,60,799,55,833,55"/>
+<area shape="poly" id="edge10_Node000007_Node000006" title=" " alt="" coords="1132,83,1080,76,1081,71,1133,78"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#ae6b24f5665082c8552cdbc5da76069e1" title="Cancels a maneuver entry which has been registered before execution starts." alt="" coords="847,109,1080,163"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="1132,116,1081,123,1080,118,1132,111"/>
+<area shape="poly" id="edge9_Node000008_Node000003" title=" " alt="" coords="851,108,780,87,781,82,853,102"/>
+</map>

@@ -1,0 +1,21 @@
+<map id="iii_drone::control::maneuver::ManeuverServer::asyncExecute" name="iii_drone::control::maneuver::ManeuverServer::asyncExecute">
+<area shape="rect" id="Node000001" title="Execute." alt="" coords="5,281,216,336"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#a234a678dc7cfc70916444a5be0dae8a2" title="Compute reference callback. Must be implemented specific to the maneuver type. This function takes th..." alt="" coords="295,5,505,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="120,280,140,234,170,177,211,119,235,92,262,69,281,58,284,62,266,73,239,96,215,122,175,180,144,236,125,282"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#a4af5a7d3a49d5c39bfdc2b5c47209665" title="Has failed callback, returns whether the maneuver has failed." alt="" coords="295,84,505,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="129,279,184,213,221,178,263,148,281,138,283,143,265,152,225,182,188,217,133,283"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#a3827fe98e2489f180f03600c6553f9a3" title="Has succeeded callback, must return whether the maneuver has successfully completed." alt="" coords="295,163,505,217"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="157,279,207,252,263,226,281,219,283,224,265,231,209,257,159,284"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#a5d7bab0b79907947a13cfe5f9ae383dc" title="Publish feedback virtual function. This function should publish feedback for the maneuver using the m..." alt="" coords="295,241,505,296"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="216,291,281,282,282,288,217,297"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#a7dcad5ff1a89457c53802ed718339993" title="This function should publish the result and finalize the maneuver according to the result type...." alt="" coords="295,320,505,375"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="217,320,282,329,281,334,216,325"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#a02a72a1c85100bae4ff4866377352ff6" title="Must register the reference callback function of another maneuver server upon the completion of the c..." alt="" coords="264,399,536,453"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="161,334,265,384,287,392,285,397,263,388,159,338"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#ae1615c55aa3ef1e7589a9b21f2ce5e35" title="Function which is called when starting execution of a maneuver." alt="" coords="295,477,505,532"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="134,335,189,399,225,433,265,462,283,472,281,477,263,467,222,437,185,403,130,338"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a26a96a488c05107e53e5deecd20226e7" title="Indicate that the maneuver has terminated. Will delete the goal handle pointer." alt="" coords="315,556,485,611"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="125,335,145,380,175,436,215,493,239,519,266,541,304,562,301,566,262,546,236,522,211,496,170,439,140,382,120,337"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a8788992c198b7547518561a5ab184406" title="Getter for the success flag." alt="" coords="584,556,753,611"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="485,581,570,581,570,586,485,586"/>
+</map>

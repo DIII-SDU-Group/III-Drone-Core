@@ -1,0 +1,7 @@
+<map id="iii_drone::control::TrajectoryGeneratorClient::ComputeReferenceTrajectoryBlocking" name="iii_drone::control::TrajectoryGeneratorClient::ComputeReferenceTrajectoryBlocking">
+<area shape="rect" id="Node000001" title="Generates a trajectory and blocks until it is done." alt="" coords="308,45,583,100"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a2ace3412e0d42d07a39c553c89ab0c6a" title="Compute the reference." alt="" coords="10,5,255,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="294,56,255,51,256,46,294,51"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServer.html#ac13004e478653d73361c3569e11870dc" title="Compute the reference." alt="" coords="5,84,260,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="295,94,261,98,260,93,294,89"/>
+</map>

@@ -1,0 +1,13 @@
+<map id="iii_drone::control::maneuver::ManeuverServer" name="iii_drone::control::maneuver::ManeuverServer">
+<area shape="rect" id="Node000001" title="Flight maneuver server abstract base class. Follows a defined interface for handling by the maneuver ..." alt="" coords="581,5,845,815"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html" title="Class for serving flying to an object." alt="" coords="5,895,269,1339"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="573,544,427,693,353,777,283,864,261,896,256,893,279,861,349,774,424,689,570,540"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServer.html" title="Class for serving flying to a position." alt="" coords="293,915,557,1319"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="578,748,510,916,505,914,574,746"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html" title="HoverByObject maneuver server class. When the hover by object action is called, and the target is val..." alt="" coords="581,863,845,1372"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="716,829,716,863,711,863,711,829"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverManeuverServer.html" title="Class for serving hovering. When the hover action is called, the drone will start hovering,..." alt="" coords="869,920,1133,1315"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="853,746,924,919,919,921,848,748"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverOnCableManeuverServer.html" title="Class for serving hovering on a cable. When the hover on cable action is called, the drone will start..." alt="" coords="1157,883,1421,1352"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="857,540,1003,689,1078,774,1147,861,1162,881,1158,884,1143,864,1074,777,999,693,853,544"/>
+</map>

@@ -1,0 +1,10 @@
+<map id="iii_drone::perception::SingleLine::IsInFOV" name="iii_drone::perception::SingleLine::IsInFOV">
+<area shape="rect" id="Node000001" title="Returns whether the line is in FOV, non strict." alt="" coords="243,69,397,109"/>
+<area shape="poly" id="edge2_Node000001_Node000001" title=" " alt="" coords="357,58,344,51,320,48,299,50,286,55,282,61,284,68,279,70,277,60,283,50,298,45,320,43,346,46,360,53"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1SingleLine.html#ae9804a282e066e92081c54528f9c4a7e" title="Returns whether the line is alive, i.e. whether it is not in the FOV or alive_cnt_ is above alive_cnt..." alt="" coords="23,5,177,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="237,68,169,48,170,43,238,63"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1SingleLine.html#ad54f59f23516a68b495cbd198c985833" title="Returns whether the line is in FOV, using the strict parameters." alt="" coords="5,69,195,109"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="229,92,195,92,195,87,229,87"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1SingleLine.html#a572bd83d5f2d58b19895bedce97abf57" title="Converts to SingleLineAdapter." alt="" coords="15,133,185,173"/>
+<area shape="poly" id="edge4_Node000001_Node000004" title=" " alt="" coords="238,116,170,136,169,131,237,111"/>
+</map>

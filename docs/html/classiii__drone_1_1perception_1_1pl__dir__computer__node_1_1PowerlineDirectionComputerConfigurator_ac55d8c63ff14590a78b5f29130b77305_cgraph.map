@@ -1,0 +1,27 @@
+<map id="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerConfigurator::PowerlineDirectionComputerConfigurator" name="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerConfigurator::PowerlineDirectionComputerConfigurator">
+<area shape="rect" id="Node000001" title="Constructor." alt="" coords="5,99,303,168"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerConfigurator.html#aa128c669065ce0f4d3efe887218d7c4e" title="Declares the node specific parameters." alt="" coords="351,27,648,96"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="303,100,336,93,337,98,304,105"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="1596,131,1835,186"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="303,131,861,131,1183,131,1393,136,1583,146,1582,152,1393,141,1183,136,861,136,303,136"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerConfigurator.html#a28340d756efc38c588c535afad377629" title="Initializes the parameters." alt="" coords="351,213,648,283"/>
+<area shape="poly" id="edge6_Node000001_Node000005" title=" " alt="" coords="260,166,382,206,380,211,258,171"/>
+<area shape="rect" id="Node000003" href="$configurator_8cpp.html#a4249c2018a72e5ed93ef4d0ef6b9d25f" title=" " alt="" coords="775,5,950,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="648,44,761,33,761,38,649,49"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="648,57,830,58,1055,65,1302,82,1427,95,1548,112,1611,125,1610,130,1548,117,1426,101,1302,88,1055,71,830,63,648,62"/>
+<area shape="poly" id="edge4_Node000004_Node000004" title=" " alt="" coords="1662,131,1662,121,1672,112,1690,107,1715,105,1746,108,1764,116,1761,120,1745,113,1715,110,1691,112,1675,117,1667,123,1668,131"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerConfigurator.html#aa5ade61f215dcaf34665da92eb0b392f" title="Get the drone frame ID." alt="" coords="714,171,1011,240"/>
+<area shape="poly" id="edge7_Node000005_Node000006" title=" " alt="" coords="648,228,700,222,700,227,649,233"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerConfigurator.html#ad715be353f180b0bb08b78a85b9382cc" title="Get the Kalman filter q coefficient." alt="" coords="696,265,1029,319"/>
+<area shape="poly" id="edge12_Node000005_Node000009" title=" " alt="" coords="649,263,683,268,682,273,648,269"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerConfigurator.html#a7529c839fce3f7c80b553bc1b8c65144" title="Get the Kalman filter r coefficient." alt="" coords="697,343,1028,398"/>
+<area shape="poly" id="edge14_Node000005_Node000010" title=" " alt="" coords="574,280,634,306,697,329,721,337,720,342,695,335,632,311,572,285"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="1077,221,1285,261"/>
+<area shape="poly" id="edge8_Node000006_Node000007" title=" " alt="" coords="1012,219,1064,225,1063,231,1011,225"/>
+<area shape="poly" id="edge11_Node000007_Node000004" title=" " alt="" coords="1271,219,1333,207,1582,171,1583,176,1334,212,1272,224"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="1333,221,1548,261"/>
+<area shape="poly" id="edge9_Node000007_Node000008" title=" " alt="" coords="1286,239,1319,239,1319,244,1286,244"/>
+<area shape="poly" id="edge10_Node000008_Node000004" title=" " alt="" coords="1507,219,1610,188,1611,193,1509,224"/>
+<area shape="poly" id="edge13_Node000009_Node000007" title=" " alt="" coords="1029,263,1063,257,1064,263,1030,268"/>
+<area shape="poly" id="edge15_Node000010_Node000007" title=" " alt="" coords="997,341,1028,330,1088,300,1140,267,1143,271,1091,304,1030,334,999,346"/>
+</map>

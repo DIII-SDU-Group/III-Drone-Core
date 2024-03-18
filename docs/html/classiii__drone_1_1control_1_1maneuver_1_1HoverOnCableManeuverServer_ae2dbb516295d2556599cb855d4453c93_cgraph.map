@@ -1,0 +1,11 @@
+<map id="iii_drone::control::maneuver::HoverOnCableManeuverServer::CanExecuteManeuver" name="iii_drone::control::maneuver::HoverOnCableManeuverServer::CanExecuteManeuver">
+<area shape="rect" id="Node000001" title="Whether the maneuver can be executed, will return false if the drone is not on the cable." alt="" coords="5,84,268,139"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#ad2bda3296f5382b9e566b6c3de3dd2e4" title="Maneuver parameters getter." alt="" coords="363,5,532,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="245,81,349,55,350,60,246,87"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a2a1dd737450465c565f5eba36e71ffad" title="Maneuver type getter." alt="" coords="363,84,532,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="268,109,349,109,349,114,268,114"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverOnCableManeuverServer.html#a7ebbdce1a5988daf4eb40334583432e4" title="Validates that the drone is on the cable." alt="" coords="316,163,579,217"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="246,136,326,157,325,162,245,141"/>
+<area shape="rect" id="Node000005" href="$structiii__drone_1_1control_1_1combined__drone__awareness__t.html#aeba579c277752c404e5a8a6c7298eab8" title=" " alt="" coords="627,163,841,217"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="579,187,613,187,613,193,579,193"/>
+</map>

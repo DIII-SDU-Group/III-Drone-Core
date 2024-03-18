@@ -1,0 +1,14 @@
+<map id="iii_drone::adapters::ReferenceTrajectoryAdapter::ToPathMsg" name="iii_drone::adapters::ReferenceTrajectoryAdapter::ToPathMsg">
+<area shape="rect" id="Node000001" title="Converts to Path msg." alt="" coords="909,84,1120,139"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a207c2c72ecfb7376ef44bd986e00ccce" title="Publishes the feedback." alt="" coords="611,5,857,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="903,83,832,63,833,58,904,78"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServer.html#a5918df6e93a4e3b9c9a500bab1c17c6b" title="Publishes the feedback." alt="" coords="607,84,861,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="896,114,862,114,862,109,896,109"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNode.html#a25bc69c79e137bb796ce2fea69bafe57" title="Publishes the currently planned trajectory." alt="" coords="618,163,850,233"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="913,145,847,166,846,161,911,140"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNode.html#aefc447399b185fef5b912770b5059936" title="The compute reference trajectory service callback." alt="" coords="285,127,559,197"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="604,186,558,180,559,175,605,180"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNode.html#ac58d9ceab1e2ecc71cb971a5f360bc00" title=" " alt="" coords="5,163,237,233"/>
+<area shape="poly" id="edge6_Node000004_Node000006" title=" " alt="" coords="604,209,559,211,422,214,285,211,238,209,238,204,285,206,422,209,559,206,604,204"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="272,183,238,187,237,181,271,177"/>
+</map>

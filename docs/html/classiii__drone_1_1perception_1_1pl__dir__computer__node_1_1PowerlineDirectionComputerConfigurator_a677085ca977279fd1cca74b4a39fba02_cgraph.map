@@ -1,0 +1,11 @@
+<map id="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerConfigurator::world_frame_id" name="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerConfigurator::world_frame_id">
+<area shape="rect" id="Node000001" title="Get the world frame ID." alt="" coords="5,22,303,91"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="351,37,559,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="303,54,337,54,337,59,303,59"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="607,7,821,47"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="559,42,593,38,593,44,559,48"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="869,29,1108,84"/>
+<area shape="poly" id="edge5_Node000002_Node000004" title=" " alt="" coords="559,56,607,57,821,57,855,56,855,62,821,62,607,62,559,61"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="822,36,856,40,855,45,821,41"/>
+<area shape="poly" id="edge4_Node000004_Node000004" title=" " alt="" coords="936,29,936,19,945,10,963,5,989,3,1020,6,1037,14,1035,18,1018,11,989,8,964,10,948,15,941,21,941,29"/>
+</map>

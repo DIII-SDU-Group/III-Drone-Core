@@ -1,0 +1,15 @@
+<map id="iii_drone::configuration::Configurator::DeclareParameter" name="iii_drone::configuration::Configurator::DeclareParameter">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,47,240,87"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="889,73,1128,128"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="214,45,339,23,496,7,582,3,669,4,757,11,842,25,898,42,949,64,946,69,896,47,841,30,756,16,669,9,582,9,497,12,340,29,215,50"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1configuration_1_1Configurator.html#a8fb98a874768d5519e43661d6c0ee892" title="Sends a DeclareParameter request to the ConfigurationServer node, which will declare the parameter in..." alt="" coords="575,40,841,95"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="240,65,561,65,561,70,240,70"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1configuration_1_1Configurator.html#a8d61d2ae2d55e090a12b8d5376a101f6" title="Sends a GetParameters request to the ConfigurationServer node, which will return the parameter." alt="" coords="288,105,527,160"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="211,85,275,99,274,105,210,90"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="951,73,951,63,962,54,981,49,1009,47,1042,50,1061,57,1059,62,1041,55,1009,52,982,54,964,59,956,65,956,73"/>
+<area shape="poly" id="edge4_Node000003_Node000002" title=" " alt="" coords="842,79,876,83,875,88,841,85"/>
+<area shape="poly" id="edge6_Node000004_Node000002" title=" " alt="" coords="527,124,875,105,876,110,527,129"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1configuration_1_1Configurator.html#a4e2906af1c389ca060c0efc7a4c65e95" title="Sends a GetParameters request to the ConfigurationServer node, which will return the parameters." alt="" coords="585,171,831,225"/>
+<area shape="poly" id="edge7_Node000004_Node000005" title=" " alt="" coords="527,156,571,165,570,171,526,161"/>
+<area shape="poly" id="edge8_Node000005_Node000002" title=" " alt="" coords="792,168,910,130,911,135,794,173"/>
+</map>

@@ -1,0 +1,75 @@
+<map id="iii_drone::control::BehaviorHandler" name="iii_drone::control::BehaviorHandler">
+<area shape="rect" id="Node000001" title="Class that handles the execution of behaviors for the drone." alt="" coords="847,2964,1100,3204"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="188,2359,372,2439"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="273,2439,257,2528,251,2585,250,2647,254,2710,267,2773,289,2832,322,2885,355,2913,404,2940,465,2965,536,2988,688,3027,831,3056,830,3062,687,3033,534,2993,464,2970,402,2945,352,2918,318,2888,284,2834,261,2774,249,2711,244,2647,246,2585,251,2528,267,2438"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1BehaviorHandlerParameters.html" title="Class for handling parameters for the behavior handler object." alt="" coords="97,1217,322,1517"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="222,1517,279,2342,274,2343,217,1517"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="1013,921,1147,987"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="1028,989,945,1031,896,1051,847,1067,780,1080,726,1082,672,1083,604,1091,547,1105,499,1109,437,1110,377,1115,353,1121,335,1129,298,1162,269,1204,264,1201,294,1159,332,1124,351,1116,376,1110,437,1105,499,1104,546,1100,604,1085,672,1078,726,1077,779,1075,846,1061,895,1046,942,1026,1025,984"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1utils_1_1History.html" title=" " alt="" coords="1115,2563,1336,2887"/>
+<area shape="poly" id="edge11_Node000007_Node000004" title=" " alt="" coords="1089,986,1101,1051,1112,1126,1115,1205,1115,1337,1113,1688,1115,1871,1122,2036,1135,2162,1144,2206,1155,2233,1167,2242,1180,2244,1195,2246,1209,2257,1220,2279,1228,2307,1238,2378,1241,2461,1240,2546,1234,2546,1236,2461,1232,2378,1222,2308,1215,2281,1205,2260,1193,2251,1180,2249,1165,2247,1151,2236,1139,2208,1130,2163,1117,2036,1110,1872,1108,1688,1109,1337,1109,1205,1107,1127,1096,1052,1084,987"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1adapters_1_1px4_1_1VehicleStatusAdapter.html" title="PX4 vehicle status adapter class, thread safe." alt="" coords="1167,1127,1367,1607"/>
+<area shape="poly" id="edge9_Node000009_Node000004" title=" " alt="" coords="1099,986,1149,1087,1162,1116,1157,1118,1144,1089,1094,988"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1utils_1_1History.html" title=" " alt="" coords="1644,1205,1889,1529"/>
+<area shape="poly" id="edge15_Node000011_Node000004" title=" " alt="" coords="1148,973,1306,1023,1492,1085,1530,1100,1559,1106,1584,1107,1607,1110,1634,1124,1666,1154,1694,1189,1689,1193,1662,1158,1630,1129,1606,1116,1583,1112,1559,1111,1529,1105,1490,1091,1304,1028,1147,979"/>
+<area shape="rect" id="Node000014" href="$classiii__drone_1_1utils_1_1History.html" title=" " alt="" coords="424,2570,651,2879"/>
+<area shape="poly" id="edge23_Node000014_Node000004" title=" " alt="" coords="1034,989,931,1049,867,1080,802,1105,764,1110,714,1111,666,1115,647,1121,635,1128,618,1161,604,1215,593,1287,585,1375,577,1584,576,1818,582,2269,584,2438,580,2539,578,2554,573,2553,575,2538,578,2438,577,2269,570,1818,572,1583,580,1374,588,1286,599,1214,613,1159,631,1125,645,1116,665,1110,713,1106,763,1105,801,1100,865,1075,928,1045,1032,984"/>
+<area shape="rect" id="Node000020" href="$classiii__drone_1_1utils_1_1History.html" title=" " alt="" coords="1361,2570,1613,2879"/>
+<area shape="poly" id="edge28_Node000020_Node000004" title=" " alt="" coords="1148,971,1207,993,1272,1025,1333,1069,1359,1095,1381,1125,1392,1154,1402,1199,1416,1327,1425,1491,1431,1674,1435,2024,1439,2235,1470,2553,1464,2554,1433,2235,1429,2025,1425,1674,1420,1491,1411,1327,1397,1200,1387,1156,1376,1128,1355,1099,1329,1073,1269,1029,1205,997,1147,976"/>
+<area shape="rect" id="Node000022" href="$classiii__drone_1_1adapters_1_1GripperStatusAdapter.html" title=" " alt="" coords="1441,1297,1620,1437"/>
+<area shape="poly" id="edge27_Node000022_Node000004" title=" " alt="" coords="1148,963,1211,979,1282,1003,1353,1038,1387,1060,1417,1086,1452,1130,1480,1180,1501,1231,1516,1280,1511,1281,1496,1233,1476,1182,1448,1133,1413,1090,1383,1065,1351,1043,1280,1008,1209,984,1147,969"/>
+<area shape="rect" id="Node000023" href="$classiii__drone_1_1utils_1_1Atomic.html" title=" " alt="" coords="813,1631,973,1911"/>
+<area shape="poly" id="edge30_Node000023_Node000004" title=" " alt="" coords="1040,989,994,1033,974,1060,957,1089,932,1154,913,1222,898,1291,889,1361,880,1495,882,1614,876,1614,875,1495,883,1360,893,1290,907,1220,927,1152,952,1087,969,1057,990,1030,1036,985"/>
+<area shape="rect" id="Node000024" href="$classiii__drone_1_1utils_1_1Atomic.html" title=" " alt="" coords="1045,2259,1205,2539"/>
+<area shape="poly" id="edge32_Node000024_Node000004" title=" " alt="" coords="1076,987,1063,1051,1053,1127,1044,1280,1042,1437,1046,1593,1054,1745,1078,2023,1105,2242,1099,2243,1073,2024,1048,1746,1041,1593,1037,1437,1039,1280,1048,1126,1058,1051,1070,986"/>
+<area shape="rect" id="Node000030" href="$classiii__drone_1_1utils_1_1Atomic.html" title=" " alt="" coords="646,1205,858,1529"/>
+<area shape="poly" id="edge41_Node000030_Node000004" title=" " alt="" coords="1014,986,938,1029,900,1057,867,1090,834,1138,807,1191,802,1188,829,1135,863,1086,897,1053,935,1024,1011,981"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="31,135,110,200"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="69,201,53,339,46,439,42,553,42,677,49,807,65,937,91,1063,112,1132,137,1200,132,1202,107,1134,85,1065,59,938,44,807,37,677,36,553,41,438,48,338,63,200"/>
+<area shape="rect" id="Node000018" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html" title="SingleLine message adapter class." alt="" coords="114,263,283,723"/>
+<area shape="poly" id="edge21_Node000018_Node000005" title=" " alt="" coords="86,199,110,262,106,264,81,201"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="5,5,136,85"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="73,99,73,134,68,134,68,99"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="1117,2884,1069,2952,1065,2949,1112,2881"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="1166,2037,1373,2132"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="1269,2132,1243,2539,1242,2546,1237,2546,1237,2538,1264,2132"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="1270,1607,1272,2021,1266,2021,1265,1607"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="1547,914,1693,994"/>
+<area shape="poly" id="edge10_Node000009_Node000010" title=" " alt="" coords="1627,994,1627,1022,1623,1051,1613,1080,1595,1105,1575,1119,1555,1125,1534,1125,1514,1122,1474,1116,1453,1119,1431,1129,1404,1148,1380,1172,1376,1168,1401,1144,1428,1124,1451,1114,1474,1111,1515,1117,1535,1120,1554,1120,1572,1114,1591,1101,1608,1078,1618,1050,1622,1021,1622,994"/>
+<area shape="poly" id="edge12_Node000001_Node000011" title=" " alt="" coords="1764,1529,1749,1882,1721,2307,1703,2509,1681,2683,1656,2814,1642,2859,1626,2888,1593,2918,1543,2945,1482,2970,1411,2993,1260,3033,1117,3062,1116,3056,1258,3027,1410,2988,1480,2965,1541,2940,1590,2913,1622,2885,1637,2857,1651,2813,1676,2682,1698,2508,1716,2307,1743,1882,1759,1529"/>
+<area shape="rect" id="Node000012" title=" " alt="" coords="1717,907,1947,1001"/>
+<area shape="poly" id="edge13_Node000011_Node000012" title=" " alt="" coords="1827,1002,1797,1189,1792,1188,1822,1001"/>
+<area shape="rect" id="Node000013" href="$classiii__drone_1_1adapters_1_1px4_1_1VehicleOdometryAdapter.html" title="PX4 odometry adapter class." alt="" coords="1723,263,1941,723"/>
+<area shape="poly" id="edge14_Node000012_Node000013" title=" " alt="" coords="1835,723,1835,890,1829,890,1829,723"/>
+<area shape="poly" id="edge16_Node000001_Node000014" title=" " alt="" coords="518,2879,526,2910,541,2938,568,2970,600,2996,635,3018,673,3036,753,3061,831,3074,830,3080,751,3066,671,3041,633,3022,597,3000,564,2973,536,2942,521,2912,513,2880"/>
+<area shape="rect" id="Node000015" title=" " alt="" coords="343,2045,561,2125"/>
+<area shape="poly" id="edge17_Node000014_Node000015" title=" " alt="" coords="460,2125,517,2553,512,2554,455,2125"/>
+<area shape="rect" id="Node000016" href="$classiii__drone_1_1adapters_1_1PowerlineAdapter.html" title="Powerline message adapter class." alt="" coords="346,1227,537,1507"/>
+<area shape="poly" id="edge18_Node000015_Node000016" title=" " alt="" coords="446,1507,454,2028,449,2028,441,1507"/>
+<area shape="rect" id="Node000017" title=" " alt="" coords="101,914,321,994"/>
+<area shape="poly" id="edge19_Node000016_Node000017" title=" " alt="" coords="218,993,234,1049,248,1077,267,1101,283,1110,299,1112,317,1114,335,1125,369,1164,396,1210,391,1213,365,1168,332,1129,315,1119,299,1118,281,1115,264,1105,244,1080,229,1051,213,995"/>
+<area shape="poly" id="edge20_Node000017_Node000018" title=" " alt="" coords="207,723,212,897,207,898,202,723"/>
+<area shape="rect" id="Node000019" href="$structiii__drone_1_1types_1_1plane__t.html" title=" " alt="" coords="345,911,516,997"/>
+<area shape="poly" id="edge22_Node000016_Node000019" title=" " alt="" coords="430,997,424,1088,427,1210,422,1210,419,1088,424,997"/>
+<area shape="poly" id="edge24_Node000001_Node000020" title=" " alt="" coords="1362,2878,1350,2889,1294,2930,1235,2968,1116,3028,1114,3024,1232,2963,1291,2926,1346,2885,1359,2874"/>
+<area shape="rect" id="Node000021" title=" " alt="" coords="1448,2045,1691,2125"/>
+<area shape="poly" id="edge25_Node000020_Node000021" title=" " alt="" coords="1567,2125,1511,2554,1506,2553,1562,2125"/>
+<area shape="poly" id="edge26_Node000021_Node000022" title=" " alt="" coords="1537,1437,1569,2028,1564,2029,1532,1437"/>
+<area shape="poly" id="edge29_Node000001_Node000023" title=" " alt="" coords="880,1911,864,2077,852,2259,845,2399,846,2460,852,2538,866,2653,882,2741,932,2939,934,2947,929,2949,927,2941,877,2742,860,2653,847,2539,841,2460,840,2399,847,2259,859,2077,875,1910"/>
+<area shape="poly" id="edge31_Node000001_Node000024" title=" " alt="" coords="1047,2536,1042,2541,1026,2549,1011,2552,999,2554,987,2564,963,2608,946,2655,935,2705,929,2756,930,2856,942,2948,937,2948,925,2856,924,2755,930,2704,941,2654,958,2606,983,2561,996,2550,1010,2546,1024,2544,1038,2536,1043,2532"/>
+<area shape="rect" id="Node000025" title=" " alt="" coords="1830,2685,2021,2765"/>
+<area shape="poly" id="edge33_Node000001_Node000025" title=" " alt="" coords="1910,2766,1887,2808,1855,2857,1815,2904,1767,2942,1716,2966,1648,2988,1566,3007,1476,3024,1287,3053,1117,3072,1116,3067,1286,3047,1475,3019,1565,3002,1646,2983,1714,2961,1764,2938,1811,2900,1851,2853,1883,2806,1905,2763"/>
+<area shape="rect" id="Node000026" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html" title="Class for handling a queue of maneuvers to be executed." alt="" coords="1880,1935,2083,2235"/>
+<area shape="poly" id="edge34_Node000025_Node000026" title=" " alt="" coords="1971,2235,1933,2669,1927,2668,1966,2235"/>
+<area shape="rect" id="Node000027" title=" " alt="" coords="1921,1334,2042,1399"/>
+<area shape="poly" id="edge35_Node000026_Node000027" title=" " alt="" coords="1984,1413,1984,1934,1979,1934,1979,1413"/>
+<area shape="rect" id="Node000028" title=" " alt="" coords="1971,921,1994,987"/>
+<area shape="poly" id="edge36_Node000027_Node000028" title=" " alt="" coords="1985,987,1984,1318,1979,1318,1980,987"/>
+<area shape="rect" id="Node000029" title=" " alt="" coords="2066,1334,2150,1399"/>
+<area shape="poly" id="edge37_Node000026_Node000029" title=" " alt="" coords="2105,1400,2013,1919,2008,1918,2100,1399"/>
+<area shape="poly" id="edge38_Node000001_Node000030" title=" " alt="" coords="723,1529,694,1733,681,1855,672,1986,668,2123,671,2263,683,2402,704,2538,718,2594,735,2651,780,2760,832,2861,884,2948,879,2951,827,2863,776,2762,730,2652,713,2596,699,2539,677,2403,666,2263,663,2123,667,1986,676,1855,689,1732,718,1529"/>
+<area shape="rect" id="Node000031" href="$structiii__drone_1_1control_1_1maneuver_1_1maneuver__t.html" title="Maneuver struct, contains a maneuver type, parameters, and goal handle." alt="" coords="661,844,835,1064"/>
+<area shape="poly" id="edge39_Node000030_Node000031" title=" " alt="" coords="752,1064,753,1188,748,1188,746,1064"/>
+<area shape="rect" id="Node000032" title=" " alt="" coords="663,460,833,525"/>
+<area shape="poly" id="edge40_Node000031_Node000032" title=" " alt="" coords="751,526,751,828,745,828,745,526"/>
+</map>

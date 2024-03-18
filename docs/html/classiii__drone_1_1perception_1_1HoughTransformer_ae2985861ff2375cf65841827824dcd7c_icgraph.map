@@ -1,0 +1,9 @@
+<map id="iii_drone::perception::HoughTransformer::ComputeAngle" name="iii_drone::perception::HoughTransformer::ComputeAngle">
+<area shape="rect" id="Node000001" title="Computes the hough lines direction angle from hough lines." alt="" coords="512,49,729,104"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1HoughTransformer.html#aca9bd9aa079cb94588dc158d6f261bab" title="Computes the hough lines direction angle from an image." alt="" coords="247,5,464,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="498,59,464,53,465,48,499,54"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1hough__transformer__node_1_1HoughTransformerNode.html#aef600649063ab97845d2e6d8b65ff28b" title="Callback function for the image topic." alt="" coords="259,85,452,154"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="499,99,453,106,452,101,498,94"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1hough__transformer__node_1_1HoughTransformerNode.html#a6e113eee6181c13f66f780cc0a2ed0e7" title="Constructor." alt="" coords="5,85,199,154"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="245,122,199,122,199,117,245,117"/>
+</map>

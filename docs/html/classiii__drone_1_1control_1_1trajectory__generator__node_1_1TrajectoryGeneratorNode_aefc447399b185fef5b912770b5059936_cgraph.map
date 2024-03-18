@@ -1,0 +1,104 @@
+<map id="iii_drone::control::trajectory_generator_node::TrajectoryGeneratorNode::computeReferenceTrajectoryCallback" name="iii_drone::control::trajectory_generator_node::TrajectoryGeneratorNode::computeReferenceTrajectoryCallback">
+<area shape="rect" id="Node000001" title="The compute reference trajectory service callback." alt="" coords="5,637,279,707"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1TrajectoryGenerator.html#a78eab9ed7ef8b604e5753192fbf8561b" title="Computes the reference trajectory for the MPC." alt="" coords="613,290,832,345"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="186,635,251,587,325,536,502,431,654,349,657,353,505,436,328,541,254,591,189,639"/>
+<area shape="rect" id="Node000026" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNode.html#a25bc69c79e137bb796ce2fea69bafe57" title="Publishes the currently planned trajectory." alt="" coords="327,551,559,620"/>
+<area shape="poly" id="edge26_Node000001_Node000026" title=" " alt="" coords="262,635,313,620,315,625,264,640"/>
+<area shape="rect" id="Node000039" href="$classiii__drone_1_1adapters_1_1ReferenceAdapter.html#ab278f609fd57d3780323b57cd33253d7" title="Reference getter." alt="" coords="365,645,520,699"/>
+<area shape="poly" id="edge43_Node000001_Node000039" title=" " alt="" coords="279,669,351,669,351,675,279,675"/>
+<area shape="rect" id="Node000040" href="$classiii__drone_1_1adapters_1_1StateAdapter.html#a118970dda26d052a93d3aaf6e0580dae" title="State getter." alt="" coords="365,724,521,764"/>
+<area shape="poly" id="edge44_Node000001_Node000040" title=" " alt="" coords="279,702,352,720,351,725,278,707"/>
+<area shape="rect" id="Node000041" href="$classiii__drone_1_1adapters_1_1ReferenceTrajectoryAdapter.html#a1a7886f7329ea52f8d9eed2e17f5066f" title="Converts to msg." alt="" coords="617,774,828,829"/>
+<area shape="poly" id="edge45_Node000001_Node000041" title=" " alt="" coords="192,705,255,743,291,760,327,773,397,790,469,799,540,804,604,805,604,810,539,809,469,805,396,795,326,779,288,765,252,747,189,709"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1TrajectoryGenerator.html#acd0a4254192dce8d5c127526c2518184" title="Post processes the MPC results." alt="" coords="911,139,1070,194"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="758,288,816,246,885,204,900,197,902,202,888,209,819,251,761,292"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1TrajectoryGenerator.html#a584f2e31540f693d8acf36b852e8cb38" title="Sets up the MPC." alt="" coords="911,362,1070,417"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="826,342,899,362,898,367,824,347"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1control_1_1State.html#a065d4003d73520ba2e61af2912df6c6c" title=" " alt="" coords="925,297,1056,337"/>
+<area shape="poly" id="edge8_Node000002_Node000009" title=" " alt="" coords="832,315,912,315,912,320,832,320"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1control_1_1TrajectoryGenerator.html#a921e7f325aa43cacaa43341da8e34926" title="Runs the actual MPC one step." alt="" coords="911,218,1070,273"/>
+<area shape="poly" id="edge9_Node000002_Node000010" title=" " alt="" coords="824,287,898,267,899,273,826,292"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1Reference.html#a2ba5647e5161e35e0588394dcae0663b" title=" " alt="" coords="1180,547,1336,587"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="1035,415,1217,537,1214,541,1032,419"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1State.html#ac7d02a667c215a72d7f7f2fdf1501eb4" title=" " alt="" coords="1193,240,1323,280"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="1069,361,1093,347,1108,333,1116,319,1125,304,1141,290,1178,272,1181,277,1144,294,1129,308,1121,322,1112,336,1096,351,1072,366"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1Reference.html#a5d85fddf537e6663badb5654a23a4bce" title=" " alt="" coords="1180,432,1336,472"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="1071,405,1167,428,1166,433,1070,410"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1State.html#a0cf0c57ba34058c7ba14581c17e82f0b" title=" " alt="" coords="1193,304,1323,344"/>
+<area shape="poly" id="edge7_Node000004_Node000008" title=" " alt="" coords="1070,367,1178,341,1180,346,1071,373"/>
+<area shape="rect" id="Node000011" href="$namespacepos__MPC_1_1coder.html#a059aff34e8d0e64dfc4f6e40bdb298af" title=" " alt="" coords="1143,176,1373,216"/>
+<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="1070,228,1135,216,1136,221,1071,233"/>
+<area shape="rect" id="Node000012" href="$namespacepos__MPC_1_1coder.html#a14d17fba9d633d51a17df5bf681af25d" title=" " alt="" coords="1443,176,1639,216"/>
+<area shape="poly" id="edge11_Node000011_Node000012" title=" " alt="" coords="1374,193,1429,193,1429,199,1374,199"/>
+<area shape="rect" id="Node000013" href="$namespacepos__MPC_1_1coder_1_1internal.html#a47a5ebaa446e2a54cc916673de4d8d55" title=" " alt="" coords="1708,69,1891,109"/>
+<area shape="poly" id="edge12_Node000012_Node000013" title=" " alt="" coords="1583,173,1707,119,1725,112,1727,117,1709,124,1585,178"/>
+<area shape="rect" id="Node000014" href="$namespacepos__MPC_1_1coder.html#aaae2248b840070902e3c18dc1a472eab" title=" " alt="" coords="1709,134,1889,159"/>
+<area shape="poly" id="edge13_Node000012_Node000014" title=" " alt="" coords="1638,175,1718,159,1719,165,1639,180"/>
+<area shape="rect" id="Node000023" href="$namespacepos__MPC.html#a6a939f91a173ad685bad55e6f70f3046" title=" " alt="" coords="1715,183,1883,209"/>
+<area shape="poly" id="edge22_Node000012_Node000023" title=" " alt="" coords="1639,193,1702,193,1702,199,1639,199"/>
+<area shape="rect" id="Node000024" href="$namespacepos__MPC_1_1coder_1_1internal.html#a468a43db34a801eab0c02e719a7a4a99" title=" " alt="" coords="1708,233,1891,273"/>
+<area shape="poly" id="edge23_Node000012_Node000024" title=" " alt="" coords="1632,213,1696,228,1695,233,1631,219"/>
+<area shape="rect" id="Node000025" href="$namespacepos__MPC_1_1coder_1_1internal_1_1lapack.html#a3379db57facf655c9276e0efeccc2870" title=" " alt="" coords="1963,291,2145,331"/>
+<area shape="poly" id="edge24_Node000012_Node000025" title=" " alt="" coords="1572,214,1633,251,1670,269,1709,283,1770,297,1832,306,1949,312,1949,317,1832,311,1769,302,1707,288,1668,274,1630,255,1569,218"/>
+<area shape="rect" id="Node000015" href="$namespacepos__MPC_1_1coder.html#ae2a2d8c1528681afb62fcdff789e1f95" title=" " alt="" coords="1963,191,2145,217"/>
+<area shape="poly" id="edge14_Node000014_Node000015" title=" " alt="" coords="1856,157,1939,176,1982,186,1981,191,1938,181,1854,162"/>
+<area shape="rect" id="Node000016" href="$namespacepos__MPC_1_1coder.html#afecf8bf12a066d8d3cf76f2b91cb8f59" title=" " alt="" coords="1939,241,2169,266"/>
+<area shape="poly" id="edge15_Node000014_Node000016" title=" " alt="" coords="1869,157,1892,168,1908,183,1917,199,1925,214,1940,227,1952,233,1949,238,1937,232,1921,217,1912,202,1904,187,1889,173,1866,162"/>
+<area shape="rect" id="Node000017" href="$namespacepos__MPC_1_1coder.html#aad628de9ea3a1e8c8c5b3adfa8d87a55" title=" " alt="" coords="1951,77,2157,102"/>
+<area shape="poly" id="edge16_Node000014_Node000017" title=" " alt="" coords="1854,131,1938,112,1981,102,1982,108,1939,117,1856,137"/>
+<area shape="rect" id="Node000022" href="$namespacepos__MPC_1_1coder_1_1internal.html#aee16aca65e5c056291ee323099733942" title=" " alt="" coords="1963,127,2145,167"/>
+<area shape="poly" id="edge21_Node000014_Node000022" title=" " alt="" coords="1890,144,1949,144,1949,149,1890,149"/>
+<area shape="rect" id="Node000018" href="$namespacepos__MPC.html#a1b161cbb191ab2d22a30569c19e00085" title=" " alt="" coords="2223,237,2394,277"/>
+<area shape="poly" id="edge17_Node000017_Node000018" title=" " alt="" coords="2142,100,2171,112,2187,125,2198,138,2219,169,2277,226,2274,230,2215,172,2193,142,2184,129,2168,117,2140,104"/>
+<area shape="rect" id="Node000019" href="$namespacepos__MPC.html#a7d8176f1e03b79f5f3818ac29a97c128" title=" " alt="" coords="2219,134,2398,159"/>
+<area shape="poly" id="edge18_Node000017_Node000019" title=" " alt="" coords="2114,100,2170,112,2240,128,2239,133,2169,117,2113,105"/>
+<area shape="rect" id="Node000020" href="$namespacepos__MPC_1_1coder_1_1internal_1_1blas.html#ab5adb25bbe5c80c19b41d76110a4668d" title=" " alt="" coords="2217,5,2400,45"/>
+<area shape="poly" id="edge19_Node000017_Node000020" title=" " alt="" coords="2105,74,2214,46,2216,51,2106,79"/>
+<area shape="rect" id="Node000021" href="$namespacepos__MPC_1_1coder_1_1internal_1_1blas.html#a4bf7588767dcefa2cb9f1c102066202f" title=" " alt="" coords="2217,69,2400,109"/>
+<area shape="poly" id="edge20_Node000017_Node000021" title=" " alt="" coords="2157,87,2204,87,2204,92,2157,92"/>
+<area shape="poly" id="edge25_Node000025_Node000018" title=" " alt="" coords="2145,289,2209,275,2210,281,2146,294"/>
+<area shape="rect" id="Node000027" href="$classiii__drone_1_1adapters_1_1ReferenceTrajectoryAdapter.html#aa29c58cadc42cf79a2fb56426a2b678f" title="Converts to Path msg." alt="" coords="617,661,828,715"/>
+<area shape="poly" id="edge27_Node000026_Node000027" title=" " alt="" coords="539,618,635,653,633,658,537,623"/>
+<area shape="rect" id="Node000029" href="$classiii__drone_1_1adapters_1_1ReferenceAdapter.html#aa8e55f2f2d08f81b59bb9e0b452dc0f7" title="Converts to pose stamped msg." alt="" coords="913,661,1068,715"/>
+<area shape="poly" id="edge36_Node000026_Node000029" title=" " alt="" coords="559,599,694,620,839,647,901,661,899,666,838,652,693,625,559,604"/>
+<area shape="rect" id="Node000035" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNodeConfigurator.html#ae3ce7dffda2d7508b0db8052104643da" title="world_frame_id getter." alt="" coords="607,495,839,564"/>
+<area shape="poly" id="edge37_Node000026_Node000035" title=" " alt="" coords="558,560,593,553,594,558,559,565"/>
+<area shape="rect" id="Node000028" href="$classiii__drone_1_1control_1_1ReferenceTrajectory.html#a4dcc8536500adff0778457882d598f21" title="References getter." alt="" coords="911,747,1071,802"/>
+<area shape="poly" id="edge28_Node000027_Node000028" title=" " alt="" coords="809,713,899,742,897,747,807,718"/>
+<area shape="poly" id="edge29_Node000027_Node000029" title=" " alt="" coords="828,685,899,685,899,691,828,691"/>
+<area shape="poly" id="edge32_Node000029_Node000005" title=" " alt="" coords="1031,658,1082,626,1142,596,1166,587,1168,592,1144,601,1085,631,1033,663"/>
+<area shape="rect" id="Node000030" href="$namespaceiii__drone_1_1math.html#a531ed4bd8183770d77ec20b37a8709c2" title=" " alt="" coords="1161,675,1355,701"/>
+<area shape="poly" id="edge30_Node000029_Node000030" title=" " alt="" coords="1068,685,1148,685,1148,691,1068,691"/>
+<area shape="rect" id="Node000031" href="$namespaceiii__drone_1_1types.html#adf49c0d0a898eea29ad3e752a6712734" title=" " alt="" coords="1163,725,1353,765"/>
+<area shape="poly" id="edge31_Node000029_Node000031" title=" " alt="" coords="1069,702,1151,720,1150,725,1068,707"/>
+<area shape="rect" id="Node000032" href="$namespaceiii__drone_1_1types.html#a345601fdf3366d6af6d7c2003d74275b" title=" " alt="" coords="1158,611,1358,651"/>
+<area shape="poly" id="edge33_Node000029_Node000032" title=" " alt="" coords="1068,669,1150,651,1151,656,1069,674"/>
+<area shape="rect" id="Node000033" href="$classiii__drone_1_1control_1_1Reference.html#a2ef1baafb09875a2af495e006f98c7c5" title=" " alt="" coords="1185,789,1331,829"/>
+<area shape="poly" id="edge34_Node000029_Node000033" title=" " alt="" coords="1059,713,1096,734,1120,755,1130,765,1144,775,1173,788,1171,793,1141,780,1126,769,1116,759,1093,738,1056,718"/>
+<area shape="rect" id="Node000034" href="$classiii__drone_1_1control_1_1Reference.html#a784277cbb64476953132a8e239f9ae9e" title=" " alt="" coords="1193,853,1323,893"/>
+<area shape="poly" id="edge35_Node000029_Node000034" title=" " alt="" coords="1069,713,1097,734,1108,748,1114,762,1120,789,1126,815,1133,827,1144,839,1161,851,1180,859,1178,864,1159,855,1141,843,1129,830,1121,817,1115,790,1109,764,1103,751,1093,738,1066,718"/>
+<area shape="rect" id="Node000036" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="887,489,1095,529"/>
+<area shape="poly" id="edge38_Node000035_Node000036" title=" " alt="" coords="839,518,873,515,873,521,839,523"/>
+<area shape="rect" id="Node000037" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="1151,368,1365,408"/>
+<area shape="poly" id="edge39_Node000036_Node000037" title=" " alt="" coords="1019,487,1075,452,1142,418,1161,410,1163,415,1144,422,1077,457,1022,491"/>
+<area shape="rect" id="Node000038" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="1421,421,1660,475"/>
+<area shape="poly" id="edge42_Node000036_Node000038" title=" " alt="" coords="1095,504,1228,496,1373,481,1410,475,1411,481,1374,487,1228,502,1095,509"/>
+<area shape="poly" id="edge40_Node000037_Node000038" title=" " alt="" coords="1354,405,1408,417,1407,422,1352,411"/>
+<area shape="poly" id="edge41_Node000038_Node000038" title=" " alt="" coords="1490,421,1491,410,1500,402,1516,396,1541,394,1570,397,1586,405,1584,410,1568,402,1541,399,1517,401,1502,406,1496,412,1496,421"/>
+<area shape="poly" id="edge46_Node000041_Node000028" title=" " alt="" coords="828,788,897,781,897,787,828,794"/>
+<area shape="rect" id="Node000042" href="$classiii__drone_1_1adapters_1_1ReferenceAdapter.html#a56e8b2fdd992d460615cc6502eab7ba7" title="Converts to msg." alt="" coords="893,844,1089,884"/>
+<area shape="poly" id="edge47_Node000041_Node000042" title=" " alt="" coords="829,823,892,838,890,843,827,829"/>
+<area shape="poly" id="edge50_Node000042_Node000005" title=" " alt="" coords="1055,842,1076,829,1093,813,1109,785,1116,758,1116,731,1114,705,1111,678,1113,651,1121,624,1141,597,1166,579,1169,583,1145,601,1126,626,1118,652,1117,678,1119,704,1122,731,1121,759,1114,787,1097,816,1079,833,1058,846"/>
+<area shape="poly" id="edge53_Node000042_Node000007" title=" " alt="" coords="1056,841,1076,829,1093,813,1113,777,1122,743,1123,710,1120,677,1116,644,1115,609,1122,573,1140,533,1168,501,1201,477,1204,481,1172,505,1145,536,1127,574,1120,610,1121,644,1125,677,1128,710,1128,744,1118,779,1097,816,1080,833,1059,846"/>
+<area shape="poly" id="edge49_Node000042_Node000031" title=" " alt="" coords="1038,842,1093,812,1117,793,1141,775,1157,768,1160,773,1144,780,1120,797,1096,817,1040,846"/>
+<area shape="poly" id="edge51_Node000042_Node000033" title=" " alt="" coords="1088,841,1171,824,1172,829,1089,847"/>
+<area shape="poly" id="edge54_Node000042_Node000034" title=" " alt="" coords="1089,865,1179,868,1179,873,1089,870"/>
+<area shape="rect" id="Node000043" href="$classiii__drone_1_1control_1_1Reference.html#af6cf6c27339aab63f6b029e976caa4b7" title=" " alt="" coords="1166,1045,1350,1085"/>
+<area shape="poly" id="edge48_Node000042_Node000043" title=" " alt="" coords="1006,882,1060,955,1099,996,1144,1031,1155,1037,1152,1042,1141,1036,1096,1000,1056,959,1002,886"/>
+<area shape="rect" id="Node000044" href="$namespaceiii__drone_1_1types.html#a55650c4ff895bbd1c624ee51c235a102" title=" " alt="" coords="1173,1109,1343,1149"/>
+<area shape="poly" id="edge52_Node000042_Node000044" title=" " alt="" coords="1002,883,1020,927,1051,985,1092,1044,1117,1072,1144,1095,1161,1105,1158,1110,1141,1099,1113,1075,1088,1048,1046,988,1016,930,997,885"/>
+<area shape="rect" id="Node000045" href="$classiii__drone_1_1control_1_1Reference.html#a94ddbc48fd727336b1896eb1c666170a" title=" " alt="" coords="1149,917,1367,957"/>
+<area shape="poly" id="edge55_Node000042_Node000045" title=" " alt="" coords="1065,881,1172,911,1171,916,1064,887"/>
+<area shape="rect" id="Node000046" href="$classiii__drone_1_1control_1_1Reference.html#abbbec5f6fe1f64fd6c4984349ac87840" title=" " alt="" coords="1176,981,1340,1021"/>
+<area shape="poly" id="edge56_Node000042_Node000046" title=" " alt="" coords="1017,882,1073,925,1144,967,1164,975,1162,980,1141,972,1070,929,1014,886"/>
+</map>

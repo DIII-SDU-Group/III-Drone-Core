@@ -1,0 +1,28 @@
+<map id="iii_drone::utils::drone_frame_broadcaster_node::DroneFrameBroadcasterNode::DroneFrameBroadcasterNode" name="iii_drone::utils::drone_frame_broadcaster_node::DroneFrameBroadcasterNode::DroneFrameBroadcasterNode">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,63,228,132"/>
+<area shape="rect" id="Node000002" href="$namespaceiii__drone_1_1math.html#a7f61d7905e9118b077f713da7e65e8df" title=" " alt="" coords="294,49,481,74"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="228,80,280,73,281,78,229,85"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1drone__frame__broadcaster__node_1_1DroneFrameBroadcasterNode.html#abd318f85df08bf7e51ab37147930ff04" title=" " alt="" coords="276,99,499,168"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="229,109,263,114,262,119,228,115"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1utils_1_1drone__frame__broadcaster__node_1_1DroneFrameBroadcasterConfigurator.html#adfb6c734e90d9e73ecf3ec4f36134b51" title="Get the drone frame ID." alt="" coords="547,5,815,75"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="496,96,557,76,559,82,498,101"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1adapters_1_1px4_1_1VehicleOdometryAdapter.html#adc2654d2abd16ac83fa1ce8d211ac247" title="Converts the object to a geometry_msgs::msg::TransformStamped object." alt="" coords="568,193,793,247"/>
+<area shape="poly" id="edge9_Node000003_Node000008" title=" " alt="" coords="500,164,575,186,574,191,498,169"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1utils_1_1drone__frame__broadcaster__node_1_1DroneFrameBroadcasterConfigurator.html#aa920545684b800691f3a0ca54c73072c" title="Get the world frame ID." alt="" coords="547,99,815,168"/>
+<area shape="poly" id="edge13_Node000003_Node000012" title=" " alt="" coords="499,131,533,131,533,136,499,136"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="863,85,1071,125"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="816,68,866,80,864,85,814,73"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="1119,35,1333,75"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="1069,83,1109,75,1110,80,1070,88"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="1381,57,1620,111"/>
+<area shape="poly" id="edge8_Node000005_Node000007" title=" " alt="" coords="1071,99,1367,87,1368,92,1071,104"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="1334,63,1368,67,1367,72,1333,69"/>
+<area shape="poly" id="edge7_Node000007_Node000007" title=" " alt="" coords="1448,57,1448,46,1457,38,1475,32,1501,30,1532,33,1549,41,1547,46,1530,38,1501,35,1476,37,1460,42,1453,49,1453,57"/>
+<area shape="rect" id="Node000009" href="$namespaceiii__drone_1_1types.html#aa98e988d47c7d29c21cc73c1acdf2478" title=" " alt="" coords="869,200,1064,240"/>
+<area shape="poly" id="edge10_Node000008_Node000009" title=" " alt="" coords="794,217,855,217,855,223,794,223"/>
+<area shape="rect" id="Node000010" href="$namespaceiii__drone_1_1types.html#a345601fdf3366d6af6d7c2003d74275b" title=" " alt="" coords="1126,164,1326,204"/>
+<area shape="poly" id="edge11_Node000009_Node000010" title=" " alt="" coords="1064,204,1112,197,1113,202,1065,209"/>
+<area shape="rect" id="Node000011" href="$namespaceiii__drone_1_1types.html#a55650c4ff895bbd1c624ee51c235a102" title=" " alt="" coords="1141,228,1311,268"/>
+<area shape="poly" id="edge12_Node000009_Node000011" title=" " alt="" coords="1065,228,1127,235,1127,240,1064,233"/>
+<area shape="poly" id="edge14_Node000012_Node000005" title=" " alt="" coords="815,118,849,114,849,119,815,123"/>
+</map>

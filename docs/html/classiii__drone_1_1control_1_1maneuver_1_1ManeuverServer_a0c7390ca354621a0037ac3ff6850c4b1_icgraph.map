@@ -1,0 +1,9 @@
+<map id="iii_drone::control::maneuver::ManeuverServer::registered_maneuvers" name="iii_drone::control::maneuver::ManeuverServer::registered_maneuvers">
+<area shape="rect" id="Node000001" title="Registered maneuvers map getter." alt="" coords="316,106,527,161"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a8cd7c6981d54cd5aa868f25d843ad0d0" title="Registers the hover by object reference callback on success." alt="" coords="5,5,268,75"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="324,104,242,77,244,72,325,99"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServer.html#ae4530a3fb2d86a28ddbbcce170bf4a59" title="Registers the hover reference callback on success." alt="" coords="5,99,268,168"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="302,136,268,136,268,131,302,131"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#a73b1053689e4697e747eafe9ec7b7e5b" title="Method to start the maneuver server. The maneuver server will reject any new goals until started." alt="" coords="31,193,242,247"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="319,167,228,195,226,190,317,162"/>
+</map>

@@ -1,0 +1,10 @@
+<map id="iii_drone::perception::SingleLine::IsAlive" name="iii_drone::perception::SingleLine::IsAlive">
+<area shape="rect" id="Node000001" title="Returns whether the line is alive, i.e. whether it is not in the FOV or alive_cnt_ is above alive_cnt..." alt="" coords="5,37,160,77"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1SingleLine.html#aa63a08c0e3ed8294ea894bba24314324" title="Returns whether the line is in FOV, non strict." alt="" coords="208,37,363,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="160,55,194,55,194,60,160,60"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="247,38,245,28,251,19,265,13,285,11,309,14,322,21,319,26,307,19,285,16,266,18,254,23,250,29,252,36"/>
+<area shape="rect" id="Node000003" href="$namespaceiii__drone_1_1types.html#a8215048242190c57b9ff2de3f1daba73" title=" " alt="" coords="411,5,607,45"/>
+<area shape="poly" id="edge3_Node000002_Node000003" title=" " alt="" coords="363,44,397,39,397,44,364,49"/>
+<area shape="rect" id="Node000004" href="$namespaceiii__drone_1_1types.html#adf49c0d0a898eea29ad3e752a6712734" title=" " alt="" coords="413,69,604,109"/>
+<area shape="poly" id="edge4_Node000002_Node000004" title=" " alt="" coords="364,66,400,71,399,76,363,71"/>
+</map>

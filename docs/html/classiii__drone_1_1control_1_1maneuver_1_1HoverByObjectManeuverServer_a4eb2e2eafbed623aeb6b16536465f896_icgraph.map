@@ -1,0 +1,9 @@
+<map id="iii_drone::control::maneuver::HoverByObjectManeuverServer::GetReference" name="iii_drone::control::maneuver::HoverByObjectManeuverServer::GetReference">
+<area shape="rect" id="Node000001" title="Gets the hover reference. The current state is not used. Will call the on fail callback if the target..." alt="" coords="320,92,587,147"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a8651f18cdc5c9b85ff145c7decac4ddc" title="Computes the hover by object reference for the maneuver server." alt="" coords="5,5,272,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="340,91,238,63,239,57,341,86"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a8cd7c6981d54cd5aa868f25d843ad0d0" title="Registers the hover by object reference callback on success." alt="" coords="7,85,270,154"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="306,122,270,122,270,117,306,117"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a42d65b247ee89440e63ed7c992c4772e" title="Registers the hover by object reference callback on success." alt="" coords="5,178,272,247"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="348,153,257,181,255,175,347,148"/>
+</map>

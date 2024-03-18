@@ -1,0 +1,9 @@
+<map id="iii_drone::adapters::ReferenceTrajectoryAdapter" name="iii_drone::adapters::ReferenceTrajectoryAdapter">
+<area shape="rect" id="Node000001" title="Class for adapting the III&#45;Drone&#45;Core::ReferenceTrajectory to the III&#45;Drone&#45;Interfaces::ReferenceTraj..." alt="" coords="5,833,225,1053"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1ReferenceTrajectory.html" title=" " alt="" coords="31,591,200,771"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="118,771,118,817,113,817,113,771"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="37,448,193,528"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="118,528,118,574,113,574,113,528"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1Reference.html" title=" " alt="" coords="39,5,192,385"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="118,386,118,431,113,431,113,386"/>
+</map>

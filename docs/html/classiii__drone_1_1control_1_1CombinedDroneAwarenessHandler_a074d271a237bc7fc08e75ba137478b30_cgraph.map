@@ -1,0 +1,25 @@
+<map id="iii_drone::control::CombinedDroneAwarenessHandler::updateGroundAltitudeEstimate" name="iii_drone::control::CombinedDroneAwarenessHandler::updateGroundAltitudeEstimate">
+<area shape="rect" id="Node000001" title="Updates the ground altitude estimate based on given information. Will either start or stop the timer ..." alt="" coords="5,313,263,368"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a1bcddcc23eb18e8a078a8d085824459f" title="Whether the drone is armed." alt="" coords="311,5,568,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="143,312,166,260,201,195,249,127,278,96,309,69,315,65,318,69,312,73,281,100,253,131,206,198,171,263,148,314"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a2909907bae097f04431afb46f23b088d" title="Returns the ground altitude estimate." alt="" coords="311,84,568,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="151,311,178,275,215,230,259,186,309,148,318,142,321,147,312,152,263,190,219,234,182,278,156,315"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandlerParameters.html#a6e153b5c5529c931037cfde7de319159" title="Get the ground frame id." alt="" coords="311,163,568,217"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="170,311,233,268,309,226,324,220,327,225,312,231,236,273,173,316"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a66a30f72295931bf3e00580ccf06130e" title="Whether the drone is in offboard mode." alt="" coords="311,241,568,296"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="250,311,309,297,310,302,251,316"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1utils_1_1Atomic.html#a9043ab811e9b5f5ceaf326534fc27060" title="Set the value." alt="" coords="355,321,523,361"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="263,338,341,338,341,343,263,343"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1utils_1_1History.html#a56d92944208a11b284718c5c2349a2b5" title="Store the latest value." alt="" coords="355,385,524,425"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="263,365,342,382,341,387,262,370"/>
+<area shape="rect" id="Node000008" href="$namespaceiii__drone_1_1types.html#aa98e988d47c7d29c21cc73c1acdf2478" title=" " alt="" coords="342,449,537,489"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="179,366,241,401,312,434,334,442,332,447,310,439,238,406,177,370"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1utils_1_1History.html#ac95e6b8005c02bbf5255a1fac250f17d" title="Get a copy of the history vector." alt="" coords="355,513,524,553"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="160,366,224,433,266,469,312,498,343,512,341,516,309,503,263,473,220,437,156,370"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandlerParameters.html#a462d0dc30c33f34df6165dbcc7829aa1" title="Get the world frame id." alt="" coords="311,577,568,632"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="152,367,177,410,213,463,259,516,312,563,321,568,319,573,309,567,255,520,209,466,173,413,147,369"/>
+<area shape="rect" id="Node000009" href="$namespaceiii__drone_1_1types.html#a345601fdf3366d6af6d7c2003d74275b" title=" " alt="" coords="616,417,816,457"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="537,455,602,447,603,452,537,460"/>
+<area shape="rect" id="Node000010" href="$namespaceiii__drone_1_1types.html#a55650c4ff895bbd1c624ee51c235a102" title=" " alt="" coords="631,481,801,521"/>
+<area shape="poly" id="edge9_Node000008_Node000010" title=" " alt="" coords="537,477,617,487,617,492,537,483"/>
+</map>

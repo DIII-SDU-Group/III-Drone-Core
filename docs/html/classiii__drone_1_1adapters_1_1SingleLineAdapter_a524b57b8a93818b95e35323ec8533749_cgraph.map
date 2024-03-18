@@ -1,0 +1,15 @@
+<map id="iii_drone::adapters::SingleLineAdapter::SingleLineAdapter" name="iii_drone::adapters::SingleLineAdapter::SingleLineAdapter">
+<area shape="rect" id="Node000001" title="Constructor from PoseStamped msg." alt="" coords="5,106,153,161"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a094ffe670b1d879fa9bd9012255a6173" title="Id getter." alt="" coords="217,5,385,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="117,104,157,78,200,55,217,48,219,53,202,60,159,83,120,108"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a6ffd87a0b1e2778edceec92aa9673cf2" title="In FOV getter." alt="" coords="227,70,375,125"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="153,119,213,109,214,114,154,124"/>
+<area shape="rect" id="Node000004" href="$namespaceiii__drone_1_1types.html#a68ca357a87fb655434d05d6c6bdac45f" title=" " alt="" coords="203,149,399,189"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="154,143,190,149,189,154,153,148"/>
+<area shape="rect" id="Node000006" href="$namespaceiii__drone_1_1types.html#a25802a3ab0d3c28800d37b3c6a9a6578" title=" " alt="" coords="201,213,401,253"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="126,158,202,199,220,206,218,211,200,204,123,163"/>
+<area shape="rect" id="Node000005" href="$namespaceiii__drone_1_1types.html#a8215048242190c57b9ff2de3f1daba73" title=" " alt="" coords="451,149,647,189"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="400,167,437,167,437,172,400,172"/>
+<area shape="rect" id="Node000007" href="$namespaceiii__drone_1_1types.html#ab684c4851f41301e938970679086de49" title=" " alt="" coords="449,213,649,253"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="401,231,436,231,436,236,401,236"/>
+</map>

@@ -1,0 +1,6 @@
+<map id="iii_drone::perception::hough_transformer_node::HoughTransformerConfigurator::houghTransformerConfiguratorParameterChangeCallback" name="iii_drone::perception::hough_transformer_node::HoughTransformerConfigurator::houghTransformerConfiguratorParameterChangeCallback">
+<area shape="rect" id="Node000001" title="the HoughTransformerConfiguration callback function called after successful parameter change" alt="" coords="5,15,300,99"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="348,29,587,84"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="300,54,334,54,334,59,300,59"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="407,29,407,19,418,10,438,5,467,3,503,6,522,14,520,19,501,11,467,8,439,10,420,15,412,21,412,29"/>
+</map>

@@ -1,0 +1,22 @@
+<map id="iii_drone::perception::SingleLine" name="iii_drone::perception::SingleLine">
+<area shape="rect" id="Node000001" title="SingleLine class for pose estimation of a single powerline." alt="" coords="405,1213,561,1593"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1Timestamp.html" title="Timestamp class for storing and loading thread safe ROS2 timestamps." alt="" coords="131,861,319,1027"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="213,1027,213,1089,218,1120,227,1150,259,1207,301,1258,347,1303,394,1341,391,1345,344,1307,297,1262,255,1210,222,1152,213,1121,208,1089,208,1027"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="60,135,195,200"/>
+<area shape="poly" id="edge10_Node000001_Node000003" title=" " alt="" coords="117,201,72,337,46,435,25,545,11,665,10,788,16,849,26,910,41,969,62,1026,90,1080,126,1132,168,1179,212,1222,306,1296,392,1351,389,1356,303,1300,209,1226,164,1183,122,1135,86,1083,57,1028,36,970,20,911,10,850,5,788,6,664,19,545,41,434,67,336,112,200"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="127,200,126,253,142,416,164,578,208,844,203,845,158,579,137,417,121,253,121,200"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1perception_1_1PowerlineParameters.html" title="Class for storing the parameters of the powerline object." alt="" coords="283,277,478,837"/>
+<area shape="poly" id="edge8_Node000008_Node000003" title=" " alt="" coords="167,199,189,222,235,285,277,350,273,353,231,288,185,226,163,202"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="420,135,499,200"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="501,194,514,207,523,223,525,238,523,253,528,517,536,722,537,927,532,1047,522,1190,521,1197,516,1197,517,1189,527,1047,532,927,530,722,523,517,518,253,520,238,518,225,509,210,497,198"/>
+<area shape="poly" id="edge9_Node000008_Node000004" title=" " alt="" coords="422,189,400,205,384,225,369,263,364,261,380,223,397,201,418,185"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="394,5,525,85"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="462,99,462,134,457,134,457,99"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="577,1061,721,1141"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="629,1143,572,1247,567,1245,625,1140"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="295,1053,501,1148"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="414,1147,428,1197,423,1198,409,1149"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="392,838,399,1037,393,1037,387,838"/>
+<area shape="rect" id="Node000009" href="$structiii__drone_1_1perception_1_1SingleLine_1_1kf__est__t.html" title="Kalman Filter estimate struct." alt="" coords="745,1051,894,1151"/>
+<area shape="poly" id="edge11_Node000001_Node000009" title=" " alt="" coords="766,1153,576,1323,573,1319,763,1149"/>
+</map>

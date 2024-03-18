@@ -1,0 +1,7 @@
+<map id="iii_drone::perception::SingleLine::SetPosition" name="iii_drone::perception::SingleLine::SetPosition">
+<area shape="rect" id="Node000001" title="Sets the position and updates the Kalman Filter estimates." alt="" coords="5,37,184,77"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1SingleLine.html#aeb05d9d3ca876e323a7e46b228d63e0c" title="position getter." alt="" coords="251,5,409,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="184,43,238,35,238,40,185,48"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1Timestamp.html#a373bc0de94c27153e2372c30f0eedbb1" title="Updates the timestamp to now." alt="" coords="232,69,428,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="185,67,219,72,218,77,184,72"/>
+</map>

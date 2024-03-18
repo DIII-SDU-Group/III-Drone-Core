@@ -1,0 +1,9 @@
+<map id="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerConfigurator::kf_q" name="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerConfigurator::kf_q">
+<area shape="rect" id="Node000001" title="Get the Kalman filter q coefficient." alt="" coords="696,59,1029,114"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerConfigurator.html#a28340d756efc38c588c535afad377629" title="Initializes the parameters." alt="" coords="351,52,648,121"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="682,89,648,89,648,84,682,84"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerConfigurator.html#ac55d8c63ff14590a78b5f29130b77305" title="Constructor." alt="" coords="5,5,303,75"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="336,67,303,63,304,57,337,62"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerConfigurator.html#a7ad671bdb9545e64ff2cadb8adf24882" title="Constructor." alt="" coords="5,99,303,168"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="337,111,304,116,303,111,336,106"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="iii_drone::control::CombinedDroneAwarenessHandler::updateCombinedDroneAwareness" name="iii_drone::control::CombinedDroneAwarenessHandler::updateCombinedDroneAwareness">
+<area shape="rect" id="Node000001" title="Updates the combined drone awareness based on current information. To be called after updating the an..." alt="" coords="311,5,568,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a45046cb4335f9a4fe757b195ae4851ca" title="Construct a new CombinedDroneAwarenessHandler object, initializing all the subscriptions." alt="" coords="5,5,263,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="297,35,263,35,263,30,297,30"/>
+</map>

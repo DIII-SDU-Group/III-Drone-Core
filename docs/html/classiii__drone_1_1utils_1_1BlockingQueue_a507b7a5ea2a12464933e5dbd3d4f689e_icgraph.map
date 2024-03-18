@@ -1,0 +1,11 @@
+<map id="iii_drone::utils::BlockingQueue::Full" name="iii_drone::utils::BlockingQueue::Full">
+<area shape="rect" id="Node000001" title="Whether the queue is full." alt="" coords="459,37,637,77"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1BlockingQueue.html#ac9eb2bcebbbc96190e7b84b7a190c612" title="Pushes an item to the queue." alt="" coords="232,5,411,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="445,45,411,41,411,35,445,40"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1BlockingQueue.html#afbc17f0387469f9cb58527efd0567c7c" title="Reads an item from the queue." alt="" coords="232,69,411,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="445,75,411,79,411,74,445,69"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1utils_1_1BlockingQueue.html#aa461a68be104774061e9c34e1930966f" title="Peeks an item from the queue." alt="" coords="5,37,184,77"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="218,77,184,73,185,67,219,72"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1utils_1_1BlockingQueue.html#ab6471fa2f8f0a9acf36789a0650c66c2" title="Pops an item from the queue." alt="" coords="5,101,184,141"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="219,107,185,111,184,106,218,101"/>
+</map>

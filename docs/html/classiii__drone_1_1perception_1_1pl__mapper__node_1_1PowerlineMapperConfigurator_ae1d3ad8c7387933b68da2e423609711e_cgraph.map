@@ -1,0 +1,11 @@
+<map id="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator::matching_line_max_dist" name="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator::matching_line_max_dist">
+<area shape="rect" id="Node000001" title="Get the maximum distance between two points in the point cloud (for line matching)" alt="" coords="5,22,225,91"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="273,37,481,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="226,54,260,54,260,59,226,59"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="529,7,744,47"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="481,42,515,38,516,44,482,48"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="792,29,1031,84"/>
+<area shape="poly" id="edge5_Node000002_Node000004" title=" " alt="" coords="482,56,529,57,744,57,778,56,778,62,744,62,529,62,482,61"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="745,36,779,40,778,45,744,41"/>
+<area shape="poly" id="edge4_Node000004_Node000004" title=" " alt="" coords="858,29,858,19,868,10,886,5,911,3,942,6,960,14,957,18,941,11,911,8,887,10,871,15,863,21,864,29"/>
+</map>

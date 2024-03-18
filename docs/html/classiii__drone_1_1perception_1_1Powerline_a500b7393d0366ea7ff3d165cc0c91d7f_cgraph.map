@@ -1,0 +1,11 @@
+<map id="iii_drone::perception::Powerline::Powerline" name="iii_drone::perception::Powerline::Powerline">
+<area shape="rect" id="Node000001" title="Constructor." alt="" coords="5,69,172,109"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1Powerline.html#aca2026f294b1aa4c3447240d56422c2c" title="Resets the powerline object." alt="" coords="220,69,375,109"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="172,87,206,87,206,92,172,92"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1History.html#ae7308fbe644db5887924651e3eac0db3" title="Clear the history." alt="" coords="436,5,605,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="367,67,436,47,438,52,369,72"/>
+<area shape="rect" id="Node000004" href="$namespaceiii__drone_1_1types.html#a3c643a86317f9f8c192979766cdfbc51" title=" " alt="" coords="435,69,606,109"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="375,87,421,87,421,92,375,92"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1utils_1_1Timestamp.html#a373bc0de94c27153e2372c30f0eedbb1" title="Updates the timestamp to now." alt="" coords="423,133,619,173"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="369,107,438,127,436,132,367,112"/>
+</map>

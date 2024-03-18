@@ -1,0 +1,6 @@
+<map id="iii_drone::control::maneuver_controller_node::ManeuverControllerNodeConfigurator::updateParametersObjectsCallback" name="iii_drone::control::maneuver_controller_node::ManeuverControllerNodeConfigurator::updateParametersObjectsCallback">
+<area shape="rect" id="Node000001" title="Callback function called after successful parameter change to update parameters object." alt="" coords="5,15,284,99"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="332,29,571,84"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="284,54,318,54,318,59,284,59"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="392,29,393,19,403,10,423,5,451,3,486,6,505,14,503,19,484,11,451,8,424,10,406,15,397,21,398,29"/>
+</map>

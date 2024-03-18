@@ -1,0 +1,5 @@
+<map id="iii_drone::control::maneuver_controller_node::ManeuverControllerNode" name="iii_drone::control::maneuver_controller_node::ManeuverControllerNode">
+<area shape="rect" id="Node000001" title="The ManeuverControllerNode class. Responsible for execution of maneuvers. Uses the CombinedDroneAware..." alt="" coords="5,119,229,576"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="70,5,165,71"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="120,84,120,118,115,118,115,84"/>
+</map>

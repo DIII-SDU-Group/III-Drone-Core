@@ -1,0 +1,7 @@
+<map id="iii_drone::control::maneuver::HoverManeuverServer::Update" name="iii_drone::control::maneuver::HoverManeuverServer::Update">
+<area shape="rect" id="Node000001" title="Updates the hover reference." alt="" coords="5,30,256,85"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1Reference.html#a2ba5647e5161e35e0588394dcae0663b" title=" " alt="" coords="304,5,460,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="256,39,290,34,291,40,257,44"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1Reference.html#a784277cbb64476953132a8e239f9ae9e" title=" " alt="" coords="317,69,447,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="257,71,304,77,303,82,256,76"/>
+</map>

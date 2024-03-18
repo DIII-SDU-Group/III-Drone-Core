@@ -1,0 +1,5 @@
+<map id="iii_drone::adapters::StateAdapter" name="iii_drone::adapters::StateAdapter">
+<area shape="rect" id="Node000001" title="Class for adapting the III&#45;Drone&#45;Core::State to the III&#45;Drone&#45;Interfaces::State." alt="" coords="5,408,175,628"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1State.html" title=" " alt="" coords="17,5,163,345"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="93,346,93,392,87,392,87,346"/>
+</map>

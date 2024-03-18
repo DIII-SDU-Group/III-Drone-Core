@@ -1,0 +1,16 @@
+<map id="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerConfigurator::drone_frame_id" name="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerConfigurator::drone_frame_id">
+<area shape="rect" id="Node000001" title="Get the drone frame ID." alt="" coords="995,157,1292,227"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerConfigurator.html#a28340d756efc38c588c535afad377629" title="Initializes the parameters." alt="" coords="649,85,947,155"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="980,161,947,154,948,148,982,156"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerNode.html#ab34c86cec88426267f792caac6bbedee" title="Callback function for the odometry timer." alt="" coords="327,204,578,273"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="981,201,650,220,579,227,578,221,649,215,981,195"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerNode.html#a3945fa1d3c10fcb92f12e3a019a2fc63" title="Publishes the estimated powerline direction." alt="" coords="673,229,923,299"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="981,228,924,241,923,235,980,223"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerConfigurator.html#ac55d8c63ff14590a78b5f29130b77305" title="Constructor." alt="" coords="304,5,601,75"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="635,85,601,77,602,72,636,80"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerConfigurator.html#a7ad671bdb9545e64ff2cadb8adf24882" title="Constructor." alt="" coords="304,99,601,168"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="635,129,602,130,602,125,635,124"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerNode.html#a7d69d952785cf09e8cd381bd624480f2" title="Construct a new Powerline Direction Computer Node object." alt="" coords="5,204,256,273"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="313,241,256,241,256,236,313,236"/>
+<area shape="poly" id="edge7_Node000007_Node000005" title=" " alt="" coords="659,256,578,251,579,245,659,251"/>
+</map>

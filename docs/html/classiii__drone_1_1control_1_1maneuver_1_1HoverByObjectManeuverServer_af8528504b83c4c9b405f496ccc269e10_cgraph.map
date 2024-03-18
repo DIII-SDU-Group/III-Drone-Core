@@ -1,0 +1,53 @@
+<map id="iii_drone::control::maneuver::HoverByObjectManeuverServer::hasFailed" name="iii_drone::control::maneuver::HoverByObjectManeuverServer::hasFailed">
+<area shape="rect" id="Node000001" title="Returns true if the maneuver has failed. Has failed if the target is not visible or the drone has dri..." alt="" coords="5,339,272,393"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a7e09c4b73237e76701d9e83785e05077" title="Returns true if the maneuver has succeeded. Has succeeded if the target is visible and the drone is w..." alt="" coords="320,339,587,393"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="272,363,307,363,307,369,272,369"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#aa25571ba492acf43cd9af009c02cf72e" title="Combined drone awareness handler, accessible to derived classes through the protected method." alt="" coords="663,260,873,315"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="563,336,649,314,650,320,564,341"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#ab9c3e7f08103bc40c70efd3ca93f040b" title="Computes a target transform given a target adapter." alt="" coords="639,339,897,393"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="587,363,626,363,626,369,587,369"/>
+<area shape="rect" id="Node000022" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a0fbdbb7505bd07854fe3db49bfe8b8b8" title="Validates that the target transform and the drone state are within the maximum euclidean distance." alt="" coords="635,669,901,724"/>
+<area shape="poly" id="edge21_Node000002_Node000022" title=" " alt="" coords="483,392,733,657,729,661,479,395"/>
+<area shape="rect" id="Node000005" href="$namespaceiii__drone_1_1math.html#a7bf2d65f6ca43a8f7a1c5385a29808fe" title=" " alt="" coords="961,22,1195,62"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="886,336,899,324,920,293,927,262,927,231,922,200,917,168,917,136,926,104,947,72,951,69,954,73,951,76,930,106,922,137,923,168,927,199,932,231,933,263,925,295,903,328,889,340"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1adapters_1_1PowerlineAdapter.html#a5bf5fcde3fc28a2e3ba77293abc5ec4e" title="Returns the single line adapter with the given id." alt="" coords="1001,87,1155,141"/>
+<area shape="poly" id="edge8_Node000004_Node000009" title=" " alt="" coords="885,336,899,324,915,303,922,283,923,240,924,196,931,174,947,152,966,137,987,127,989,131,969,142,951,156,936,177,929,197,928,240,927,284,919,306,903,328,888,340"/>
+<area shape="rect" id="Node000010" href="$namespaceiii__drone_1_1types.html#a0f2e38f39e75d541ec3429c76b866229" title=" " alt="" coords="981,166,1175,206"/>
+<area shape="poly" id="edge9_Node000004_Node000010" title=" " alt="" coords="882,336,900,324,911,311,917,298,922,271,928,243,935,229,948,216,966,203,969,208,951,220,940,232,933,245,928,272,922,300,915,314,903,328,885,341"/>
+<area shape="rect" id="Node000013" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a210daa5f6654327a96c6d24dae007816" title="Returns the current target adapter, will have TARGET_TYPE_NONE if no target." alt="" coords="949,231,1207,285"/>
+<area shape="poly" id="edge12_Node000004_Node000013" title=" " alt="" coords="868,336,900,324,924,310,948,296,968,288,970,293,951,300,927,314,902,328,870,341"/>
+<area shape="rect" id="Node000014" href="$classiii__drone_1_1adapters_1_1TargetAdapter.html#af4648a3bc6fd3ac93e610700e24b2d14" title="Gets the target id." alt="" coords="985,310,1171,350"/>
+<area shape="poly" id="edge13_Node000004_Node000014" title=" " alt="" coords="897,348,970,340,971,345,897,354"/>
+<area shape="rect" id="Node000015" href="$classiii__drone_1_1adapters_1_1TargetAdapter.html#a5b378f4de1effed87e2309d5f052d74a" title="Gets the target transform." alt="" coords="994,375,1162,429"/>
+<area shape="poly" id="edge14_Node000004_Node000015" title=" " alt="" coords="897,378,980,388,980,393,897,384"/>
+<area shape="rect" id="Node000016" href="$classiii__drone_1_1adapters_1_1TargetAdapter.html#a7b5c36b234213f1d19fa8f1943c26c4a" title="Gets the target type." alt="" coords="976,454,1180,494"/>
+<area shape="poly" id="edge15_Node000004_Node000016" title=" " alt="" coords="831,391,950,438,981,448,980,453,948,443,829,396"/>
+<area shape="rect" id="Node000017" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a0e51bbd6fad04d9daf990a9f228c12bf" title="Converts to PoseStamped msg." alt="" coords="998,519,1158,573"/>
+<area shape="poly" id="edge16_Node000004_Node000017" title=" " alt="" coords="800,392,866,448,907,478,951,504,986,519,984,524,948,508,904,482,863,452,797,396"/>
+<area shape="rect" id="Node000021" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandlerParameters.html#a462d0dc30c33f34df6165dbcc7829aa1" title="Get the world frame id." alt="" coords="949,597,1207,652"/>
+<area shape="poly" id="edge20_Node000004_Node000021" title=" " alt="" coords="787,392,813,434,851,485,897,538,951,583,961,589,958,593,948,587,893,541,846,489,809,437,782,395"/>
+<area shape="rect" id="Node000006" href="$namespaceiii__drone_1_1math.html#af8c96a0fa3940e1034c8db8425586ba8" title=" " alt="" coords="1257,29,1453,55"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="1196,39,1243,39,1243,45,1196,45"/>
+<area shape="rect" id="Node000007" href="$namespaceiii__drone_1_1math.html#a7f61d7905e9118b077f713da7e65e8df" title=" " alt="" coords="1509,5,1696,31"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="1453,30,1495,26,1496,31,1453,35"/>
+<area shape="rect" id="Node000008" href="$namespaceiii__drone_1_1math.html#a8e7d7e25d07b368363d6da9939a9abed" title=" " alt="" coords="1507,55,1698,80"/>
+<area shape="poly" id="edge7_Node000006_Node000008" title=" " alt="" coords="1453,49,1494,54,1493,59,1453,55"/>
+<area shape="rect" id="Node000011" href="$namespaceiii__drone_1_1types.html#a8215048242190c57b9ff2de3f1daba73" title=" " alt="" coords="1257,134,1453,174"/>
+<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="1175,172,1242,164,1243,170,1176,177"/>
+<area shape="rect" id="Node000012" href="$namespaceiii__drone_1_1types.html#ab684c4851f41301e938970679086de49" title=" " alt="" coords="1255,198,1455,238"/>
+<area shape="poly" id="edge11_Node000010_Node000012" title=" " alt="" coords="1176,195,1241,202,1241,208,1175,200"/>
+<area shape="rect" id="Node000018" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a93dc5170f28f0b86439146049989ce60" title="Converts to Pose msg." alt="" coords="1281,519,1429,573"/>
+<area shape="poly" id="edge17_Node000017_Node000018" title=" " alt="" coords="1158,543,1267,543,1267,549,1158,549"/>
+<area shape="rect" id="Node000019" href="$namespaceiii__drone_1_1types.html#adf49c0d0a898eea29ad3e752a6712734" title=" " alt="" coords="1507,494,1698,534"/>
+<area shape="poly" id="edge18_Node000018_Node000019" title=" " alt="" coords="1429,534,1493,525,1494,531,1429,539"/>
+<area shape="rect" id="Node000020" href="$namespaceiii__drone_1_1types.html#a345601fdf3366d6af6d7c2003d74275b" title=" " alt="" coords="1503,558,1703,598"/>
+<area shape="poly" id="edge19_Node000018_Node000020" title=" " alt="" coords="1429,553,1489,561,1489,566,1429,558"/>
+<area shape="rect" id="Node000023" href="$namespaceiii__drone_1_1types.html#a1bfb762d3daf82decf272d74978c0aff" title=" " alt="" coords="981,677,1175,717"/>
+<area shape="poly" id="edge22_Node000022_Node000023" title=" " alt="" coords="901,694,967,694,967,699,901,699"/>
+<area shape="rect" id="Node000026" href="$classiii__drone_1_1control_1_1State.html#ac7d02a667c215a72d7f7f2fdf1501eb4" title=" " alt="" coords="1013,741,1143,781"/>
+<area shape="poly" id="edge25_Node000022_Node000026" title=" " alt="" coords="902,721,1000,742,999,747,900,727"/>
+<area shape="rect" id="Node000024" href="$namespaceiii__drone_1_1types.html#a697d4ff4e536df203d0c6acf6daf0751" title=" " alt="" coords="1255,677,1455,717"/>
+<area shape="poly" id="edge23_Node000023_Node000024" title=" " alt="" coords="1176,694,1241,694,1241,699,1176,699"/>
+<area shape="rect" id="Node000025" href="$namespaceiii__drone_1_1math.html#af4cd05fd620f368b776def1c899e2f17" title=" " alt="" coords="1503,684,1702,709"/>
+<area shape="poly" id="edge24_Node000024_Node000025" title=" " alt="" coords="1455,694,1490,694,1490,699,1455,699"/>
+</map>

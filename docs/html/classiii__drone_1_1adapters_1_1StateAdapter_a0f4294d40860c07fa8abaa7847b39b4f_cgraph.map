@@ -1,0 +1,11 @@
+<map id="iii_drone::adapters::StateAdapter::StateAdapter" name="iii_drone::adapters::StateAdapter::StateAdapter">
+<area shape="rect" id="Node000001" title="Constructor from III&#45;Drone&#45;Interfaces::State msg." alt="" coords="5,69,213,109"/>
+<area shape="rect" id="Node000002" href="$namespaceiii__drone_1_1types.html#a0f2e38f39e75d541ec3429c76b866229" title=" " alt="" coords="261,37,456,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="213,73,247,69,248,74,214,79"/>
+<area shape="rect" id="Node000005" href="$namespaceiii__drone_1_1types.html#a42473d6c26ea6e0c7c0eeda54448907c" title=" " alt="" coords="273,101,444,141"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="214,100,260,106,259,111,213,105"/>
+<area shape="rect" id="Node000003" href="$namespaceiii__drone_1_1types.html#a8215048242190c57b9ff2de3f1daba73" title=" " alt="" coords="506,5,702,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="456,42,492,37,493,43,457,47"/>
+<area shape="rect" id="Node000004" href="$namespaceiii__drone_1_1types.html#ab684c4851f41301e938970679086de49" title=" " alt="" coords="504,69,704,109"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="457,67,491,72,490,77,456,73"/>
+</map>

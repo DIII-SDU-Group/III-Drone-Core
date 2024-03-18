@@ -1,0 +1,16 @@
+<map id="iii_drone::control::SetpointController" name="iii_drone::control::SetpointController">
+<area shape="rect" id="Node000001" title="Class for generating setpoints for the PX4 autopilot." alt="" coords="271,1432,429,1512"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1History.html" title=" " alt="" coords="97,1031,342,1355"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="235,1354,245,1381,259,1407,269,1419,264,1422,254,1409,240,1384,230,1356"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,701,236,795"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="134,795,182,1014,177,1015,128,796"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1adapters_1_1px4_1_1VehicleOdometryAdapter.html" title="PX4 odometry adapter class." alt="" coords="12,5,229,465"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="123,466,123,684,118,684,118,466"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="260,715,395,781"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="322,781,265,1015,260,1014,317,780"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1utils_1_1Atomic.html" title=" " alt="" coords="367,1031,597,1355"/>
+<area shape="poly" id="edge7_Node000006_Node000005" title=" " alt="" coords="341,780,423,1014,418,1016,336,782"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="467,1356,456,1383,442,1409,432,1422,427,1419,437,1407,451,1381,462,1354"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1adapters_1_1px4_1_1TrajectorySetpointAdapter.html" title="PX4 trajectory setpoint adapter class." alt="" coords="419,528,641,968"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="509,969,504,1014,499,1014,504,968"/>
+</map>

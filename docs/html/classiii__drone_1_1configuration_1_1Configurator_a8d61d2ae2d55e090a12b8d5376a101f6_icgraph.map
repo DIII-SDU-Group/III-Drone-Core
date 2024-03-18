@@ -1,0 +1,5 @@
+<map id="iii_drone::configuration::Configurator::sendGetParameterRequest" name="iii_drone::configuration::Configurator::sendGetParameterRequest">
+<area shape="rect" id="Node000001" title="Sends a GetParameters request to the ConfigurationServer node, which will return the parameter." alt="" coords="288,5,527,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad5b3a74ef59f82e93b24cd485789677e" title=" " alt="" coords="5,13,240,53"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="274,35,240,35,240,30,274,30"/>
+</map>

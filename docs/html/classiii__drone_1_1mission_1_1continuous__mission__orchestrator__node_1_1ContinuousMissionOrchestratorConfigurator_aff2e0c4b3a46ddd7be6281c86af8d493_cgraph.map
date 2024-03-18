@@ -1,0 +1,6 @@
+<map id="iii_drone::mission::continuous_mission_orchestrator_node::ContinuousMissionOrchestratorConfigurator::declareNodeParameters" name="iii_drone::mission::continuous_mission_orchestrator_node::ContinuousMissionOrchestratorConfigurator::declareNodeParameters">
+<area shape="rect" id="Node000001" title="Declares the node specific parameters." alt="" coords="5,15,239,99"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="287,29,525,84"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="239,54,273,54,273,59,239,59"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="351,29,352,19,361,10,380,5,406,3,438,6,456,14,454,18,436,11,406,8,381,10,364,15,357,21,357,29"/>
+</map>

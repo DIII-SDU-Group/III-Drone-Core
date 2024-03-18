@@ -1,0 +1,11 @@
+<map id="iii_drone::mission::continuous_mission_orchestrator_node::ContinuousMissionOrchestratorConfigurator::battery_voltage_high_threshold" name="iii_drone::mission::continuous_mission_orchestrator_node::ContinuousMissionOrchestratorConfigurator::battery_voltage_high_threshold">
+<area shape="rect" id="Node000001" title="Get the battery voltage high threshold." alt="" coords="5,15,241,99"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="289,37,497,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="242,54,276,54,276,59,242,59"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="545,7,760,47"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="497,42,531,38,532,44,498,48"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="808,29,1047,84"/>
+<area shape="poly" id="edge5_Node000002_Node000004" title=" " alt="" coords="498,56,545,57,760,57,794,56,794,62,760,62,545,62,498,61"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="761,36,795,40,794,45,760,41"/>
+<area shape="poly" id="edge4_Node000004_Node000004" title=" " alt="" coords="874,29,874,19,884,10,902,5,927,3,958,6,976,14,973,18,957,11,927,8,903,10,887,15,879,21,880,29"/>
+</map>

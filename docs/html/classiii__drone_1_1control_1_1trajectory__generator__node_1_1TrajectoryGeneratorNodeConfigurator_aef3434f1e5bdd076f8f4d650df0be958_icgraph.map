@@ -1,0 +1,9 @@
+<map id="iii_drone::control::trajectory_generator_node::TrajectoryGeneratorNodeConfigurator::dt" name="iii_drone::control::trajectory_generator_node::TrajectoryGeneratorNodeConfigurator::dt">
+<area shape="rect" id="Node000001" title="dt getter." alt="" coords="651,67,883,137"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNodeConfigurator.html#a00c33f213b5d64794780515510eb2b1a" title="Initializes the MPC parameters object." alt="" coords="327,67,603,137"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="637,105,603,105,603,99,637,99"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNodeConfigurator.html#a48dca84d90364face67ca9dce68a5243" title="Constructor." alt="" coords="5,5,279,89"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="313,79,279,73,280,68,313,74"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNodeConfigurator.html#aa21ab199241f4bc45d37715613fb0772" title="Constructor." alt="" coords="5,113,279,197"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="313,130,280,135,279,130,313,124"/>
+</map>

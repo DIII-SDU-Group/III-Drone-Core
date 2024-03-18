@@ -1,0 +1,9 @@
+<map id="iii_drone::control::maneuver::ManeuverScheduler::RegisterManeuver" name="iii_drone::control::maneuver::ManeuverScheduler::RegisterManeuver">
+<area shape="rect" id="Node000001" title="Registers a maneuver with the maneuver scheduler. To be called from a maneuver server...." alt="" coords="847,13,1080,67"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#ab393b4204a5c4368ee503e9af8b27a22" title="Registers a maneuver type with a maneuver server." alt="" coords="565,13,799,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="833,43,799,43,799,37,833,37"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNode.html#a1c587895df3c61bd6b748e97942cd619" title="Creates and registers all maneuver servers with the maneuver scheduler." alt="" coords="285,5,517,75"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="552,43,517,43,517,37,552,37"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNode.html#a291f0abf320443ed6ad4a248ba028b8c" title="Constructor. Creates the node, initializes the configurator, the transform buffer and listener,..." alt="" coords="5,5,237,75"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="272,43,237,43,237,37,272,37"/>
+</map>

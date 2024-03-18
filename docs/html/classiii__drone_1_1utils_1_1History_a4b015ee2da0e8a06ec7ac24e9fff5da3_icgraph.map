@@ -1,0 +1,37 @@
+<map id="iii_drone::utils::History::empty" name="iii_drone::utils::History::empty">
+<area shape="rect" id="Node000001" title="Returns true if the history is empty." alt="" coords="1459,263,1628,303"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1Powerline.html#ae01313af26d0faefd560f290feb28daf" title="Returns the drone quaternion orientation." alt="" coords="1221,33,1399,73"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1526,251,1508,213,1482,169,1449,125,1409,87,1389,76,1392,71,1412,83,1453,122,1486,166,1513,211,1531,249"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1perception_1_1Powerline.html#aef8a20bf08884aae433f5b128f318b91" title="Returns the powerline quaternion direction." alt="" coords="1227,98,1393,153"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="1513,255,1467,210,1409,166,1389,155,1391,151,1412,162,1470,206,1517,251"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a84bd59d26cad94ce6a10cbc201cd7044" title="Powerline quaternion getter." alt="" coords="1233,177,1387,231"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="1470,261,1387,232,1388,227,1471,256"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a045bf2524790cddf13b531d46d548280" title="Resets the Kalman filter estimates." alt="" coords="1233,255,1387,310"/>
+<area shape="poly" id="edge9_Node000001_Node000009" title=" " alt="" coords="1444,285,1388,285,1388,280,1444,280"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a15ab1216adf0aff5c7be05e851c70040" title="Runs the Kalman Filter update step from an observed yaw angle." alt="" coords="959,321,1113,375"/>
+<area shape="poly" id="edge19_Node000001_Node000011" title=" " alt="" coords="1471,309,1411,324,1332,336,1252,343,1113,350,1113,345,1252,338,1332,330,1410,319,1470,304"/>
+<area shape="rect" id="Node000013" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a2c93fe708f8c700a005e6dd6d8c08e53" title="Converts to pose stamped message." alt="" coords="1230,386,1390,441"/>
+<area shape="poly" id="edge13_Node000001_Node000013" title=" " alt="" coords="1503,313,1412,369,1374,388,1372,384,1409,364,1500,308"/>
+<area shape="rect" id="Node000016" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a6b98a0735a5158f0f520531e0ef0f622" title="Converts to quaternion stamped message." alt="" coords="1209,465,1411,519"/>
+<area shape="poly" id="edge17_Node000001_Node000016" title=" " alt="" coords="1527,316,1481,386,1449,423,1412,455,1394,467,1392,462,1409,451,1445,419,1476,382,1522,313"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1Powerline.html#abb9d44570c4decb7fc26620eb2ceb38d" title="Runs the Kalman Filter predict step for all lines." alt="" coords="945,5,1127,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1208,46,1127,37,1127,32,1208,40"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1Powerline.html#ae0f6a983c3039c6a41bda6258ec2b70d" title="Updates the powerline from odometry." alt="" coords="630,35,845,75"/>
+<area shape="poly" id="edge6_Node000002_Node000004" title=" " alt="" coords="1208,59,1161,60,911,60,845,59,845,54,911,55,1161,55,1207,54"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="932,38,845,47,845,41,931,33"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#ae98c3a40fb32f1305c1528467205ba33" title="Callback for fetching drone transform." alt="" coords="323,27,555,82"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="616,57,555,57,555,52,616,52"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#a703ae72ba683ae11154ce597b8bbad9d" title="Constructor." alt="" coords="5,27,265,82"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="309,57,266,57,266,52,309,52"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a896518120e987d3be288e56dd34410b9" title="Default constructor." alt="" coords="959,242,1113,297"/>
+<area shape="poly" id="edge10_Node000009_Node000010" title=" " alt="" coords="1219,281,1113,276,1114,270,1219,276"/>
+<area shape="poly" id="edge11_Node000009_Node000011" title=" " alt="" coords="1220,307,1114,332,1113,327,1218,302"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerNode.html#a7d69d952785cf09e8cd381bd624480f2" title="Construct a new Powerline Direction Computer Node object." alt="" coords="313,357,564,427"/>
+<area shape="poly" id="edge12_Node000011_Node000012" title=" " alt="" coords="944,357,565,385,564,380,944,352"/>
+<area shape="rect" id="Node000014" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerNode.html#a3945fa1d3c10fcb92f12e3a019a2fc63" title="Publishes the estimated powerline direction." alt="" coords="911,400,1161,469"/>
+<area shape="poly" id="edge14_Node000013_Node000014" title=" " alt="" coords="1217,423,1162,428,1161,422,1216,418"/>
+<area shape="rect" id="Node000015" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerNode.html#ab34c86cec88426267f792caac6bbedee" title="Callback function for the odometry timer." alt="" coords="612,396,863,465"/>
+<area shape="poly" id="edge15_Node000014_Node000015" title=" " alt="" coords="897,435,863,435,863,430,897,430"/>
+<area shape="poly" id="edge16_Node000015_Node000012" title=" " alt="" coords="598,415,564,411,565,406,599,410"/>
+<area shape="poly" id="edge18_Node000016_Node000014" title=" " alt="" coords="1195,471,1161,464,1162,458,1197,466"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="iii_drone::utils::Token::resource" name="iii_drone::utils::Token::resource">
+<area shape="rect" id="Node000001" title="Get the resource." alt="" coords="332,85,491,125"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#afa9c39ec85ed4c05e1cac71ebb197a78" title="Callback function for when the token is yielded from a maneuver server. Registers the hovering refere..." alt="" coords="5,5,284,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="323,84,246,63,247,57,324,78"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1Token.html#ad2dbe96a256bcb2192af2d94a041951f" title="Constructor from shared ptr." alt="" coords="65,85,224,125"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="318,107,224,107,224,102,318,102"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1utils_1_1Token.html#a752779c5bedec6dfe41d63954aaf701d" title="Constructor." alt="" coords="65,149,224,189"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="320,131,285,139,225,153,224,148,283,134,318,125"/>
+</map>

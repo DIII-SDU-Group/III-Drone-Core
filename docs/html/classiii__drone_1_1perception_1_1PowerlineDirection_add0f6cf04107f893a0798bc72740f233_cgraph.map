@@ -1,0 +1,5 @@
+<map id="iii_drone::perception::PowerlineDirection::computePowerlineEulerAngles" name="iii_drone::perception::PowerlineDirection::computePowerlineEulerAngles">
+<area shape="rect" id="Node000001" title="Computes the powerline euler angles from observed powerline yaw." alt="" coords="5,5,233,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#acf9047fc8f85dfe9118663065c52b32f" title="Maps the angle into continuous range based on current angle." alt="" coords="281,5,436,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="233,30,268,30,268,35,233,35"/>
+</map>

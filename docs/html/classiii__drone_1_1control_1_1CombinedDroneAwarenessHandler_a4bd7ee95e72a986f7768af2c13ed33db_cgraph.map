@@ -1,0 +1,7 @@
+<map id="iii_drone::control::CombinedDroneAwarenessHandler::drone_location" name="iii_drone::control::CombinedDroneAwarenessHandler::drone_location">
+<area shape="rect" id="Node000001" title="Returns the drone location, checks the drone location and returns the on_cable_id if the drone is on ..." alt="" coords="5,45,263,100"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#aa9aaf18f19028d0ba499fe13e50b4ba2" title="Returns the drone location." alt="" coords="311,5,568,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="262,53,297,49,298,54,263,58"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#aa9d9146e18c6a243138fd243ec14e3a4" title="Return the id of the cable that the drone is on if it is on a cable, &#45;1 otherwise...." alt="" coords="311,84,568,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="263,86,298,91,297,96,262,92"/>
+</map>

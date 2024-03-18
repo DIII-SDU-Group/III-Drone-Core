@@ -1,0 +1,30 @@
+<map id="pos_MPC::coder::mpcblock_optimizer" name="pos_MPC::coder::mpcblock_optimizer">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,112,201,152"/>
+<area shape="rect" id="Node000002" href="$namespacepos__MPC_1_1coder_1_1internal.html#a47a5ebaa446e2a54cc916673de4d8d55" title=" " alt="" coords="249,5,432,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="139,110,248,55,265,48,268,53,250,60,141,114"/>
+<area shape="rect" id="Node000003" href="$namespacepos__MPC_1_1coder.html#aaae2248b840070902e3c18dc1a472eab" title=" " alt="" coords="251,70,431,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="200,109,265,96,266,101,201,115"/>
+<area shape="rect" id="Node000012" href="$namespacepos__MPC.html#a6a939f91a173ad685bad55e6f70f3046" title=" " alt="" coords="257,119,425,145"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="201,129,243,129,243,135,201,135"/>
+<area shape="rect" id="Node000013" href="$namespacepos__MPC_1_1coder_1_1internal.html#a468a43db34a801eab0c02e719a7a4a99" title=" " alt="" coords="249,169,432,209"/>
+<area shape="poly" id="edge12_Node000001_Node000013" title=" " alt="" coords="187,149,245,164,244,169,186,155"/>
+<area shape="rect" id="Node000014" href="$namespacepos__MPC_1_1coder_1_1internal_1_1lapack.html#a3379db57facf655c9276e0efeccc2870" title=" " alt="" coords="504,227,687,267"/>
+<area shape="poly" id="edge13_Node000001_Node000014" title=" " alt="" coords="130,150,183,187,216,205,250,219,311,234,373,244,490,249,490,254,373,249,310,239,248,224,214,210,181,191,127,154"/>
+<area shape="rect" id="Node000004" href="$namespacepos__MPC_1_1coder.html#ae2a2d8c1528681afb62fcdff789e1f95" title=" " alt="" coords="504,11,687,37"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="390,67,479,45,518,37,519,42,481,51,392,72"/>
+<area shape="rect" id="Node000005" href="$namespacepos__MPC_1_1coder.html#afecf8bf12a066d8d3cf76f2b91cb8f59" title=" " alt="" coords="480,61,711,86"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="431,77,466,75,466,81,431,82"/>
+<area shape="rect" id="Node000006" href="$namespacepos__MPC_1_1coder.html#aad628de9ea3a1e8c8c5b3adfa8d87a55" title=" " alt="" coords="493,110,698,135"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="422,93,501,105,500,111,422,98"/>
+<area shape="rect" id="Node000011" href="$namespacepos__MPC_1_1coder_1_1internal.html#aee16aca65e5c056291ee323099733942" title=" " alt="" coords="504,160,687,200"/>
+<area shape="poly" id="edge10_Node000003_Node000011" title=" " alt="" coords="405,93,433,104,448,114,458,125,467,135,481,144,499,153,496,157,479,149,464,139,454,128,445,119,431,109,403,98"/>
+<area shape="rect" id="Node000007" href="$namespacepos__MPC.html#a1b161cbb191ab2d22a30569c19e00085" title=" " alt="" coords="765,227,935,267"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="686,133,712,146,729,162,738,179,745,196,760,213,768,218,765,222,757,217,741,199,733,182,725,165,709,150,684,138"/>
+<area shape="rect" id="Node000008" href="$namespacepos__MPC.html#a7d8176f1e03b79f5f3818ac29a97c128" title=" " alt="" coords="761,49,939,74"/>
+<area shape="poly" id="edge7_Node000006_Node000008" title=" " alt="" coords="655,107,710,95,788,75,789,80,711,100,657,113"/>
+<area shape="rect" id="Node000009" href="$namespacepos__MPC_1_1coder_1_1internal_1_1blas.html#ab5adb25bbe5c80c19b41d76110a4668d" title=" " alt="" coords="759,99,941,139"/>
+<area shape="poly" id="edge8_Node000006_Node000009" title=" " alt="" coords="698,118,745,118,745,123,698,124"/>
+<area shape="rect" id="Node000010" href="$namespacepos__MPC_1_1coder_1_1internal_1_1blas.html#a4bf7588767dcefa2cb9f1c102066202f" title=" " alt="" coords="759,163,941,203"/>
+<area shape="poly" id="edge9_Node000006_Node000010" title=" " alt="" coords="656,133,711,145,758,157,757,162,710,151,655,138"/>
+<area shape="poly" id="edge14_Node000014_Node000007" title=" " alt="" coords="687,244,751,244,751,249,687,249"/>
+</map>

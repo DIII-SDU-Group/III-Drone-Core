@@ -1,0 +1,26 @@
+var classiii__drone_1_1perception_1_1PowerlineDirection =
+[
+    [ "kf_est_t", "structiii__drone_1_1perception_1_1PowerlineDirection_1_1kf__est__t.html", "structiii__drone_1_1perception_1_1PowerlineDirection_1_1kf__est__t" ],
+    [ "PowerlineDirection", "classiii__drone_1_1perception_1_1PowerlineDirection.html#a896518120e987d3be288e56dd34410b9", null ],
+    [ "~PowerlineDirection", "classiii__drone_1_1perception_1_1PowerlineDirection.html#ac38d7dce2b4da63d884c694331f7a698", null ],
+    [ "anyCableInFOV", "classiii__drone_1_1perception_1_1PowerlineDirection.html#a6c0d3f6de6be448f8d02e044c1739f1a", null ],
+    [ "backmapAngle", "classiii__drone_1_1perception_1_1PowerlineDirection.html#a6792ff220aae8a0084425d379f227c5c", null ],
+    [ "computePowerlineEulerAngles", "classiii__drone_1_1perception_1_1PowerlineDirection.html#add0f6cf04107f893a0798bc72740f233", null ],
+    [ "mapAngle", "classiii__drone_1_1perception_1_1PowerlineDirection.html#acf9047fc8f85dfe9118663065c52b32f", null ],
+    [ "mapAngle2", "classiii__drone_1_1perception_1_1PowerlineDirection.html#a3e9b71a232c5221285dabf91231b16ef", null ],
+    [ "Predict", "classiii__drone_1_1perception_1_1PowerlineDirection.html#a1f751f8f0562b55f31d42142c6b55ffc", null ],
+    [ "quaternion", "classiii__drone_1_1perception_1_1PowerlineDirection.html#a84bd59d26cad94ce6a10cbc201cd7044", null ],
+    [ "resetKalmanFilter", "classiii__drone_1_1perception_1_1PowerlineDirection.html#a045bf2524790cddf13b531d46d548280", null ],
+    [ "stamp", "classiii__drone_1_1perception_1_1PowerlineDirection.html#a27090ad6a33db2d1d736bdf656221909", null ],
+    [ "ToPoseStampedMsg", "classiii__drone_1_1perception_1_1PowerlineDirection.html#a2c93fe708f8c700a005e6dd6d8c08e53", null ],
+    [ "ToQuaternionStampedMsg", "classiii__drone_1_1perception_1_1PowerlineDirection.html#a6b98a0735a5158f0f520531e0ef0f622", null ],
+    [ "Update", "classiii__drone_1_1perception_1_1PowerlineDirection.html#a15ab1216adf0aff5c7be05e851c70040", null ],
+    [ "UpdatePowerlineAdapter", "classiii__drone_1_1perception_1_1PowerlineDirection.html#a53c5f053feca67888e972a889476ccc8", null ],
+    [ "drone_quat_history_", "classiii__drone_1_1perception_1_1PowerlineDirection.html#a233f033680eb40387a0e860bd81b04e7", null ],
+    [ "parameters_", "classiii__drone_1_1perception_1_1PowerlineDirection.html#ac4398e2e47f5b4c2334da5c6583386cf", null ],
+    [ "pl_", "classiii__drone_1_1perception_1_1PowerlineDirection.html#ac137121ff57e9e21bc6184b4e94932ef", null ],
+    [ "pl_angle_est_", "classiii__drone_1_1perception_1_1PowerlineDirection.html#ac968fb056778b64ebe6b67831c97d4b4", null ],
+    [ "pl_mutex_", "classiii__drone_1_1perception_1_1PowerlineDirection.html#aeb5bab465cd67d6245bb87fa7b62bfb0", null ],
+    [ "pl_quat_history_", "classiii__drone_1_1perception_1_1PowerlineDirection.html#a41cfcdaef3924dbc98a604efb9d4255a", null ],
+    [ "stamp_", "classiii__drone_1_1perception_1_1PowerlineDirection.html#a43588b95feadbf59f7834eff2f4f8e89", null ]
+];

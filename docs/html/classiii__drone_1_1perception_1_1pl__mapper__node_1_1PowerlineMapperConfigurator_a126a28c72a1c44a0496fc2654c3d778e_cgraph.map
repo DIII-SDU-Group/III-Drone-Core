@@ -1,0 +1,11 @@
+<map id="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator::simulation" name="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator::simulation">
+<area shape="rect" id="Node000001" title="Get simulation mode flag." alt="" coords="5,29,233,84"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="281,37,489,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="233,54,267,54,267,59,233,59"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="537,7,752,47"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="489,42,523,38,524,44,490,48"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="800,29,1039,84"/>
+<area shape="poly" id="edge5_Node000002_Node000004" title=" " alt="" coords="490,56,537,57,752,57,786,56,786,62,752,62,537,62,490,61"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="753,36,787,40,786,45,752,41"/>
+<area shape="poly" id="edge4_Node000004_Node000004" title=" " alt="" coords="866,29,866,19,876,10,894,5,919,3,950,6,968,14,965,18,949,11,919,8,895,10,879,15,871,21,872,29"/>
+</map>

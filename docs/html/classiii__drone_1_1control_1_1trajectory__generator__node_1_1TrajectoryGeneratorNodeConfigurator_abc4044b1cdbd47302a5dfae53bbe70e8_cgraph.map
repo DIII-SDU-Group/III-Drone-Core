@@ -1,0 +1,12 @@
+<map id="iii_drone::control::trajectory_generator_node::TrajectoryGeneratorNodeConfigurator::updateMPCParametersObjectCallback" name="iii_drone::control::trajectory_generator_node::TrajectoryGeneratorNodeConfigurator::updateMPCParametersObjectCallback">
+<area shape="rect" id="Node000001" title="Callback function called after successful parameter change to update MPCParameters object." alt="" coords="5,63,305,147"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="353,56,561,96"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="305,88,339,85,340,90,306,93"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="872,55,1111,110"/>
+<area shape="poly" id="edge6_Node000001_Node000004" title=" " alt="" coords="305,105,353,105,457,107,561,105,858,90,859,95,561,111,457,112,353,111,305,110"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="609,5,824,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="560,53,600,45,601,51,561,59"/>
+<area shape="poly" id="edge5_Node000002_Node000004" title=" " alt="" coords="562,75,858,78,858,84,562,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="814,43,859,52,858,58,813,48"/>
+<area shape="poly" id="edge4_Node000004_Node000004" title=" " alt="" coords="938,55,938,45,948,36,966,31,991,29,1022,32,1040,40,1037,44,1021,37,991,34,967,36,951,41,943,47,944,55"/>
+</map>
