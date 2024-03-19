@@ -1,0 +1,18 @@
+<map id="iii_drone::control::maneuver::HoverManeuverServer::startExecution" name="iii_drone::control::maneuver::HoverManeuverServer::startExecution">
+<area shape="rect" id="Node000001" title="Starts the execution of the maneuver. Registers the current drone state as the hover reference." alt="" coords="5,84,256,139"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#aa25571ba492acf43cd9af009c02cf72e" title="Combined drone awareness handler, accessible to derived classes through the protected method." alt="" coords="327,5,538,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="236,81,313,61,314,66,237,87"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#afa1110206b605274871d3a74bbfe253f" title="Clears the current target." alt="" coords="304,84,561,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="256,109,291,109,291,114,256,114"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverManeuverServer.html#ab226742c4a90a9b9b0ce7395d5d91686" title="Updates the hover reference." alt="" coords="307,163,558,217"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="237,136,314,157,313,162,236,141"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#ad188c61fd53e863b42cbd21c67d9bbf3" title="Updates the combined drone awareness from the target adapter. Triggers updates of target_adapter,..." alt="" coords="609,84,933,139"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="562,109,596,109,596,114,562,114"/>
+<area shape="poly" id="edge5_Node000004_Node000004" title=" " alt="" coords="706,84,707,74,718,65,740,59,771,57,809,60,831,68,829,73,808,66,771,63,741,65,721,70,712,76,712,84"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a7489deb4a1885f6b4985a3f6de205b64" title="Getter for the combined drone awareness simple type by copy." alt="" coords="981,84,1239,139"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="934,109,967,109,967,114,934,114"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1State.html#ac7d02a667c215a72d7f7f2fdf1501eb4" title=" " alt="" coords="706,166,837,206"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="558,186,692,184,692,190,558,191"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1State.html#a9853d9f35c2c0ebf0976a472b2624dc2" title=" " alt="" coords="706,230,837,270"/>
+<area shape="poly" id="edge8_Node000006_Node000008" title=" " alt="" coords="559,210,692,233,692,239,558,215"/>
+</map>

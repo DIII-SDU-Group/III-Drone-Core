@@ -1,0 +1,9 @@
+<map id="iii_drone::utils::Token::Deny" name="iii_drone::utils::Token::Deny">
+<area shape="rect" id="Node000001" title="Denies the token to a slave, to be called by the master." alt="" coords="5,37,164,77"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1Token.html#ac7a559ecadf3304f332d4ad32422ab34" title="Answers a slave acquisition request." alt="" coords="212,37,451,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="164,55,198,55,198,60,164,60"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1Token.html#af0160e7c7f1f4c358ce903f3490c1026" title="Whether the token is held by the calling thread." alt="" coords="499,5,657,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="450,39,485,35,485,40,451,44"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1utils_1_1Token.html#a057c789e1b27853924392e4a029d84b8" title="Is master." alt="" coords="499,69,657,109"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="451,70,485,75,485,80,450,75"/>
+</map>

@@ -19,7 +19,7 @@ HoughTransformerNode::HoughTransformerNode(
 	node_namespace,
 	options
 ), configurator_(this),
-hough_transformer_(configurator_.hough_transformer_parameters()) {
+hough_transformer_(configurator_.GetParameterBundle("hough_transformer")) {
 
 	// Topics:
 	cable_yaw_publisher_ = this->create_publisher<std_msgs::msg::Float32>(

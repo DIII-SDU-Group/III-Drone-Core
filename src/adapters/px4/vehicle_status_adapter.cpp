@@ -1,20 +1,20 @@
-#include <iii_ros2/px4/vehicle_status.hpp>
+#include <iii_drone_core/adapters/px4/vehicle_status_adapter.hpp>
 
-using namespace iii_ros2::px4;
+using namespace iii_drone::adapters::px4;
 
-VehicleStatus::VehicleStatus() { 
+VehicleStatusAdapter::VehicleStatusAdapter() { 
 
     stamp_ = rclcpp::Time(0);
 
 }
 
-VehicleStatus::VehicleStatus(const px4_msgs::msg::VehicleStatus & vehicle_status_msg) {
+VehicleStatusAdapter::VehicleStatusAdapter(const px4_msgs::msg::VehicleStatus & vehicle_status_msg) {
 
     UpdateFromMsg(vehicle_status_msg);
 
 }
 
-void VehicleStatus::UpdateFromMsg(const px4_msgs::msg::VehicleStatus & vehicle_status_msg) {
+void VehicleStatusAdapter::UpdateFromMsg(const px4_msgs::msg::VehicleStatus & vehicle_status_msg) {
 
     stamp_ = rclcpp::Time(vehicle_status_msg.timestamp * 1000);
 
@@ -31,7 +31,7 @@ void VehicleStatus::UpdateFromMsg(const px4_msgs::msg::VehicleStatus & vehicle_s
     nav_state_user_intention_ = (navigation_state_t)vehicle_status_msg.nav_state_user_intention;
     nav_state_ = (navigation_state_t)vehicle_status_msg.nav_state;
 
-    failure_detector_status_.empty();
+    failure_detector_status_.clear();
 
     if (vehicle_status_msg.failure_detector_status & FAILURE_NONE) {
         failure_detector_status_.push_back(FAILURE_NONE);
@@ -94,151 +94,151 @@ void VehicleStatus::UpdateFromMsg(const px4_msgs::msg::VehicleStatus & vehicle_s
 
 }
 
-const rclcpp::Time & VehicleStatus::stamp() const {
+const rclcpp::Time & VehicleStatusAdapter::stamp() const {
 
     return stamp_;
 
 }
 
-const rclcpp::Time & VehicleStatus::armed_time() const {
+const rclcpp::Time & VehicleStatusAdapter::armed_time() const {
 
     return armed_time_;
 
 }
 
-const rclcpp::Time & VehicleStatus::takeoff_time() const {
+const rclcpp::Time & VehicleStatusAdapter::takeoff_time() const {
 
     return takeoff_time_;
 
 }
 
-const arming_state_t & VehicleStatus::arming_state() const {
+const arming_state_t & VehicleStatusAdapter::arming_state() const {
 
     return arming_state_;
 
 }
 
-const arm_disarm_reason_t & VehicleStatus::latest_arming_reason() const {
+const arm_disarm_reason_t & VehicleStatusAdapter::latest_arming_reason() const {
 
     return latest_arming_reason_;
 
 }
 
-const arm_disarm_reason_t & VehicleStatus::latest_disarming_reason() const {
+const arm_disarm_reason_t & VehicleStatusAdapter::latest_disarming_reason() const {
 
     return latest_disarming_reason_;
 
 }
 
-const rclcpp::Time & VehicleStatus::nav_state_timestamp() const {
+const rclcpp::Time & VehicleStatusAdapter::nav_state_timestamp() const {
 
     return nav_state_timestamp_;
 
 }
 
-const navigation_state_t & VehicleStatus::nav_state_user_intention() const {
+const navigation_state_t & VehicleStatusAdapter::nav_state_user_intention() const {
 
     return nav_state_user_intention_;
 
 }
 
-const navigation_state_t & VehicleStatus::nav_state() const {
+const navigation_state_t & VehicleStatusAdapter::nav_state() const {
 
     return nav_state_;
 
 }
 
-const std::vector<vehicle_status_failure_t> & VehicleStatus::failure_detector_status() const {
+const std::vector<vehicle_status_failure_t> & VehicleStatusAdapter::failure_detector_status() const {
 
     return failure_detector_status_;
 
 }
 
-const hil_state_t & VehicleStatus::hil_state() const {
+const hil_state_t & VehicleStatusAdapter::hil_state() const {
 
     return hil_state_;
 
 }
 
-const vehicle_type_t & VehicleStatus::vehicle_type() const {
+const vehicle_type_t & VehicleStatusAdapter::vehicle_type() const {
 
     return vehicle_type_;
 
 }
 
-const bool & VehicleStatus::failsafe() const {
+const bool & VehicleStatusAdapter::failsafe() const {
 
     return failsafe_;
 
 }
 
-const bool & VehicleStatus::failsafe_and_user_took_over() const {
+const bool & VehicleStatusAdapter::failsafe_and_user_took_over() const {
 
     return failsafe_and_user_took_over_;
 
 }
 
-const bool & VehicleStatus::gcs_connection_lost() const {
+const bool & VehicleStatusAdapter::gcs_connection_lost() const {
 
     return gcs_connection_lost_;
 
 }
 
-const uint8_t & VehicleStatus::gcs_connection_lost_counter() const {
+const uint8_t & VehicleStatusAdapter::gcs_connection_lost_counter() const {
 
     return gcs_connection_lost_counter_;
 
 }
 
-const bool & VehicleStatus::high_latency_data_link_lost() const {
+const bool & VehicleStatusAdapter::high_latency_data_link_lost() const {
 
     return high_latency_data_link_lost_;
 
 }
 
-const uint8_t & VehicleStatus::system_type() const {
+const uint8_t & VehicleStatusAdapter::system_type() const {
 
     return system_type_;
 
 }
 
-const uint8_t & VehicleStatus::system_id() const {
+const uint8_t & VehicleStatusAdapter::system_id() const {
 
     return system_id_;
 
 }
 
-const uint8_t & VehicleStatus::component_id() const {
+const uint8_t & VehicleStatusAdapter::component_id() const {
 
     return component_id_;
 
 }
 
-const bool & VehicleStatus::safety_button_available() const {
+const bool & VehicleStatusAdapter::safety_button_available() const {
 
     return safety_button_available_;
 
 }
 
-const bool & VehicleStatus::safety_off() const {
+const bool & VehicleStatusAdapter::safety_off() const {
 
     return safety_off_;
 
 }
 
-const bool & VehicleStatus::power_input_valid() const {
+const bool & VehicleStatusAdapter::power_input_valid() const {
 
     return power_input_valid_;
 
 }
 
-const bool & VehicleStatus::usb_connected() const {
+const bool & VehicleStatusAdapter::usb_connected() const {
 
     return usb_connected_;
 
 }
 
-const bool & VehicleStatus::pre_flight_checks_pass() const {
+const bool & VehicleStatusAdapter::pre_flight_checks_pass() const {
 
     return pre_flight_checks_pass_;
 

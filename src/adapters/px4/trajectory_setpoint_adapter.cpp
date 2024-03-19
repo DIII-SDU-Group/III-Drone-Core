@@ -1,13 +1,13 @@
-#include <iii_ros2/px4/trajectory_setpoint.hpp>
+#include <iii_drone_core/adapters/px4/trajectory_setpoint_adapter.hpp>
 
 #include <iostream>
 
-using namespace iii_ros2::px4;
-using namespace iii_ros2::control;
-using namespace iii::control;
-using namespace iii::types;
+using namespace iii_drone::adapters::px4;
+using namespace iii_drone::control;
+using namespace iii_drone::types;
+using namespace iii_drone::math;
 
-TrajectorySetpoint::TrajectorySetpoint() { 
+TrajectorySetpointAdapter::TrajectorySetpointAdapter() { 
 
     init(
         rclcpp::Time(0, 0, RCL_ROS_TIME),
@@ -20,7 +20,7 @@ TrajectorySetpoint::TrajectorySetpoint() {
 
 }
 
-TrajectorySetpoint::TrajectorySetpoint(const rclcpp::Time & stamp) {
+TrajectorySetpointAdapter::TrajectorySetpointAdapter(const rclcpp::Time & stamp) {
 
     init(
         stamp,
@@ -33,7 +33,7 @@ TrajectorySetpoint::TrajectorySetpoint(const rclcpp::Time & stamp) {
 
 }
 
-TrajectorySetpoint::TrajectorySetpoint(
+TrajectorySetpointAdapter::TrajectorySetpointAdapter(
     const rclcpp::Time & stamp,
     const Reference & reference
 ) {
@@ -49,31 +49,13 @@ TrajectorySetpoint::TrajectorySetpoint(
 
 }
 
-TrajectorySetpoint::TrajectorySetpoint(
-    const rclcpp::Time & stamp,
-    const FlightControlReference & flight_control_reference
-) {
-
-    Reference reference = flight_control_reference.ToReference();
-
-    init(
-        stamp,
-        reference.position(),
-        {NAN, NAN, NAN},
-        {NAN, NAN, NAN},
-        reference.yaw(),
-        NAN
-    );
-
-}
-
-TrajectorySetpoint::TrajectorySetpoint(
+TrajectorySetpointAdapter::TrajectorySetpointAdapter(
     const rclcpp::Time & stamp,
     const State & state
 ) {
 
     quaternion_t q = state.quaternion();
-    euler_orientation_t euler_orientation = iii::math::QuaternionToEuler(q);
+    euler_angles_t euler_orientation = quatToEul(q);
 
     init(
         stamp,
@@ -86,14 +68,14 @@ TrajectorySetpoint::TrajectorySetpoint(
 
 }
 
-void TrajectorySetpoint::OnlyPosition() {
+void TrajectorySetpointAdapter::OnlyPosition() {
     
     velocity_ = {NAN, NAN, NAN};
     acceleration_ = {NAN, NAN, NAN};
     yawspeed_ = NAN;
 }
 
-px4_msgs::msg::TrajectorySetpoint TrajectorySetpoint::ToMsg() const {
+px4_msgs::msg::TrajectorySetpoint TrajectorySetpointAdapter::ToMsg() const {
 
     px4_msgs::msg::TrajectorySetpoint trajectory_setpoint_msg;
 
@@ -120,35 +102,35 @@ px4_msgs::msg::TrajectorySetpoint TrajectorySetpoint::ToMsg() const {
 
 }
 
-const rclcpp::Time & TrajectorySetpoint::stamp() const {
+const rclcpp::Time & TrajectorySetpointAdapter::stamp() const {
     return stamp_;
 }
 
-const iii::types::position_t & TrajectorySetpoint::position() const {
+const iii_drone::types::point_t & TrajectorySetpointAdapter::position() const {
     return position_;
 }
 
-const iii::types::velocity_t & TrajectorySetpoint::velocity() const {
+const iii_drone::types::vector_t & TrajectorySetpointAdapter::velocity() const {
     return velocity_;
 }
 
-const iii::types::acceleration_t & TrajectorySetpoint::acceleration() const {
+const iii_drone::types::vector_t & TrajectorySetpointAdapter::acceleration() const {
     return acceleration_;
 }
 
-const double & TrajectorySetpoint::yaw() const {
+const double & TrajectorySetpointAdapter::yaw() const {
     return yaw_;
 }
 
-const double & TrajectorySetpoint::yawspeed() const {
+const double & TrajectorySetpointAdapter::yawspeed() const {
     return yawspeed_;
 }
 
-void TrajectorySetpoint::init(
+void TrajectorySetpointAdapter::init(
     const rclcpp::Time & stamp,
-    const position_t & position,
-    const velocity_t & velocity,
-    const acceleration_t & acceleration,
+    const point_t & position,
+    const vector_t & velocity,
+    const vector_t & acceleration,
     const double & yaw,
     const double & yawspeed
 ) {

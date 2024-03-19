@@ -426,6 +426,11 @@ class ParameterHandler:
             ValueError: If the parameter value is greater than the maximum value.
             ValueError: If the parameter value is not one of the allowed options.
         """
+        
+        param_value = self.cast_param_value(
+            param_name, 
+            param_value
+        )
 
         self.can_set_param(
             param_name, 
@@ -445,6 +450,58 @@ class ParameterHandler:
                 self._any_params_changed = True
             else:
                 self._ignore_changed_parameter_names.remove(param_name)
+
+    def cast_param_value(
+        self,
+        param_name: str,
+        param_value: "str|int|float|bool|list[str|int|float|bool]"
+    ) -> "str|int|float|bool|list[str|int|float|bool]":
+        """
+        Attempts to cast the value of a parameter to the correct type.
+
+        Parameters:
+            param_name (str): Name of the parameter.
+            param_value (str|int|float|bool|list[str|int|float|bool]): Value of the parameter.
+
+        Returns:
+            str|int|float|bool|list[str|int|float|bool]: Value of the parameter.
+
+        Raises:
+            KeyError: If the parameter name is not found.
+            TypeError: If the parameter value is not of the specified type.
+        """
+
+        if param_name not in self.params_dict:
+            raise KeyError(f"Parameter {param_name} not found")
+
+        param_type = self.params_dict[param_name]['type']
+        
+        if param_type == "float":
+            param_value = float(param_value)
+        elif param_type == "int":
+            param_value = int(param_value)
+        elif param_type == "bool":
+            param_value = bool(param_value)
+        elif param_type == "string":
+            param_value = str(param_value)
+        elif param_type == "string_array":
+            param_value = list(param_value)
+            for i, value in enumerate(param_value):
+                param_value[i] = str(value)
+        elif param_type == "int_array" or param_type == "integer_array":
+            param_value = list(param_value)
+            for i, value in enumerate(param_value):
+                param_value[i] = int(value)
+        elif param_type == "float_array":
+            param_value = list(param_value)
+            for i, value in enumerate(param_value):
+                param_value[i] = float(value)
+        elif param_type == "bool_array":
+            param_value = list(param_value)
+            for i, value in enumerate(param_value):
+                param_value[i] = bool(value)
+
+        return param_value
                 
     def _get_raw_yaml_param_dict(
         self,

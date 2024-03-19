@@ -1,0 +1,33 @@
+<map id="iii_drone::utils::Token&lt; T &gt;" name="iii_drone::utils::Token&lt; T &gt;">
+<area shape="rect" id="Node000001" title="Token class for managing access to a resource shared between threads from a master thread." alt="" coords="351,1084,598,1459"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,890,152,970"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="76,970,78,1015,84,1038,94,1059,117,1089,144,1116,205,1163,271,1200,337,1228,335,1233,269,1205,202,1167,140,1120,113,1092,90,1061,79,1040,73,1016,71,971"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="126,675,210,740"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="158,741,103,875,98,873,153,739"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="177,890,332,970"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="183,739,236,873,231,875,178,741"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="251,970,251,1014,254,1037,261,1059,277,1089,296,1117,341,1168,337,1171,292,1120,272,1091,256,1061,249,1038,245,1015,246,970"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="526,142,605,207"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="527,202,486,235,466,256,450,279,432,319,425,354,425,436,425,931,428,999,436,1067,431,1068,423,999,420,931,420,436,420,353,427,318,446,276,462,252,482,231,524,198"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="647,405,825,470"/>
+<area shape="poly" id="edge9_Node000008_Node000005" title=" " alt="" coords="593,206,616,237,712,389,707,392,611,240,588,209"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1utils_1_1Atomic.html" title=" " alt="" coords="460,277,623,597"/>
+<area shape="poly" id="edge11_Node000009_Node000005" title=" " alt="" coords="565,208,560,261,555,260,560,207"/>
+<area shape="rect" id="Node000013" href="$structiii__drone_1_1utils_1_1Token_1_1slave__request__t.html" title="Slave request struct." alt="" coords="849,397,1012,477"/>
+<area shape="poly" id="edge16_Node000013_Node000005" title=" " alt="" coords="606,180,656,191,718,209,781,237,839,275,863,299,883,326,913,381,908,384,878,329,859,302,836,279,779,242,716,214,655,196,605,185"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="500,5,631,85"/>
+<area shape="poly" id="edge6_Node000005_Node000006" title=" " alt="" coords="568,99,568,142,563,142,563,99"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="641,779,815,859"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="698,861,681,884,625,977,574,1071,569,1068,620,974,676,881,693,857"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="738,470,732,762,726,762,733,470"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="531,598,494,1068,488,1068,526,597"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="277,142,411,207"/>
+<area shape="poly" id="edge12_Node000009_Node000010" title=" " alt="" coords="370,206,452,314,448,317,366,209"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="749,883,977,977"/>
+<area shape="poly" id="edge13_Node000001_Node000011" title=" " alt="" coords="812,979,612,1153,609,1149,808,975"/>
+<area shape="rect" id="Node000012" title=" " alt="" coords="821,660,976,755"/>
+<area shape="poly" id="edge14_Node000011_Node000012" title=" " alt="" coords="894,755,875,867,870,866,888,754"/>
+<area shape="poly" id="edge15_Node000012_Node000013" title=" " alt="" coords="929,478,909,644,903,644,923,477"/>
+<area shape="rect" id="Node000014" title=" " alt="" coords="857,135,1005,215"/>
+<area shape="poly" id="edge17_Node000013_Node000014" title=" " alt="" coords="933,215,933,381,928,381,928,215"/>
+</map>

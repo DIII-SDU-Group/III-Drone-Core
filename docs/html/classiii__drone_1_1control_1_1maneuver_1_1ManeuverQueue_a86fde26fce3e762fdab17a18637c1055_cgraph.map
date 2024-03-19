@@ -1,0 +1,5 @@
+<map id="iii_drone::control::maneuver::ManeuverQueue::ManeuverQueue" name="iii_drone::control::maneuver::ManeuverQueue::ManeuverQueue">
+<area shape="rect" id="Node000001" title="Constructor." alt="" coords="5,5,216,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#a46ce86f86f31bfe8ea475a5d56c5b1ad" title="Get the current size of the queue." alt="" coords="264,13,509,53"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="216,30,250,30,250,35,216,35"/>
+</map>

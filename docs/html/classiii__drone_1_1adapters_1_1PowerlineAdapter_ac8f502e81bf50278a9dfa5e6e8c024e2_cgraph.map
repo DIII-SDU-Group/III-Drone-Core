@@ -1,0 +1,6 @@
+<map id="iii_drone::adapters::PowerlineAdapter::ToMsg" name="iii_drone::adapters::PowerlineAdapter::ToMsg">
+<area shape="rect" id="Node000001" title="Converts the powerline adapter object to a message." alt="" coords="5,29,200,69"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="59,30,56,20,63,10,79,5,103,3,130,6,145,13,143,18,129,11,103,8,80,10,66,15,61,21,64,28"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1ProjectionPlaneAdapter.html#a9588993758b1daecc92de9e6452ecb40" title="Converts the projection plane adapter object to a message." alt="" coords="248,22,431,77"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="200,47,234,47,234,52,200,52"/>
+</map>

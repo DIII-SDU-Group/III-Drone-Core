@@ -113,6 +113,63 @@ const std::vector<SingleLineAdapter> PowerlineAdapter::GetVisibleLineAdapters() 
 
 }
 
+const SingleLineAdapter PowerlineAdapter::GetClosestLine(const iii_drone::types::point_t & point) const {
+
+    if (single_line_adapters_.size() == 0) {
+
+        throw std::runtime_error("No lines are contained in the powerline.");
+
+    }
+
+    SingleLineAdapter closest_line = single_line_adapters_[0];
+    double min_distance = (point - closest_line.position()).norm();
+
+    for (unsigned int i = 1; i < single_line_adapters_.size(); i++) {
+
+        double distance = (point - single_line_adapters_[i].position()).norm();
+
+        if (distance < min_distance) {
+
+            closest_line = single_line_adapters_[i];
+            min_distance = distance;
+
+        }
+    }
+
+    return closest_line;
+
+}
+
+const SingleLineAdapter PowerlineAdapter::GetLine(int id) const {
+
+    for (unsigned int i = 0; i < single_line_adapters_.size(); i++) {
+
+        if (single_line_adapters_[i].id() == id) {
+
+            return single_line_adapters_[i];
+
+        }
+    }
+
+    throw std::runtime_error("Line not found.");
+
+}
+
+bool PowerlineAdapter::HasLine(int id) const {
+
+    for (unsigned int i = 0; i < single_line_adapters_.size(); i++) {
+
+        if (single_line_adapters_[i].id() == id) {
+
+            return true;
+
+        }
+    }
+
+    return false;
+
+}
+
 const rclcpp::Time & PowerlineAdapter::stamp() const {
     return stamp_;
 }

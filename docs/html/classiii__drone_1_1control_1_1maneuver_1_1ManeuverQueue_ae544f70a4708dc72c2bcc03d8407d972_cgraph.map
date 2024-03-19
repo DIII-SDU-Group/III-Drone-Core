@@ -1,0 +1,5 @@
+<map id="iii_drone::control::maneuver::ManeuverQueue::Peak" name="iii_drone::control::maneuver::ManeuverQueue::Peak">
+<area shape="rect" id="Node000001" title="Peeks an item from the queue." alt="" coords="5,13,256,53"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#a6ba6788f60421f28a651fcefadf2361d" title="Whether the queue is empty." alt="" coords="304,5,515,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="256,30,290,30,290,35,256,35"/>
+</map>

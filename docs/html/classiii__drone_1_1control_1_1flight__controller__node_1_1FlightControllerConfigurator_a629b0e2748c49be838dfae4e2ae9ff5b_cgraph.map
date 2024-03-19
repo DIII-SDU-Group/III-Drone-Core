@@ -1,0 +1,11 @@
+<map id="iii_drone::control::flight_controller_node::FlightControllerConfigurator::disarm_on_cable_flight_termination_timeout_s" name="iii_drone::control::flight_controller_node::FlightControllerConfigurator::disarm_on_cable_flight_termination_timeout_s">
+<area shape="rect" id="Node000001" title="The timeout to terminate the flight when disarming the drone on the cable." alt="" coords="5,15,268,99"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="316,37,524,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="268,54,302,54,302,59,268,59"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="572,7,787,47"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="524,42,558,38,559,44,525,48"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="835,29,1073,84"/>
+<area shape="poly" id="edge5_Node000002_Node000004" title=" " alt="" coords="524,56,572,57,787,57,821,56,821,62,787,62,572,62,524,61"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="787,36,821,40,821,45,787,41"/>
+<area shape="poly" id="edge4_Node000004_Node000004" title=" " alt="" coords="901,29,901,19,911,10,928,5,954,3,985,6,1002,14,1000,18,983,11,954,8,929,10,913,15,906,21,906,29"/>
+</map>

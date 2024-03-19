@@ -1,0 +1,11 @@
+<map id="iii_drone::control::maneuver_controller_node::ManeuverControllerNodeConfigurator::px4_offboard_mode_ids" name="iii_drone::control::maneuver_controller_node::ManeuverControllerNodeConfigurator::px4_offboard_mode_ids">
+<area shape="rect" id="Node000001" title="Get the PX4 mode ids considered as offboard." alt="" coords="5,15,237,99"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="285,37,493,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="238,54,271,54,271,59,238,59"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="541,7,756,47"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="493,42,527,38,528,44,494,48"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="804,29,1043,84"/>
+<area shape="poly" id="edge5_Node000002_Node000004" title=" " alt="" coords="494,56,541,57,756,57,790,56,790,62,756,62,541,62,494,61"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="757,36,791,40,790,45,756,41"/>
+<area shape="poly" id="edge4_Node000004_Node000004" title=" " alt="" coords="870,29,870,19,880,10,898,5,923,3,954,6,972,14,969,18,953,11,923,8,899,10,883,15,875,21,876,29"/>
+</map>

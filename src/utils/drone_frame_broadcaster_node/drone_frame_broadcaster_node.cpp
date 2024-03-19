@@ -20,7 +20,7 @@ DroneFrameBroadcasterNode::DroneFrameBroadcasterNode(
     node_name, 
     node_namespace,
     options
-), tf_configurator_(this) {
+), configurator_(this) {
 
     // Initialize the transform broadcaster
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
@@ -45,8 +45,8 @@ void DroneFrameBroadcasterNode::odometryCallback(const std::shared_ptr<px4_msgs:
     iii_drone::adapters::px4::VehicleOdometryAdapter adapter(*msg);
 
     geometry_msgs::msg::TransformStamped t = adapter.ToTransformStamped(
-        tf_configurator_.drone_frame_id(),
-        tf_configurator_.world_frame_id()
+        configurator_.GetParameter("drone_frame_id").as_string(),
+        configurator_.GetParameter("world_frame_id").as_string()
     );
 
     // Send the transformation

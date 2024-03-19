@@ -1,0 +1,9 @@
+<map id="iii_drone::adapters::PointCloudAdapter::PointCloudAdapter" name="iii_drone::adapters::PointCloudAdapter::PointCloudAdapter">
+<area shape="rect" id="Node000001" title="Constructor." alt="" coords="5,84,156,139"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1PointCloudAdapter.html#a91517d70c8939d0bd4ad5e7fdd6648c7" title="Frame ID getter." alt="" coords="204,5,355,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="150,81,196,63,198,68,152,86"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1adapters_1_1PointCloudAdapter.html#a598a5eb2f039f49655a9fa1be90bca9b" title="Point cloud data getter." alt="" coords="204,84,355,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="156,109,190,109,190,114,156,114"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1adapters_1_1PointCloudAdapter.html#a8f4ae66fe7afb140b0b7ae8f368e076e" title="Timestamp getter." alt="" coords="204,163,355,217"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="152,136,198,155,196,160,150,141"/>
+</map>

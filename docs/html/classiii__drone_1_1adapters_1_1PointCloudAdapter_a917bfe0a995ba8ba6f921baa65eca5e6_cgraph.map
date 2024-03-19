@@ -1,0 +1,5 @@
+<map id="iii_drone::adapters::PointCloudAdapter::readPoints" name="iii_drone::adapters::PointCloudAdapter::readPoints">
+<area shape="rect" id="Node000001" title="Reads points from a ROS2 message." alt="" coords="5,5,156,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1PointCloudAdapter.html#a598a5eb2f039f49655a9fa1be90bca9b" title="Point cloud data getter." alt="" coords="204,5,355,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="156,30,190,30,190,35,156,35"/>
+</map>

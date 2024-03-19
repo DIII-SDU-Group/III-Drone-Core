@@ -1,0 +1,15 @@
+<map id="iii_drone::control::State::State" name="iii_drone::control::State::State">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,152,136,192"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1State.html#a205d6a8a2d57434cb7ea7c257c6647f6" title=" " alt="" coords="191,5,371,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="85,150,126,103,153,77,183,55,194,49,196,53,185,60,156,81,129,106,89,153"/>
+<area shape="rect" id="Node000003" href="$namespaceiii__drone_1_1math.html#a531ed4bd8183770d77ec20b37a8709c2" title=" " alt="" coords="184,70,377,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="101,150,139,127,183,106,208,97,209,102,185,110,142,132,104,154"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1State.html#ac7d02a667c215a72d7f7f2fdf1501eb4" title=" " alt="" coords="215,120,346,160"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="136,159,202,149,202,155,137,165"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1State.html#a065d4003d73520ba2e61af2912df6c6c" title=" " alt="" coords="215,184,346,224"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="137,179,202,189,202,195,136,185"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1State.html#a0cf0c57ba34058c7ba14581c17e82f0b" title=" " alt="" coords="215,248,346,288"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="105,190,185,234,203,241,201,246,183,238,102,195"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1State.html#a9853d9f35c2c0ebf0976a472b2624dc2" title=" " alt="" coords="215,312,346,352"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="87,191,127,244,154,273,185,298,204,308,201,313,183,302,151,277,123,247,83,194"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator::max_lines" name="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator::max_lines">
+<area shape="rect" id="Node000001" title="Get the maximum number of lines." alt="" coords="663,59,889,114"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a9da2f639fcfb01f409d7a63a62fc91cf" title="Initialize the parameters." alt="" coords="325,59,615,114"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="649,89,615,89,615,84,649,84"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a16671ee9cf2190f4753a79c381e70912" title="Constructor." alt="" coords="5,5,277,75"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="311,67,277,62,278,57,312,62"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a31bd150be2affd0af20b334d7efea8ba" title="Constructor." alt="" coords="5,99,277,168"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="312,112,278,117,277,111,311,106"/>
+</map>

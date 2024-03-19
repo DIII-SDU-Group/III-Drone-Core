@@ -1,0 +1,28 @@
+<map id="iii_drone::control::maneuver::Maneuver::goal_handle" name="iii_drone::control::maneuver::Maneuver::goal_handle">
+<area shape="rect" id="Node000001" title="Goal handle getter." alt="" coords="1184,333,1353,388"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a5d55359435d8940ff933bfd5e1470a2e" title="Static constructor from goal handle." alt="" coords="918,5,1087,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1256,321,1241,267,1217,203,1182,138,1159,108,1134,81,1112,65,1086,53,1089,48,1114,61,1138,77,1164,104,1186,135,1222,201,1246,265,1261,319"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a99d218271b8aa908b0e179076f2ca733" title="Progresses the scheduler. If a maneuver is executing, evaluates whether it has terminated...." alt="" coords="588,379,821,433"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="1256,321,1241,272,1216,218,1181,166,1160,144,1135,126,1098,106,1065,92,1033,84,1003,81,972,84,941,92,871,126,837,150,808,180,783,215,762,251,732,323,715,379,710,378,727,321,757,249,778,212,804,177,833,146,868,121,939,87,971,79,1003,76,1034,79,1067,87,1101,101,1137,121,1163,140,1186,162,1221,215,1246,271,1261,319"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a207c2c72ecfb7376ef44bd986e00ccce" title="Publishes the feedback." alt="" coords="880,136,1125,191"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="1242,323,1197,261,1168,230,1135,204,1114,193,1117,188,1137,200,1171,227,1201,258,1246,320"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServer.html#a5918df6e93a4e3b9c9a500bab1c17c6b" title="Publishes the feedback." alt="" coords="875,215,1130,269"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="1216,328,1177,305,1135,283,1106,272,1108,267,1137,278,1180,300,1219,324"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a2afb702a953aa331d30fa250830ec4b0" title="Publishes the result and finalizes the maneuver according to the maneuver result type." alt="" coords="880,293,1125,348"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="1170,349,1125,342,1126,336,1171,343"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServer.html#aaf7ca9231f71cc21e168c8d733c58a56" title="Publishes the result and finalizes the maneuver according to the maneuver result type." alt="" coords="875,372,1130,427"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="1171,378,1131,383,1130,378,1170,372"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a80336b2dc5cac8ed93bfe98b420c8e4d" title="Publishes the result and finalizes the maneuver according to the maneuver result type." alt="" coords="869,451,1136,505"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="1216,398,1137,440,1105,453,1103,448,1135,436,1214,393"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverManeuverServer.html#a8b01d8b3f542c24d41300810f6851d4c" title="Publishes the result and finalizes the maneuver according to the maneuver result type." alt="" coords="877,529,1128,584"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="1246,402,1200,462,1171,493,1137,519,1114,532,1112,527,1135,514,1167,489,1196,459,1242,398"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverOnCableManeuverServer.html#aa06efd9bfb0a37553e8599a3bc5060f8" title="Publish the result and finalize the maneuver based on the maneuver result type." alt="" coords="871,608,1134,663"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="1258,402,1241,447,1215,500,1181,552,1138,597,1119,610,1116,606,1134,593,1177,549,1211,497,1236,445,1253,400"/>
+<area shape="rect" id="Node000013" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a326847216fc83f70e8e2e14c4d766df0" title="Triggers the maneuver to start by calling the underlying execute function on the goal handle." alt="" coords="918,687,1087,741"/>
+<area shape="poly" id="edge12_Node000001_Node000013" title=" " alt="" coords="1264,402,1251,462,1228,536,1211,574,1191,611,1166,646,1138,676,1115,692,1089,703,1087,698,1112,687,1134,672,1162,642,1186,608,1206,572,1223,534,1246,461,1259,401"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a3f6d63fc07809f25313347856ffdcd78" title="The maneuver execution timer callback." alt="" coords="287,379,540,433"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="574,409,540,409,540,403,574,403"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#ab930f227bbd30171806a49ab06c4e3b8" title="Constructor." alt="" coords="5,379,239,433"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="273,409,239,409,239,403,273,403"/>
+<area shape="poly" id="edge13_Node000013_Node000003" title=" " alt="" coords="904,696,868,676,838,649,811,618,766,551,733,486,713,435,718,433,738,484,771,549,815,615,841,645,871,672,906,692"/>
+</map>

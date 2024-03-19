@@ -1,0 +1,11 @@
+<map id="iii_drone::utils::Atomic::Store" name="iii_drone::utils::Atomic::Store">
+<area shape="rect" id="Node000001" title="Set the value." alt="" coords="689,68,857,108"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a20e4ba77e16373e88ac6ae3830fda660" title="Register a new navigation state id which should be considered offboard." alt="" coords="384,17,641,71"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="676,74,641,68,642,63,677,69"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a074d271a237bc7fc08e75ba137478b30" title="Updates the ground altitude estimate based on given information. Will either start or stop the timer ..." alt="" coords="384,99,641,154"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="676,105,642,110,641,105,675,100"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNode.html#a291f0abf320443ed6ad4a248ba028b8c" title="Constructor. Creates the node, initializes the configurator, the transform buffer and listener,..." alt="" coords="55,5,287,75"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="370,45,287,44,287,39,370,40"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a197c146061816403499a4e652a8fe646" title="Updates the given combined drone awareness from the vehicle odometry. Triggers updates of ground alti..." alt="" coords="5,99,336,168"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="370,132,336,133,336,127,370,127"/>
+</map>

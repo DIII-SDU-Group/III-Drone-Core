@@ -1,0 +1,81 @@
+<map id="iii_drone::math::quatToEul" name="iii_drone::math::quatToEul">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1536,890,1727,915"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a4eb2e2eafbed623aeb6b16536465f896" title="Gets the hover reference. The current state is not used. Will call the on fail callback if the target..." alt="" coords="320,106,587,161"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1625,877,1613,803,1589,700,1571,643,1548,586,1520,532,1486,482,1442,432,1394,387,1341,347,1285,311,1226,280,1165,252,1039,208,913,177,791,156,681,143,587,137,587,132,682,138,792,150,914,171,1040,203,1167,247,1228,275,1287,307,1344,343,1397,383,1446,428,1490,478,1524,529,1553,584,1576,641,1594,698,1618,802,1630,876"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a9d1db79ad2aa3ef72b546c968f20bfed" title="Get updated target reference. Sets the has_failed flag if the target is not visible." alt="" coords="1233,803,1488,858"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="1569,889,1463,861,1464,855,1571,884"/>
+<area shape="rect" id="Node000010" href="$namespaceiii__drone_1_1math.html#af8c96a0fa3940e1034c8db8425586ba8" title=" " alt="" coords="1263,493,1459,518"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="1612,880,1486,691,1369,520,1373,517,1490,688,1616,877"/>
+<area shape="rect" id="Node000027" href="$classiii__drone_1_1control_1_1Reference.html#a6c02bfc4464392a48b88dbd302e1a3f6" title=" " alt="" coords="1275,883,1446,923"/>
+<area shape="poly" id="edge29_Node000001_Node000027" title=" " alt="" coords="1522,905,1446,905,1446,900,1522,900"/>
+<area shape="rect" id="Node000028" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a045bf2524790cddf13b531d46d548280" title="Resets the Kalman filter estimates." alt="" coords="1283,947,1438,1002"/>
+<area shape="poly" id="edge30_Node000001_Node000028" title=" " alt="" coords="1570,921,1439,957,1438,952,1569,916"/>
+<area shape="rect" id="Node000032" href="$classiii__drone_1_1control_1_1State.html#ab56f9d033f57c3815174bf4106b31ac5" title=" " alt="" coords="1295,1027,1426,1067"/>
+<area shape="poly" id="edge34_Node000001_Node000032" title=" " alt="" coords="1609,927,1557,972,1524,996,1489,1016,1428,1037,1426,1032,1487,1011,1521,991,1554,968,1606,923"/>
+<area shape="rect" id="Node000033" href="$classiii__drone_1_1adapters_1_1px4_1_1TrajectorySetpointAdapter.html#a40190ec04a78561669213dc2ceba176a" title="Constructor from iii_drone::control::State." alt="" coords="1245,1091,1476,1146"/>
+<area shape="poly" id="edge35_Node000001_Node000033" title=" " alt="" coords="1619,929,1568,1004,1532,1045,1490,1081,1467,1093,1465,1089,1486,1076,1528,1041,1564,1000,1614,926"/>
+<area shape="rect" id="Node000034" href="$classiii__drone_1_1adapters_1_1px4_1_1VehicleOdometryAdapter.html#add458b12c101a10e2ab7d75e46186ea9" title="Updates the object from a new PX4 odometry message." alt="" coords="1248,1170,1473,1225"/>
+<area shape="poly" id="edge36_Node000001_Node000034" title=" " alt="" coords="1625,930,1608,979,1581,1041,1541,1105,1517,1135,1490,1161,1473,1172,1470,1168,1486,1157,1513,1131,1537,1102,1576,1039,1603,977,1620,928"/>
+<area shape="rect" id="Node000036" href="$classiii__drone_1_1perception_1_1Powerline.html#a9ee99783c43e6e60f3c8974b40342fcb" title="Updates the projection plane." alt="" coords="1255,702,1467,757"/>
+<area shape="poly" id="edge38_Node000001_Node000036" title=" " alt="" coords="1604,883,1551,839,1487,793,1424,759,1426,754,1489,788,1555,835,1607,879"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a8651f18cdc5c9b85ff145c7decac4ddc" title="Computes the hover by object reference for the maneuver server." alt="" coords="5,193,272,247"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="341,167,239,195,238,190,340,162"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a8cd7c6981d54cd5aa868f25d843ad0d0" title="Registers the hover by object reference callback on success." alt="" coords="7,5,270,75"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="347,105,255,77,257,72,348,100"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a42d65b247ee89440e63ed7c992c4772e" title="Registers the hover by object reference callback on success." alt="" coords="5,99,272,168"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="306,136,272,136,272,131,306,131"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a2ace3412e0d42d07a39c553c89ab0c6a" title="Compute the reference." alt="" coords="940,909,1185,963"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="1255,865,1234,873,1186,898,1154,911,1152,906,1184,894,1232,868,1253,860"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#aae038a1f6dfe0351d898c874557fb397" title="Whether the maneuver has succeeded, returns true if the drone is within the position tolerance." alt="" coords="940,751,1185,806"/>
+<area shape="poly" id="edge7_Node000006_Node000008" title=" " alt="" coords="1219,809,1185,803,1186,797,1220,803"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a207c2c72ecfb7376ef44bd986e00ccce" title="Publishes the feedback." alt="" coords="940,830,1185,885"/>
+<area shape="poly" id="edge8_Node000006_Node000009" title=" " alt="" coords="1220,846,1186,849,1185,844,1220,841"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1perception_1_1Powerline.html#a07f90dc6a742a7f921e041d3b3734d8b" title="Computes the inter line positions." alt="" coords="953,543,1172,598"/>
+<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="1289,524,1173,549,1172,544,1288,518"/>
+<area shape="rect" id="Node000013" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#a703ae72ba683ae11154ce597b8bbad9d" title="Constructor." alt="" coords="9,578,269,633"/>
+<area shape="poly" id="edge21_Node000010_Node000013" title=" " alt="" coords="1249,509,970,515,802,523,635,533,477,548,320,572,270,581,269,576,320,567,476,543,634,528,802,517,970,510,1249,504"/>
+<area shape="rect" id="Node000014" href="$namespaceiii__drone_1_1math.html#a7bf2d65f6ca43a8f7a1c5385a29808fe" title=" " alt="" coords="945,428,1180,468"/>
+<area shape="poly" id="edge13_Node000010_Node000014" title=" " alt="" coords="1280,493,1167,471,1168,465,1281,487"/>
+<area shape="rect" id="Node000021" href="$classiii__drone_1_1perception_1_1SingleLine.html#a07932346f3f532051cf105e92c1a2ed4" title="Runs the Kalman Filter predict step." alt="" coords="985,300,1140,340"/>
+<area shape="poly" id="edge22_Node000010_Node000021" title=" " alt="" coords="1338,484,1274,419,1231,384,1184,354,1140,337,1141,332,1187,350,1234,380,1277,415,1342,480"/>
+<area shape="rect" id="Node000022" href="$classiii__drone_1_1perception_1_1Powerline.html#abb9d44570c4decb7fc26620eb2ceb38d" title="Runs the Kalman Filter predict step for all lines." alt="" coords="972,623,1153,663"/>
+<area shape="poly" id="edge23_Node000010_Node000022" title=" " alt="" coords="1332,528,1267,570,1186,612,1149,625,1148,620,1184,607,1264,565,1329,524"/>
+<area shape="rect" id="Node000025" href="$namespaceiii__drone_1_1types.html#a482ee774598db4f38a8b02aa1b956ac3" title=" " alt="" coords="965,364,1160,404"/>
+<area shape="poly" id="edge27_Node000010_Node000025" title=" " alt="" coords="1325,488,1261,453,1184,418,1149,407,1150,402,1186,414,1263,448,1328,483"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#a155acd1e412911b7e8cf989e949a2e2f" title="Callback for mmwave data topic." alt="" coords="648,543,879,598"/>
+<area shape="poly" id="edge11_Node000011_Node000012" title=" " alt="" coords="939,573,879,573,879,568,939,568"/>
+<area shape="poly" id="edge12_Node000012_Node000013" title=" " alt="" coords="635,580,269,601,269,595,634,575"/>
+<area shape="rect" id="Node000015" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#ab9c3e7f08103bc40c70efd3ca93f040b" title="Computes a target transform given a target adapter." alt="" coords="635,342,892,397"/>
+<area shape="poly" id="edge14_Node000014_Node000015" title=" " alt="" coords="971,427,939,419,867,399,868,394,941,413,973,422"/>
+<area shape="poly" id="edge17_Node000015_Node000002" title=" " alt="" coords="637,335,633,331,618,311,610,291,608,251,606,212,599,193,585,174,571,163,574,159,589,170,604,190,611,210,614,250,615,290,622,309,637,328,641,332"/>
+<area shape="rect" id="Node000016" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a7a9d2b2d6d91f20491eab552a16f9955" title="Whether the maneuver can be executed." alt="" coords="331,263,576,318"/>
+<area shape="poly" id="edge15_Node000015_Node000016" title=" " alt="" coords="641,341,561,321,563,316,642,336"/>
+<area shape="rect" id="Node000017" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a43a1bd4911d8cb93397ab2eeabd61ee4" title="Whether the maneuver can be executed, will return false if the target is not visible or the drone has..." alt="" coords="320,342,587,397"/>
+<area shape="poly" id="edge16_Node000015_Node000017" title=" " alt="" coords="621,372,587,372,587,367,621,367"/>
+<area shape="rect" id="Node000018" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a7e09c4b73237e76701d9e83785e05077" title="Returns true if the maneuver has succeeded. Has succeeded if the target is visible and the drone is w..." alt="" coords="320,421,587,475"/>
+<area shape="poly" id="edge18_Node000015_Node000018" title=" " alt="" coords="642,403,563,423,561,418,641,398"/>
+<area shape="rect" id="Node000020" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#ac08b547da2cbfe0165a2ccca6b639c02" title="Updates the hover reference." alt="" coords="320,185,587,239"/>
+<area shape="poly" id="edge20_Node000015_Node000020" title=" " alt="" coords="641,337,633,331,616,311,608,291,601,271,585,253,568,242,570,237,588,249,606,269,613,289,620,309,636,327,644,333"/>
+<area shape="rect" id="Node000019" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#af8528504b83c4c9b405f496ccc269e10" title="Returns true if the maneuver has failed. Has failed if the target is not visible or the drone has dri..." alt="" coords="5,421,272,475"/>
+<area shape="poly" id="edge19_Node000018_Node000019" title=" " alt="" coords="306,451,272,451,272,445,306,445"/>
+<area shape="rect" id="Node000023" href="$classiii__drone_1_1perception_1_1Powerline.html#ae0f6a983c3039c6a41bda6258ec2b70d" title="Updates the powerline from odometry." alt="" coords="656,623,871,663"/>
+<area shape="poly" id="edge24_Node000022_Node000023" title=" " alt="" coords="958,645,871,645,871,640,958,640"/>
+<area shape="rect" id="Node000024" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#ae98c3a40fb32f1305c1528467205ba33" title="Callback for fetching drone transform." alt="" coords="337,614,569,669"/>
+<area shape="poly" id="edge25_Node000023_Node000024" title=" " alt="" coords="642,645,570,644,570,639,642,639"/>
+<area shape="poly" id="edge26_Node000024_Node000013" title=" " alt="" coords="323,629,269,623,269,618,324,624"/>
+<area shape="rect" id="Node000026" href="$classiii__drone_1_1adapters_1_1TargetAdapter.html#a4586b89087cb668da59079766129b222" title="Constructor from msg." alt="" coords="653,277,873,317"/>
+<area shape="poly" id="edge28_Node000025_Node000026" title=" " alt="" coords="963,363,939,354,891,332,853,320,854,315,893,327,941,350,965,358"/>
+<area shape="rect" id="Node000029" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a896518120e987d3be288e56dd34410b9" title="Default constructor." alt="" coords="985,987,1140,1042"/>
+<area shape="poly" id="edge31_Node000028_Node000029" title=" " alt="" coords="1270,989,1141,1007,1140,1002,1269,984"/>
+<area shape="rect" id="Node000030" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a15ab1216adf0aff5c7be05e851c70040" title="Runs the Kalman Filter update step from an observed yaw angle." alt="" coords="985,1066,1140,1121"/>
+<area shape="poly" id="edge32_Node000028_Node000030" title=" " alt="" coords="1271,1001,1235,1017,1211,1036,1187,1056,1141,1075,1139,1070,1184,1051,1208,1032,1232,1012,1269,996"/>
+<area shape="rect" id="Node000031" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerNode.html#a7d69d952785cf09e8cd381bd624480f2" title="Construct a new Powerline Direction Computer Node object." alt="" coords="638,1059,889,1128"/>
+<area shape="poly" id="edge33_Node000030_Node000031" title=" " alt="" coords="972,1096,889,1096,889,1091,972,1091"/>
+<area shape="rect" id="Node000035" href="$classiii__drone_1_1adapters_1_1px4_1_1VehicleOdometryAdapter.html#a85fa7bce8bfbef3bc55befb8b8c510f7" title=" " alt="" coords="950,1170,1175,1225"/>
+<area shape="poly" id="edge37_Node000034_Node000035" title=" " alt="" coords="1234,1200,1176,1200,1176,1195,1234,1195"/>
+<area shape="rect" id="Node000037" href="$classiii__drone_1_1perception_1_1Powerline.html#ac0f0ef699ab1cca6ab024e2f9549ce8e" title="Updates the powerline direction and updates the projection plane." alt="" coords="959,687,1167,727"/>
+<area shape="poly" id="edge39_Node000036_Node000037" title=" " alt="" coords="1241,723,1167,717,1167,712,1241,718"/>
+<area shape="rect" id="Node000038" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#a18e832f380107069f279ecf1203f3f16" title="Callback for powerline direction topic." alt="" coords="643,687,883,742"/>
+<area shape="poly" id="edge40_Node000037_Node000038" title=" " alt="" coords="945,712,884,714,884,709,945,707"/>
+<area shape="poly" id="edge41_Node000038_Node000013" title=" " alt="" coords="630,718,480,709,399,698,319,683,252,661,193,635,195,630,254,656,321,677,399,693,480,703,630,712"/>
+</map>

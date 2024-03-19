@@ -1,0 +1,5 @@
+<map id="iii_drone::control::BehaviorState::armed" name="iii_drone::control::BehaviorState::armed">
+<area shape="rect" id="Node000001" title="Whether the drone is armed." alt="" coords="5,5,177,45"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1History.html#a4b015ee2da0e8a06ec7ac24e9fff5da3" title="Returns true if the history is empty." alt="" coords="225,5,395,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="177,23,212,23,212,28,177,28"/>
+</map>

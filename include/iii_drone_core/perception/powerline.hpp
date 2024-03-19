@@ -39,8 +39,10 @@
 #include <iii_drone_core/utils/types.hpp>
 #include <iii_drone_core/utils/timestamp.hpp>
 #include <iii_drone_core/utils/atomic.hpp>
+#include <iii_drone_core/utils/history.hpp>
 
-#include <iii_drone_core/perception/powerline_parameters.hpp>
+#include <iii_drone_core/configuration/parameter_bundle.hpp>
+
 #include <iii_drone_core/perception/single_line.hpp>
 
 #include <iii_drone_core/adapters/powerline_adapter.hpp>
@@ -69,8 +71,12 @@ namespace perception {
          * @brief Constructor.
          * 
          * @param powerline_parameters Pointer to the powerline parameters.
+         * @param tf_buffer Pointer to the tf buffer.
         */
-        Powerline(std::shared_ptr<PowerlineParameters> powerline_parameters);
+        Powerline(
+            iii_drone::configuration::ParameterBundle::SharedPtr powerline_parameters,
+            std::shared_ptr<tf2_ros::Buffer> tf_buffer
+        );
 
         /**
          * @brief Converts to a PowerlineAdapter.
@@ -144,11 +150,6 @@ namespace perception {
         void Reset();
 
         /**
-         * @brief tf_buffer setter.
-        */
-        std::shared_ptr<tf2_ros::Buffer> & tf_buffer();
-
-        /**
          * @brief Stamp getter
          */
         const rclcpp::Time stamp() const;
@@ -174,6 +175,11 @@ namespace perception {
         */
         const iii_drone::types::pose_t drone_pose() const;
 
+        /**
+         * @brief Shared pointer type.
+         */
+        typedef std::shared_ptr<Powerline> SharedPtr;
+
     private:
         /**
          * @brief Time stamp for latest change.
@@ -183,7 +189,7 @@ namespace perception {
         /**
          * @brief The powerline parameters.
         */
-        std::shared_ptr<PowerlineParameters> parameters_;
+        iii_drone::configuration::ParameterBundle::SharedPtr parameters_;
 
         /**
          * @brief The tf buffer.
@@ -206,21 +212,6 @@ namespace perception {
         };
 
         /**
-         * @brief Whether the powerline direction has been received.
-        */
-        iii_drone::utils::Atomic<bool> received_pl_dir_ = false;
-
-        /**
-         * @brief Whether the first odometry has been received.
-        */
-        iii_drone::utils::Atomic<bool> received_first_odom_ = false;
-
-        /**
-         * @brief Whether the second odometry has been received.
-        */
-        iii_drone::utils::Atomic<bool> received_second_odom_ = false;
-
-        /**
          * @brief The currently tracked lines.
         */
         std::vector<SingleLine> lines_;
@@ -236,19 +227,14 @@ namespace perception {
         mutable std::shared_mutex lines_mutex_;
 
         /**
-         * @brief The powerline direction quaternion.
+         * @brief The powerline direction quaternion history.
         */
-        iii_drone::utils::Atomic<iii_drone::types::quaternion_t> direction_;
+        iii_drone::utils::History<iii_drone::types::quaternion_t> pl_dir_history_;
 
         /**
-         * @brief The drone pose.
+         * @brief The drone pose history.
         */
-        iii_drone::utils::Atomic<iii_drone::types::pose_t> drone_pose_;
-
-        /**
-         * @brief The last drone pose.
-        */
-        iii_drone::utils::Atomic<iii_drone::types::pose_t> last_drone_pose_;
+        iii_drone::utils::History<iii_drone::types::pose_t> drone_pose_history_;
 
         /**
          * @brief The powerline projection plane.

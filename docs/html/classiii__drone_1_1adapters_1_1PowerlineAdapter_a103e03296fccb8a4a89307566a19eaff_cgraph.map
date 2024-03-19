@@ -1,0 +1,11 @@
+<map id="iii_drone::adapters::PowerlineAdapter::PowerlineAdapter" name="iii_drone::adapters::PowerlineAdapter::PowerlineAdapter">
+<area shape="rect" id="Node000001" title="Constructor from message." alt="" coords="5,77,159,132"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1PowerlineAdapter.html#aef819ac0c9aae37561e82c687446a718" title="Updates the powerline adapter object from a message." alt="" coords="207,77,360,132"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="159,102,193,102,193,107,159,107"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1adapters_1_1ProjectionPlaneAdapter.html#a9bfc424f36ccefe67fc3e1337dbe2819" title="Projection plane getter." alt="" coords="414,5,597,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="359,77,407,62,409,67,361,82"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1adapters_1_1PowerlineAdapter.html#a2cc31803edd82e7f5c00d70ad51f3c59" title="Stamp getter." alt="" coords="408,85,603,125"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="360,102,394,102,394,107,360,107"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#ae353f420f984e5fe68d67cd5be7e565b" title="Timestamp getter." alt="" coords="431,149,579,204"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="361,127,419,146,417,151,359,132"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="iii_drone::control::maneuver_controller_node::ManeuverControllerNodeConfigurator::px4_offboard_mode_ids" name="iii_drone::control::maneuver_controller_node::ManeuverControllerNodeConfigurator::px4_offboard_mode_ids">
+<area shape="rect" id="Node000001" title="Get the PX4 mode ids considered as offboard." alt="" coords="285,5,517,89"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNode.html#a291f0abf320443ed6ad4a248ba028b8c" title="Constructor. Creates the node, initializes the configurator, the transform buffer and listener,..." alt="" coords="5,13,237,82"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="272,50,237,50,237,45,272,45"/>
+</map>

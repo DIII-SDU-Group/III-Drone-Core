@@ -1,0 +1,7 @@
+<map id="iii_drone::perception::PowerlineDirection::resetKalmanFilter" name="iii_drone::perception::PowerlineDirection::resetKalmanFilter">
+<area shape="rect" id="Node000001" title="Resets the Kalman filter estimates." alt="" coords="5,27,160,82"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1History.html#a4b015ee2da0e8a06ec7ac24e9fff5da3" title="Returns true if the history is empty." alt="" coords="219,5,388,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="160,42,204,36,205,41,161,47"/>
+<area shape="rect" id="Node000003" href="$namespaceiii__drone_1_1math.html#a8e7d7e25d07b368363d6da9939a9abed" title=" " alt="" coords="208,70,399,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="161,62,195,66,194,71,160,67"/>
+</map>

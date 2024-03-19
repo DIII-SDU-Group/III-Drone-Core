@@ -1,0 +1,5 @@
+<map id="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator::init_sleep_time_ms" name="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator::init_sleep_time_ms">
+<area shape="rect" id="Node000001" title="Get the initial sleep time in milliseconds." alt="" coords="313,5,524,75"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#a703ae72ba683ae11154ce597b8bbad9d" title="Constructor." alt="" coords="5,13,265,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="300,43,265,43,265,37,300,37"/>
+</map>

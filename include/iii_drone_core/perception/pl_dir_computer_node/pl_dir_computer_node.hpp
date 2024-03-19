@@ -42,7 +42,8 @@
 #include <iii_drone_core/utils/math.hpp>
 #include <iii_drone_core/utils/types.hpp>
 
-#include <iii_drone_core/perception/pl_dir_computer_node/pl_dir_computer_node_configurator.hpp>
+#include <iii_drone_core/configuration/configurator.hpp>
+
 #include <iii_drone_core/perception/powerline_direction.hpp>
 
 /*****************************************************************************/
@@ -76,7 +77,7 @@ namespace pl_dir_computer_node {
         /**
          * @brief Configurator object
          */
-        PowerlineDirectionComputerConfigurator configurator_;
+        iii_drone::configuration::Configurator configurator_;
 
         /**
          * @brief Powerline direction object

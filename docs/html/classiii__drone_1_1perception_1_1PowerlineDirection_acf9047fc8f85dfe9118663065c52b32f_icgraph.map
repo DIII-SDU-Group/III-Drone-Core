@@ -1,0 +1,9 @@
+<map id="iii_drone::perception::PowerlineDirection::mapAngle" name="iii_drone::perception::PowerlineDirection::mapAngle">
+<area shape="rect" id="Node000001" title="Maps the angle into continuous range based on current angle." alt="" coords="783,13,937,67"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#add0f6cf04107f893a0798bc72740f233" title="Computes the powerline euler angles from observed powerline yaw." alt="" coords="507,13,735,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="769,43,735,43,735,37,769,37"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a15ab1216adf0aff5c7be05e851c70040" title="Runs the Kalman Filter update step from an observed yaw angle." alt="" coords="304,13,459,67"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="493,43,459,43,459,37,493,37"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerNode.html#a7d69d952785cf09e8cd381bd624480f2" title="Construct a new Powerline Direction Computer Node object." alt="" coords="5,5,256,75"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="291,43,256,43,256,37,291,37"/>
+</map>

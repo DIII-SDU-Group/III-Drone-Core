@@ -84,6 +84,37 @@ namespace adapters {
         const std::vector<SingleLineAdapter> GetVisibleLineAdapters() const;
 
         /**
+         * @brief Returns the closest line adapter to a given point.
+         * 
+         * @param point The point.
+         * 
+         * @return The closest line adapter.
+         * 
+         * @throw std::runtime_error If no lines are contained in the powerline.
+         */
+        const SingleLineAdapter GetClosestLine(const iii_drone::types::point_t & point) const;
+
+        /**
+         * @brief Returns the line given its id.
+         * 
+         * @param id The id.
+         * 
+         * @return The line adapter.
+         * 
+         * @throw std::runtime_error If the line is not found.
+         */
+        const SingleLineAdapter GetLine(int id) const;
+
+        /**
+         * @brief Returns whether the powerline contains a line with a given id.
+         * 
+         * @param id The id.
+         * 
+         * @return True if the line is contained in the powerline.
+         */
+        bool HasLine(int id) const;
+
+        /**
          * @brief Stamp getter.
          */
         const rclcpp::Time & stamp() const;

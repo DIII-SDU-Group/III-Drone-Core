@@ -1,0 +1,15 @@
+<map id="iii_drone::adapters::px4::TrajectorySetpointAdapter::yaw" name="iii_drone::adapters::px4::TrajectorySetpointAdapter::yaw">
+<area shape="rect" id="Node000001" title="Yaw getter." alt="" coords="592,170,859,210"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1px4_1_1TrajectorySetpointAdapter.html#ac412a4c6fef458db64699b319ca604d3" title="Initialize the object." alt="" coords="284,170,544,210"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="578,193,544,193,544,187,578,187"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1adapters_1_1px4_1_1TrajectorySetpointAdapter.html#a813481aaa4e219c27843e217f95e6440" title="Default constructor." alt="" coords="5,5,236,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="375,163,311,118,235,74,210,63,212,58,237,69,314,114,378,159"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1adapters_1_1px4_1_1TrajectorySetpointAdapter.html#a1c5d082bd10a5ddc1b0966b9b55c0e9b" title="Constructor from iii_drone::adapters::ReferenceAdapter." alt="" coords="5,84,236,139"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="325,169,223,141,224,136,326,164"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1adapters_1_1px4_1_1TrajectorySetpointAdapter.html#ac1e2f8f8c6ef2c387256c6b59e0a3a6e" title="Constructor from iii::control::Reference." alt="" coords="5,163,236,217"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="270,193,236,193,236,187,270,187"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1adapters_1_1px4_1_1TrajectorySetpointAdapter.html#a40190ec04a78561669213dc2ceba176a" title="Constructor from iii_drone::control::State." alt="" coords="5,241,236,296"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="326,216,224,244,223,239,325,211"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1adapters_1_1px4_1_1TrajectorySetpointAdapter.html#a70abca13931c39449f01584d0d461b9f" title="Constructor." alt="" coords="5,320,236,375"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="378,220,314,265,237,310,209,322,207,317,235,305,311,261,374,216"/>
+</map>

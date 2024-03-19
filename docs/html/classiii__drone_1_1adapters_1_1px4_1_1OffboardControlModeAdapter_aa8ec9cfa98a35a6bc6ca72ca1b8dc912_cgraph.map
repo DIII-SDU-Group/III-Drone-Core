@@ -1,0 +1,17 @@
+<map id="iii_drone::adapters::px4::OffboardControlModeAdapter::OffboardControlModeAdapter" name="iii_drone::adapters::px4::OffboardControlModeAdapter::OffboardControlModeAdapter">
+<area shape="rect" id="Node000001" title="Constructor." alt="" coords="5,241,276,296"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1px4_1_1OffboardControlModeAdapter.html#ab6657aafa196bf46772f0ebecf9f1884" title="Acceleration control enabled getter." alt="" coords="324,5,525,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="159,239,225,157,271,110,322,69,329,65,332,69,326,73,275,114,229,160,163,243"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1adapters_1_1px4_1_1OffboardControlModeAdapter.html#a375c0e8656f0d7bc199aa1f3769aa07d" title="Actuator control enabled getter." alt="" coords="324,84,525,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="177,239,244,194,323,148,334,142,336,147,325,152,247,198,180,243"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1adapters_1_1px4_1_1OffboardControlModeAdapter.html#acc59d759fcfef3d99e796a86f1a8bf87" title="Attitude control enabled getter." alt="" coords="324,163,525,217"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="239,239,311,219,313,224,241,244"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1adapters_1_1px4_1_1OffboardControlModeAdapter.html#a0ee69bd6cadc7f9560167412ed510f96" title="Body rate control enabled getter." alt="" coords="324,241,525,296"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="276,266,310,266,310,271,276,271"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1adapters_1_1px4_1_1OffboardControlModeAdapter.html#adef831e9ba97ab5efbe5d8174a7215e6" title="Position control enabled getter." alt="" coords="324,320,525,375"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="241,294,313,314,311,319,239,299"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1adapters_1_1px4_1_1OffboardControlModeAdapter.html#a2179c1dac110fd9e86a6eeb2dc1c463c" title="Timestamp getter." alt="" coords="324,399,525,453"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="181,294,247,338,325,384,339,391,337,395,323,388,244,343,178,298"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1adapters_1_1px4_1_1OffboardControlModeAdapter.html#a6ca4e85d6c7c078cc59fe623d487b9e3" title="Velocity control enabled getter." alt="" coords="324,477,525,532"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="163,295,230,376,275,422,326,463,334,468,332,473,322,467,272,426,226,380,159,298"/>
+</map>

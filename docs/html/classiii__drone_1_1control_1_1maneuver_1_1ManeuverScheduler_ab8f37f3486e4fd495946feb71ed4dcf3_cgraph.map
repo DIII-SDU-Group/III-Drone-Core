@@ -1,0 +1,5 @@
+<map id="iii_drone::control::maneuver::ManeuverScheduler::fetchNextReferenceAndPublish" name="iii_drone::control::maneuver::ManeuverScheduler::fetchNextReferenceAndPublish">
+<area shape="rect" id="Node000001" title="Fetches the next reference and publishes it. Will fetch the reference using the registered callback,..." alt="" coords="5,5,239,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#aa6358b3ccf11823819089a1706b7cd02" title="Get the current drone state." alt="" coords="287,5,544,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="239,30,273,30,273,35,239,35"/>
+</map>

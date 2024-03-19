@@ -1,0 +1,15 @@
+<map id="iii_drone::adapters::ReferenceAdapter::ToPoseStampedMsg" name="iii_drone::adapters::ReferenceAdapter::ToPoseStampedMsg">
+<area shape="rect" id="Node000001" title="Converts to pose stamped msg." alt="" coords="5,144,160,199"/>
+<area shape="rect" id="Node000002" href="$namespaceiii__drone_1_1math.html#a531ed4bd8183770d77ec20b37a8709c2" title=" " alt="" coords="211,5,405,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="102,142,146,90,175,64,207,41,223,33,225,38,209,46,178,68,149,94,106,145"/>
+<area shape="rect" id="Node000003" href="$namespaceiii__drone_1_1types.html#adf49c0d0a898eea29ad3e752a6712734" title=" " alt="" coords="213,55,403,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="131,142,207,105,226,97,228,102,209,110,134,146"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1Reference.html#a2ba5647e5161e35e0588394dcae0663b" title=" " alt="" coords="230,119,386,159"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="160,158,216,150,217,155,160,163"/>
+<area shape="rect" id="Node000005" href="$namespaceiii__drone_1_1types.html#a345601fdf3366d6af6d7c2003d74275b" title=" " alt="" coords="208,183,408,223"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="160,180,195,185,194,190,160,185"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1Reference.html#a2ef1baafb09875a2af495e006f98c7c5" title=" " alt="" coords="235,247,381,287"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="134,196,209,233,228,240,226,245,207,238,131,201"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1Reference.html#a784277cbb64476953132a8e239f9ae9e" title=" " alt="" coords="243,311,373,351"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="106,197,150,248,179,274,209,297,231,308,228,313,207,302,175,279,147,252,102,201"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="iii_drone::adapters::PowerlineAdapter::UpdateFromMsg" name="iii_drone::adapters::PowerlineAdapter::UpdateFromMsg">
+<area shape="rect" id="Node000001" title="Updates the powerline adapter object from a message." alt="" coords="544,45,697,100"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1PowerlineAdapter.html#a103e03296fccb8a4a89307566a19eaff" title="Constructor from message." alt="" coords="323,5,477,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="530,59,476,49,477,44,531,54"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a53c5f053feca67888e972a889476ccc8" title="Updates the PowerlineAdapter object." alt="" coords="304,84,496,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="531,91,497,97,496,92,530,86"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerNode.html#a7d69d952785cf09e8cd381bd624480f2" title="Construct a new Powerline Direction Computer Node object." alt="" coords="5,77,256,146"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="290,114,256,114,256,109,290,109"/>
+</map>

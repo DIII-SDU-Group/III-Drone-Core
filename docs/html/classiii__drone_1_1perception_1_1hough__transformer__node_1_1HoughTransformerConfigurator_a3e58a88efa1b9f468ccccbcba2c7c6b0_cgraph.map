@@ -1,0 +1,27 @@
+<map id="iii_drone::perception::hough_transformer_node::HoughTransformerConfigurator::HoughTransformerConfigurator" name="iii_drone::perception::hough_transformer_node::HoughTransformerConfigurator::HoughTransformerConfigurator">
+<area shape="rect" id="Node000001" title="Constructor." alt="" coords="5,99,236,168"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1hough__transformer__node_1_1HoughTransformerConfigurator.html#af66523ad555b752f0ca805c6de6ba1b6" title="Declares the node specific parameters." alt="" coords="291,27,522,96"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="235,102,277,91,278,96,237,107"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="1375,131,1613,186"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="237,131,691,131,961,131,1172,136,1361,146,1361,152,1172,141,961,136,691,136,237,136"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1perception_1_1hough__transformer__node_1_1HoughTransformerConfigurator.html#adde4ce8998f667282def3f9611ea819e" title="Initialises the HoughTransformer parameters." alt="" coords="284,217,529,287"/>
+<area shape="poly" id="edge6_Node000001_Node000005" title=" " alt="" coords="206,166,311,210,309,214,204,171"/>
+<area shape="rect" id="Node000003" href="$configurator_8cpp.html#a4249c2018a72e5ed93ef4d0ef6b9d25f" title=" " alt="" coords="605,5,780,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="522,44,591,35,592,41,522,49"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="522,58,681,60,882,68,1105,84,1327,112,1390,125,1389,130,1326,117,1104,90,882,73,681,66,522,63"/>
+<area shape="poly" id="edge4_Node000004_Node000004" title=" " alt="" coords="1441,131,1441,121,1451,112,1468,107,1494,105,1525,108,1542,116,1540,120,1523,113,1494,110,1469,112,1453,117,1446,123,1446,131"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1perception_1_1hough__transformer__node_1_1HoughTransformerConfigurator.html#a8b05de9a080e53682fc518342e64a1c7" title="Get the Canny kernel size." alt="" coords="577,171,808,240"/>
+<area shape="poly" id="edge7_Node000005_Node000006" title=" " alt="" coords="529,229,563,224,564,229,530,235"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1perception_1_1hough__transformer__node_1_1HoughTransformerConfigurator.html#a187edf29750e6d6c203c55fdb57e139d" title="Get the Canny low threshold." alt="" coords="577,264,808,333"/>
+<area shape="poly" id="edge12_Node000005_Node000009" title=" " alt="" coords="530,269,564,275,563,280,529,275"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1perception_1_1hough__transformer__node_1_1HoughTransformerConfigurator.html#ad4ab282a7c6fbaa254f7a339529acbee" title="Get the Canny ratio." alt="" coords="577,357,808,427"/>
+<area shape="poly" id="edge14_Node000005_Node000010" title=" " alt="" coords="468,284,579,343,592,349,590,354,576,348,466,289"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="856,221,1064,261"/>
+<area shape="poly" id="edge8_Node000006_Node000007" title=" " alt="" coords="809,218,843,223,842,228,808,224"/>
+<area shape="poly" id="edge11_Node000007_Node000004" title=" " alt="" coords="1049,219,1112,207,1361,171,1361,176,1112,212,1050,224"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="1112,221,1327,261"/>
+<area shape="poly" id="edge9_Node000007_Node000008" title=" " alt="" coords="1064,239,1098,239,1098,244,1064,244"/>
+<area shape="poly" id="edge10_Node000008_Node000004" title=" " alt="" coords="1286,219,1388,188,1390,193,1287,224"/>
+<area shape="poly" id="edge13_Node000009_Node000007" title=" " alt="" coords="808,271,852,262,853,267,809,277"/>
+<area shape="poly" id="edge15_Node000010_Node000007" title=" " alt="" coords="783,355,807,343,868,305,921,267,924,272,871,310,809,348,786,359"/>
+</map>

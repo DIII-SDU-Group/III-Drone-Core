@@ -1,0 +1,15 @@
+<map id="iii_drone::mission::continuous_mission_orchestrator_node::ContinuousMissionOrchestrator::startCableLanding" name="iii_drone::mission::continuous_mission_orchestrator_node::ContinuousMissionOrchestrator::startCableLanding">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1039,121,1317,190"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1mission_1_1continuous__mission__orchestrator__node_1_1ContinuousMissionOrchestrator.html#af7c5486c9ef326fe3920e39b136982fd" title=" " alt="" coords="692,5,989,89"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1055,119,972,92,973,87,1057,114"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1mission_1_1continuous__mission__orchestrator__node_1_1ContinuousMissionOrchestrator.html#aced4073ab58729bff6e815d51bf89778" title=" " alt="" coords="691,113,991,197"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="1025,158,991,158,991,153,1025,153"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1mission_1_1continuous__mission__orchestrator__node_1_1ContinuousMissionOrchestrator.html#ab02d79b6772f751fe0a38e6ccb5e41ee" title=" " alt="" coords="695,221,986,305"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="1057,197,973,224,972,219,1055,192"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1mission_1_1continuous__mission__orchestrator__node_1_1ContinuousMissionOrchestrator.html#a03d16a0b3a80d3d63fd1ac37c08829c7" title=" " alt="" coords="337,121,643,190"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="692,96,604,123,603,118,690,91"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1mission_1_1continuous__mission__orchestrator__node_1_1ContinuousMissionOrchestrator.html#a7d652b0b72969090c91c494f5c032eba" title=" " alt="" coords="5,113,289,197"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="324,158,290,158,290,153,324,153"/>
+<area shape="poly" id="edge5_Node000005_Node000003" title=" " alt="" coords="677,158,643,158,643,153,677,153"/>
+<area shape="poly" id="edge7_Node000006_Node000003" title=" " alt="" coords="690,220,603,193,604,188,692,215"/>
+</map>

@@ -1,0 +1,17 @@
+<map id="iii_drone::control::maneuver::ManeuverSchedulerParameters::maneuver_register_update_timeout_s" name="iii_drone::control::maneuver::ManeuverSchedulerParameters::maneuver_register_update_timeout_s">
+<area shape="rect" id="Node000001" title="Get the timeout duration for updating a maneuver after registering." alt="" coords="1149,41,1383,110"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a99d218271b8aa908b0e179076f2ca733" title="Progresses the scheduler. If a maneuver is executing, evaluates whether it has terminated...." alt="" coords="868,7,1101,61"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1136,59,1101,54,1102,49,1136,54"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a0c01b257aa516fb896fdc59e91304540" title="Updates a maneuver entry which has been registered with the correct goal handle after the maneuver ha..." alt="" coords="868,87,1101,141"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="1136,96,1102,101,1101,95,1136,91"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a3f6d63fc07809f25313347856ffdcd78" title="The maneuver execution timer callback." alt="" coords="567,7,820,61"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="854,37,820,37,820,31,854,31"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#ab930f227bbd30171806a49ab06c4e3b8" title="Constructor." alt="" coords="285,5,519,60"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="553,36,519,36,519,31,553,31"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#ab393b4204a5c4368ee503e9af8b27a22" title="Registers a maneuver type with a maneuver server." alt="" coords="577,88,810,143"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="854,117,810,117,810,112,854,112"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNode.html#a1c587895df3c61bd6b748e97942cd619" title="Creates and registers all maneuver servers with the maneuver scheduler." alt="" coords="286,85,518,154"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="563,120,518,120,518,115,563,114"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNode.html#a291f0abf320443ed6ad4a248ba028b8c" title="Constructor. Creates the node, initializes the configurator, the transform buffer and listener,..." alt="" coords="5,85,237,154"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="272,122,238,122,238,117,272,117"/>
+</map>

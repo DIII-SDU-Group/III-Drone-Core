@@ -1,0 +1,21 @@
+<map id="iii_drone::utils::History::Store" name="iii_drone::utils::History::Store">
+<area shape="rect" id="Node000001" title="Store the latest value." alt="" coords="1315,77,1484,117"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1History.html#affc9e854e31d4e48d430d931fa3abecb" title="Assignment operator, stores the value as the latest value in the history." alt="" coords="1053,5,1223,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1321,76,1266,60,1221,48,1222,43,1267,55,1322,71"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1TrajectoryGeneratorClient.html#ab84fe87c3598334fb114e24d0cd64bf5" title="Service result callback." alt="" coords="1039,70,1237,125"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="1301,100,1237,100,1237,95,1301,95"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a074d271a237bc7fc08e75ba137478b30" title="Updates the ground altitude estimate based on given information. Will either start or stop the timer ..." alt="" coords="1009,150,1267,205"/>
+<area shape="poly" id="edge9_Node000001_Node000008" title=" " alt="" coords="1321,124,1229,152,1227,147,1319,119"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1TrajectoryGeneratorClient.html#a2b3ee03aed559d8c1ea8d052336d25ff" title="Starts generating a trajectory." alt="" coords="667,67,925,122"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="1026,99,926,98,926,93,1026,94"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a2ace3412e0d42d07a39c553c89ab0c6a" title="Compute the reference." alt="" coords="10,15,255,70"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="653,67,582,57,412,46,256,43,256,38,412,41,583,52,654,62"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServer.html#ac13004e478653d73361c3569e11870dc" title="Compute the reference." alt="" coords="5,107,260,162"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="653,127,583,136,415,144,260,143,260,138,415,139,582,131,652,122"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1TrajectoryGeneratorClient.html#a0e32180d729e74d24edeef891d1ac843" title="Generates a trajectory and blocks until it is done." alt="" coords="308,67,583,122"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="653,97,583,97,583,92,653,92"/>
+<area shape="poly" id="edge7_Node000007_Node000005" title=" " alt="" coords="294,72,255,66,256,60,295,67"/>
+<area shape="poly" id="edge8_Node000007_Node000006" title=" " alt="" coords="295,117,261,121,260,116,294,111"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a197c146061816403499a4e652a8fe646" title="Updates the given combined drone awareness from the vehicle odometry. Triggers updates of ground alti..." alt="" coords="631,147,961,216"/>
+<area shape="poly" id="edge10_Node000008_Node000009" title=" " alt="" coords="995,182,962,182,962,177,995,176"/>
+</map>

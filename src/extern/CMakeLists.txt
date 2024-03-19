@@ -1,6 +1,3 @@
-# Set the minimum required version of CMake
-cmake_minimum_required(VERSION 3.8)
-
 set(MATLAB_MPC_HEADERS
   "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/minOrMax.h"
   "${PROJECT_SOURCE_DIR}/src/extern/matlab_MPC_5Hz_hp10/mpcblock_optimizer.h"
@@ -64,3 +61,23 @@ target_include_directories(matlab_mpc
     PUBLIC
     ${MATLAB_MPC_INCLUDE_DIRS}
 )
+
+message(STATUS "Test 123123")
+
+# Yaml cpp
+include(FetchContent)
+
+FetchContent_Declare(
+  yaml_cpp
+  GIT_REPOSITORY https://github.com/DIII-SDU-Group/yaml-cpp.git
+  GIT_TAG        0.8.0
+)
+
+FetchContent_GetProperties(yaml_cpp)
+
+if(NOT yaml_cpp_POPULATED)
+  message(STATUS "Fetching yaml-cpp...")
+  FetchContent_Populate(yaml_cpp)
+  add_subdirectory(${yaml_cpp_SOURCE_DIR} ${yaml_cpp_BINARY_DIR})
+endif()
+

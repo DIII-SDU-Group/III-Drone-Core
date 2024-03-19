@@ -1,0 +1,7 @@
+<map id="iii_drone::perception::SingleLine::SetDirection" name="iii_drone::perception::SingleLine::SetDirection">
+<area shape="rect" id="Node000001" title="Sets the direction." alt="" coords="5,37,191,77"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1SingleLine.html#a49650269a9ab4cdd4fa225534700a21e" title="quaternion getter." alt="" coords="249,5,424,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="191,42,235,36,236,41,191,48"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1Timestamp.html#a373bc0de94c27153e2372c30f0eedbb1" title="Updates the timestamp to now." alt="" coords="239,69,435,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="191,67,225,72,225,77,191,72"/>
+</map>

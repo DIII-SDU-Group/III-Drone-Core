@@ -1,0 +1,5 @@
+<map id="iii_drone::adapters::PowerlineAdapter::GetClosestLine" name="iii_drone::adapters::PowerlineAdapter::GetClosestLine">
+<area shape="rect" id="Node000001" title="Returns the single line adapter which is closest to the given position." alt="" coords="5,5,159,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#aee7b33b95f9bc339fd4f02709ce9033c" title="position getter." alt="" coords="207,5,355,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="159,30,193,30,193,35,159,35"/>
+</map>

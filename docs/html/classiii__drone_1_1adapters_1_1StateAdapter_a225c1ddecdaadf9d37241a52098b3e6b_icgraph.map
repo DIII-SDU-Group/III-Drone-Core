@@ -1,0 +1,7 @@
+<map id="iii_drone::adapters::StateAdapter::ToPoseStampedMsg" name="iii_drone::adapters::StateAdapter::ToPoseStampedMsg">
+<area shape="rect" id="Node000001" title="Converts to PoseStamped msg." alt="" coords="308,53,561,93"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a207c2c72ecfb7376ef44bd986e00ccce" title="Publishes the feedback." alt="" coords="10,5,255,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="294,57,255,52,256,46,295,51"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServer.html#a5918df6e93a4e3b9c9a500bab1c17c6b" title="Publishes the feedback." alt="" coords="5,84,260,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="295,93,261,98,260,92,294,88"/>
+</map>

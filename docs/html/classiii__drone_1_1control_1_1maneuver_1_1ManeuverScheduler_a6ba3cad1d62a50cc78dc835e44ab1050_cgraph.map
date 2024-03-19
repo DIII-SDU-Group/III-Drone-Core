@@ -1,0 +1,5 @@
+<map id="iii_drone::control::maneuver::ManeuverScheduler::maneuverCanExecute" name="iii_drone::control::maneuver::ManeuverScheduler::maneuverCanExecute">
+<area shape="rect" id="Node000001" title="Evaluates whether a maneuver can be executed given an awareness." alt="" coords="5,5,239,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a2a1dd737450465c565f5eba36e71ffad" title="Maneuver type getter." alt="" coords="287,5,456,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="239,30,273,30,273,35,239,35"/>
+</map>

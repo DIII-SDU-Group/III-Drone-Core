@@ -1,0 +1,13 @@
+<map id="iii_drone::control::maneuver::FlyToPositionManeuverServer::startExecution" name="iii_drone::control::maneuver::FlyToPositionManeuverServer::startExecution">
+<area shape="rect" id="Node000001" title="Starts the execution of the maneuver." alt="" coords="5,149,260,204"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#aa25571ba492acf43cd9af009c02cf72e" title="Combined drone awareness handler, accessible to derived classes through the protected method." alt="" coords="330,5,541,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="172,147,234,108,307,70,326,62,328,67,309,75,237,113,175,152"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1TrajectoryGeneratorClient.html#ab49b11db8d1f87a89444d9603de1ba32" title="Returns true if the trajectory generator is busy." alt="" coords="317,85,553,125"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="248,147,337,125,338,131,249,152"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#ad2bda3296f5382b9e566b6c3de3dd2e4" title="Maneuver parameters getter." alt="" coords="351,149,520,204"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="260,174,337,174,337,179,260,179"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#ad3824a84701282cf8303a64c9fce15d2" title="Node pointer getter." alt="" coords="310,229,561,269"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="249,201,338,223,337,228,248,207"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServerParameters.html#a8e086c34804204d7744d0b67979e4c48" title="Get the world frame id." alt="" coords="308,293,563,348"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="175,202,237,240,309,278,328,286,326,291,307,283,234,245,172,206"/>
+</map>

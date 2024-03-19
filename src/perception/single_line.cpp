@@ -36,16 +36,16 @@ SingleLine::SingleLine(
     const int & id, 
     const geometry_msgs::msg::Pose & pose,
     const std::shared_ptr<tf2_ros::Buffer> & tf_buffer,
-    const std::shared_ptr<PowerlineParameters> & parameters
+    iii_drone::configuration::ParameterBundle::SharedPtr parameters
 ) : tf_buffer_(tf_buffer), parameters_(parameters), mutex_() {
 
     id_ = id;
     position_ = pointFromPointMsg(pose.position);
     projected_position_ = position_;
     quaternion_ = quaternionFromQuaternionMsg(pose.orientation);
-    frame_id_ = parameters_->drone_frame_id();
+    frame_id_ = parameters_->GetParameter("drone_frame_id").as_string();
 
-    alive_cnt_ = (parameters_->alive_cnt_low_thresh() + parameters_->alive_cnt_high_thresh()) / 2;
+    alive_cnt_ = (parameters_->GetParameter("alive_cnt_low_thresh").as_int() + parameters_->GetParameter("alive_cnt_high_thresh").as_int()) / 2;
 
     resetKalmanFilter();
 
@@ -56,16 +56,16 @@ SingleLine::SingleLine(
     const point_t & position,
     const quaternion_t & quaternion,
     const std::shared_ptr<tf2_ros::Buffer> & tf_buffer,
-    const std::shared_ptr<PowerlineParameters> & parameters
+    iii_drone::configuration::ParameterBundle::SharedPtr parameters
 ) : tf_buffer_(tf_buffer), parameters_(parameters), mutex_() {
 
     id_ = id;
     position_ = position;
     projected_position_ = position_;
     quaternion_ = quaternion;
-    frame_id_ = parameters_->drone_frame_id();
+    frame_id_ = parameters_->GetParameter("drone_frame_id").as_string();
 
-    alive_cnt_ = (parameters_->alive_cnt_low_thresh() + parameters_->alive_cnt_high_thresh()) / 2;
+    alive_cnt_ = (parameters_->GetParameter("alive_cnt_low_thresh").as_int() + parameters_->GetParameter("alive_cnt_high_thresh").as_int()) / 2;
 
     resetKalmanFilter();
 
@@ -77,7 +77,7 @@ SingleLine::SingleLine(
     const quaternion_t & quaternion,
     const std::string & frame_id,
     const std::shared_ptr<tf2_ros::Buffer> & tf_buffer,
-    const std::shared_ptr<PowerlineParameters> & parameters
+    iii_drone::configuration::ParameterBundle::SharedPtr parameters
 ) : tf_buffer_(tf_buffer), parameters_(parameters), mutex_() {
 
     id_ = id;
@@ -86,7 +86,7 @@ SingleLine::SingleLine(
     quaternion_ = quaternion;
     frame_id_ = frame_id;
 
-    alive_cnt_ = (parameters_->alive_cnt_low_thresh() + parameters_->alive_cnt_high_thresh()) / 2;
+    alive_cnt_ = (parameters_->GetParameter("alive_cnt_low_thresh").as_int() + parameters_->GetParameter("alive_cnt_high_thresh").as_int()) / 2;
 
     resetKalmanFilter();
 
@@ -95,7 +95,7 @@ SingleLine::SingleLine(
 SingleLine::SingleLine(
     const iii_drone::adapters::SingleLineAdapter & adapter,
     const std::shared_ptr<tf2_ros::Buffer> & tf_buffer,
-    const std::shared_ptr<PowerlineParameters> & parameters
+    iii_drone::configuration::ParameterBundle::SharedPtr parameters
 ) : tf_buffer_(tf_buffer), parameters_(parameters), mutex_() {
 
     id_ = adapter.id();
@@ -103,7 +103,7 @@ SingleLine::SingleLine(
     projected_position_ = adapter.projected_position();
     quaternion_ = adapter.quaternion();
 
-    alive_cnt_ = (parameters_->alive_cnt_low_thresh() + parameters_->alive_cnt_high_thresh()) / 2;
+    alive_cnt_ = (parameters_->GetParameter("alive_cnt_low_thresh").as_int() + parameters_->GetParameter("alive_cnt_high_thresh").as_int()) / 2;
 
     resetKalmanFilter();
 
@@ -137,7 +137,7 @@ bool SingleLine::IsAlive() {
 
     std::shared_lock<std::shared_mutex> lock(mutex_);
 
-    if (IsInFOV() && --alive_cnt_ <= parameters_->alive_cnt_low_thresh()) {
+    if (IsInFOV() && --alive_cnt_ <= parameters_->GetParameter("alive_cnt_low_thresh").as_int()) {
 
         return false;
 
@@ -152,7 +152,7 @@ bool SingleLine::IsVisible() const {
 
     std::shared_lock<std::shared_mutex> lock(mutex_);
 
-    return alive_cnt_ >= parameters_->alive_cnt_high_thresh();
+    return alive_cnt_ >= parameters_->GetParameter("alive_cnt_high_thresh").as_int();
 
 }
 
@@ -170,7 +170,7 @@ bool SingleLine::IsInFOV(
     in_FOV &= dist <= max_point_dist;
     in_FOV &= dist >= min_point_dist;
 
-    if (parameters_->simulation()) {
+    if (parameters_->GetParameter("simulation").as_bool()) {
 
         float yz_dist = sqrt(position(1)*position(1)+position(2)*position(2));
         in_FOV &= position(0) > view_cone_slope*yz_dist;
@@ -196,16 +196,16 @@ bool SingleLine::IsInFOV() const {
 
     geometry_msgs::msg::PointStamped mmwave_point_stamped = tf_buffer_->transform(
         point_stamped, 
-        parameters_->mmwave_frame_id()
+        parameters_->GetParameter("mmwave_frame_id").as_string()
     );
 
     point_t mmwave_point = pointFromPointMsg(mmwave_point_stamped.point);
 
     return IsInFOV(
         mmwave_point, 
-        parameters_->min_point_dist(), 
-        parameters_->max_point_dist(), 
-        parameters_->view_cone_slope()
+        parameters_->GetParameter("min_point_dist").as_double(), 
+        parameters_->GetParameter("max_point_dist").as_double(), 
+        parameters_->GetParameter("view_cone_slope").as_double()
     );
 
 }
@@ -222,16 +222,16 @@ bool SingleLine::IsInFOVStrict() const {
 
     geometry_msgs::msg::PointStamped mmwave_point_stamped = tf_buffer_->transform(
         point_stamped, 
-        parameters_->mmwave_frame_id()
+        parameters_->GetParameter("mmwave_frame_id").as_string()
     );
 
     point_t mmwave_point = pointFromPointMsg(mmwave_point_stamped.point);
 
     return IsInFOV(
         mmwave_point, 
-        parameters_->strict_min_point_dist(), 
-        parameters_->strict_max_point_dist(), 
-        parameters_->strict_view_cone_slope()
+        parameters_->GetParameter("strict_min_point_dist").as_double(), 
+        parameters_->GetParameter("strict_max_point_dist").as_double(), 
+        parameters_->GetParameter("strict_view_cone_slope").as_double()
     );
 
 }
@@ -245,7 +245,7 @@ void SingleLine::Update(const point_t & projected_position) {
     for (int i = 0; i < 3; i++) {
 
         float y_bar = projected_position(i) - estimates[i].state_est;
-        float s = estimates[i].var_est + parameters_->kf_r();
+        float s = estimates[i].var_est + parameters_->GetParameter("kf_r").as_double();
 
         float k = estimates[i].var_est / s;
 
@@ -258,9 +258,9 @@ void SingleLine::Update(const point_t & projected_position) {
 
     alive_cnt_ += 2;
 
-    if (alive_cnt_ > parameters_->alive_cnt_ceiling()) {
+    if (alive_cnt_ > parameters_->GetParameter("alive_cnt_ceiling").as_int()) {
 
-        alive_cnt_ = parameters_->alive_cnt_ceiling();
+        alive_cnt_ = parameters_->GetParameter("alive_cnt_ceiling").as_int();
 
     }
 
@@ -290,7 +290,7 @@ void SingleLine::Predict(
     for (int i = 0; i < 3; i++) {
 
         estimates[i].state_est = position_(i);
-        estimates[i].var_est += parameters_->kf_q();
+        estimates[i].var_est += parameters_->GetParameter("kf_q").as_double();
     }
 
     lock.unlock();
@@ -308,9 +308,21 @@ void SingleLine::SetPosition(const point_t & position) {
     for (int i = 0; i < 3; i++) {
 
         estimates[i].state_est = position_(i);
-        estimates[i].var_est += parameters_->kf_q();
+        estimates[i].var_est += parameters_->GetParameter("kf_q").as_double();
 
     }
+
+    lock.unlock();
+
+    stamp_.Update();
+
+}
+
+void SingleLine::SetDirection(const quaternion_t & quaternion) {
+
+    std::unique_lock<std::shared_mutex> lock(mutex_);
+
+    quaternion_ = quaternion;
 
     lock.unlock();
 
@@ -368,7 +380,7 @@ std::shared_ptr<tf2_ros::Buffer> SingleLine::tf_buffer() const {
 
 }
 
-std::shared_ptr<PowerlineParameters> SingleLine::parameters() const {
+iii_drone::configuration::ParameterBundle::SharedPtr SingleLine::parameters() const {
 
     return parameters_;
 

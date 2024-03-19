@@ -1,0 +1,6 @@
+<map id="iii_drone::configuration::Configurator::sendGetParametersRequest" name="iii_drone::configuration::Configurator::sendGetParametersRequest">
+<area shape="rect" id="Node000001" title="Sends a GetParameters request to the ConfigurationServer node, which will return the parameters." alt="" coords="5,29,252,84"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="300,29,539,84"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="252,54,286,54,286,59,252,59"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="363,29,364,19,374,10,392,5,419,3,452,6,470,14,468,19,451,11,419,8,393,10,376,15,368,21,369,29"/>
+</map>

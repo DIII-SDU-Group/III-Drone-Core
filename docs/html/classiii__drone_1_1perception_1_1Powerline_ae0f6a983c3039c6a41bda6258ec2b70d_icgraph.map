@@ -1,0 +1,7 @@
+<map id="iii_drone::perception::Powerline::UpdateOdometry" name="iii_drone::perception::Powerline::UpdateOdometry">
+<area shape="rect" id="Node000001" title="Updates the powerline from odometry." alt="" coords="593,13,808,53"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#ae98c3a40fb32f1305c1528467205ba33" title="Callback for fetching drone transform." alt="" coords="313,5,545,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="580,35,545,35,545,30,580,30"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#a703ae72ba683ae11154ce597b8bbad9d" title="Constructor." alt="" coords="5,5,265,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="300,35,266,35,266,30,300,30"/>
+</map>

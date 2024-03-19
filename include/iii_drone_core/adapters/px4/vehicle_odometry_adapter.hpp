@@ -27,8 +27,7 @@
 /*****************************************************************************/
 // III-Drone-Core:
 
-// #include <iii/iii.hpp>
-// #include <iii/control/state.hpp>
+#include <iii_drone_core/control/state.hpp>
 
 #include <iii_drone_core/utils/types.hpp>
 #include <iii_drone_core/utils/math.hpp>
@@ -99,12 +98,12 @@ namespace px4 {
          */
         void UpdateFromMsg(const px4_msgs::msg::VehicleOdometry & vehicle_odometry_msg);
 
-        // /**
-        //  * @brief Converts the object to a iii::control::State object
-        //  *
-        //  * @return iii::control::State object
-        //  */
-        // iii::control::State ToState() const;
+        /**
+         * @brief Converts the object to a iii_drone::control::State object
+         *
+         * @return iii_drone::control::State object
+         */
+        iii_drone::control::State ToState() const;
 
         /**
          * @brief Converts the object to a geometry_msgs::msg::TransformStamped object.

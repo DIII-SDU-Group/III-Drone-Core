@@ -1,0 +1,32 @@
+<map id="iii_drone::control::trajectory_generator_node::TrajectoryGeneratorNode::publishPlannedTrajectory" name="iii_drone::control::trajectory_generator_node::TrajectoryGeneratorNode::publishPlannedTrajectory">
+<area shape="rect" id="Node000001" title="Publishes the currently planned trajectory." alt="" coords="5,202,237,271"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1ReferenceTrajectoryAdapter.html#aa29c58cadc42cf79a2fb56426a2b678f" title="Converts to Path msg." alt="" coords="296,144,507,199"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="237,207,282,196,283,202,238,212"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1adapters_1_1ReferenceAdapter.html#aa8e55f2f2d08f81b59bb9e0b452dc0f7" title="Converts to pose stamped msg." alt="" coords="592,176,747,231"/>
+<area shape="poly" id="edge10_Node000001_Node000004" title=" " alt="" coords="237,227,578,206,579,211,238,232"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNodeConfigurator.html#ae3ce7dffda2d7508b0db8052104643da" title="world_frame_id getter." alt="" coords="285,301,517,370"/>
+<area shape="poly" id="edge11_Node000001_Node000011" title=" " alt="" coords="221,269,290,294,289,299,220,274"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1ReferenceTrajectory.html#a4dcc8536500adff0778457882d598f21" title="References getter." alt="" coords="589,97,749,152"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="506,150,575,138,576,144,507,156"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="507,181,579,190,578,195,506,187"/>
+<area shape="rect" id="Node000005" href="$namespaceiii__drone_1_1math.html#a531ed4bd8183770d77ec20b37a8709c2" title=" " alt="" coords="832,5,1025,31"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="745,180,771,161,783,147,789,132,794,102,799,71,806,56,820,41,827,35,830,40,823,45,811,59,804,73,799,103,794,134,788,149,775,165,748,184"/>
+<area shape="rect" id="Node000006" href="$namespaceiii__drone_1_1types.html#adf49c0d0a898eea29ad3e752a6712734" title=" " alt="" coords="833,55,1024,95"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="746,176,772,161,786,147,795,134,804,119,820,105,830,99,833,104,823,109,808,123,799,136,790,151,775,165,748,181"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1Reference.html#a2ba5647e5161e35e0588394dcae0663b" title=" " alt="" coords="851,119,1007,159"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="746,182,836,159,838,164,748,187"/>
+<area shape="rect" id="Node000008" href="$namespaceiii__drone_1_1types.html#a345601fdf3366d6af6d7c2003d74275b" title=" " alt="" coords="829,183,1029,223"/>
+<area shape="poly" id="edge7_Node000004_Node000008" title=" " alt="" coords="747,201,815,201,815,206,747,206"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1control_1_1Reference.html#a2ef1baafb09875a2af495e006f98c7c5" title=" " alt="" coords="856,247,1001,287"/>
+<area shape="poly" id="edge8_Node000004_Node000009" title=" " alt="" coords="748,220,843,244,842,249,746,225"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1control_1_1Reference.html#a784277cbb64476953132a8e239f9ae9e" title=" " alt="" coords="863,311,994,351"/>
+<area shape="poly" id="edge9_Node000004_Node000010" title=" " alt="" coords="709,229,761,264,822,297,851,308,849,313,820,302,759,268,706,233"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="565,375,773,415"/>
+<area shape="poly" id="edge12_Node000011_Node000012" title=" " alt="" coords="518,359,567,370,566,375,517,364"/>
+<area shape="rect" id="Node000013" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="821,375,1036,415"/>
+<area shape="poly" id="edge13_Node000012_Node000013" title=" " alt="" coords="774,393,807,393,807,398,774,398"/>
+<area shape="rect" id="Node000014" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="1084,397,1323,452"/>
+<area shape="poly" id="edge16_Node000012_Node000014" title=" " alt="" coords="750,413,822,425,949,432,1070,430,1070,435,949,437,821,430,749,418"/>
+<area shape="poly" id="edge14_Node000013_Node000014" title=" " alt="" coords="1037,404,1071,408,1070,413,1036,409"/>
+<area shape="poly" id="edge15_Node000014_Node000014" title=" " alt="" coords="1150,397,1150,387,1160,378,1178,373,1203,371,1234,374,1252,382,1249,386,1233,379,1203,376,1179,378,1163,383,1155,389,1156,397"/>
+</map>

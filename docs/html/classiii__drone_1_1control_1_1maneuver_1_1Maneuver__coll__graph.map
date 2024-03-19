@@ -1,0 +1,5 @@
+<map id="iii_drone::control::maneuver::Maneuver" name="iii_drone::control::maneuver::Maneuver">
+<area shape="rect" id="Node000001" title="Abstract representation of a maneuver. Used to pass maneuvers around in the system...." alt="" coords="9,148,171,548"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,5,175,71"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="93,71,93,132,87,132,87,71"/>
+</map>

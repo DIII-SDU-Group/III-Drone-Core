@@ -1,0 +1,29 @@
+<map id="iii_drone::control::State::quaternion" name="iii_drone::control::State::quaternion">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1216,133,1359,173"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1Reference.html#a6c02bfc4464392a48b88dbd302e1a3f6" title=" " alt="" coords="967,5,1138,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1255,125,1215,91,1167,60,1137,47,1139,42,1169,55,1218,87,1258,121"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1State.html#ab56f9d033f57c3815174bf4106b31ac5" title=" " alt="" coords="987,69,1118,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="1202,133,1117,110,1119,104,1203,128"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1adapters_1_1StateAdapter.html#aa660f72a3e258818e71a888cfa6cd766" title="Converts to msg." alt="" coords="971,133,1135,173"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="1202,156,1135,156,1135,151,1202,151"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1adapters_1_1StateAdapter.html#af26b6d4bae9e9d9fc7fecc6a355d2aab" title="Converts to Pose msg." alt="" coords="955,197,1150,237"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="1203,179,1128,200,1126,195,1202,174"/>
+<area shape="rect" id="Node000013" href="$classiii__drone_1_1adapters_1_1px4_1_1TrajectorySetpointAdapter.html#a40190ec04a78561669213dc2ceba176a" title="Constructor from iii_drone::control::State." alt="" coords="937,262,1168,317"/>
+<area shape="poly" id="edge14_Node000001_Node000013" title=" " alt="" coords="1257,185,1217,219,1169,252,1144,264,1141,259,1167,247,1214,215,1254,181"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1TrajectoryGeneratorClient.html#a2b3ee03aed559d8c1ea8d052336d25ff" title="Starts generating a trajectory." alt="" coords="631,107,889,162"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="957,150,889,146,890,140,957,145"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a2ace3412e0d42d07a39c553c89ab0c6a" title="Compute the reference." alt="" coords="10,26,255,81"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="690,104,638,84,582,68,498,55,412,48,256,48,256,43,413,43,499,50,583,63,640,79,692,99"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServer.html#ac13004e478653d73361c3569e11870dc" title="Compute the reference." alt="" coords="5,118,260,173"/>
+<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="617,145,583,147,260,149,260,144,583,141,617,140"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1TrajectoryGeneratorClient.html#a0e32180d729e74d24edeef891d1ac843" title="Generates a trajectory and blocks until it is done." alt="" coords="308,78,583,133"/>
+<area shape="poly" id="edge7_Node000005_Node000008" title=" " alt="" coords="617,124,583,121,583,115,617,119"/>
+<area shape="poly" id="edge8_Node000008_Node000006" title=" " alt="" coords="294,83,255,76,256,71,295,78"/>
+<area shape="poly" id="edge9_Node000008_Node000007" title=" " alt="" coords="295,127,261,132,260,126,294,122"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1adapters_1_1StateAdapter.html#a225c1ddecdaadf9d37241a52098b3e6b" title="Converts to PoseStamped msg." alt="" coords="633,216,887,256"/>
+<area shape="poly" id="edge11_Node000009_Node000010" title=" " alt="" coords="942,227,887,231,887,225,941,222"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a207c2c72ecfb7376ef44bd986e00ccce" title="Publishes the feedback." alt="" coords="323,209,568,263"/>
+<area shape="poly" id="edge12_Node000010_Node000011" title=" " alt="" coords="620,239,568,239,568,233,620,233"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServer.html#a5918df6e93a4e3b9c9a500bab1c17c6b" title="Publishes the feedback." alt="" coords="318,287,573,342"/>
+<area shape="poly" id="edge13_Node000010_Node000012" title=" " alt="" coords="667,262,556,290,555,285,665,257"/>
+</map>

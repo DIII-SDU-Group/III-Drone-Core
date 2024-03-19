@@ -1,0 +1,7 @@
+<map id="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator::declareNodeParameters" name="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator::declareNodeParameters">
+<area shape="rect" id="Node000001" title="Declares the node specific parameters." alt="" coords="325,59,640,114"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a16671ee9cf2190f4753a79c381e70912" title="Constructor." alt="" coords="5,5,277,75"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="311,66,277,61,278,56,312,61"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a31bd150be2affd0af20b334d7efea8ba" title="Constructor." alt="" coords="5,99,277,168"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="312,113,278,117,277,112,311,107"/>
+</map>

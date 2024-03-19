@@ -1,0 +1,7 @@
+<map id="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerNode::publishPowerlineDirection" name="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerNode::publishPowerlineDirection">
+<area shape="rect" id="Node000001" title="Publishes the estimated powerline direction." alt="" coords="603,5,853,75"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerNode.html#ab34c86cec88426267f792caac6bbedee" title="Callback function for the odometry timer." alt="" coords="304,5,555,75"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="589,43,555,43,555,37,589,37"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerNode.html#a7d69d952785cf09e8cd381bd624480f2" title="Construct a new Powerline Direction Computer Node object." alt="" coords="5,5,256,75"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="290,43,256,43,256,37,290,37"/>
+</map>

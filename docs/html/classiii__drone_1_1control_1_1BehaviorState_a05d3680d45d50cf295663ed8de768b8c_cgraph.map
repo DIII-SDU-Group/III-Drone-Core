@@ -1,0 +1,5 @@
+<map id="iii_drone::control::BehaviorState::offboard" name="iii_drone::control::BehaviorState::offboard">
+<area shape="rect" id="Node000001" title="Whether the drone is in offboard mode." alt="" coords="5,5,189,45"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1History.html#a4b015ee2da0e8a06ec7ac24e9fff5da3" title="Returns true if the history is empty." alt="" coords="237,5,407,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="190,23,223,23,223,28,190,28"/>
+</map>

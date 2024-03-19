@@ -1,0 +1,5 @@
+<map id="iii_drone::adapters::px4::VehicleStatusAdapter::UpdateFromMsg" name="iii_drone::adapters::px4::VehicleStatusAdapter::UpdateFromMsg">
+<area shape="rect" id="Node000001" title="Updates from a PX4 vehicle status message." alt="" coords="255,5,456,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1px4_1_1VehicleStatusAdapter.html#abff03ad05cfe44104409e7c501a4da0e" title="Constructor from PX4 vehicle status message." alt="" coords="5,5,207,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="241,35,207,35,207,30,241,30"/>
+</map>

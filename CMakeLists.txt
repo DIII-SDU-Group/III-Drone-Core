@@ -69,88 +69,153 @@ set(dependencies
   iii_drone_interfaces
 )
 
+# MATLAB MPC Library:
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/extern")
+
 # Library:
 set(III_DRONE_LIBRARY_HEADERS
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/configuration/configurator.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/configuration/parameter_bundle.hpp"
 
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/configuration/mpc/mpc_configurator.hpp"
+  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/hough_transformer_node/hough_transformer_node_configurator.hpp"
+  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/pl_dir_computer_node/pl_dir_computer_node_configurator.hpp"
+  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/pl_mapper_node/pl_mapper_node_configurator.hpp"
 
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/drone_frame_broadcaster_node/drone_frame_broadcaster_node_configurator.hpp"
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/hough_transformer_node/hough_transformer_node_configurator.hpp"
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/pl_dir_computer_node/pl_dir_computer_node_configurator.hpp"
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/pl_mapper_node/pl_mapper_node_configurator.hpp"
+  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver_controller_node/maneuver_controller_node_configurator.hpp"
+  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator_node/trajectory_generator_node_configurator.hpp"
 
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_controller_node/trajectory_controller_node_configurator.hpp"
-
+  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/drone_frame_broadcaster_node/drone_frame_broadcaster_node_configurator.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/math.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/types.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/timestamp.hpp"
-  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/blocking_queue.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/atomic.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/history.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/token.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/single_line.hpp"
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/powerline_parameters.hpp"
+  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/powerline_parameters.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/powerline.hpp"
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/powerline_direction_parameters.hpp"
+  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/powerline_direction_parameters.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/powerline_direction.hpp"
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/hough_transformer_parameters.hpp"
+  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/hough_transformer_parameters.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/hough_transformer.hpp"
 
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/mpc_parameters.hpp"
+  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/mpc_parameters.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/state.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/reference.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/reference_trajectory.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator_client.hpp"
+
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/combined_drone_awareness_handler.hpp"
+  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/combined_drone_awareness_handler_parameters.hpp"
+
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_types.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_queue.hpp"
+
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_scheduler.hpp"
+  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_scheduler_parameters.hpp"
+
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_server.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/hover_maneuver_server.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/hover_by_object_maneuver_server.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/hover_on_cable_maneuver_server.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/fly_to_position_maneuver_server.hpp"
+  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/fly_to_position_maneuver_server_parameters.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/fly_to_object_maneuver_server.hpp"
+  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/fly_to_object_maneuver_server_parameters.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/single_line_adapter.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/projection_plane_adapter.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/powerline_adapter.hpp"
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/control_state_adapter.hpp"
+  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/control_state_adapter.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/point_cloud_adapter.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/state_adapter.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/reference_adapter.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/reference_trajectory_adapter.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/gripper_status_adapter.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/target_adapter.hpp"
 
-  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/offboard_control_mode_adapter.hpp"
-  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/trajectory_setpoint_adapter.hpp"
+  # # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/offboard_control_mode_adapter.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/trajectory_setpoint_adapter.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/vehicle_odometry_adapter.hpp"
-  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/vehicle_status_adapter.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/vehicle_status_adapter.hpp"
 
 )
 
 set(III_DRONE_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/configuration/configurator.cpp"
+  "${PROJECT_SOURCE_DIR}/src/configuration/parameter_bundle.cpp"
 
-  "${PROJECT_SOURCE_DIR}/src/configuration/mpc/mpc_configurator.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/perception/hough_transformer_node/hough_transformer_node_configurator.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/perception/pl_dir_computer_node/pl_dir_computer_node_configurator.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/perception/pl_mapper_node/pl_mapper_node_configurator.cpp"
 
-  "${PROJECT_SOURCE_DIR}/src/utils/drone_frame_broadcaster_node/drone_frame_broadcaster_node_configurator.cpp"
-  "${PROJECT_SOURCE_DIR}/src/perception/hough_transformer_node/hough_transformer_node_configurator.cpp"
-  "${PROJECT_SOURCE_DIR}/src/perception/pl_dir_computer_node/pl_dir_computer_node_configurator.cpp"
-  "${PROJECT_SOURCE_DIR}/src/perception/pl_mapper_node/pl_mapper_node_configurator.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/control/maneuver_controller_node/maneuver_controller_node_configurator.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator_node/trajectory_generator_node_configurator.cpp"
 
-  "${PROJECT_SOURCE_DIR}/src/control/trajectory_controller_node/trajectory_controller_node_configurator.cpp"
-
+  # "${PROJECT_SOURCE_DIR}/src/utils/drone_frame_broadcaster_node/drone_frame_broadcaster_node_configurator.cpp"
   "${PROJECT_SOURCE_DIR}/src/utils/math.cpp"
   "${PROJECT_SOURCE_DIR}/src/utils/types.cpp"
   "${PROJECT_SOURCE_DIR}/src/utils/timestamp.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/perception/single_line.cpp"
-  "${PROJECT_SOURCE_DIR}/src/perception/powerline_parameters.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/perception/powerline_parameters.cpp"
   "${PROJECT_SOURCE_DIR}/src/perception/powerline.cpp"
-  "${PROJECT_SOURCE_DIR}/src/perception/powerline_direction_parameters.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/perception/powerline_direction_parameters.cpp"
   "${PROJECT_SOURCE_DIR}/src/perception/powerline_direction.cpp"
-  "${PROJECT_SOURCE_DIR}/src/perception/hough_transformer_parameters.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/perception/hough_transformer_parameters.cpp"
   "${PROJECT_SOURCE_DIR}/src/perception/hough_transformer.cpp"
 
-  "${PROJECT_SOURCE_DIR}/src/control/mpc_parameters.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/control/mpc_parameters.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/state.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/reference.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/reference_trajectory.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator_client.cpp"
+
+  "${PROJECT_SOURCE_DIR}/src/control/combined_drone_awareness_handler.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/control/combined_drone_awareness_handler_parameters.cpp"
+
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver/maneuver.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver/maneuver_types.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver/maneuver_queue.cpp"
+
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver/maneuver_scheduler.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/control/maneuver/maneuver_scheduler_parameters.cpp"
+
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver/maneuver_server.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver/hover_maneuver_server.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver/hover_by_object_maneuver_server.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver/hover_on_cable_maneuver_server.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver/fly_to_position_maneuver_server.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/control/maneuver/fly_to_position_maneuver_server_parameters.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver/fly_to_object_maneuver_server.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/control/maneuver/fly_to_object_maneuver_server_parameters.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/adapters/single_line_adapter.cpp"
   "${PROJECT_SOURCE_DIR}/src/adapters/projection_plane_adapter.cpp"
   "${PROJECT_SOURCE_DIR}/src/adapters/powerline_adapter.cpp"
-  "${PROJECT_SOURCE_DIR}/src/adapters/control_state_adapter.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/adapters/control_state_adapter.cpp"
   "${PROJECT_SOURCE_DIR}/src/adapters/point_cloud_adapter.cpp"
+  "${PROJECT_SOURCE_DIR}/src/adapters/state_adapter.cpp"
+  "${PROJECT_SOURCE_DIR}/src/adapters/reference_adapter.cpp"
+  "${PROJECT_SOURCE_DIR}/src/adapters/reference_trajectory_adapter.cpp"
+  "${PROJECT_SOURCE_DIR}/src/adapters/gripper_status_adapter.cpp"
+  "${PROJECT_SOURCE_DIR}/src/adapters/target_adapter.cpp"
 
-  # "${PROJECT_SOURCE_DIR}/src/adapters/px4/offboard_control_mode_adapter.cpp"
-  # "${PROJECT_SOURCE_DIR}/src/adapters/px4/trajectory_setpoint_adapter.cpp"
+  ## "${PROJECT_SOURCE_DIR}/src/adapters/px4/offboard_control_mode_adapter.cpp"
+  "${PROJECT_SOURCE_DIR}/src/adapters/px4/trajectory_setpoint_adapter.cpp"
   "${PROJECT_SOURCE_DIR}/src/adapters/px4/vehicle_odometry_adapter.cpp"
-  # "${PROJECT_SOURCE_DIR}/src/adapters/px4/vehicle_status_adapter.cpp"
+  "${PROJECT_SOURCE_DIR}/src/adapters/px4/vehicle_status_adapter.cpp"
 
 )
 
-include_directories(${III_DRONE_INCLUDE_DIRS})
+include_directories(
+  ${III_DRONE_INCLUDE_DIRS}
+  ${MATLAB_MPC_INCLUDE_DIRS}  
+)
 
 add_library(iii_drone_lib 
   SHARED
@@ -167,6 +232,15 @@ target_sources(iii_drone_lib
 target_include_directories(iii_drone_lib
   PUBLIC
   ${III_DRONE_INCLUDE_DIRS}
+)
+target_include_directories(iii_drone_lib
+  PRIVATE
+  ${MATLAB_MPC_INCLUDE_DIRS}
+)
+
+target_link_libraries(iii_drone_lib
+  matlab_mpc
+  yaml-cpp::yaml-cpp
 )
 
 ament_target_dependencies(iii_drone_lib
@@ -186,9 +260,6 @@ install(TARGETS iii_drone_lib
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/"
   DESTINATION include
 )
-
-# MATLAB MPC Library:
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/extern")
 
 # Executables:
 function(custom_cpp_target target_name target_sources)
@@ -256,18 +327,17 @@ custom_cpp_target(pl_mapper
   "${PROJECT_SOURCE_DIR}/src/perception/pl_mapper_node/pl_mapper_node.cpp"
 )
 
-# # Trajectory controller:
-# custom_cpp_target(trajectory_controller 
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_controller_node/trajectory_controller_node.hpp"
-#   "${PROJECT_SOURCE_DIR}/src/control/trajectory_controller_node/trajectory_controller_node.cpp"
-# )
-# target_include_directories(trajectory_controller 
-#   PRIVATE
-#   ${MATLAB_MPC_INCLUDE_DIRS}
-# )
-# target_link_libraries(trajectory_controller 
-#   matlab_mpc
-# )
+# Trajectory generator:
+custom_cpp_target(trajectory_generator
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator_node/trajectory_generator_node.hpp"
+  "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator_node/trajectory_generator_node.cpp"
+)
+
+# Maneuver controller:
+custom_cpp_target(maneuver_controller
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver_controller_node/maneuver_controller_node.hpp"
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver_controller_node/maneuver_controller_node.cpp"
+)
 
 # # Continuous mission orchestrator:
 # custom_cpp_target(continuous_mission_orchestrator

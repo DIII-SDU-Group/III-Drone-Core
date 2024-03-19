@@ -1,0 +1,7 @@
+<map id="iii_drone::control::maneuver::maneuver_t::set_from_goal" name="iii_drone::control::maneuver::maneuver_t::set_from_goal">
+<area shape="rect" id="Node000001" title="Sets type and parameters from goal." alt="" coords="523,5,693,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#ad0bea8650490a43c4651e50c9bacd443" title="Handle goal callback." alt="" coords="264,5,475,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="509,35,475,35,475,30,509,30"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#a8378579c6e523a61bc49c89775e67460" title="Constructor." alt="" coords="5,5,216,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="250,35,216,35,216,30,250,30"/>
+</map>

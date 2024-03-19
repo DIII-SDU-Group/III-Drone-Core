@@ -1,0 +1,5 @@
+<map id="iii_drone::control::maneuver::ManeuverScheduler::maneuverIsExecutingOrPending" name="iii_drone::control::maneuver::ManeuverScheduler::maneuverIsExecutingOrPending">
+<area shape="rect" id="Node000001" title="Get whether a maneuver is being executed or pending." alt="" coords="5,5,243,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#a6ba6788f60421f28a651fcefadf2361d" title="Whether the queue is empty." alt="" coords="291,5,501,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="243,30,277,30,277,35,243,35"/>
+</map>

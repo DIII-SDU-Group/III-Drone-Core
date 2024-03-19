@@ -1,0 +1,47 @@
+<map id="iii_drone::control::TrajectoryGeneratorClient::ComputeReferenceTrajectoryAsync" name="iii_drone::control::TrajectoryGeneratorClient::ComputeReferenceTrajectoryAsync">
+<area shape="rect" id="Node000001" title="Starts generating a trajectory." alt="" coords="5,305,264,359"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1TrajectoryGeneratorClient.html#ab84fe87c3598334fb114e24d0cd64bf5" title="Service result callback." alt="" coords="312,115,509,170"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="174,302,357,176,360,180,177,307"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1adapters_1_1ReferenceAdapter.html#a56e8b2fdd992d460615cc6502eab7ba7" title="Converts to msg." alt="" coords="313,312,509,352"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="264,329,299,329,299,335,264,335"/>
+<area shape="rect" id="Node000014" href="$classiii__drone_1_1adapters_1_1StateAdapter.html#aa660f72a3e258818e71a888cfa6cd766" title="Converts to msg." alt="" coords="329,747,493,787"/>
+<area shape="poly" id="edge13_Node000001_Node000014" title=" " alt="" coords="156,358,392,734,387,736,151,361"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1History.html#a56d92944208a11b284718c5c2349a2b5" title="Store the latest value." alt="" coords="585,5,755,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="451,113,500,83,556,55,576,47,578,52,558,60,503,88,454,117"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1Reference.html#af6cf6c27339aab63f6b029e976caa4b7" title=" " alt="" coords="578,69,762,109"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="422,310,486,211,524,160,556,126,577,113,580,118,559,130,528,163,490,214,426,313"/>
+<area shape="rect" id="Node000006" href="$namespaceiii__drone_1_1types.html#adf49c0d0a898eea29ad3e752a6712734" title=" " alt="" coords="835,405,1026,445"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="420,310,441,277,471,238,510,199,556,170,618,145,672,135,698,137,725,143,784,170,814,191,839,217,861,246,880,277,907,339,924,391,919,393,902,341,875,280,857,249,835,220,810,195,781,174,723,148,697,142,672,141,620,150,559,174,513,203,475,241,445,280,425,313"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1Reference.html#a2ba5647e5161e35e0588394dcae0663b" title=" " alt="" coords="592,184,748,224"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="436,310,490,271,556,234,577,225,579,230,558,238,492,276,439,314"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1Reference.html#a2ef1baafb09875a2af495e006f98c7c5" title=" " alt="" coords="597,248,743,288"/>
+<area shape="poly" id="edge7_Node000004_Node000008" title=" " alt="" coords="492,309,583,287,585,292,493,315"/>
+<area shape="rect" id="Node000009" href="$namespaceiii__drone_1_1types.html#a55650c4ff895bbd1c624ee51c235a102" title=" " alt="" coords="585,568,755,608"/>
+<area shape="poly" id="edge8_Node000004_Node000009" title=" " alt="" coords="422,351,440,394,469,449,509,506,533,531,559,554,573,563,570,567,556,558,529,535,505,509,465,451,435,396,417,353"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1control_1_1Reference.html#a5d85fddf537e6663badb5654a23a4bce" title=" " alt="" coords="592,312,748,352"/>
+<area shape="poly" id="edge9_Node000004_Node000010" title=" " alt="" coords="509,329,578,329,578,335,509,335"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1control_1_1Reference.html#a784277cbb64476953132a8e239f9ae9e" title=" " alt="" coords="605,376,735,416"/>
+<area shape="poly" id="edge10_Node000004_Node000011" title=" " alt="" coords="493,349,592,374,591,379,492,355"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1control_1_1Reference.html#a94ddbc48fd727336b1896eb1c666170a" title=" " alt="" coords="561,440,779,480"/>
+<area shape="poly" id="edge11_Node000004_Node000012" title=" " alt="" coords="439,350,492,388,559,426,576,433,574,438,556,430,490,393,436,354"/>
+<area shape="rect" id="Node000013" href="$classiii__drone_1_1control_1_1Reference.html#abbbec5f6fe1f64fd6c4984349ac87840" title=" " alt="" coords="588,504,752,544"/>
+<area shape="poly" id="edge12_Node000004_Node000013" title=" " alt="" coords="427,351,479,419,516,457,559,490,577,499,574,504,556,494,513,461,475,423,423,354"/>
+<area shape="poly" id="edge22_Node000014_Node000009" title=" " alt="" coords="425,745,478,682,515,647,556,618,571,610,574,615,559,622,518,652,482,686,429,748"/>
+<area shape="rect" id="Node000015" href="$classiii__drone_1_1control_1_1State.html#a205d6a8a2d57434cb7ea7c257c6647f6" title=" " alt="" coords="580,632,760,672"/>
+<area shape="poly" id="edge14_Node000014_Node000015" title=" " alt="" coords="441,744,494,713,556,682,576,674,578,679,558,686,496,717,444,749"/>
+<area shape="rect" id="Node000016" href="$namespaceiii__drone_1_1types.html#a9e41bed6f0c8fce5c28c4ddfa25e6a49" title=" " alt="" coords="557,697,783,722"/>
+<area shape="poly" id="edge15_Node000014_Node000016" title=" " alt="" coords="492,746,598,722,599,728,493,751"/>
+<area shape="rect" id="Node000017" href="$namespaceiii__drone_1_1types.html#a2b1316cd0e6d4f226b2e11e7f9dd03c9" title=" " alt="" coords="576,747,764,787"/>
+<area shape="poly" id="edge16_Node000014_Node000017" title=" " alt="" coords="493,764,562,764,562,769,493,769"/>
+<area shape="rect" id="Node000019" href="$classiii__drone_1_1control_1_1State.html#ac7d02a667c215a72d7f7f2fdf1501eb4" title=" " alt="" coords="605,811,735,851"/>
+<area shape="poly" id="edge19_Node000014_Node000019" title=" " alt="" coords="493,784,592,809,591,814,492,789"/>
+<area shape="rect" id="Node000020" href="$classiii__drone_1_1control_1_1State.html#a730c06d2972e469a61c4a0e053f47b85" title=" " alt="" coords="599,875,741,915"/>
+<area shape="poly" id="edge20_Node000014_Node000020" title=" " alt="" coords="439,785,492,823,558,860,586,871,584,876,556,865,490,827,436,789"/>
+<area shape="rect" id="Node000021" href="$classiii__drone_1_1control_1_1State.html#a065d4003d73520ba2e61af2912df6c6c" title=" " alt="" coords="605,939,735,979"/>
+<area shape="poly" id="edge21_Node000014_Node000021" title=" " alt="" coords="427,786,479,854,516,892,559,924,593,940,590,945,556,929,513,896,475,858,423,789"/>
+<area shape="rect" id="Node000022" href="$classiii__drone_1_1control_1_1State.html#a0cf0c57ba34058c7ba14581c17e82f0b" title=" " alt="" coords="605,1003,735,1043"/>
+<area shape="poly" id="edge23_Node000014_Node000022" title=" " alt="" coords="422,786,440,828,469,883,509,940,533,966,559,988,593,1006,590,1011,556,993,529,970,505,944,465,886,435,831,417,788"/>
+<area shape="poly" id="edge17_Node000017_Node000006" title=" " alt="" coords="761,744,781,731,811,701,837,667,859,629,877,591,904,517,920,458,925,460,910,519,882,593,864,632,841,670,815,705,784,735,764,749"/>
+<area shape="rect" id="Node000018" href="$namespaceiii__drone_1_1types.html#a345601fdf3366d6af6d7c2003d74275b" title=" " alt="" coords="831,747,1031,787"/>
+<area shape="poly" id="edge18_Node000017_Node000018" title=" " alt="" coords="764,764,817,764,817,769,764,769"/>
+</map>

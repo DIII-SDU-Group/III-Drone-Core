@@ -1,0 +1,10 @@
+<map id="iii_drone::adapters::PowerlineAdapter::ToMsg" name="iii_drone::adapters::PowerlineAdapter::ToMsg">
+<area shape="rect" id="Node000001" title="Converts the powerline adapter object to a message." alt="" coords="865,29,1060,69"/>
+<area shape="poly" id="edge4_Node000001_Node000001" title=" " alt="" coords="1006,18,991,11,963,8,938,10,923,15,917,21,920,28,915,30,912,20,920,10,937,5,963,3,992,6,1009,13"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#ae63deed15fc864af363d4a3b3ef76ae1" title="Publishes the powerline message." alt="" coords="593,22,817,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="851,52,818,52,818,47,851,47"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#ae98c3a40fb32f1305c1528467205ba33" title="Callback for fetching drone transform." alt="" coords="313,22,545,77"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="580,52,546,52,546,47,580,47"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#a703ae72ba683ae11154ce597b8bbad9d" title="Constructor." alt="" coords="5,22,265,77"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="300,52,266,52,266,47,300,47"/>
+</map>

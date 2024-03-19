@@ -1,0 +1,42 @@
+<map id="iii_drone::control::trajectory_generator_node::TrajectoryGeneratorNode" name="iii_drone::control::trajectory_generator_node::TrajectoryGeneratorNode">
+<area shape="rect" id="Node000001" title=" " alt="" coords="586,1688,811,1947"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="161,1413,255,1479"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="215,1492,232,1559,247,1593,269,1624,302,1656,340,1685,380,1710,422,1732,507,1767,586,1791,585,1796,506,1772,420,1737,378,1715,337,1689,299,1660,265,1627,243,1596,227,1561,210,1493"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNodeConfigurator.html" title="Class for handling parameters for a positional MPC." alt="" coords="279,1267,561,1625"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="557,1624,594,1673,590,1677,553,1627"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1configuration_1_1Configurator.html" title="Class for handling parameters of a node. The class works in conjunction with the ConfigurationServer ..." alt="" coords="228,461,468,875"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="317,890,312,1010,315,1071,321,1130,335,1198,354,1266,349,1267,330,1200,316,1131,309,1071,307,1010,312,889"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="111,155,249,235"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="195,235,259,423,266,444,261,446,253,425,190,236"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="273,155,439,235"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="358,236,354,444,349,444,353,235"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="662,163,797,228"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="690,230,600,308,549,358,502,411,474,449,469,446,498,408,545,354,596,304,687,226"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1control_1_1MPCParameters.html" title="Class for handling parameters for positional MPC." alt="" coords="539,448,709,888"/>
+<area shape="poly" id="edge9_Node000009_Node000007" title=" " alt="" coords="717,229,684,310,653,410,648,432,643,431,648,409,679,308,712,227"/>
+<area shape="rect" id="Node000014" href="$classiii__drone_1_1utils_1_1Atomic.html" title=" " alt="" coords="920,1271,1149,1621"/>
+<area shape="poly" id="edge19_Node000014_Node000007" title=" " alt="" coords="777,226,826,265,881,316,934,377,956,411,975,447,981,481,988,550,1003,760,1029,1255,1023,1255,997,761,983,550,976,482,969,449,951,414,929,381,878,320,823,269,774,230"/>
+<area shape="rect" id="Node000018" href="$classiii__drone_1_1utils_1_1Atomic.html" title=" " alt="" coords="733,501,960,835"/>
+<area shape="poly" id="edge22_Node000018_Node000007" title=" " alt="" coords="742,227,795,409,812,484,807,485,789,410,737,229"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="331,1001,568,1081"/>
+<area shape="poly" id="edge7_Node000003_Node000008" title=" " alt="" coords="449,1081,437,1251,431,1250,444,1081"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="542,850,477,987,472,985,537,848"/>
+<area shape="rect" id="Node000013" title=" " alt="" coords="592,1001,845,1081"/>
+<area shape="poly" id="edge14_Node000013_Node000009" title=" " alt="" coords="683,888,707,984,702,985,677,889"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="31,1008,110,1073"/>
+<area shape="poly" id="edge10_Node000003_Node000010" title=" " alt="" coords="62,1074,53,1112,48,1157,53,1202,61,1223,74,1241,87,1249,106,1254,156,1257,214,1258,264,1265,264,1270,213,1263,156,1263,105,1259,84,1254,70,1245,57,1225,48,1204,43,1157,47,1112,57,1073"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="5,628,136,708"/>
+<area shape="poly" id="edge11_Node000010_Node000011" title=" " alt="" coords="73,722,73,1008,68,1008,68,722"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1control_1_1TrajectoryGenerator.html" title=" " alt="" coords="585,1366,813,1526"/>
+<area shape="poly" id="edge12_Node000001_Node000012" title=" " alt="" coords="701,1526,701,1671,696,1671,696,1526"/>
+<area shape="poly" id="edge13_Node000012_Node000013" title=" " alt="" coords="707,1082,696,1117,688,1155,683,1205,682,1255,688,1349,683,1350,677,1255,678,1204,683,1154,691,1116,702,1080"/>
+<area shape="poly" id="edge15_Node000001_Node000014" title=" " alt="" coords="938,1622,903,1666,866,1702,826,1735,823,1731,863,1698,899,1662,934,1619"/>
+<area shape="rect" id="Node000015" href="$classiii__drone_1_1control_1_1ReferenceTrajectory.html" title=" " alt="" coords="1037,951,1206,1131"/>
+<area shape="poly" id="edge16_Node000014_Node000015" title=" " alt="" coords="1105,1131,1078,1256,1073,1255,1100,1130"/>
+<area shape="rect" id="Node000016" title=" " alt="" coords="1046,628,1202,708"/>
+<area shape="poly" id="edge17_Node000015_Node000016" title=" " alt="" coords="1126,708,1125,934,1119,934,1121,708"/>
+<area shape="rect" id="Node000017" href="$classiii__drone_1_1control_1_1Reference.html" title=" " alt="" coords="1006,5,1159,385"/>
+<area shape="poly" id="edge18_Node000016_Node000017" title=" " alt="" coords="1102,385,1122,611,1117,612,1097,386"/>
+<area shape="poly" id="edge21_Node000018_Node000017" title=" " alt="" coords="1008,351,940,487,935,485,1003,349"/>
+<area shape="poly" id="edge20_Node000001_Node000018" title=" " alt="" coords="866,835,882,1047,892,1287,892,1403,886,1508,875,1597,856,1665,842,1692,824,1717,820,1713,837,1689,851,1663,870,1596,881,1508,887,1402,887,1287,877,1047,861,836"/>
+</map>

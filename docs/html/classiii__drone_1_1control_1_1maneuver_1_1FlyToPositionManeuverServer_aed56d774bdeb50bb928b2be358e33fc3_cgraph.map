@@ -1,0 +1,15 @@
+<map id="iii_drone::control::maneuver::FlyToPositionManeuverServer::hasSucceeded" name="iii_drone::control::maneuver::FlyToPositionManeuverServer::hasSucceeded">
+<area shape="rect" id="Node000001" title="Whether the maneuver has succeeded, returns true if the drone is within the position tolerance." alt="" coords="5,181,260,236"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#aa25571ba492acf43cd9af009c02cf72e" title="Combined drone awareness handler, accessible to derived classes through the protected method." alt="" coords="331,5,542,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="161,179,225,124,265,96,307,70,322,63,325,68,309,75,268,100,228,129,164,183"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1Reference.html#a2ba5647e5161e35e0588394dcae0663b" title=" " alt="" coords="359,85,515,125"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="193,179,307,134,345,123,346,128,309,139,195,184"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1State.html#ac7d02a667c215a72d7f7f2fdf1501eb4" title=" " alt="" coords="371,149,502,189"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="260,189,357,176,358,182,260,195"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServerParameters.html#aa16e26ec4d575c843940c3edb36f433d" title="Get the reached position euclidean distance threshold." alt="" coords="308,213,565,282"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="260,222,295,227,294,232,260,227"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1Reference.html#a784277cbb64476953132a8e239f9ae9e" title=" " alt="" coords="371,306,502,346"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="184,234,243,264,309,291,359,307,357,312,307,297,241,268,182,239"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1State.html#a9853d9f35c2c0ebf0976a472b2624dc2" title=" " alt="" coords="371,370,502,410"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="160,234,224,296,265,328,309,356,359,374,357,379,307,360,262,333,220,300,156,238"/>
+</map>

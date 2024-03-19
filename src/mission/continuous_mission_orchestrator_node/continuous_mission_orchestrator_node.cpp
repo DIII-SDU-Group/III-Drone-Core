@@ -33,19 +33,19 @@ ContinuousMissionOrchestrator::ContinuousMissionOrchestrator(const std::string &
 
     // Action clients:
     this->fly_under_cable_client_ = rclcpp_action::create_client<FlyUnderCable>(
-       this, "/control/trajectory_controller/fly_under_cable"
+       this, "/control/flight_controller/fly_under_cable"
     );
     this->cable_landing_client_ = rclcpp_action::create_client<CableLanding>(
-       this, "/control/trajectory_controller/cable_landing"
+       this, "/control/flight_controller/cable_landing"
     );
     this->disarm_on_cable_client_ = rclcpp_action::create_client<DisarmOnCable>(
-       this, "/control/trajectory_controller/disarm_on_cable"
+       this, "/control/flight_controller/disarm_on_cable"
     );
     this->arm_on_cable_client_ = rclcpp_action::create_client<ArmOnCable>(
-       this, "/control/trajectory_controller/arm_on_cable"
+       this, "/control/flight_controller/arm_on_cable"
     );
     this->cable_takeoff_client_ = rclcpp_action::create_client<CableTakeoff>(
-       this, "/control/trajectory_controller/cable_takeoff"
+       this, "/control/flight_controller/cable_takeoff"
     );
 
     // Gripper command client:
@@ -88,7 +88,7 @@ ContinuousMissionOrchestrator::ContinuousMissionOrchestrator(const std::string &
 
     // Control state:
     control_state_sub_ = this->create_subscription<iii_drone_interfaces::msg::ControlState>(
-        "/control/trajectory_controller/control_state", 10,
+        "/control/flight_controller/control_state", 10,
         std::bind(&ContinuousMissionOrchestrator::controlStateCallback, this, std::placeholders::_1));
     
 

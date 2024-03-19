@@ -1,0 +1,5 @@
+<map id="iii_drone::control::maneuver::HoverOnCableManeuverServer::startExecution" name="iii_drone::control::maneuver::HoverOnCableManeuverServer::startExecution">
+<area shape="rect" id="Node000001" title="Start the execution of the maneuver." alt="" coords="5,5,268,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#ad2bda3296f5382b9e566b6c3de3dd2e4" title="Maneuver parameters getter." alt="" coords="316,5,485,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="268,30,302,30,302,35,268,35"/>
+</map>

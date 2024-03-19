@@ -21,11 +21,24 @@ namespace types {
 
     typedef Eigen::Vector3f point_t;
 
+    typedef Eigen::Vector4f point4_t;
+
     typedef Eigen::Vector3f euler_angles_t;
 
     typedef Eigen::Vector4f quaternion_t;
 
     typedef Eigen::Vector3f vector_t;
+
+	// /**
+	//  * @brief State in 3D space with first derivative
+	// */
+	// typedef Eigen::Matrix<float, 6, 1> state3_t;
+
+	// /**
+	//  * @brief State in 4D space with yaw and second derivative
+	// */
+	// typedef Eigen::Matrix<float, 12, 1> state4_t;
+
 
     typedef struct {
 
@@ -87,6 +100,14 @@ namespace types {
     const vector_t vectorFromTransformMsg(const geometry_msgs::msg::Transform & transform_msg);
 
     const geometry_msgs::msg::Transform transformMsgFromTransform(const vector_t & vector, const quaternion_t & quaternion);
+
+    const geometry_msgs::msg::Transform transformMsgFromTransformMatrix(const transform_matrix_t & transform_matrix);
+
+    const transform_matrix_t transformMatrixFromTransformMsg(const geometry_msgs::msg::Transform & transform_msg);
+
+    const quaternion_t quaternionFromTransformMatrix(const transform_matrix_t & transform_matrix);
+
+    const pose_t poseFromTransformMatrix(const transform_matrix_t & transform_matrix);
 
 
 } // namespace types

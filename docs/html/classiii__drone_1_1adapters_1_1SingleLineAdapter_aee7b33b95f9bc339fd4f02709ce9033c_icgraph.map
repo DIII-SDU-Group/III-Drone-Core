@@ -1,0 +1,18 @@
+<map id="iii_drone::adapters::SingleLineAdapter::position" name="iii_drone::adapters::SingleLineAdapter::position">
+<area shape="rect" id="Node000001" title="position getter." alt="" coords="951,153,1099,208"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1PowerlineAdapter.html#a06ac6ce8729f92e9b5bb343f81301c97" title="Returns the single line adapter which is closest to the given position." alt="" coords="740,59,893,113"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="950,150,876,116,879,111,953,145"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#aca25e593ebb1307381959a3b1e5a751c" title="Updates the drone location of a combined drone awareness object based on current awareness informatio..." alt="" coords="425,92,683,147"/>
+<area shape="poly" id="edge8_Node000001_Node000003" title=" " alt="" coords="936,172,683,139,683,133,937,167"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1perception_1_1SingleLine.html#ad17dc959fe4f359c46b226c98e616e4b" title="Constructor from SingleLineAdapter." alt="" coords="731,189,903,229"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="937,195,903,200,903,194,937,190"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a04f02d018320742a79f473e1dd502b31" title="Constructor from members." alt="" coords="743,253,891,308"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="958,217,904,243,878,256,875,251,902,238,955,212"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="727,100,683,106,683,100,726,95"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#ab9e4d04b91ff4a8df5113ccdc0356484" title="Updates the given combined drone awareness from the powerline. Triggers updates of target_cable_posit..." alt="" coords="17,5,365,60"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="439,91,377,75,322,63,324,57,378,70,440,86"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a197c146061816403499a4e652a8fe646" title="Updates the given combined drone awareness from the vehicle odometry. Triggers updates of ground alti..." alt="" coords="26,85,357,154"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="412,122,357,122,357,117,412,117"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a7055ad9c6b81c69e2f810d40c9448fcf" title="Updates the given combined drone awareness from the vehicle status. Triggers updates of armed,..." alt="" coords="5,179,377,233"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="440,153,378,169,324,181,322,176,377,163,439,148"/>
+</map>

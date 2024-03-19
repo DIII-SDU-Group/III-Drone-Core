@@ -9,13 +9,13 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 def generate_launch_description():
-    trajectory_controller = Node(
+    trajectory_generator = Node(
         package="iii_drone_core",
-        executable="trajectory_controller",
-        namespace="/control/trajectory_controller",
+        executable="trajectory_generator",
+        namespace="/control/trajectory_generator",
         # arguments=["--ros-args", "--log-level", "control.trajectory_controller:=debug"]
     )
 
     return LaunchDescription([
-        trajectory_controller
+        trajectory_generator
     ])

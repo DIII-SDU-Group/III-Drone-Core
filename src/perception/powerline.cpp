@@ -12,7 +12,14 @@ using namespace iii_drone::math;
 // Implementation
 /*****************************************************************************/
 
-Powerline::Powerline(std::shared_ptr<PowerlineParameters> powerline_parameters) : parameters_(powerline_parameters) {
+Powerline::Powerline(
+    iii_drone::configuration::ParameterBundle::SharedPtr powerline_parameters,
+    std::shared_ptr<tf2_ros::Buffer> tf_buffer
+) 
+    : parameters_(powerline_parameters),
+    tf_buffer_(tf_buffer),
+    pl_dir_history_(1),
+    drone_pose_history_(2) {
 
     Reset();
 
@@ -80,7 +87,7 @@ const iii_drone::adapters::PointCloudAdapter Powerline::ToPointCloudAdapter(bool
 
     iii_drone::adapters::PointCloudAdapter adapter(
         stamp_,
-        parameters_->drone_frame_id(),
+        parameters_->GetParameter("drone_frame_id").as_string(),
         points
     );
 
@@ -118,7 +125,7 @@ int Powerline::GetLinesCount() const {
 
 point_t Powerline::UpdateLine(const point_t & point) {
 
-    if (!received_pl_dir_ || !received_first_odom_ || !received_second_odom_) {
+    if (!pl_dir_history_.full() || !drone_pose_history_.full()) {
 
         return point;
 
@@ -138,7 +145,7 @@ point_t Powerline::UpdateLine(const point_t & point) {
 
     }
 
-    if (match_index == -1 && line_count >= parameters_->max_lines()) {
+    if (match_index == -1 && line_count >= parameters_->GetParameter("max_lines").as_int()) {
 
         return projected_point;
 
@@ -163,20 +170,25 @@ point_t Powerline::UpdateLine(const point_t & point) {
 
 void Powerline::UpdateDirection(const quaternion_t & pl_direction) {
 
-    bool received_first_odom, received_second_odom;
+    pl_dir_history_ = pl_direction;
 
-    received_first_odom = received_first_odom_;
-    received_second_odom = received_second_odom_;
+    {
+            
+        std::unique_lock<std::shared_mutex> lock(lines_mutex_);
 
-    direction_ = pl_direction;
+        for (unsigned int i = 0; i < lines_.size(); i++) {
 
-    if (!received_first_odom || !received_second_odom) {
+            lines_[i].SetDirection(pl_direction);
+
+        }
+
+    }
+
+    if (!drone_pose_history_.full()) {
 
         return;
 
     }
-
-    received_pl_dir_ = true;
 
     updateProjectionPlane();
 
@@ -186,27 +198,14 @@ void Powerline::UpdateDirection(const quaternion_t & pl_direction) {
 
 void Powerline::UpdateOdometry(const pose_t & drone_pose) {
 
-    last_drone_pose_ = drone_pose_;
+    drone_pose_history_ = drone_pose;
 
-    drone_pose_ = drone_pose;
-
-    if (!received_first_odom_) {
-
-        received_first_odom_ = true;
-
-        return;
-
-    }
-
-    if (!received_second_odom_) {
-
-
-        received_second_odom_ = true;
+    if (!drone_pose_history_.full()) {
 
         return;
     }
 
-    if (!received_pl_dir_) {
+    if (!pl_dir_history_.full()) {
 
         return;
 
@@ -271,7 +270,7 @@ void Powerline::CleanupLines() {
 
 void Powerline::ComputeInterLinePositions() {
 
-    quaternion_t direction = direction_;
+    quaternion_t direction = pl_dir_history_[0];
 
     quaternion_t q_pl_to_drone = quatInv(direction);
     rotation_matrix_t R_pl_to_drone = quatToMat(q_pl_to_drone);
@@ -313,7 +312,7 @@ void Powerline::ComputeInterLinePositions() {
 
                     inter_line_positions_[k].inter_line_position_window.push_back(vec);
 
-                    while(inter_line_positions_[k].inter_line_position_window.size() > (unsigned int)parameters_->inter_pos_window_size()) {
+                    while(inter_line_positions_[k].inter_line_position_window.size() > (unsigned int)parameters_->GetParameter("inter_pos_window_size").as_int()) {
 
                         inter_line_positions_[k].inter_line_position_window.erase(inter_line_positions_[k].inter_line_position_window.begin());
 
@@ -329,7 +328,7 @@ void Powerline::ComputeInterLinePositions() {
 
                     inter_line_positions_[k].inter_line_position_window.push_back(vec);
 
-                    while(inter_line_positions_[k].inter_line_position_window.size() > (unsigned int)parameters_->inter_pos_window_size()) {
+                    while(inter_line_positions_[k].inter_line_position_window.size() > (unsigned int)parameters_->GetParameter("inter_pos_window_size").as_int()) {
 
                         inter_line_positions_[k].inter_line_position_window.erase(inter_line_positions_[k].inter_line_position_window.begin());
 
@@ -366,25 +365,14 @@ void Powerline::Reset() {
 
     }
 
-    direction_ = quaternion_t(1, 0, 0, 0);
-    received_pl_dir_ = false;
-
-    drone_pose_ = pose_t();
-
-    received_first_odom_ = false;
-    received_second_odom_ = false;
+    pl_dir_history_.clear();
+    drone_pose_history_.clear();
 
     projection_plane_ = createPlane(point_t(0, 0, 0), vector_t(1, 0, 0));
 
     id_cnt_ = 0;
 
     stamp_.Update();
-
-}
-
-std::shared_ptr<tf2_ros::Buffer> & Powerline::tf_buffer() {
-
-    return tf_buffer_;
 
 }
 
@@ -396,7 +384,15 @@ const rclcpp::Time Powerline::stamp() const {
 
 const quaternion_t Powerline::powerline_direction() const {
 
-    return direction_;
+    if (pl_dir_history_.empty()) {
+            
+        return quaternion_t::Identity();
+
+    } else {
+
+        return pl_dir_history_[0];
+
+    }
 
 }
 
@@ -408,13 +404,25 @@ const plane_t Powerline::projection_plane() const {
 
 const pose_t Powerline::drone_pose() const {
 
-    return drone_pose_;
+    if (drone_pose_history_.empty()) {
+            
+        pose_t pose;
+        pose.position = point_t::Zero();
+        pose.orientation = quaternion_t::Identity();
+        
+        return pose;
+
+    } else {
+
+        return drone_pose_history_[0];
+
+    }
 
 }
 
 void Powerline::updateProjectionPlane() {
 
-    quaternion_t direction_tmp = direction_;
+    quaternion_t direction_tmp = pl_dir_history_[0];
 
     point_t plane_p(0, 0, 0);
 
@@ -441,7 +449,7 @@ int Powerline::findMatchingLine(const point_t & point) const {
 
         float dist = sqrt(vec.dot(vec));
 
-        if (dist < parameters_->matching_line_max_dist() && dist < best_dist) {
+        if (dist < parameters_->GetParameter("matching_line_max_dist").as_double() && dist < best_dist) {
 
             best_dist = dist;
             best_idx = i;
@@ -455,7 +463,7 @@ int Powerline::findMatchingLine(const point_t & point) const {
 
 void Powerline::registerNewLine(const point_t & point) {
 
-    quaternion_t pl_quat = direction_;
+    quaternion_t pl_quat = pl_dir_history_[0];
 
     int new_id = id_cnt_ + 1;
     id_cnt_ = new_id;
@@ -500,8 +508,8 @@ void Powerline::predictLines() {
     vector_t delta_position;
     quaternion_t delta_quat, q_drone_to_pl;
 
-    pose_t drone_pose = drone_pose_;
-    pose_t last_drone_pose = last_drone_pose_;
+    pose_t drone_pose = drone_pose_history_[0];
+    pose_t last_drone_pose = drone_pose_history_[-1];
 
     rotation_matrix_t W_R_D1 = quatToMat(last_drone_pose.orientation);
     rotation_matrix_t W_R_D2 = quatToMat(drone_pose.orientation);
@@ -512,7 +520,7 @@ void Powerline::predictLines() {
     delta_position = drone_pose.position - last_drone_pose.position;
     delta_position = D2_R_W * delta_position;
 
-    q_drone_to_pl = direction_;
+    q_drone_to_pl = pl_dir_history_[0];
 
     rotation_matrix_t R_drone_to_pl = quatToMat(q_drone_to_pl);
 

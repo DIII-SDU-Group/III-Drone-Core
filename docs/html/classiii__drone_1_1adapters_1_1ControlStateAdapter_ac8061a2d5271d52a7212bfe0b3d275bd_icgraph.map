@@ -1,0 +1,5 @@
+<map id="iii_drone::adapters::ControlStateAdapter::control_state" name="iii_drone::adapters::ControlStateAdapter::control_state">
+<area shape="rect" id="Node000001" title="Control state getter." alt="" coords="216,5,379,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1ControlStateAdapter.html#a6a13296968d974568f9708f71462c0d9" title="Constructor from control state type." alt="" coords="5,5,168,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="202,35,168,35,168,30,202,30"/>
+</map>

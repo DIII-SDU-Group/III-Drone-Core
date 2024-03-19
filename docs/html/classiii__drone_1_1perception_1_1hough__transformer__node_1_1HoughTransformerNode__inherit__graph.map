@@ -1,0 +1,5 @@
+<map id="iii_drone::perception::hough_transformer_node::HoughTransformerNode" name="iii_drone::perception::hough_transformer_node::HoughTransformerNode">
+<area shape="rect" id="Node000001" title="Node for computing hough transform on images to detect powerline direction." alt="" coords="5,119,209,313"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="60,5,155,71"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="110,84,110,119,105,119,105,84"/>
+</map>

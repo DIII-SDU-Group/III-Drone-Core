@@ -1,0 +1,9 @@
+<map id="iii_drone::control::maneuver::FlyToObjectManeuverServer::getUpdatedTargetReference" name="iii_drone::control::maneuver::FlyToObjectManeuverServer::getUpdatedTargetReference">
+<area shape="rect" id="Node000001" title="Get updated target reference. Sets the has_failed flag if the target is not visible." alt="" coords="299,84,553,139"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a2ace3412e0d42d07a39c553c89ab0c6a" title="Compute the reference." alt="" coords="5,5,251,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="308,83,232,63,233,58,309,78"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#aae038a1f6dfe0351d898c874557fb397" title="Whether the maneuver has succeeded, returns true if the drone is within the position tolerance." alt="" coords="5,84,251,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="285,114,251,114,251,109,285,109"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a207c2c72ecfb7376ef44bd986e00ccce" title="Publishes the feedback." alt="" coords="5,163,251,217"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="309,145,233,165,232,160,308,140"/>
+</map>

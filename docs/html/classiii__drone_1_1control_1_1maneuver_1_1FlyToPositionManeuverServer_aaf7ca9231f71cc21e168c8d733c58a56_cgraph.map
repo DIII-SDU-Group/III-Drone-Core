@@ -1,0 +1,5 @@
+<map id="iii_drone::control::maneuver::FlyToPositionManeuverServer::publishResultAndFinalize" name="iii_drone::control::maneuver::FlyToPositionManeuverServer::publishResultAndFinalize">
+<area shape="rect" id="Node000001" title="Publishes the result and finalizes the maneuver according to the maneuver result type." alt="" coords="5,5,260,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a0b7b01d9ab27db008c54f7ef0099fcd0" title="Goal handle getter." alt="" coords="308,5,477,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="260,30,294,30,294,35,260,35"/>
+</map>

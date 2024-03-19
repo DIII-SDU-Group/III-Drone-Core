@@ -1,0 +1,9 @@
+<map id="iii_drone::types::pointFromPoseMsg" name="iii_drone::types::pointFromPoseMsg">
+<area shape="rect" id="Node000001" title=" " alt="" coords="201,91,397,131"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a691df92d58f0f358ddad6a9b6b2f1e1f" title="Constructor from msg." alt="" coords="5,5,153,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="229,89,153,62,155,57,231,84"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a524b57b8a93818b95e35323ec8533749" title="Constructor from PoseStamped msg." alt="" coords="5,84,153,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="187,114,154,114,154,109,187,109"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#ad5ca1a5d6a90a4f67c5b9bb59f9c8066" title="Constructor from pose msg." alt="" coords="5,163,153,217"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="231,139,155,166,153,161,229,133"/>
+</map>

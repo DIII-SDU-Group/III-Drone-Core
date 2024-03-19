@@ -85,16 +85,16 @@ void VehicleOdometryAdapter::UpdateFromMsg(const px4_msgs::msg::VehicleOdometry 
 
 }
 
-// iii::control::State VehicleOdometryAdapter::ToState() const {
+iii_drone::control::State VehicleOdometryAdapter::ToState() const {
 
-//     return iii::control::State(
-//         position_,
-//         velocity_,
-//         quaternion_,
-//         angular_velocity_
-//     );
+    return iii_drone::control::State(
+        position_,
+        velocity_,
+        quaternion_,
+        angular_velocity_
+    );
 
-// }
+}
 
 const geometry_msgs::msg::TransformStamped VehicleOdometryAdapter::ToTransformStamped(
     const std::string & drone_frame_id,

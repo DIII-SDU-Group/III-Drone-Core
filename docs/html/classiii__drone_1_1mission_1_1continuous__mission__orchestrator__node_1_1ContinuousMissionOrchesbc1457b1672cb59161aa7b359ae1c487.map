@@ -1,0 +1,5 @@
+<map id="iii_drone::mission::continuous_mission_orchestrator_node::ContinuousMissionOrchestratorConfigurator" name="iii_drone::mission::continuous_mission_orchestrator_node::ContinuousMissionOrchestratorConfigurator">
+<area shape="rect" id="Node000001" title="Class for handling parameters for ContinuousMissionOrchestrator." alt="" coords="5,528,249,980"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html" title="Class for handling parameters of a node. The class works in conjunction with the ConfigurationServer ..." alt="" coords="7,5,247,480"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="130,493,130,528,125,528,125,493"/>
+</map>

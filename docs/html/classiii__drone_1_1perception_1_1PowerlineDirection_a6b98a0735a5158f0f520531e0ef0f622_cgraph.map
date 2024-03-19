@@ -1,0 +1,7 @@
+<map id="iii_drone::perception::PowerlineDirection::ToQuaternionStampedMsg" name="iii_drone::perception::PowerlineDirection::ToQuaternionStampedMsg">
+<area shape="rect" id="Node000001" title="Converts to quaternion stamped message." alt="" coords="5,30,207,85"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1History.html#a4b015ee2da0e8a06ec7ac24e9fff5da3" title="Returns true if the history is empty." alt="" coords="270,5,439,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="206,42,256,35,257,41,207,47"/>
+<area shape="rect" id="Node000003" href="$namespaceiii__drone_1_1types.html#a345601fdf3366d6af6d7c2003d74275b" title=" " alt="" coords="255,69,455,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="207,68,241,72,241,77,206,73"/>
+</map>

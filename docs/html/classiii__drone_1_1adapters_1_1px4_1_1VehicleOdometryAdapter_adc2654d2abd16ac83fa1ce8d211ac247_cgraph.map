@@ -1,0 +1,9 @@
+<map id="iii_drone::adapters::px4::VehicleOdometryAdapter::ToTransformStamped" name="iii_drone::adapters::px4::VehicleOdometryAdapter::ToTransformStamped">
+<area shape="rect" id="Node000001" title="Converts the object to a geometry_msgs::msg::TransformStamped object." alt="" coords="5,30,231,85"/>
+<area shape="rect" id="Node000002" href="$namespaceiii__drone_1_1types.html#aa98e988d47c7d29c21cc73c1acdf2478" title=" " alt="" coords="279,37,473,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="231,55,265,55,265,60,231,60"/>
+<area shape="rect" id="Node000003" href="$namespaceiii__drone_1_1types.html#a345601fdf3366d6af6d7c2003d74275b" title=" " alt="" coords="521,5,721,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="473,42,507,37,508,43,474,47"/>
+<area shape="rect" id="Node000004" href="$namespaceiii__drone_1_1types.html#a55650c4ff895bbd1c624ee51c235a102" title=" " alt="" coords="536,69,707,109"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="474,67,523,74,522,79,473,73"/>
+</map>

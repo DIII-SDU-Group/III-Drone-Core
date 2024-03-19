@@ -21,13 +21,15 @@ PowerlineMapperNode::PowerlineMapperNode(
         node_namespace,
         options
     ), 
-    configurator_(this),
-    powerline_(configurator_.powerline_parameters()) {
+    configurator_(this) {
 
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
-    powerline_.tf_buffer() = tf_buffer_;
+    powerline_ = std::make_shared<Powerline>(
+        configurator_.GetParameterBundle("powerline"),
+        tf_buffer_
+    );
 
     pl_direction_sub_ = this->create_subscription<geometry_msgs::msg::QuaternionStamped>(
         "/perception/pl_dir_computer/powerline_direction_quat", 
@@ -75,8 +77,8 @@ PowerlineMapperNode::PowerlineMapperNode(
         try {
 
             mmw_tf = tf_buffer_->lookupTransform(
-                configurator_.drone_frame_id(), 
-                configurator_.mmwave_frame_id(), 
+                configurator_.GetParameter("drone_frame_id").as_string(), 
+                configurator_.GetParameter("mmwave_frame_id").as_string(), 
                 tf2::TimePointZero
             );
 
@@ -95,12 +97,12 @@ PowerlineMapperNode::PowerlineMapperNode(
 
     }
 
-    std::chrono::milliseconds sleep_ms(configurator_.init_sleep_time_ms());
+    std::chrono::milliseconds sleep_ms(configurator_.GetParameter("init_sleep_time_ms").as_int());
 	rclcpp::Rate init_sleep_rate(sleep_ms);
 	init_sleep_rate.sleep();
 
     // Call on_timer function every second
-    std::chrono::milliseconds odom_callback_ms(configurator_.odometry_callback_period_ms());
+    std::chrono::milliseconds odom_callback_ms(configurator_.GetParameter("odometry_callback_period_ms").as_int());
     drone_tf_timer_ = this->create_wall_timer(
         odom_callback_ms, 
         std::bind(
@@ -123,8 +125,8 @@ void PowerlineMapperNode::odometryCallback() {
     try {
 
         tf = tf_buffer_->lookupTransform(
-            configurator_.world_frame_id(), 
-            configurator_.drone_frame_id(), 
+            configurator_.GetParameter("world_frame_id").as_string(), 
+            configurator_.GetParameter("drone_frame_id").as_string(), 
             tf2::TimePointZero
         );
 
@@ -141,7 +143,7 @@ void PowerlineMapperNode::odometryCallback() {
 
     pose_t drone_pose = poseFromTransformMsg(tf.transform);
 
-    powerline_.UpdateOdometry(drone_pose);
+    powerline_->UpdateOdometry(drone_pose);
 
     publishPowerline();
 
@@ -162,9 +164,9 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
             -1,
             pcl_points[i],
             pl_direction_,
-            configurator_.mmwave_frame_id(),
+            configurator_.GetParameter("mmwave_frame_id").as_string(),
             tf_buffer_,
-            configurator_.powerline_parameters()
+            configurator_.GetParameterBundle("powerline")
         );
 
         if(!line.IsInFOVStrict()) {
@@ -179,12 +181,12 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
         pt = tf_buffer_->transform(
             pt, 
-            configurator_.drone_frame_id()
+            configurator_.GetParameter("drone_frame_id").as_string()
         );
 
         point_t transformed_point = pointFromPointMsg(pt.point);
 
-        point_t projected_point = powerline_.UpdateLine(transformed_point);
+        point_t projected_point = powerline_->UpdateLine(transformed_point);
 
         transformed_points.push_back(transformed_point);
         projected_points.push_back(projected_point);
@@ -201,9 +203,9 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
         projected_points_pub_
     );
 
-    powerline_.CleanupLines();
+    powerline_->CleanupLines();
 
-    powerline_.ComputeInterLinePositions();
+    powerline_->ComputeInterLinePositions();
 
 }
 
@@ -213,14 +215,14 @@ void PowerlineMapperNode::plDirectionCallback(const geometry_msgs::msg::Quaterni
 
     pl_direction_ = quat;
 
-    powerline_.UpdateDirection(quat);
+    powerline_->UpdateDirection(quat);
 }
 
 void PowerlineMapperNode::publishPowerline() const {
 
-    auto msg = powerline_.ToAdapter(true).ToMsg();
+    auto msg = powerline_->ToAdapter(true).ToMsg();
 
-    iii_drone::adapters::PointCloudAdapter pcl_adapter = powerline_.ToPointCloudAdapter(true);
+    iii_drone::adapters::PointCloudAdapter pcl_adapter = powerline_->ToPointCloudAdapter(true);
 
     powerline_pub_->publish(msg);
     points_est_pub_->publish(pcl_adapter.ToMsg());
@@ -233,8 +235,8 @@ void PowerlineMapperNode::publishPoints(
 ) const {
 
     iii_drone::adapters::PointCloudAdapter pcl_adapter(
-        powerline_.stamp(),
-        configurator_.drone_frame_id(),
+        powerline_->stamp(),
+        configurator_.GetParameter("drone_frame_id").as_string(),
         points
     );
 

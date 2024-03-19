@@ -1,0 +1,9 @@
+<map id="iii_drone::control::CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromVehicleOdometry" name="iii_drone::control::CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromVehicleOdometry">
+<area shape="rect" id="Node000001" title="Updates the combined drone awareness from the vehicle odometry. Triggers updates of ground altitude e..." alt="" coords="616,29,947,99"/>
+<area shape="poly" id="edge4_Node000001_Node000001" title=" " alt="" coords="838,19,817,11,781,8,753,10,733,15,722,21,720,30,715,28,718,18,731,10,752,5,781,3,818,6,840,14"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a45046cb4335f9a4fe757b195ae4851ca" title="Construct a new CombinedDroneAwarenessHandler object, initializing all the subscriptions." alt="" coords="5,37,263,91"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="602,59,568,59,311,59,263,60,263,55,311,53,568,53,602,54"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a8bcf29ada285948eeeff00d694d185c2" title="Updates the combined drone awareness based on current information. To be called after updating the an..." alt="" coords="311,69,568,123"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="603,83,569,87,568,81,602,78"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="297,84,262,80,263,75,297,78"/>
+</map>

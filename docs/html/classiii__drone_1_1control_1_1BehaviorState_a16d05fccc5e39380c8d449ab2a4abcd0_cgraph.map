@@ -1,0 +1,11 @@
+<map id="iii_drone::control::BehaviorState::on_ground" name="iii_drone::control::BehaviorState::on_ground">
+<area shape="rect" id="Node000001" title="Whether the drone is on the ground." alt="" coords="5,106,152,161"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1History.html#a4b015ee2da0e8a06ec7ac24e9fff5da3" title="Returns true if the history is empty." alt="" coords="228,5,397,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="116,104,155,78,199,55,217,47,219,52,201,60,158,83,119,108"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1BehaviorStateParameters.html#ae766c4a65a57841f4147ce3a18052711" title="Get the altitude threshold for the drone to be considered landed." alt="" coords="213,70,412,125"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="152,119,199,112,200,117,153,125"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1utils_1_1Atomic.html#a9f8422d86cdbb429f29c6e16c61631ee" title="Get the value." alt="" coords="229,149,397,189"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="153,142,215,152,215,157,152,147"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1adapters_1_1px4_1_1VehicleOdometryAdapter.html#a82c0aa2397ba3aa4df53c8ca6f97e487" title="Position getter." alt="" coords="200,214,425,269"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="125,158,201,199,218,206,216,211,199,204,123,163"/>
+</map>

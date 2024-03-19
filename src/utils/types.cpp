@@ -210,3 +210,31 @@ const geometry_msgs::msg::Transform iii_drone::types::transformMsgFromTransform(
 
     return transform_msg;
 }
+
+const geometry_msgs::msg::Transform iii_drone::types::transformMsgFromTransformMatrix(const transform_matrix_t & transform_matrix) {
+
+    geometry_msgs::msg::Transform transform_msg;
+
+    transform_msg.translation = vectorMsgFromVector(transform_matrix.block<3, 1>(0, 3));
+    transform_msg.rotation = quaternionMsgFromQuaternion(quaternionFromTransformMatrix(transform_matrix));
+
+    return transform_msg;
+
+}
+
+const quaternion_t iii_drone::types::quaternionFromTransformMatrix(const transform_matrix_t & transform_matrix) {
+
+    return quaternionFromTransformMsg(transformMsgFromTransformMatrix(transform_matrix));
+
+}
+
+const pose_t iii_drone::types::poseFromTransformMatrix(const transform_matrix_t & transform_matrix) {
+
+    pose_t pose;
+
+    pose.position = transform_matrix.block<3, 1>(0, 3);
+    pose.orientation = quaternionFromTransformMatrix(transform_matrix);
+
+    return pose;
+
+}

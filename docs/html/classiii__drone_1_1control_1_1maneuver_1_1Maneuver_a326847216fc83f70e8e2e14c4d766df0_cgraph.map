@@ -1,0 +1,5 @@
+<map id="iii_drone::control::maneuver::Maneuver::Start" name="iii_drone::control::maneuver::Maneuver::Start">
+<area shape="rect" id="Node000001" title="Triggers the maneuver to start by calling the underlying execute function on the goal handle." alt="" coords="5,5,175,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a0b7b01d9ab27db008c54f7ef0099fcd0" title="Goal handle getter." alt="" coords="223,5,392,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="175,30,209,30,209,35,175,35"/>
+</map>

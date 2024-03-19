@@ -30,8 +30,9 @@
 /*****************************************************************************/
 // III-Drone-Core:
 
-#include <iii_drone_core/perception/hough_transformer_node/hough_transformer_node_configurator.hpp>
-#include <iii_drone_core/perception/hough_transformer_parameters.hpp>
+#include <iii_drone_core/configuration/configurator.hpp>
+// #include <iii_drone_core/perception/hough_transformer_node/hough_transformer_node_configurator.hpp>
+// #include <iii_drone_core/perception/hough_transformer_parameters.hpp>
 #include <iii_drone_core/perception/hough_transformer.hpp>
 
 /*****************************************************************************/
@@ -83,7 +84,7 @@ namespace hough_transformer_node {
 		/**
 		 * @brief Configurator object
 		 */
-		HoughTransformerConfigurator configurator_;
+		iii_drone::configuration::Configurator configurator_;
 
 		/**
 		 * @brief HoughTransformer object

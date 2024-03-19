@@ -1,0 +1,27 @@
+<map id="iii_drone::types::poseFromPoseMsg" name="iii_drone::types::poseFromPoseMsg">
+<area shape="rect" id="Node000001" title=" " alt="" coords="940,242,1135,282"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#ab9c3e7f08103bc40c70efd3ca93f040b" title="Computes a target transform given a target adapter." alt="" coords="635,163,892,217"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="947,241,867,220,868,215,948,236"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1adapters_1_1StateAdapter.html#a0f4294d40860c07fa8abaa7847b39b4f" title="Constructor from III&#45;Drone&#45;Interfaces::State msg." alt="" coords="659,242,867,282"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="927,265,867,265,867,259,927,259"/>
+<area shape="rect" id="Node000013" href="$classiii__drone_1_1adapters_1_1StateAdapter.html#a57f6e00f7ede418214e2ad32a26609d0" title="Constructor from III&#45;Drone&#45;Interfaces::State msg shared pointer." alt="" coords="659,306,867,346"/>
+<area shape="poly" id="edge12_Node000001_Node000013" title=" " alt="" coords="938,288,850,309,849,303,937,283"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a7a9d2b2d6d91f20491eab552a16f9955" title="Whether the maneuver can be executed." alt="" coords="331,5,576,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="716,156,656,114,585,74,559,63,561,58,588,69,658,109,719,152"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a43a1bd4911d8cb93397ab2eeabd61ee4" title="Whether the maneuver can be executed, will return false if the target is not visible or the drone has..." alt="" coords="320,84,587,139"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="641,162,561,141,563,136,642,157"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a4eb2e2eafbed623aeb6b16536465f896" title="Gets the hover reference. The current state is not used. Will call the on fail callback if the target..." alt="" coords="320,163,587,217"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="621,193,587,193,587,187,621,187"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a7e09c4b73237e76701d9e83785e05077" title="Returns true if the maneuver has succeeded. Has succeeded if the target is visible and the drone is w..." alt="" coords="320,241,587,296"/>
+<area shape="poly" id="edge8_Node000002_Node000009" title=" " alt="" coords="642,223,563,244,561,239,641,218"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#ac08b547da2cbfe0165a2ccca6b639c02" title="Updates the hover reference." alt="" coords="320,320,587,375"/>
+<area shape="poly" id="edge10_Node000002_Node000011" title=" " alt="" coords="644,227,636,232,620,251,613,270,606,291,588,311,570,322,568,318,585,307,601,288,608,269,616,248,633,228,641,222"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a8651f18cdc5c9b85ff145c7decac4ddc" title="Computes the hover by object reference for the maneuver server." alt="" coords="5,29,272,84"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="330,159,318,152,303,139,294,125,285,112,270,99,247,86,250,82,274,94,289,108,298,122,307,135,322,148,333,154"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a8cd7c6981d54cd5aa868f25d843ad0d0" title="Registers the hover by object reference callback on success." alt="" coords="7,109,270,178"/>
+<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="306,171,270,165,270,160,307,166"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a42d65b247ee89440e63ed7c992c4772e" title="Registers the hover by object reference callback on success." alt="" coords="5,202,272,271"/>
+<area shape="poly" id="edge7_Node000005_Node000008" title=" " alt="" coords="307,214,272,220,272,214,306,209"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#af8528504b83c4c9b405f496ccc269e10" title="Returns true if the maneuver has failed. Has failed if the target is not visible or the drone has dri..." alt="" coords="5,296,272,351"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="307,297,272,303,272,298,306,292"/>
+</map>

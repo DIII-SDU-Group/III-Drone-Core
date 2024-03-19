@@ -1,0 +1,20 @@
+<map id="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator::drone_frame_id" name="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator::drone_frame_id">
+<area shape="rect" id="Node000001" title="Get the drone frame ID." alt="" coords="971,207,1181,276"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a9da2f639fcfb01f409d7a63a62fc91cf" title="Initialize the parameters." alt="" coords="633,83,923,138"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1005,202,922,160,871,141,873,136,924,155,1007,197"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#a155acd1e412911b7e8cf989e949a2e2f" title="Callback for mmwave data topic." alt="" coords="334,214,565,269"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="957,210,922,204,841,195,778,193,715,196,634,204,558,217,557,211,633,199,714,191,778,187,842,190,923,199,958,205"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#a703ae72ba683ae11154ce597b8bbad9d" title="Constructor." alt="" coords="5,279,265,334"/>
+<area shape="poly" id="edge8_Node000001_Node000006" title=" " alt="" coords="958,276,923,283,745,302,567,311,402,314,265,313,265,308,402,309,566,306,745,296,922,277,957,271"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#ae98c3a40fb32f1305c1528467205ba33" title="Callback for fetching drone transform." alt="" coords="662,345,894,399"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="1007,285,924,328,873,347,871,342,922,323,1005,281"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#ab169bb89cd56cc2d80d1888a38196c0d" title="Publishes point cloud data on a given publisher." alt="" coords="673,214,883,269"/>
+<area shape="poly" id="edge9_Node000001_Node000008" title=" " alt="" coords="957,244,884,244,884,239,957,239"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a16671ee9cf2190f4753a79c381e70912" title="Constructor." alt="" coords="313,5,585,75"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="636,83,585,72,586,67,637,78"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a31bd150be2affd0af20b334d7efea8ba" title="Constructor." alt="" coords="313,99,585,168"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="620,124,586,127,585,121,620,119"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="321,271,266,282,265,277,320,265"/>
+<area shape="poly" id="edge7_Node000007_Node000006" title=" " alt="" coords="648,362,313,328,265,323,266,318,314,323,649,357"/>
+<area shape="poly" id="edge10_Node000008_Node000005" title=" " alt="" coords="659,244,565,244,565,239,659,239"/>
+</map>

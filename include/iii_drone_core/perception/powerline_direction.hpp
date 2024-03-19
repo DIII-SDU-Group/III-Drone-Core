@@ -16,9 +16,9 @@
 #include <iii_drone_core/utils/math.hpp>
 #include <iii_drone_core/utils/types.hpp>
 #include <iii_drone_core/utils/timestamp.hpp>
-#include <iii_drone_core/utils/atomic.hpp>
+#include <iii_drone_core/utils/history.hpp>
 
-#include <iii_drone_core/perception/powerline_direction_parameters.hpp>
+#include <iii_drone_core/configuration/parameter_bundle.hpp>
 
 #include <iii_drone_core/adapters/powerline_adapter.hpp>
 
@@ -55,7 +55,7 @@ namespace perception {
          * 
          * @param parameters The powerline direction parameters.
          */
-        PowerlineDirection(std::shared_ptr<PowerlineDirectionParameters> parameters);
+        PowerlineDirection(iii_drone::configuration::ParameterBundle::SharedPtr parameters);
 
         /**
          * @brief Destructor.
@@ -120,7 +120,7 @@ namespace perception {
         /**
          * @brief The powerline direction parameters.
         */
-        std::shared_ptr<PowerlineDirectionParameters> parameters_;
+        iii_drone::configuration::ParameterBundle::SharedPtr parameters_;
 
         /**
          * @brief Checks if any cable is in the field of view
@@ -198,29 +198,14 @@ namespace perception {
         void resetKalmanFilter();
 
         /**
-         * @brief Whether an angle message has been received.
-         */
-        iii_drone::utils::Atomic<bool> received_angle_ = false;
-
-        /**
-         * @brief Whether the first odometry message has been received.
-         */
-        iii_drone::utils::Atomic<bool> received_first_odom_ = false;
-
-        /**
-         * @brief Whether the second odometry message has been received.
-         */
-        iii_drone::utils::Atomic<bool> received_second_odom_ = false;
-
-        /**
          * @brief The drone quaternions
         */
-        iii_drone::utils::Atomic<iii_drone::types::quaternion_t> drone_quat_, last_drone_quat_;
+        iii_drone::utils::History<iii_drone::types::quaternion_t> drone_quat_history_;
 
         /**
          * @brief The powerline quaternion
         */
-        iii_drone::utils::Atomic<iii_drone::types::quaternion_t> pl_quat_;
+        iii_drone::utils::History<iii_drone::types::quaternion_t> pl_quat_history_;
 
         /**
          * @brief The Powerline object

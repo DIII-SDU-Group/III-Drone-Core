@@ -1,0 +1,13 @@
+<map id="iii_drone::control::maneuver_controller_node::ManeuverControllerNodeConfigurator::hover_on_cable_default_yaw_rate" name="iii_drone::control::maneuver_controller_node::ManeuverControllerNodeConfigurator::hover_on_cable_default_yaw_rate">
+<area shape="rect" id="Node000001" title="Get the default yaw rate for hovering on a cable." alt="" coords="629,164,861,248"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNodeConfigurator.html#a0fda53bcb283fce52598e8f2313a7576" title="Initializes the parameters objects." alt="" coords="327,121,581,190"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="615,186,581,180,582,175,616,181"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNode.html#a1c587895df3c61bd6b748e97942cd619" title="Creates and registers all maneuver servers with the maneuver scheduler." alt="" coords="338,218,570,287"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="616,229,571,237,570,231,615,224"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNodeConfigurator.html#a750254b64abf7c8009c8b72c811cf607" title="Constructor." alt="" coords="5,5,279,89"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="339,119,263,92,265,87,341,114"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNodeConfigurator.html#a1f8a74bf54ba2ab85b87d178fc1f9291" title="Constructor." alt="" coords="5,113,279,197"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="313,158,279,158,279,153,313,153"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNode.html#a291f0abf320443ed6ad4a248ba028b8c" title="Constructor. Creates the node, initializes the configurator, the transform buffer and listener,..." alt="" coords="26,222,258,291"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="324,257,258,258,258,253,324,252"/>
+</map>

@@ -1,0 +1,13 @@
+<map id="iii_drone::control::maneuver::HoverOnCableManeuverServer::registerReferenceCallbackOnSuccess" name="iii_drone::control::maneuver::HoverOnCableManeuverServer::registerReferenceCallbackOnSuccess">
+<area shape="rect" id="Node000001" title="Register the hover on cable reference callback on success." alt="" coords="5,77,268,146"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverOnCableManeuverServer.html#ac87c548fbbbeb13a210a267c39c685d3" title="Gets the hover on cable reference. Will call the on fail callback if the drone is not on the cable." alt="" coords="316,44,579,99"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="268,92,302,87,303,93,269,97"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#ad50ebd57620bbb5863a8d8e40fca2f12" title="Registers a callback function for the reference. The callback function should be registered with the ..." alt="" coords="342,123,553,177"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="269,125,329,133,328,138,268,130"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#aa25571ba492acf43cd9af009c02cf72e" title="Combined drone awareness handler, accessible to derived classes through the protected method." alt="" coords="653,5,863,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="579,52,639,45,639,50,579,58"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverOnCableManeuverServer.html#a7ebbdce1a5988daf4eb40334583432e4" title="Validates that the drone is on the cable." alt="" coords="627,84,889,139"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="579,86,613,90,613,95,578,91"/>
+<area shape="rect" id="Node000005" href="$structiii__drone_1_1control_1_1combined__drone__awareness__t.html#aeba579c277752c404e5a8a6c7298eab8" title=" " alt="" coords="937,84,1152,139"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="890,109,924,109,924,114,890,114"/>
+</map>

@@ -1,0 +1,11 @@
+<map id="iii_drone::control::TrajectoryGeneratorClient::ComputeReferenceTrajectoryAsync" name="iii_drone::control::TrajectoryGeneratorClient::ComputeReferenceTrajectoryAsync">
+<area shape="rect" id="Node000001" title="Starts generating a trajectory." alt="" coords="631,57,889,112"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a2ace3412e0d42d07a39c553c89ab0c6a" title="Compute the reference." alt="" coords="10,5,255,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="640,57,582,47,498,39,412,34,255,32,255,27,412,29,498,34,583,42,641,52"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServer.html#ac13004e478653d73361c3569e11870dc" title="Compute the reference." alt="" coords="5,97,260,152"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="643,118,583,127,499,134,415,137,260,135,260,129,415,132,499,129,582,122,642,112"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1TrajectoryGeneratorClient.html#a0e32180d729e74d24edeef891d1ac843" title="Generates a trajectory and blocks until it is done." alt="" coords="308,57,583,112"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="617,87,583,87,583,82,617,82"/>
+<area shape="poly" id="edge4_Node000004_Node000002" title=" " alt="" coords="294,62,255,56,256,50,295,57"/>
+<area shape="poly" id="edge5_Node000004_Node000003" title=" " alt="" coords="295,107,261,111,260,106,294,101"/>
+</map>

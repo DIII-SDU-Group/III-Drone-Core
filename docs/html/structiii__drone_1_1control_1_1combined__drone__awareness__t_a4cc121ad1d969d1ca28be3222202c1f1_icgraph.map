@@ -1,0 +1,11 @@
+<map id="iii_drone::control::combined_drone_awareness_t::in_flight" name="iii_drone::control::combined_drone_awareness_t::in_flight">
+<area shape="rect" id="Node000001" title=" " alt="" coords="320,124,535,179"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a7a9d2b2d6d91f20491eab552a16f9955" title="Whether the maneuver can be executed." alt="" coords="16,5,261,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="366,120,271,74,240,63,242,57,273,69,368,115"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServer.html#a6b744edf6d2a98751e379a344686d37d" title="Whether the maneuver can be executed." alt="" coords="11,84,266,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="306,137,266,132,267,126,307,132"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a43a1bd4911d8cb93397ab2eeabd61ee4" title="Whether the maneuver can be executed, will return false if the target is not visible or the drone has..." alt="" coords="5,163,272,217"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="307,170,272,175,272,169,306,165"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverManeuverServer.html#a48fc833da5d3dfd1cd701a476d2af542" title="Whether the maneuver can be executed, will return true if the drone is armed and offboard." alt="" coords="13,241,264,296"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="366,188,273,231,238,244,236,239,271,226,364,183"/>
+</map>

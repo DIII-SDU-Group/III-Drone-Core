@@ -1,0 +1,9 @@
+<map id="iii_drone::perception::PowerlineParameters" name="iii_drone::perception::PowerlineParameters">
+<area shape="rect" id="Node000001" title="Class for storing the parameters of the powerline object." alt="" coords="57,277,251,837"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,135,140,200"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="74,200,77,253,78,261,72,261,71,254,69,200"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="197,135,276,200"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="233,201,219,262,214,261,227,200"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="171,5,302,85"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="239,99,239,134,234,134,234,99"/>
+</map>

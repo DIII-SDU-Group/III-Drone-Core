@@ -1,0 +1,7 @@
+<map id="iii_drone::control::CombinedDroneAwarenessHandler::target_cable_id" name="iii_drone::control::CombinedDroneAwarenessHandler::target_cable_id">
+<area shape="rect" id="Node000001" title="Returns the current target cable id, &#45;1 if no target cable is set." alt="" coords="401,49,659,104"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#ab9e4d04b91ff4a8df5113ccdc0356484" title="Updates the given combined drone awareness from the powerline. Triggers updates of target_cable_posit..." alt="" coords="5,5,353,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="387,61,353,57,354,52,388,56"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#aba0b908f84dde313a07318315d3caafb" title="Updates the given combined drone awareness from the target cable id. Triggers updates of target_cable..." alt="" coords="17,85,341,154"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="388,97,342,102,341,97,387,91"/>
+</map>

@@ -10,9 +10,10 @@ using namespace iii_drone::perception;
 // Implementation
 /*****************************************************************************/
 
-PowerlineDirection::PowerlineDirection(std::shared_ptr<PowerlineDirectionParameters> parameters) : parameters_(parameters) {
-
-    pl_quat_ = iii_drone::types::quaternion_t::Identity();
+PowerlineDirection::PowerlineDirection(iii_drone::configuration::ParameterBundle::SharedPtr parameters) 
+    : parameters_(parameters),
+    drone_quat_history_(2),
+    pl_quat_history_(1) {
 
     resetKalmanFilter();
 
@@ -29,7 +30,17 @@ const geometry_msgs::msg::PoseStamped PowerlineDirection::ToPoseStampedMsg(const
     msg.header.stamp = (rclcpp::Time)stamp_;
     msg.header.frame_id = drone_frame_id;
 
-    iii_drone::types::quaternion_t pl_quat = pl_quat_;
+    iii_drone::types::quaternion_t pl_quat;
+
+    if (pl_quat_history_.empty()) {
+
+        pl_quat = iii_drone::types::quaternion_t::Identity();
+
+    } else {
+
+        pl_quat = pl_quat_history_[0];
+
+    }
 
     msg.pose = iii_drone::types::poseMsgFromPose(
         iii_drone::types::point_t::Zero(),
@@ -47,7 +58,15 @@ const geometry_msgs::msg::QuaternionStamped PowerlineDirection::ToQuaternionStam
     msg.header.stamp = (rclcpp::Time)stamp_;
     msg.header.frame_id = drone_frame_id;
 
-    msg.quaternion = iii_drone::types::quaternionMsgFromQuaternion(pl_quat_);
+    if (pl_quat_history_.empty()) {
+
+        msg.quaternion = iii_drone::types::quaternionMsgFromQuaternion(iii_drone::types::quaternion_t::Identity());
+
+    } else {
+
+        msg.quaternion = iii_drone::types::quaternionMsgFromQuaternion(pl_quat_history_[0]);
+
+    }
 
     return msg;
 
@@ -58,22 +77,20 @@ void PowerlineDirection::Update(float pl_yaw) {
     using namespace iii_drone::types;
     using namespace iii_drone::math;
 
-    quaternion_t drone_quat = (quaternion_t)drone_quat_;
-
-    if (!received_first_odom_) {
+    if (drone_quat_history_.empty()) {
 
         return;
 
     }
 
-    if (!received_angle_) {
+    quaternion_t drone_quat = drone_quat_history_[0];
+
+    if (pl_quat_history_.empty()) {
 
         euler_angles_t pl_eul = computePowerlineEulerAngles(pl_yaw, drone_quat);
         quaternion_t pl_quat = eulToQuat(pl_eul);
 
-        pl_quat_ = pl_quat;
-
-        received_angle_ = true;
+        pl_quat_history_ = pl_quat;
 
         resetKalmanFilter();
 
@@ -89,26 +106,27 @@ void PowerlineDirection::Update(float pl_yaw) {
 
     }
 
+
     euler_angles_t D_eul_P = computePowerlineEulerAngles(pl_yaw, drone_quat);
 
     for (int i = 0; i < 3; i++) {
 
         float angle = false ? mapAngle2(pl_angle_est_[i].state_est, D_eul_P(i)) : D_eul_P(i);
 
-        if (!received_angle_) {
+        // if (!received_angle_) {
 
-            pl_angle_est_[i].state_est = backmapAngle(angle);
+        //     pl_angle_est_[i].state_est = backmapAngle(angle);
 
-            if (i==2) {
+        //     if (i==2) {
 
-                received_angle_ = true;
+        //         received_angle_ = true;
 
-            }
+        //     }
 
-        } else {
+        // } else {
 
             float y_bar = angle - pl_angle_est_[i].state_est;
-            float s = pl_angle_est_[i].var_est + parameters_->kf_r();
+            float s = pl_angle_est_[i].var_est + parameters_->GetParameter("kf_r").as_double();
 
             float k = pl_angle_est_[i].var_est / s;
 
@@ -117,11 +135,11 @@ void PowerlineDirection::Update(float pl_yaw) {
 
             pl_angle_est_[i].state_est = backmapAngle(pl_angle_est_[i].state_est);
 
-        }
+        // }
 
         D_eul_P(i) = pl_angle_est_[i].state_est;
 
-        pl_quat_ = eulToQuat(D_eul_P);
+        pl_quat_history_ = eulToQuat(D_eul_P);
 
     }
 
@@ -134,44 +152,37 @@ void PowerlineDirection::Predict(const iii_drone::types::quaternion_t & drone_qu
     using namespace iii_drone::types;
     using namespace iii_drone::math;
 
-    quaternion_t last_drone_quat = drone_quat_;
+    drone_quat_history_ = drone_quat;
 
-    last_drone_quat_ = last_drone_quat;
-    drone_quat_ = drone_quat;
-
-    if (!received_first_odom_) {
-
-        received_first_odom_ = true;
-        return;
-
-    }
-
-    if (!received_second_odom_) {
-
-        received_second_odom_ = true;
-        return;
-
-    }
-
-    if (!received_angle_) {
+    if (!drone_quat_history_.full()) {
 
         return;
 
     }
 
-    quaternion_t inv_last_drone_quat = quatInv(last_drone_quat);
+    if (!pl_quat_history_.full()) {
+
+        return;
+
+    }
+
+    quaternion_t inv_last_drone_quat = quatInv(drone_quat_history_[-1]);
     quaternion_t delta_drone_quat = quatMultiply(drone_quat, inv_last_drone_quat); /// Works!!!!! #impericalmethod
 
-    pl_quat_ = quatMultiply(
+    quaternion_t pl_quat = pl_quat_history_[0];
+
+    pl_quat = quatMultiply(
         delta_drone_quat, 
-        pl_quat_
+        pl_quat
     );   //// WORKS!!! #impericalmethodAKAnoideawhyitworks
 
-    euler_angles_t eul = quatToEul(pl_quat_);
+    pl_quat_history_ = pl_quat;
+
+    euler_angles_t eul = quatToEul(pl_quat);
 
     for (int i = 0; i < 3; i++) { 
         
-        pl_angle_est_[i].var_est += parameters_->kf_q(); 
+        pl_angle_est_[i].var_est += parameters_->GetParameter("kf_q").as_double(); 
         pl_angle_est_[i].state_est = backmapAngle(eul(i)); 
         
     }
@@ -210,7 +221,13 @@ bool PowerlineDirection::anyCableInFOV() const {
 
 const iii_drone::types::quaternion_t PowerlineDirection::quaternion() const {
 
-    return pl_quat_;
+    if (pl_quat_history_.empty()) {
+
+        return iii_drone::types::quaternion_t::Identity();
+
+    }
+
+    return pl_quat_history_[0];
 
 }
 
@@ -363,7 +380,17 @@ float PowerlineDirection::backmapAngle(float angle) const {
 
 void PowerlineDirection::resetKalmanFilter() {
 
-    iii_drone::types::euler_angles_t pl_eul = iii_drone::math::quatToEul(pl_quat_);
+    iii_drone::types::euler_angles_t pl_eul;
+    
+    if (pl_quat_history_.empty()) {
+
+        pl_eul = iii_drone::types::euler_angles_t(0,0,0);
+    
+    } else {
+    
+        pl_eul = iii_drone::math::quatToEul(pl_quat_history_[0]);
+    
+    }
 
     pl_angle_est_[0].state_est = pl_eul(0);
     pl_angle_est_[0].var_est = 0.1;

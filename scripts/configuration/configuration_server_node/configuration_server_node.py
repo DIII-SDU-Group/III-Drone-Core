@@ -328,7 +328,7 @@ class ConfigurationServer(Node):
         elif param_dict["type"] == "string_array":
             return parameter_value.string_array_value
         
-        elif param_dict["type"] == "integer_array":
+        elif param_dict["type"] == "int_array" or param_dict["type"] == "integer_array":
             return parameter_value.integer_array_value
         
         elif param_dict["type"] == "float_array":

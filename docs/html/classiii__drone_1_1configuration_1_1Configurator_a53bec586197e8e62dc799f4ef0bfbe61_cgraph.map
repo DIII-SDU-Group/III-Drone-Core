@@ -1,0 +1,9 @@
+<map id="iii_drone::configuration::Configurator::SyncParameters" name="iii_drone::configuration::Configurator::SyncParameters">
+<area shape="rect" id="Node000001" title="Synchronizes parameters with the parameter server. Should never be necessary." alt="" coords="5,37,228,77"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="571,29,809,84"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="228,48,276,46,399,44,523,46,557,47,557,52,523,51,399,49,276,51,228,53"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1configuration_1_1Configurator.html#a4e2906af1c389ca060c0efc7a4c65e95" title="Sends a GetParameters request to the ConfigurationServer node, which will return the parameters." alt="" coords="276,61,523,116"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="229,67,263,71,262,76,228,72"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="634,29,634,19,644,10,663,5,690,3,723,6,741,14,739,19,721,11,690,8,664,10,647,15,639,21,639,29"/>
+<area shape="poly" id="edge4_Node000003_Node000002" title=" " alt="" coords="523,72,557,69,557,74,523,78"/>
+</map>
