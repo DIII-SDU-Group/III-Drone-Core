@@ -9,6 +9,8 @@
 
 #include <iii_drone_core/utils/types.hpp>
 
+#include <iii_drone_core/configuration/parameter_bundle.hpp>
+
 #include <iii_drone_core/control/combined_drone_awareness_handler.hpp>
 
 #include <iii_drone_core/control/maneuver/maneuver_server.hpp>
@@ -16,8 +18,6 @@
 #include <iii_drone_core/control/maneuver/maneuver_types.hpp>
 
 #include <iii_drone_core/control/maneuver/hover_maneuver_server.hpp>
-
-#include <iii_drone_core/control/maneuver/fly_to_position_maneuver_server_parameters.hpp>
 
 #include <iii_drone_core/control/trajectory_generator_client.hpp>
 
@@ -61,7 +61,7 @@ namespace maneuver {
             const std::string & action_name,
             unsigned int wait_for_execute_poll_ms,
             unsigned int evaluate_done_poll_ms,
-            iii_drone::control::maneuver::FlyToPositionManeuverServerParameters::SharedPtr fly_to_position_maneuver_server_parameters,
+            iii_drone::configuration::ParameterBundle::SharedPtr fly_to_position_maneuver_server_parameters,
             iii_drone::control::TrajectoryGeneratorClient::SharedPtr trajectory_generator_client
         );
 
@@ -172,7 +172,7 @@ namespace maneuver {
         /**
          * @brief The fly to position maneuver server parameters shared pointer.
          */
-        iii_drone::control::maneuver::FlyToPositionManeuverServerParameters::SharedPtr parameters_;
+        iii_drone::configuration::ParameterBundle::SharedPtr parameters_;
 
         /**
          * @brief The trajectory generator client shared pointer.

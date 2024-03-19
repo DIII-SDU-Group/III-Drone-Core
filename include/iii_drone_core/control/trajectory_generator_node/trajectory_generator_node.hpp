@@ -24,9 +24,8 @@
 /*****************************************************************************/
 // III-Drone-Core:
 
-#include <iii_drone_core/control/trajectory_generator_node/trajectory_generator_node_configurator.hpp>
+#include <iii_drone_core/configuration/configurator.hpp>
 
-#include <iii_drone_core/control/mpc_parameters.hpp>
 #include <iii_drone_core/control/trajectory_generator.hpp>
 
 #include <iii_drone_core/adapters/state_adapter.hpp>
@@ -67,7 +66,7 @@ namespace trajectory_generator_node {
 		/**
 		 * @brief The configurator
 		 */
-		TrajectoryGeneratorNodeConfigurator configurator_;
+		iii_drone::configuration::Configurator configurator_;
 
         /**
          * @brief The trajectory generator object

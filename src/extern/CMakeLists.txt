@@ -62,6 +62,8 @@ target_include_directories(matlab_mpc
     ${MATLAB_MPC_INCLUDE_DIRS}
 )
 
+message(STATUS "Test 123123")
+
 # Yaml cpp
 include(FetchContent)
 

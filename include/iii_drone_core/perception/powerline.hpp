@@ -41,7 +41,8 @@
 #include <iii_drone_core/utils/atomic.hpp>
 #include <iii_drone_core/utils/history.hpp>
 
-#include <iii_drone_core/perception/powerline_parameters.hpp>
+#include <iii_drone_core/configuration/parameter_bundle.hpp>
+
 #include <iii_drone_core/perception/single_line.hpp>
 
 #include <iii_drone_core/adapters/powerline_adapter.hpp>
@@ -70,8 +71,12 @@ namespace perception {
          * @brief Constructor.
          * 
          * @param powerline_parameters Pointer to the powerline parameters.
+         * @param tf_buffer Pointer to the tf buffer.
         */
-        Powerline(std::shared_ptr<PowerlineParameters> powerline_parameters);
+        Powerline(
+            iii_drone::configuration::ParameterBundle::SharedPtr powerline_parameters,
+            std::shared_ptr<tf2_ros::Buffer> tf_buffer
+        );
 
         /**
          * @brief Converts to a PowerlineAdapter.
@@ -145,11 +150,6 @@ namespace perception {
         void Reset();
 
         /**
-         * @brief tf_buffer setter.
-        */
-        std::shared_ptr<tf2_ros::Buffer> & tf_buffer();
-
-        /**
          * @brief Stamp getter
          */
         const rclcpp::Time stamp() const;
@@ -175,6 +175,11 @@ namespace perception {
         */
         const iii_drone::types::pose_t drone_pose() const;
 
+        /**
+         * @brief Shared pointer type.
+         */
+        typedef std::shared_ptr<Powerline> SharedPtr;
+
     private:
         /**
          * @brief Time stamp for latest change.
@@ -184,7 +189,7 @@ namespace perception {
         /**
          * @brief The powerline parameters.
         */
-        std::shared_ptr<PowerlineParameters> parameters_;
+        iii_drone::configuration::ParameterBundle::SharedPtr parameters_;
 
         /**
          * @brief The tf buffer.

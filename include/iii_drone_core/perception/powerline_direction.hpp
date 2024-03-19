@@ -18,7 +18,7 @@
 #include <iii_drone_core/utils/timestamp.hpp>
 #include <iii_drone_core/utils/history.hpp>
 
-#include <iii_drone_core/perception/powerline_direction_parameters.hpp>
+#include <iii_drone_core/configuration/parameter_bundle.hpp>
 
 #include <iii_drone_core/adapters/powerline_adapter.hpp>
 
@@ -55,7 +55,7 @@ namespace perception {
          * 
          * @param parameters The powerline direction parameters.
          */
-        PowerlineDirection(std::shared_ptr<PowerlineDirectionParameters> parameters);
+        PowerlineDirection(iii_drone::configuration::ParameterBundle::SharedPtr parameters);
 
         /**
          * @brief Destructor.
@@ -120,7 +120,7 @@ namespace perception {
         /**
          * @brief The powerline direction parameters.
         */
-        std::shared_ptr<PowerlineDirectionParameters> parameters_;
+        iii_drone::configuration::ParameterBundle::SharedPtr parameters_;
 
         /**
          * @brief Checks if any cable is in the field of view

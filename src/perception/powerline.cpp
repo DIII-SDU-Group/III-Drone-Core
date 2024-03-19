@@ -12,8 +12,12 @@ using namespace iii_drone::math;
 // Implementation
 /*****************************************************************************/
 
-Powerline::Powerline(std::shared_ptr<PowerlineParameters> powerline_parameters) 
+Powerline::Powerline(
+    iii_drone::configuration::ParameterBundle::SharedPtr powerline_parameters,
+    std::shared_ptr<tf2_ros::Buffer> tf_buffer
+) 
     : parameters_(powerline_parameters),
+    tf_buffer_(tf_buffer),
     pl_dir_history_(1),
     drone_pose_history_(2) {
 
@@ -83,7 +87,7 @@ const iii_drone::adapters::PointCloudAdapter Powerline::ToPointCloudAdapter(bool
 
     iii_drone::adapters::PointCloudAdapter adapter(
         stamp_,
-        parameters_->drone_frame_id(),
+        parameters_->GetParameter("drone_frame_id").as_string(),
         points
     );
 
@@ -141,7 +145,7 @@ point_t Powerline::UpdateLine(const point_t & point) {
 
     }
 
-    if (match_index == -1 && line_count >= parameters_->max_lines()) {
+    if (match_index == -1 && line_count >= parameters_->GetParameter("max_lines").as_int()) {
 
         return projected_point;
 
@@ -308,7 +312,7 @@ void Powerline::ComputeInterLinePositions() {
 
                     inter_line_positions_[k].inter_line_position_window.push_back(vec);
 
-                    while(inter_line_positions_[k].inter_line_position_window.size() > (unsigned int)parameters_->inter_pos_window_size()) {
+                    while(inter_line_positions_[k].inter_line_position_window.size() > (unsigned int)parameters_->GetParameter("inter_pos_window_size").as_int()) {
 
                         inter_line_positions_[k].inter_line_position_window.erase(inter_line_positions_[k].inter_line_position_window.begin());
 
@@ -324,7 +328,7 @@ void Powerline::ComputeInterLinePositions() {
 
                     inter_line_positions_[k].inter_line_position_window.push_back(vec);
 
-                    while(inter_line_positions_[k].inter_line_position_window.size() > (unsigned int)parameters_->inter_pos_window_size()) {
+                    while(inter_line_positions_[k].inter_line_position_window.size() > (unsigned int)parameters_->GetParameter("inter_pos_window_size").as_int()) {
 
                         inter_line_positions_[k].inter_line_position_window.erase(inter_line_positions_[k].inter_line_position_window.begin());
 
@@ -369,12 +373,6 @@ void Powerline::Reset() {
     id_cnt_ = 0;
 
     stamp_.Update();
-
-}
-
-std::shared_ptr<tf2_ros::Buffer> & Powerline::tf_buffer() {
-
-    return tf_buffer_;
 
 }
 
@@ -451,7 +449,7 @@ int Powerline::findMatchingLine(const point_t & point) const {
 
         float dist = sqrt(vec.dot(vec));
 
-        if (dist < parameters_->matching_line_max_dist() && dist < best_dist) {
+        if (dist < parameters_->GetParameter("matching_line_max_dist").as_double() && dist < best_dist) {
 
             best_dist = dist;
             best_idx = i;

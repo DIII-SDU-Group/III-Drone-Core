@@ -21,7 +21,7 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(
     node_namespace,
     options
 ),  configurator_(this), 
-    pl_direction_(configurator_.powerline_direction_parameters()) {
+    pl_direction_(configurator_.GetParameterBundle("powerline_direction")) {
 
     pl_angle_sub_ = this->create_subscription<std_msgs::msg::Float32>(
         "/perception/hough_transformer/cable_yaw_angle", 
@@ -54,11 +54,11 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
-    std::chrono::milliseconds sleep_ms(configurator_.init_sleep_time_ms());
+    std::chrono::milliseconds sleep_ms(configurator_.GetParameter("init_sleep_time_ms").as_int());
 	rclcpp::Rate rate(sleep_ms);
 	rate.sleep();
 
-    std::chrono::milliseconds odom_callback_ms(configurator_.odometry_callback_period_ms());
+    std::chrono::milliseconds odom_callback_ms(configurator_.GetParameter("odometry_callback_period_ms").as_int());
     drone_tf_timer_ = this->create_wall_timer(
         odom_callback_ms, 
         std::bind(
@@ -80,8 +80,8 @@ void PowerlineDirectionComputerNode::odometryCallback() {
     try {
 
         tf = tf_buffer_->lookupTransform(
-            configurator_.drone_frame_id(),
-            configurator_.world_frame_id(), 
+            configurator_.GetParameter("drone_frame_id").as_string(),
+            configurator_.GetParameter("world_frame_id").as_string(), 
             tf2::TimePointZero
         );
 
@@ -104,8 +104,8 @@ void PowerlineDirectionComputerNode::publishPowerlineDirection() {
 
     RCLCPP_DEBUG(this->get_logger(), "Publishing powerline direction");
 
-    geometry_msgs::msg::PoseStamped pose_msg = pl_direction_.ToPoseStampedMsg(configurator_.drone_frame_id());
-    geometry_msgs::msg::QuaternionStamped quat_msg = pl_direction_.ToQuaternionStampedMsg(configurator_.drone_frame_id());
+    geometry_msgs::msg::PoseStamped pose_msg = pl_direction_.ToPoseStampedMsg(configurator_.GetParameter("drone_frame_id").as_string());
+    geometry_msgs::msg::QuaternionStamped quat_msg = pl_direction_.ToQuaternionStampedMsg(configurator_.GetParameter("drone_frame_id").as_string());
 
     pl_direction_pose_pub_->publish(pose_msg);
     pl_direction_quat_pub_->publish(quat_msg);

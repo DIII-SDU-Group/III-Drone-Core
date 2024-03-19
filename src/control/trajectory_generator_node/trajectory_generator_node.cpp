@@ -19,9 +19,9 @@ TrajectoryGeneratorNode::TrajectoryGeneratorNode(
         this
     ), 
     trajectory_generator_(
-        configurator_.positional_mpc_parameters(),
-        configurator_.cable_landing_mpc_parameters(),
-        configurator_.cable_takeoff_mpc_parameters()
+        configurator_.GetParameterBundle("position_MPC"),
+        configurator_.GetParameterBundle("cable_landing_MPC"),
+        configurator_.GetParameterBundle("cable_takeoff_MPC")
     )
 {
 

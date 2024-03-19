@@ -14,7 +14,7 @@
 #include <iii_drone_core/control/reference.hpp>
 #include <iii_drone_core/control/reference_trajectory.hpp>
 
-#include <iii_drone_core/control/mpc_parameters.hpp>
+#include <iii_drone_core/configuration/parameter_bundle.hpp>
 
 /*****************************************************************************/
 // ROS2:
@@ -71,9 +71,9 @@ namespace control {
          * @param cable_takeoff_mpc_params The cable takeoff MPC parameters
          */
         TrajectoryGenerator(
-            std::shared_ptr<const MPCParameters> positional_mpc_params, 
-            std::shared_ptr<const MPCParameters> cable_landing_mpc_params, 
-            std::shared_ptr<const MPCParameters> cable_takeoff_mpc_params
+            iii_drone::configuration::ParameterBundle::SharedPtr positional_mpc_params, 
+            iii_drone::configuration::ParameterBundle::SharedPtr cable_landing_mpc_params, 
+            iii_drone::configuration::ParameterBundle::SharedPtr cable_takeoff_mpc_params
         );
 
 		/**
@@ -99,7 +99,7 @@ namespace control {
         /**
          * @brief The MPC parameters
          */
-        std::shared_ptr<const MPCParameters> positional_mpc_params_, cable_landing_mpc_params_, cable_takeoff_mpc_params_;
+        iii_drone::configuration::ParameterBundle::SharedPtr positional_mpc_params_, cable_landing_mpc_params_, cable_takeoff_mpc_params_;
 
         /**
          * @brief Sets up the MPC.
@@ -124,7 +124,7 @@ namespace control {
          * @return void
         */
         void setupMPC(
-            std::shared_ptr<const MPCParameters> mpc_params,
+            iii_drone::configuration::ParameterBundle::SharedPtr mpc_params,
             bool set_target,
             bool first,
             bool reset,
@@ -166,7 +166,7 @@ namespace control {
 			int reset_trajectory, 
 			int reset_bounds, 
 			int reset_weights, 
-            std::shared_ptr<const MPCParameters> mpc_parameters
+            iii_drone::configuration::ParameterBundle::SharedPtr mpc_parameters
 		);
 
         /**

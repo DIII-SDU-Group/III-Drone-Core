@@ -25,7 +25,7 @@ TrajectoryGeneratorClient::TrajectoryGeneratorClient(rclcpp::Node * node)
     while (!client_->wait_for_service(std::chrono::seconds(1))) {
         if (!rclcpp::ok()) {
             RCLCPP_ERROR(node_->get_logger(), "Interrupted while waiting for the service. Exiting.");
-            rclcpp::shutdown();
+            return;
         }
         RCLCPP_INFO(node_->get_logger(), "Compute reference trajectory service not available, waiting again...");
     }

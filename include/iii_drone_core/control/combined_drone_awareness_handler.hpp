@@ -44,6 +44,8 @@
 #include <iii_drone_core/utils/atomic.hpp>
 #include <iii_drone_core/utils/history.hpp>
 
+#include <iii_drone_core/configuration/parameter_bundle.hpp>
+
 #include <iii_drone_core/adapters/px4/vehicle_status_adapter.hpp>
 #include <iii_drone_core/adapters/px4/vehicle_odometry_adapter.hpp>
 #include <iii_drone_core/adapters/powerline_adapter.hpp>
@@ -54,7 +56,6 @@
 #include <iii_drone_core/control/state.hpp>
 #include <iii_drone_core/control/reference.hpp>
 
-#include <iii_drone_core/control/combined_drone_awareness_handler_parameters.hpp>
 #include <iii_drone_core/control/maneuver/maneuver_types.hpp>
 
 /*****************************************************************************/
@@ -145,7 +146,7 @@ namespace control {
          * @param node Simple pointer to the containing node.
          */
         CombinedDroneAwarenessHandler(
-            CombinedDroneAwarenessHandlerParameters::SharedPtr params,
+            iii_drone::configuration::ParameterBundle::SharedPtr params,
             tf2_ros::Buffer::SharedPtr tf_buffer,
             rclcpp::Node * node
         );
@@ -302,7 +303,7 @@ namespace control {
         /**
          * @brief Parameters for the combined drone awareness handler.
          */
-        CombinedDroneAwarenessHandlerParameters::SharedPtr params_;
+        iii_drone::configuration::ParameterBundle::SharedPtr params_;
 
         /**
          * @brief The tf2 buffer.
@@ -485,7 +486,7 @@ namespace control {
         /**
          * @brief Ground altitudes history.
          */
-        iii_drone::utils::History<double> ground_altitudes_history_;
+        iii_drone::utils::History<double>::SharedPtr ground_altitudes_history_;
 
         /**
          * @brief Timer for updating the ground altitude estimate.

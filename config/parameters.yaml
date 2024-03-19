@@ -444,7 +444,7 @@ control:
     #   min: 0.0
     #   max: 5.0
   
-  MPC:
+  trajectory_generator:
     MPC_N:
       type: "int"
       value: 10

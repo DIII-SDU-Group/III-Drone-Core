@@ -20,7 +20,7 @@ FlyToObjectManeuverServer::FlyToObjectManeuverServer(
     const std::string & action_name,
     unsigned int wait_for_execute_poll_ms,
     unsigned int evaluate_done_poll_ms,
-    FlyToObjectManeuverServerParameters::SharedPtr parameters,
+    iii_drone::configuration::ParameterBundle::SharedPtr parameters,
     iii_drone::control::TrajectoryGeneratorClient::SharedPtr trajectory_generator_client
 ) : ManeuverServer(
     node,
@@ -78,7 +78,7 @@ bool FlyToObjectManeuverServer::CanExecuteManeuver(
 
     point_t target_position_in_world_frame = target_transform.block<3, 1>(0, 3);
 
-    bool target_position_valid = target_position_in_world_frame[2] - cda_handler->ground_altitude_estimate() >= parameters_->minimum_target_altitude();
+    bool target_position_valid = target_position_in_world_frame[2] - cda_handler->ground_altitude_estimate() >= parameters_->GetParameter("minimum_target_altitude").as_double();
 
     return target_position_valid;
 
@@ -145,7 +145,7 @@ Reference FlyToObjectManeuverServer::computeReference(const State & state) {
 
     Reference ref;
 
-    if (parameters_->generate_trajectories_asynchronously_with_delay()) {
+    if (parameters_->GetParameter("generate_trajectories_asynchronously_with_delay").as_bool()) {
 
         if (first_iteration_) {
 
@@ -177,7 +177,7 @@ Reference FlyToObjectManeuverServer::computeReference(const State & state) {
 
             while (!trajectory_generator_client_->done()) {
 
-                rclcpp::sleep_for(std::chrono::milliseconds(parameters_->generate_trajectories_poll_period_ms()));
+                rclcpp::sleep_for(std::chrono::milliseconds(parameters_->GetParameter("generate_trajectories_poll_period_ms").as_int()));
 
             }
 
@@ -221,7 +221,7 @@ Reference FlyToObjectManeuverServer::computeReference(const State & state) {
             true,
             first_it,
             MPC_mode_t::positional,
-            parameters_->generate_trajectories_poll_period_ms()
+            parameters_->GetParameter("generate_trajectories_poll_period_ms").as_int()
         );
 
         ref = trajectory_generator_client_->GetReferenceTrajectory().references()[0];
@@ -260,7 +260,7 @@ bool FlyToObjectManeuverServer::hasSucceeded(Maneuver & maneuver) {
 
     double distance = (euc_pos - target_euc_pos).norm();
 
-    return distance < parameters_->reached_position_euclidean_distance_threshold();
+    return distance < parameters_->GetParameter("reached_position_euclidean_distance_threshold").as_double();
 
 }
 
@@ -287,8 +287,8 @@ void FlyToObjectManeuverServer::publishFeedback(Maneuver & maneuver) {
     State state = awareness_handler()->GetState();
     Reference target_reference = getUpdatedTargetReference(state);
 
-    feedback->planned_path = reference_trajectory_adapter.ToPathMsg(parameters_->world_frame_id());
-    feedback->vehicle_pose = StateAdapter(awareness_handler()->GetState()).ToPoseStampedMsg(parameters_->world_frame_id());
+    feedback->planned_path = reference_trajectory_adapter.ToPathMsg(parameters_->GetParameter("world_frame_id").as_string());
+    feedback->vehicle_pose = StateAdapter(awareness_handler()->GetState()).ToPoseStampedMsg(parameters_->GetParameter("world_frame_id").as_string());
     feedback->distance_vehicle_to_target = (target_reference.position() - state.position()).norm();
 
     auto goal_handle = std::static_pointer_cast<GoalHandleFlyToObject>(maneuver.goal_handle());

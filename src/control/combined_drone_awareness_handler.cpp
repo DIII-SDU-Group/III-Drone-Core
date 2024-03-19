@@ -20,7 +20,7 @@ using GripperStatusAdapterHistory = iii_drone::utils::History<iii_drone::adapter
 /*****************************************************************************/
 
 CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(
-    CombinedDroneAwarenessHandlerParameters::SharedPtr params,
+    iii_drone::configuration::ParameterBundle::SharedPtr params,
     tf2_ros::Buffer::SharedPtr tf_buffer,
     rclcpp::Node * node
 ) : params_(params),
@@ -38,17 +38,19 @@ CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(
 
     offboard_nav_state_ids_->push_back(iii_drone::adapters::px4::NAVIGATION_STATE_OFFBOARD);
 
-    int ground_estimate_window_size = params_->ground_estimate_window_size();
-    ground_altitudes_history_ = History<double>(0, ground_estimate_window_size);
+    int ground_estimate_window_size = params_->GetParameter("ground_estimate_window_size").as_int();
+    ground_altitudes_history_ = std::make_shared<History<double>>(0, ground_estimate_window_size);
 
     ground_altitude_update_timer_ = node_->create_wall_timer(
-        std::chrono::milliseconds(params_->ground_estimate_update_period_ms()),
+        std::chrono::milliseconds(params_->GetParameter("ground_estimate_update_period_ms").as_int()),
         [this]() {
             ground_altitude_update_timer_->cancel();
         }
     );
 
     ground_altitude_update_timer_->cancel();
+
+    combined_drone_awareness_ = std::make_shared<Atomic<combined_drone_awareness_t>>();
 
     updateCombinedDroneAwareness();
 
@@ -155,7 +157,7 @@ iii_drone::types::transform_matrix_t CombinedDroneAwarenessHandler::ComputeTarge
 
             target_object_pose_stamped_world = tf_buffer_->transform(
                 target_object_pose_stamped,
-                params_->world_frame_id()
+                params_->GetParameter("world_frame_id").as_string()
             );
 
         } catch (tf2::TransformException & e) {
@@ -431,9 +433,9 @@ void CombinedDroneAwarenessHandler::updateGroundAltitudeEstimate(
 
     double ground_altitude = (*vehicle_odometry_adapter_history_)[0].position()[2];
 
-    ground_altitudes_history_.Store(ground_altitude);
+    ground_altitudes_history_->Store(ground_altitude);
 
-    std::vector<double> ground_altitudes = ground_altitudes_history_.vector();
+    std::vector<double> ground_altitudes = ground_altitudes_history_->vector();
 
     double ground_altitude_estimate = std::accumulate(ground_altitudes.begin(), ground_altitudes.end(), 0.0) / ground_altitudes.size();
 
@@ -444,8 +446,8 @@ void CombinedDroneAwarenessHandler::updateGroundAltitudeEstimate(
     geometry_msgs::msg::TransformStamped ground_tf;
 
     ground_tf.header.stamp = node_->now();
-    ground_tf.header.frame_id = params_->world_frame_id();
-    ground_tf.child_frame_id = params_->ground_frame_id();
+    ground_tf.header.frame_id = params_->GetParameter("world_frame_id").as_string();
+    ground_tf.child_frame_id = params_->GetParameter("ground_frame_id").as_string();
 
     ground_tf.transform = transformMsgFromTransform(
         vector_t(0, 0, ground_altitude_estimate),
@@ -469,7 +471,7 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness
     point_t drone_position = vehicle_odometry_adapter.position();
 
     // Check if on ground:
-    if (drone_position[2] < params_->landed_altitude_threshold()) {
+    if (drone_position[2] < params_->GetParameter("landed_altitude_threshold").as_double()) {
         combined_drone_awareness.drone_location = DRONE_LOCATION_ON_GROUND;
         combined_drone_awareness.on_cable_id = -1;
         return;
@@ -479,8 +481,8 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness
     if (!powerline_adapter_history_->empty()) {
 
         geometry_msgs::msg::TransformStamped transform_stamped = tf_buffer_->lookupTransform(
-            params_->cable_gripper_frame_id(),
-            params_->drone_frame_id(),
+            params_->GetParameter("cable_gripper_frame_id").as_string(),
+            params_->GetParameter("drone_frame_id").as_string(),
             tf2::TimePointZero
         );
 
@@ -505,7 +507,7 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness
 
             point_t closest_line_position = closest_line.position();
 
-            if ((closest_line_position - gripper_position).norm() <= params_->on_cable_max_euc_distance()) {
+            if ((closest_line_position - gripper_position).norm() <= params_->GetParameter("on_cable_max_euc_distance").as_double()) {
                 
                 combined_drone_awareness.drone_location = DRONE_LOCATION_ON_CABLE;
                 combined_drone_awareness.on_cable_id = closest_line.id();
@@ -525,7 +527,7 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness
     // Throw error if no location found
     std::string error_message = "CombinedDroneAwarenessHandler::updateDroneLocation(): Could not determine drone location.";
 
-    if (params_->fail_on_unable_to_locate()) {
+    if (params_->GetParameter("fail_on_unable_to_locate").as_bool()) {
         RCLCPP_FATAL(node_->get_logger(), error_message.c_str());
         throw std::runtime_error(error_message);
     } else {

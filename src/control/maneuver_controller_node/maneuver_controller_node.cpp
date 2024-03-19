@@ -28,12 +28,12 @@ ManeuverControllerNode::ManeuverControllerNode(
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
     combined_drone_awareness_handler_ = std::make_shared<CombinedDroneAwarenessHandler>(
-        configurator_.combined_drone_awareness_handler_parameters(),
+        configurator_.GetParameterBundle("combined_drone_awareness_handler"),
         tf_buffer_,
         this
     );
 
-    std::vector<int64_t> px4_offboard_mode_ids = configurator_.px4_offboard_mode_ids();
+    std::vector<int64_t> px4_offboard_mode_ids = configurator_.GetParameter("px4_offboard_mode_ids").as_integer_array();
 
     for (const auto & id : px4_offboard_mode_ids) {
         combined_drone_awareness_handler_->RegisterOffboardMode(id);
@@ -48,7 +48,7 @@ ManeuverControllerNode::ManeuverControllerNode(
     maneuver_scheduler_ = std::make_unique<ManeuverScheduler>(
         this,
         combined_drone_awareness_handler_,
-        configurator_.maneuver_scheduler_parameters(),
+        configurator_.GetParameterBundle("maneuver_scheduler"),
         maneuver_execution_cb_group_
     );
 
@@ -66,9 +66,9 @@ void ManeuverControllerNode::registerManeuverServers() {
         this,
         combined_drone_awareness_handler_,
         "hover",
-        configurator_.maneuver_wait_for_execute_poll_ms(),
-        configurator_.maneuver_evaluate_done_poll_ms(),
-        configurator_.use_nans_when_hovering()
+        configurator_.GetParameter("maneuver_wait_for_execute_poll_ms").as_int(),
+        configurator_.GetParameter("maneuver_evaluate_done_poll_ms").as_int(),
+        configurator_.GetParameter("use_nans_when_hovering").as_bool()
     );
 
     maneuver_scheduler_->RegisterManeuverServer(
@@ -80,10 +80,10 @@ void ManeuverControllerNode::registerManeuverServers() {
         this,
         combined_drone_awareness_handler_,
         "hover_by_object",
-        configurator_.maneuver_wait_for_execute_poll_ms(),
-        configurator_.maneuver_evaluate_done_poll_ms(),
-        configurator_.use_nans_when_hovering(),
-        configurator_.hover_by_object_max_euc_dist()
+        configurator_.GetParameter("maneuver_wait_for_execute_poll_ms").as_int(),
+        configurator_.GetParameter("maneuver_evaluate_done_poll_ms").as_int(),
+        configurator_.GetParameter("use_nans_when_hovering").as_bool(),
+        configurator_.GetParameter("hover_by_object_max_euc_dist").as_double()
     );
 
     maneuver_scheduler_->RegisterManeuverServer(
@@ -95,10 +95,10 @@ void ManeuverControllerNode::registerManeuverServers() {
         this,
         combined_drone_awareness_handler_,
         "hover_on_cable",
-        configurator_.maneuver_wait_for_execute_poll_ms(),
-        configurator_.maneuver_evaluate_done_poll_ms(),
-        configurator_.hover_on_cable_default_z_velocity(),
-        configurator_.hover_on_cable_default_yaw_rate()
+        configurator_.GetParameter("maneuver_wait_for_execute_poll_ms").as_int(),
+        configurator_.GetParameter("maneuver_evaluate_done_poll_ms").as_int(),
+        configurator_.GetParameter("hover_on_cable_default_z_velocity").as_double(),
+        configurator_.GetParameter("hover_on_cable_default_yaw_rate").as_double()
     );
 
     maneuver_scheduler_->RegisterManeuverServer(
@@ -110,9 +110,9 @@ void ManeuverControllerNode::registerManeuverServers() {
         this,
         combined_drone_awareness_handler_,
         "fly_to_position",
-        configurator_.maneuver_wait_for_execute_poll_ms(),
-        configurator_.maneuver_evaluate_done_poll_ms(),
-        configurator_.fly_to_position_maneuver_server_parameters(),
+        configurator_.GetParameter("maneuver_wait_for_execute_poll_ms").as_int(),
+        configurator_.GetParameter("maneuver_evaluate_done_poll_ms").as_int(),
+        configurator_.GetParameterBundle("fly_to_position_maneuver_server"),
         trajectory_generator_client_
     );
 
@@ -125,9 +125,9 @@ void ManeuverControllerNode::registerManeuverServers() {
         this,
         combined_drone_awareness_handler_,
         "fly_to_object",
-        configurator_.maneuver_wait_for_execute_poll_ms(),
-        configurator_.maneuver_evaluate_done_poll_ms(),
-        configurator_.fly_to_object_maneuver_server_parameters(),
+        configurator_.GetParameter("maneuver_wait_for_execute_poll_ms").as_int(),
+        configurator_.GetParameter("maneuver_evaluate_done_poll_ms").as_int(),
+        configurator_.GetParameterBundle("fly_to_object_maneuver_server"),
         trajectory_generator_client_
     );
 

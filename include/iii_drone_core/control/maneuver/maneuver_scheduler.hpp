@@ -30,6 +30,8 @@
 #include <iii_drone_core/utils/history.hpp>
 #include <iii_drone_core/utils/token.hpp>
 
+#include <iii_drone_core/configuration/parameter_bundle.hpp>
+
 #include <iii_drone_core/adapters/px4/vehicle_status_adapter.hpp>
 #include <iii_drone_core/adapters/px4/vehicle_odometry_adapter.hpp>
 #include <iii_drone_core/adapters/powerline_adapter.hpp>
@@ -40,7 +42,6 @@
 #include <iii_drone_core/control/state.hpp>
 #include <iii_drone_core/control/combined_drone_awareness_handler.hpp>
 
-#include <iii_drone_core/control/maneuver/maneuver_scheduler_parameters.hpp>
 #include <iii_drone_core/control/maneuver/maneuver_types.hpp>
 #include <iii_drone_core/control/maneuver/maneuver.hpp>
 #include <iii_drone_core/control/maneuver/maneuver_queue.hpp>
@@ -84,7 +85,7 @@ namespace maneuver {
         ManeuverScheduler(
             rclcpp::Node *node,
             const iii_drone::control::CombinedDroneAwarenessHandler::SharedPtr combined_drone_awareness_handler,
-            const iii_drone::control::maneuver::ManeuverSchedulerParameters::SharedPtr parameters,
+            const iii_drone::configuration::ParameterBundle::SharedPtr parameters,
             rclcpp::CallbackGroup::SharedPtr maneuver_execution_callback_group
         );
 
@@ -245,7 +246,7 @@ namespace maneuver {
         /**
          * @brief The maneuver scheduler parameters.
          */
-        iii_drone::control::maneuver::ManeuverSchedulerParameters::SharedPtr parameters_;
+        iii_drone::configuration::ParameterBundle::SharedPtr parameters_;
 
         /**
          * @brief The maneuver execution callback group.

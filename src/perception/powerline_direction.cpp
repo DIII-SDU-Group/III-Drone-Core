@@ -10,7 +10,7 @@ using namespace iii_drone::perception;
 // Implementation
 /*****************************************************************************/
 
-PowerlineDirection::PowerlineDirection(std::shared_ptr<PowerlineDirectionParameters> parameters) 
+PowerlineDirection::PowerlineDirection(iii_drone::configuration::ParameterBundle::SharedPtr parameters) 
     : parameters_(parameters),
     drone_quat_history_(2),
     pl_quat_history_(1) {
@@ -126,7 +126,7 @@ void PowerlineDirection::Update(float pl_yaw) {
         // } else {
 
             float y_bar = angle - pl_angle_est_[i].state_est;
-            float s = pl_angle_est_[i].var_est + parameters_->kf_r();
+            float s = pl_angle_est_[i].var_est + parameters_->GetParameter("kf_r").as_double();
 
             float k = pl_angle_est_[i].var_est / s;
 
@@ -182,7 +182,7 @@ void PowerlineDirection::Predict(const iii_drone::types::quaternion_t & drone_qu
 
     for (int i = 0; i < 3; i++) { 
         
-        pl_angle_est_[i].var_est += parameters_->kf_q(); 
+        pl_angle_est_[i].var_est += parameters_->GetParameter("kf_q").as_double(); 
         pl_angle_est_[i].state_est = backmapAngle(eul(i)); 
         
     }

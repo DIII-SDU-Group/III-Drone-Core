@@ -19,7 +19,7 @@ FlyToPositionManeuverServer::FlyToPositionManeuverServer(
     const std::string & action_name,
     unsigned int wait_for_execute_poll_ms,
     unsigned int evaluate_done_poll_ms,
-    FlyToPositionManeuverServerParameters::SharedPtr parameters,
+    iii_drone::configuration::ParameterBundle::SharedPtr parameters,
     iii_drone::control::TrajectoryGeneratorClient::SharedPtr trajectory_generator_client
 ) : ManeuverServer(
     node,
@@ -48,11 +48,11 @@ bool FlyToPositionManeuverServer::CanExecuteManeuver(
     std::shared_ptr<fly_to_position_maneuver_params_t> fly_to_position_maneuver_params = std::static_pointer_cast<fly_to_position_maneuver_params_t>(maneuver.maneuver_params());
 
     point_t target_position_in_world_frame = fly_to_position_maneuver_params->transform_target_position(
-        parameters_->world_frame_id(),
+        parameters_->GetParameter("world_frame_id").as_string(),
         cda_handler->tf_buffer()
     );
 
-    bool target_position_valid = target_position_in_world_frame[2] - cda_handler->ground_altitude_estimate() >= parameters_->minimum_target_altitude();
+    bool target_position_valid = target_position_in_world_frame[2] - cda_handler->ground_altitude_estimate() >= parameters_->GetParameter("minimum_target_altitude").as_double();
 
     return drone_awareness.in_flight() && 
         drone_awareness.offboard &&
@@ -85,7 +85,7 @@ void FlyToPositionManeuverServer::startExecution(Maneuver & maneuver) {
     std::shared_ptr<fly_to_position_maneuver_params_t> fly_to_position_maneuver_params = std::static_pointer_cast<fly_to_position_maneuver_params_t>(maneuver.maneuver_params());
 
     point_t target_position_in_world_frame = fly_to_position_maneuver_params->transform_target_position(
-        parameters_->world_frame_id(),
+        parameters_->GetParameter("world_frame_id").as_string(),
         cda_handler->tf_buffer()
     );
 
@@ -118,7 +118,7 @@ Reference FlyToPositionManeuverServer::computeReference(const State & state) {
 
     Reference ref;
 
-    if (parameters_->generate_trajectories_asynchronously_with_delay()) {
+    if (parameters_->GetParameter("generate_trajectories_asynchronously_with_delay").as_bool()) {
 
         if (first_iteration_) {
 
@@ -150,7 +150,7 @@ Reference FlyToPositionManeuverServer::computeReference(const State & state) {
 
             while (!trajectory_generator_client_->done()) {
 
-                rclcpp::sleep_for(std::chrono::milliseconds(parameters_->generate_trajectories_poll_period_ms()));
+                rclcpp::sleep_for(std::chrono::milliseconds(parameters_->GetParameter("generate_trajectories_poll_period_ms").as_int()));
 
             }
 
@@ -194,7 +194,7 @@ Reference FlyToPositionManeuverServer::computeReference(const State & state) {
             first_it,
             first_it,
             MPC_mode_t::positional,
-            parameters_->generate_trajectories_poll_period_ms()
+            parameters_->GetParameter("generate_trajectories_poll_period_ms").as_int()
         );
 
         ref = trajectory_generator_client_->GetReferenceTrajectory().references()[0];
@@ -227,7 +227,7 @@ bool FlyToPositionManeuverServer::hasSucceeded(Maneuver &) {
 
     double distance = (euc_pos - target_euc_pos).norm();
 
-    return distance < parameters_->reached_position_euclidean_distance_threshold();
+    return distance < parameters_->GetParameter("reached_position_euclidean_distance_threshold").as_double();
 
 }
 
@@ -249,8 +249,8 @@ void FlyToPositionManeuverServer::publishFeedback(Maneuver & maneuver) {
 
     ReferenceTrajectoryAdapter reference_trajectory_adapter(reference_trajectory);
 
-    feedback->planned_path = reference_trajectory_adapter.ToPathMsg(parameters_->world_frame_id());
-    feedback->vehicle_pose = StateAdapter(awareness_handler()->GetState()).ToPoseStampedMsg(parameters_->world_frame_id());
+    feedback->planned_path = reference_trajectory_adapter.ToPathMsg(parameters_->GetParameter("world_frame_id").as_string());
+    feedback->vehicle_pose = StateAdapter(awareness_handler()->GetState()).ToPoseStampedMsg(parameters_->GetParameter("world_frame_id").as_string());
 
     auto goal_handle = std::static_pointer_cast<GoalHandleFlyToPosition>(maneuver.goal_handle());
 

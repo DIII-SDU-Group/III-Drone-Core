@@ -1,0 +1,200 @@
+    # DeclareParameter<"int">("/control/maneuver_controller/ground_estimate_window_size");
+    # DeclareParameter<"int">("/control/maneuver_controller/ground_estimate_update_period_ms");
+    # DeclareParameter<"float">("/control/maneuver_controller/landed_altitude_threshold");
+    # DeclareParameter<"float">("/control/maneuver_controller/on_cable_max_euc_distance");
+    # DeclareParameter<"bool">("/control/maneuver_controller/fail_on_unable_to_locate");
+    # DeclareParameter<"float">("/control/maneuver_controller/maneuver_register_update_timeout_s");
+    # DeclareParameter<"float">("/control/maneuver_controller/maneuver_start_timeout_s");
+    # DeclareParameter<"int">("/control/maneuver_controller/maneuver_queue_size");
+    # DeclareParameter<"int">("/control/maneuver_controller/maneuver_execution_period_ms");
+    # DeclareParameter<"bool">("/control/maneuver_controller/use_nans_when_hovering");
+    # DeclareParameter<"float">("/control/maneuver_controller/no_maneuver_idle_cnt_s");
+    # DeclareParameter<"float">("/control/maneuver_controller/hover_by_object_max_euc_dist");
+    # DeclareParameter<"float">("/control/maneuver_controller/hover_on_cable_default_z_velocity");
+    # DeclareParameter<"float">("/control/maneuver_controller/hover_on_cable_default_yaw_rate");
+    # DeclareParameter<"int">("/control/maneuver_controller/maneuver_wait_for_execute_poll_ms");
+    # DeclareParameter<"int">("/control/maneuver_controller/maneuver_evaluate_done_poll_ms");
+    # DeclareParameter<"float">("/control/maneuver_controller/reached_position_euclidean_distance_threshold");
+    # DeclareParameter<"float">("/control/maneuver_controller/minimum_target_altitude");
+    # DeclareParameter<"bool">("/control/maneuver_controller/generate_trajectories_asynchronously_with_delay");
+    # DeclareParameter<"int">("/control/maneuver_controller/generate_trajectories_poll_period_ms");
+
+    # DeclareParameter<std::"string">("/tf/cable_gripper_frame_id");
+    # DeclareParameter<std::"string">("/tf/drone_frame_id");
+    # DeclareParameter<std::"string">("/tf/world_frame_id");
+    # DeclareParameter<std::"string">("/tf/ground_frame_id");
+
+    # DeclareParameter<std::vector<"int">>("/px4/px4_offboard_mode_ids");
+
+parameters:
+  ground_estimate_window_size:
+    name: "/control/maneuver_controller/ground_estimate_window_size"
+    type: "int"
+  ground_estimate_update_period_ms:
+    name: "/control/maneuver_controller/ground_estimate_update_period_ms"
+    type: "int"
+  landed_altitude_threshold:
+    name: "/control/maneuver_controller/landed_altitude_threshold"
+    type: "float"
+  on_cable_max_euc_distance:
+    name: "/control/maneuver_controller/on_cable_max_euc_distance"
+    type: "float"
+  fail_on_unable_to_locate:
+    name: "/control/maneuver_controller/fail_on_unable_to_locate"
+    type: "bool"
+  maneuver_register_update_timeout_s:
+    name: "/control/maneuver_controller/maneuver_register_update_timeout_s"
+    type: "float"
+  maneuver_start_timeout_s:
+    name: "/control/maneuver_controller/maneuver_start_timeout_s"
+    type: "float"
+  maneuver_queue_size:
+    name: "/control/maneuver_controller/maneuver_queue_size"
+    type: "int"
+  maneuver_execution_period_ms:
+    name: "/control/maneuver_controller/maneuver_execution_period_ms"
+    type: "int"
+  use_nans_when_hovering:
+    name: "/control/maneuver_controller/use_nans_when_hovering"
+    type: "bool"
+  no_maneuver_idle_cnt_s:
+    name: "/control/maneuver_controller/no_maneuver_idle_cnt_s"
+    type: "float"
+  hover_by_object_max_euc_dist:
+    name: "/control/maneuver_controller/hover_by_object_max_euc_dist"
+    type: "float"
+  hover_on_cable_default_z_velocity:
+    name: "/control/maneuver_controller/hover_on_cable_default_z_velocity"
+    type: "float"
+  hover_on_cable_default_yaw_rate:
+    name: "/control/maneuver_controller/hover_on_cable_default_yaw_rate"
+    type: "float"
+  maneuver_wait_for_execute_poll_ms:
+    name: "/control/maneuver_controller/maneuver_wait_for_execute_poll_ms"
+    type: "int"
+  maneuver_evaluate_done_poll_ms:
+    name: "/control/maneuver_controller/maneuver_evaluate_done_poll_ms"
+    type: "int"
+  reached_position_euclidean_distance_threshold:
+    name: "/control/maneuver_controller/reached_position_euclidean_distance_threshold"
+    type: "float"
+  minimum_target_altitude:
+    name: "/control/maneuver_controller/minimum_target_altitude"
+    type: "float"
+  generate_trajectories_asynchronously_with_delay:
+    name: "/control/maneuver_controller/generate_trajectories_asynchronously_with_delay"
+    type: "bool"
+  generate_trajectories_poll_period_ms:
+    name: "/control/maneuver_controller/generate_trajectories_poll_period_ms"
+    type: "int"
+  cable_gripper_frame_id:
+    name: "/tf/cable_gripper_frame_id"
+    type: "string"
+  drone_frame_id:
+    name: "/tf/drone_frame_id"
+    type: "string"
+  world_frame_id:
+    name: "/tf/world_frame_id"
+    type: "string"
+  ground_frame_id:
+    name: "/tf/ground_frame_id"
+    type: "string"
+  px4_offboard_mode_ids:
+    name: "/px4/px4_offboard_mode_ids"
+    type: "int_array"
+
+parameter_bundles:
+  combined_drone_awareness_handler:
+    ground_estimate_window_size:
+      remap_name: "ground_estimate_window_size"
+      update: false
+    ground_estimate_update_period_ms:
+      remap_name: "ground_estimate_update_period_ms"
+      update: false
+    landed_altitude_threshold:
+      remap_name: "landed_altitude_threshold"
+      update: true
+    on_cable_max_euc_distance:
+      remap_name: "on_cable_max_euc_distance"
+      update: true
+    fail_on_unable_to_locate:
+      remap_name: "fail_on_unable_to_locate"
+      update: false
+    cable_gripper_frame_id:
+      remap_name: "cable_gripper_frame_id"
+      update: false
+    drone_frame_id:
+      remap_name: "drone_frame_id"
+      update: false
+    world_frame_id:
+      remap_name: "world_frame_id"
+      update: false
+    ground_frame_id:
+      remap_name: "ground_frame_id"
+      update: false
+
+  maneuver_scheduler:
+    maneuver_register_update_timeout_s:
+      remap_name: "maneuver_register_update_timeout_s"
+      update: false
+    maneuver_start_timeout_s:
+      remap_name: "maneuver_start_timeout_s"
+      update: false
+    maneuver_queue_size:
+      remap_name: "maneuver_queue_size"
+      update: false
+    maneuver_execution_period_ms:
+      remap_name: "maneuver_execution_period_ms"
+      update: false
+    use_nans_when_hovering:
+      remap_name: "use_nans_when_hovering"
+      update: false
+    no_maneuver_idle_cnt_s:
+      remap_name: "no_maneuver_idle_cnt_s"
+      update: false
+    hover_by_object_max_euc_dist:
+      remap_name: "hover_by_object_max_euc_dist"
+      update: true
+    hover_on_cable_default_z_velocity:
+      remap_name: "hover_on_cable_default_z_velocity"
+      update: true
+    hover_on_cable_default_yaw_rate:
+      remap_name: "hover_on_cable_default_yaw_rate"
+      update: true
+
+  fly_to_position_maneuver_server:
+    reached_position_euclidean_distance_threshold:
+      remap_name: "reached_position_euclidean_distance_threshold"
+      update: true
+    minimum_target_altitude:
+      remap_name: "minimum_target_altitude"
+      update: true
+    generate_trajectories_asynchronously_with_delay:
+      remap_name: "generate_trajectories_asynchronously_with_delay"
+      update: false
+    generate_trajectories_poll_period_ms:
+      remap_name: "generate_trajectories_poll_period_ms"
+      update: false
+    world_frame_id:
+      remap_name: "world_frame_id"
+      update: false
+
+  fly_to_object_maneuver_server:
+    reached_position_euclidean_distance_threshold:
+      remap_name: "reached_position_euclidean_distance_threshold"
+      update: true
+    minimum_target_altitude:
+      remap_name: "minimum_target_altitude"
+      update: true
+    generate_trajectories_asynchronously_with_delay:
+      remap_name: "generate_trajectories_asynchronously_with_delay"
+      update: false
+    generate_trajectories_poll_period_ms:
+      remap_name: "generate_trajectories_poll_period_ms"
+      update: false
+    world_frame_id:
+      remap_name: "world_frame_id"
+      update: false
+
+  
+  

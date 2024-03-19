@@ -10,7 +10,7 @@ using namespace iii_drone::perception;
 // Implementation
 /*****************************************************************************/
 
-HoughTransformer::HoughTransformer(std::shared_ptr<HoughTransformerParameters> parameters) : parameters_(parameters) { }
+HoughTransformer::HoughTransformer(iii_drone::configuration::ParameterBundle::SharedPtr parameters) : parameters_(parameters) { }
 
 HoughTransformer::~HoughTransformer() { }
 
@@ -18,9 +18,9 @@ const std::vector<cv::Vec2f> HoughTransformer::GetHoughLines(const cv::Mat img) 
 
 	cv::Mat edge;
 
-    int canny_low_threshold = parameters_->canny_low_threshold();
-    int canny_ratio = parameters_->canny_ratio();
-    int canny_kernel_size = parameters_->canny_kernel_size();
+    int canny_low_threshold = parameters_->GetParameter("canny_low_threshold").as_int();
+    int canny_ratio = parameters_->GetParameter("canny_ratio").as_int();
+    int canny_kernel_size = parameters_->GetParameter("canny_kernel_size").as_int();
 
 	cv::Canny(
 		img, 

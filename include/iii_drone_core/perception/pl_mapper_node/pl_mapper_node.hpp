@@ -50,9 +50,9 @@
 #include <iii_drone_core/utils/math.hpp>
 #include <iii_drone_core/utils/types.hpp>
 
-#include <iii_drone_core/perception/pl_mapper_node/pl_mapper_node_configurator.hpp>
+#include <iii_drone_core/configuration/configurator.hpp>
+
 #include <iii_drone_core/perception/powerline.hpp>
-#include <iii_drone_core/perception/powerline_parameters.hpp>
 
 #include <iii_drone_core/adapters/powerline_adapter.hpp>
 #include <iii_drone_core/adapters/single_line_adapter.hpp>
@@ -91,7 +91,7 @@ private:
     /**
      * @brief Configurator for the node
     */
-    PowerlineMapperConfigurator configurator_;
+    iii_drone::configuration::Configurator configurator_;
 
     /**
      * @brief Subscriber for powerline direction
@@ -134,7 +134,7 @@ private:
     /**
      * @brief The powerline object holding the tracked powerlines
     */
-    Powerline powerline_;
+    Powerline::SharedPtr powerline_;
 
     /**
      * @brief Rotation matrix from drone to mmWave frame

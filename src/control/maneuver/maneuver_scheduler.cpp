@@ -17,7 +17,7 @@ using namespace iii_drone::adapters;
 ManeuverScheduler::ManeuverScheduler(
     rclcpp::Node *node,
     const CombinedDroneAwarenessHandler::SharedPtr combined_drone_awareness_handler,
-    const ManeuverSchedulerParameters::SharedPtr parameters,
+    const iii_drone::configuration::ParameterBundle::SharedPtr parameters,
     rclcpp::CallbackGroup::SharedPtr maneuver_execution_callback_group
 ) : node_(node),
     combined_drone_awareness_handler_(combined_drone_awareness_handler),
@@ -31,7 +31,7 @@ ManeuverScheduler::ManeuverScheduler(
         )
     ) {
 
-    maneuver_queue_ = std::make_unique<ManeuverQueue>(parameters_->maneuver_queue_size());
+    maneuver_queue_ = std::make_unique<ManeuverQueue>(parameters_->GetParameter("maneuver_queue_size").as_int());
     
     current_maneuver_ = Maneuver();
 
@@ -41,7 +41,7 @@ ManeuverScheduler::ManeuverScheduler(
     );
 
     maneuver_execution_timer_ = node_->create_wall_timer(
-        std::chrono::milliseconds(parameters_->maneuver_execution_period_ms()),
+        std::chrono::milliseconds(parameters_->GetParameter("maneuver_execution_period_ms").as_int()),
         std::bind(
             &ManeuverScheduler::maneuverExecutionTimerCallback,
             this
@@ -308,7 +308,7 @@ bool ManeuverScheduler::UpdateManeuver(Maneuver maneuver) {
 
     rclcpp::Time current_time = node_->now();
 
-    if ((current_time - maneuver_creation_time).seconds() > parameters_->maneuver_register_update_timeout_s()) {
+    if ((current_time - maneuver_creation_time).seconds() > parameters_->GetParameter("maneuver_register_update_timeout_s").as_double()) {
 
         maneuver.Terminate(false);
 
@@ -498,8 +498,8 @@ void ManeuverScheduler::onReferenceCallbackTokenReacquired() {
     //         std::shared_ptr<HoverOnCableManeuverServer> maneuver_server = std::static_pointer_cast<HoverOnCableManeuverServer>(registered_maneuver->second);
 
     //         maneuver_server->Update(
-    //             parameters_->hover_on_cable_default_z_velocity(),
-    //             parameters_->hover_on_cable_default_yaw_rate()
+    //             parameters_->GetParameter("hover_on_cable_default_z_velocity").as_string(),
+    //             parameters_->GetParameter("hover_on_cable_default_yaw_rate").as_string()
     //         );
 
     //         reference_callback_token_.resource() = std::bind(
@@ -538,7 +538,7 @@ void ManeuverScheduler::progressScheduler() {
 
         if (!previous_maneuver.success()) {
 
-            no_maneuver_idle_cnt_ = parameters_->no_maneuver_idle_cnt_s() * 1000 / parameters_->maneuver_execution_period_ms();
+            no_maneuver_idle_cnt_ = parameters_->GetParameter("no_maneuver_idle_cnt_s").as_double() * 1000 / parameters_->GetParameter("maneuver_execution_period_ms").as_int();
 
         } else {
 
@@ -547,21 +547,21 @@ void ManeuverScheduler::progressScheduler() {
                 case MANEUVER_TYPE_HOVER: {
                     hover_maneuver_params_t maneuver_params(previous_maneuver.maneuver_params());
 
-                    no_maneuver_idle_cnt_ = maneuver_params.duration_s * 1000 / parameters_->maneuver_execution_period_ms();
+                    no_maneuver_idle_cnt_ = maneuver_params.duration_s * 1000 / parameters_->GetParameter("maneuver_execution_period_ms").as_int();
 
                     break;
                 }
                 case MANEUVER_TYPE_HOVER_BY_OBJECT: {
                     hover_by_object_maneuver_params_t maneuver_params(previous_maneuver.maneuver_params());
 
-                    no_maneuver_idle_cnt_ = maneuver_params.duration_s * 1000 / parameters_->maneuver_execution_period_ms();
+                    no_maneuver_idle_cnt_ = maneuver_params.duration_s * 1000 / parameters_->GetParameter("maneuver_execution_period_ms").as_int();
 
                     break;
                 }
                 case MANEUVER_TYPE_HOVER_ON_CABLE: {
                     hover_on_cable_maneuver_params_t maneuver_params(previous_maneuver.maneuver_params());
 
-                    no_maneuver_idle_cnt_ = maneuver_params.duration_s * 1000 / parameters_->maneuver_execution_period_ms();
+                    no_maneuver_idle_cnt_ = maneuver_params.duration_s * 1000 / parameters_->GetParameter("maneuver_execution_period_ms").as_int();
 
                     break;
                 }
@@ -571,7 +571,7 @@ void ManeuverScheduler::progressScheduler() {
                     break;
 
                 default:
-                    no_maneuver_idle_cnt_ = parameters_->no_maneuver_idle_cnt_s() * 1000 / parameters_->maneuver_execution_period_ms();
+                    no_maneuver_idle_cnt_ = parameters_->GetParameter("no_maneuver_idle_cnt_s").as_double() * 1000 / parameters_->GetParameter("maneuver_execution_period_ms").as_int();
                     break;
             
             }
@@ -665,7 +665,7 @@ void ManeuverScheduler::progressScheduler() {
                     rclcpp::Time maneuver_creation_time = current_maneuver_->creation_time();
                     rclcpp::Time current_time = node_->now();
 
-                    if ((current_time - maneuver_creation_time).seconds() > parameters_->maneuver_register_update_timeout_s()) {
+                    if ((current_time - maneuver_creation_time).seconds() > parameters_->GetParameter("maneuver_register_update_timeout_s").as_double()) {
 
                         on_failure(current_maneuver_);
 
@@ -688,7 +688,7 @@ void ManeuverScheduler::progressScheduler() {
                     rclcpp::Time maneuver_start_time = current_maneuver_->start_time();
                     rclcpp::Time current_time = node_->now();
 
-                    if ((current_time - maneuver_start_time).seconds() > parameters_->maneuver_start_timeout_s()) {
+                    if ((current_time - maneuver_start_time).seconds() > parameters_->GetParameter("maneuver_start_timeout_s").as_double()) {
 
                         on_failure(current_maneuver_);
 

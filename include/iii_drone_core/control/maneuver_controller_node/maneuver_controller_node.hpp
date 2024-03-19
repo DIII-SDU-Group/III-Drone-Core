@@ -22,7 +22,7 @@
 /*****************************************************************************/
 // III-Drone-Core:
 
-#include <iii_drone_core/control/maneuver_controller_node/maneuver_controller_node_configurator.hpp>
+#include <iii_drone_core/configuration/configurator.hpp>
 
 #include <iii_drone_core/control/combined_drone_awareness_handler.hpp>
 
@@ -93,7 +93,7 @@ namespace maneuver_controller_node {
          * @brief Configurator for handling configuration parameters of the node.
          * Exposes parameters for the maneuver scheduler and the maneuver servers.
          */
-        ManeuverControllerNodeConfigurator configurator_;
+        iii_drone::configuration::Configurator configurator_;
 
         /**
          * @brief The transform buffer. Shared with the CombinedDroneAwarenessHandler.
