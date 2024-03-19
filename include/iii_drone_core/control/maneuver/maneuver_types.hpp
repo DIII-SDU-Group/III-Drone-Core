@@ -14,14 +14,13 @@
 /*****************************************************************************/
 // III-Drone-Interfaces:
 
-#include <iii_drone_interfaces/action/takeoff.hpp>
-#include <iii_drone_interfaces/action/landing.hpp>
 #include <iii_drone_interfaces/action/fly_to_position.hpp>
 #include <iii_drone_interfaces/action/fly_to_object.hpp>
 #include <iii_drone_interfaces/action/cable_landing.hpp>
 #include <iii_drone_interfaces/action/cable_takeoff.hpp>
-#include <iii_drone_interfaces/action/disarm_on_cable.hpp>
-#include <iii_drone_interfaces/action/arm_on_cable.hpp>
+#include <iii_drone_interfaces/action/hover.hpp>
+#include <iii_drone_interfaces/action/hover_by_object.hpp>
+#include <iii_drone_interfaces/action/hover_on_cable.hpp>
 
 #include <iii_drone_interfaces/msg/target.hpp>
 

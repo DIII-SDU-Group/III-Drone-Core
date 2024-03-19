@@ -7,7 +7,6 @@
 /*****************************************************************************/
 // III-Drone-Interfaces:
 
-#include <iii_drone_interfaces/msg/powerline_direction.hpp>
 #include <iii_drone_interfaces/msg/powerline.hpp>
 
 /*****************************************************************************/
