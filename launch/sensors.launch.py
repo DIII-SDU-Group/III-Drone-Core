@@ -1,6 +1,7 @@
 from struct import pack
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.substitutions import LaunchConfiguration
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -9,6 +10,13 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 def generate_launch_description():
+    mmwave_log_level = LaunchConfiguration("mmwave_log_level")
+
+    mmwave_log_level_arg = DeclareLaunchArgument(
+        "mmwave_log_level",
+        default_value=["info"],
+        description="The logging level for the mmwave node, default is INFO",
+    )
     camera_node = Node(
         package="usb_cam",
         executable="usb_cam_node_exe",
@@ -21,10 +29,12 @@ def generate_launch_description():
         executable="pcl_pub",
         namespace="/sensor/mmwave",
         remappings=[("/sensor/iwr6843_pcl", "/sensor/mmwave/pcl")],
+        arguments=["--ros-args", "--log-level", mmwave_log_level]
     )
 
 
     return LaunchDescription([
         camera_node,
-        mmwave_node
+        mmwave_node,
+        mmwave_log_level_arg
     ])
