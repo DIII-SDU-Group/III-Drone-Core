@@ -38,16 +38,28 @@ void ManeuverServer::Start(
     std::map<iii_drone::control::maneuver::maneuver_type_t, std::shared_ptr<ManeuverServer>> registered_maneuvers
 ) {
 
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::Start()");
+
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::Start(): Setting callbacks");
+
     register_maneuver_ = register_maneuver_function;
     update_maneuver_ = update_manuever_function;
     cancel_maneuver_ = cancel_maneuver_function;
     verify_maneuver_in_queue_ = verify_maneuver_in_queue_function;
     verify_maneuver_active_ = verify_maneuver_active_function;
     done_callback_ = done_callback;
+
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::Start(): Setting reference callback token");
+
     reference_callback_token_ = reference_callback_token;
+
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::Start(): Setting registered maneuvers map");
+
     registered_maneuvers_ = registered_maneuvers;
 
     running_ = true;
+
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::Start(): Finished");
 }
 
 void ManeuverServer::Stop() {
@@ -84,9 +96,13 @@ rclcpp_action::GoalResponse ManeuverServer::handleGoal(
     std::shared_ptr<const typename ActionT::Goal> goal
 ) {
 
+    RCLCPP_DEBUG(node_->get_logger(), "maneuverserver::handlegoal()");
+
     if (!running_) {
         return rclcpp_action::GoalResponse::REJECT;
     }
+
+    RCLCPP_DEBUG(node_->get_logger(), "1");
 
     (void)uuid;
 
@@ -95,19 +111,26 @@ rclcpp_action::GoalResponse ManeuverServer::handleGoal(
         uuid
     );
 
+    RCLCPP_DEBUG(node_->get_logger(), "2");
+
     maneuver.SetFromGoal<ActionT>(goal);
+
+    RCLCPP_DEBUG(node_->get_logger(), "3");
 
     bool executing_instantly;
     bool success = register_maneuver_(maneuver, executing_instantly);
 
     if (!success) {
+    RCLCPP_DEBUG(node_->get_logger(), "4");
         return rclcpp_action::GoalResponse::REJECT;
     }
 
     if (executing_instantly) {
+    RCLCPP_DEBUG(node_->get_logger(), "5");
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
     }
 
+    RCLCPP_DEBUG(node_->get_logger(), "6");
     return rclcpp_action::GoalResponse::ACCEPT_AND_DEFER;
 
 }

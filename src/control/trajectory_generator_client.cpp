@@ -7,14 +7,17 @@
 using namespace iii_drone::control;
 using namespace iii_drone::adapters;
 using namespace iii_drone::utils;
+using namespace iii_drone::configuration;
 
 /*****************************************************************************/
 // Implementation
 /*****************************************************************************/
 
-TrajectoryGeneratorClient::TrajectoryGeneratorClient(rclcpp::Node * node)
-    : node_(node)
-{
+TrajectoryGeneratorClient::TrajectoryGeneratorClient(
+    rclcpp::Node * node,
+    ParameterBundle::SharedPtr parameters
+) : node_(node),
+    parameters_(parameters) {
 
     // Create service client
     client_ = node_->create_client<iii_drone_interfaces::srv::ComputeReferenceTrajectory>(
@@ -43,9 +46,9 @@ void TrajectoryGeneratorClient::Reset(const State & state) {
         state.yaw()
     );
 
-    reference_trajectory_adapter_history_ = History<ReferenceTrajectoryAdapter>(1);
+    reference_trajectory_adapter_history_ = std::make_shared<History<ReferenceTrajectoryAdapter>>(1);
 
-    reference_trajectory_adapter_history_ = ReferenceTrajectoryAdapter(reference);
+    reference_trajectory_adapter_history_->Store(ReferenceTrajectoryAdapter(reference));
 
 }
 
@@ -58,6 +61,89 @@ void TrajectoryGeneratorClient::Cancel() {
 
 }
 
+Reference TrajectoryGeneratorClient::ComputeReference(
+    const State & state,
+    const Reference & reference,
+    bool set_reference,
+    bool reset,
+    MPC_mode_t mpc_mode
+) {
+
+    Reference ref_out;
+
+    if (busy()) {
+
+        std::string error_message = "TrajectoryGeneratorClient::ComputeReference(): Trajectory generator client is busy on first iteration, cannot start execution of maneuver.";
+
+        RCLCPP_FATAL(node_->get_logger(), error_message.c_str());
+
+        throw std::runtime_error(error_message);
+
+    }
+
+    if (reset) {
+
+        Reset(state);
+
+    }
+
+    if (parameters_->GetParameter("generate_trajectories_asynchronously_with_delay").as_bool()) {
+
+        if (reset) {
+
+            ref_out = GetReferenceTrajectory().references()[0];
+
+        } else {
+
+            rclcpp::Time wait_start_time = node_->now();
+
+            while(!done()) {
+
+                rclcpp::sleep_for(std::chrono::milliseconds(parameters_->GetParameter("generate_trajectories_poll_period_ms").as_int()));
+
+                if (node_->now() - wait_start_time > rclcpp::Duration::from_nanoseconds(parameters_->GetParameter("generate_trajectories_timeout_ms").as_double() * 1e6)) {
+
+                    std::string error_message = "TrajectoryGeneratorClient::ComputeReference(): Timeout while waiting for asynchronous trajectory generation.";
+
+                    RCLCPP_FATAL(node_->get_logger(), error_message.c_str());
+
+                    throw std::runtime_error(error_message);
+
+                }
+
+            }
+
+            ref_out = GetReferenceTrajectory().references()[1];
+
+        }
+
+        ComputeReferenceTrajectoryAsync(
+            state,
+            reference,
+            set_reference,
+            reset,
+            mpc_mode
+        );
+
+    } else {
+
+        ComputeReferenceTrajectoryBlocking(
+            state,
+            reference,
+            set_reference,
+            reset,
+            mpc_mode,
+            parameters_->GetParameter("generate_trajectories_poll_period_ms").as_int()
+        );
+
+        ref_out = GetReferenceTrajectory().references()[0];
+
+    }
+
+    return ref_out;
+
+}
+
 void TrajectoryGeneratorClient::ComputeReferenceTrajectoryAsync(
     const State & state,
     const Reference & reference,
@@ -65,6 +151,16 @@ void TrajectoryGeneratorClient::ComputeReferenceTrajectoryAsync(
     bool reset,
     MPC_mode_t mpc_mode
 ) {
+
+    if (busy()) {
+
+        std::string error_message = "TrajectoryGeneratorClient::ComputeReferenceTrajectoryAsync(): Trajectory generator is busy.";
+
+        RCLCPP_ERROR(node_->get_logger(), error_message.c_str());
+
+        throw std::runtime_error(error_message);
+
+    }
 
     // Set busy flag
     busy_ = true;
@@ -115,9 +211,21 @@ void TrajectoryGeneratorClient::ComputeReferenceTrajectoryBlocking(
         mpc_mode
     );
 
+    rclcpp::Time wait_start_time = node_->now();
+
     while (!done()) {
 
         rclcpp::sleep_for(std::chrono::milliseconds(poll_period_ms));
+
+        if (node_->now() - wait_start_time > rclcpp::Duration::from_nanoseconds(parameters_->GetParameter("generate_trajectories_timeout_ms").as_double() * 1e6)) {
+
+            std::string error_message = "TrajectoryGeneratorClient::ComputeReferenceTrajectoryBlocking(): Timeout while waiting for blocking trajectory generation.";
+
+            RCLCPP_FATAL(node_->get_logger(), error_message.c_str());
+
+            throw std::runtime_error(error_message);
+
+        }
 
     }
 
@@ -125,7 +233,7 @@ void TrajectoryGeneratorClient::ComputeReferenceTrajectoryBlocking(
 
 ReferenceTrajectory TrajectoryGeneratorClient::GetReferenceTrajectory() const {
 
-    return reference_trajectory_adapter_history_[0].reference_trajectory();
+    return (*reference_trajectory_adapter_history_)[0].reference_trajectory();
 
 }
 
@@ -163,7 +271,7 @@ void TrajectoryGeneratorClient::serviceResultCallback(
     ReferenceTrajectoryAdapter reference_trajectory_adapter(response->reference_trajectory);
 
     // Add reference trajectory adapter to history
-    reference_trajectory_adapter_history_.Store(reference_trajectory_adapter);
+    reference_trajectory_adapter_history_->Store(reference_trajectory_adapter);
 
     // Set busy flag
     busy_ = false;

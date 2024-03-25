@@ -7,6 +7,7 @@
 using namespace iii_drone::control::maneuver;
 using namespace iii_drone::control;
 using namespace iii_drone::types;
+using namespace iii_drone::math;
 using namespace iii_drone::adapters;
 
 /*****************************************************************************/
@@ -43,24 +44,17 @@ bool FlyToPositionManeuverServer::CanExecuteManeuver(
         return false;
     }
 
-    auto cda_handler = awareness_handler();
+    fly_to_position_maneuver_params_t fly_to_position_maneuver_params(maneuver.maneuver_params());
 
-    std::shared_ptr<fly_to_position_maneuver_params_t> fly_to_position_maneuver_params = std::static_pointer_cast<fly_to_position_maneuver_params_t>(maneuver.maneuver_params());
-
-    point_t target_position_in_world_frame = fly_to_position_maneuver_params->transform_target_position(
-        parameters_->GetParameter("world_frame_id").as_string(),
-        cda_handler->tf_buffer()
-    );
-
-    bool target_position_valid = target_position_in_world_frame[2] - cda_handler->ground_altitude_estimate() >= parameters_->GetParameter("minimum_target_altitude").as_double();
+    bool maneuver_params_valid = validateManeuverParameters(fly_to_position_maneuver_params);
 
     return drone_awareness.in_flight() && 
         drone_awareness.offboard &&
-        target_position_valid;
+        maneuver_params_valid;
 
 }
 
-combined_drone_awareness_t FlyToPositionManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver &) {
+combined_drone_awareness_t FlyToPositionManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver &maneuver) {
 
     combined_drone_awareness_t awareness_after;
 
@@ -69,6 +63,33 @@ combined_drone_awareness_t FlyToPositionManeuverServer::ExpectedAwarenessAfterEx
     awareness_after.target_adapter = TargetAdapter();
     awareness_after.target_position_known = false;
     awareness_after.drone_location = DRONE_LOCATION_IN_FLIGHT;
+
+    fly_to_position_maneuver_params_t maneuver_params(maneuver.maneuver_params());
+
+    auto cda_handler = awareness_handler();
+
+    point_t target_position_in_world_frame = maneuver_params.transform_target_position(
+        parameters_->GetParameter("world_frame_id").as_string(),
+        cda_handler->tf_buffer()
+    );
+
+    quaternion_t target_orientation = eulToQuat(
+        euler_angles_t(
+            0.0, 
+            0.0, 
+            maneuver_params.transform_target_yaw(
+                parameters_->GetParameter("world_frame_id").as_string(),
+                cda_handler->tf_buffer()
+            )
+        )
+    );
+
+    awareness_after.state = State(
+        target_position_in_world_frame,
+        vector_t(0,0,0),
+        target_orientation,
+        vector_t(0,0,0)
+    );
 
     return awareness_after;
 
@@ -82,16 +103,21 @@ void FlyToPositionManeuverServer::startExecution(Maneuver & maneuver) {
 
     auto cda_handler = awareness_handler();
 
-    std::shared_ptr<fly_to_position_maneuver_params_t> fly_to_position_maneuver_params = std::static_pointer_cast<fly_to_position_maneuver_params_t>(maneuver.maneuver_params());
+    fly_to_position_maneuver_params_t fly_to_position_maneuver_params(maneuver.maneuver_params());
 
-    point_t target_position_in_world_frame = fly_to_position_maneuver_params->transform_target_position(
+    point_t target_position_in_world_frame = fly_to_position_maneuver_params.transform_target_position(
+        parameters_->GetParameter("world_frame_id").as_string(),
+        cda_handler->tf_buffer()
+    );
+
+    double target_yaw_in_world_frame = fly_to_position_maneuver_params.transform_target_yaw(
         parameters_->GetParameter("world_frame_id").as_string(),
         cda_handler->tf_buffer()
     );
 
     target_reference_ = iii_drone::control::Reference(
         target_position_in_world_frame,
-        fly_to_position_maneuver_params->target_yaw
+        target_yaw_in_world_frame
     );
 
     if (trajectory_generator_client_->busy()) {
@@ -116,88 +142,19 @@ bool FlyToPositionManeuverServer::canCancel() {
 
 Reference FlyToPositionManeuverServer::computeReference(const State & state) {
 
-    Reference ref;
+    bool reset, set_reference = first_iteration_;
 
-    if (parameters_->GetParameter("generate_trajectories_asynchronously_with_delay").as_bool()) {
+    Reference ref = trajectory_generator_client_->ComputeReference(
+        state,
+        target_reference_,
+        set_reference,
+        reset,
+        MPC_mode_t::positional
+    );
 
-        if (first_iteration_) {
+    if (first_iteration_) {
 
-            if (trajectory_generator_client_->busy()) {
-
-                std::string error_message = "FlyToPositionManeuverServer::computeReference(): Trajectory generator client is busy on first iteration, cannot start execution of maneuver.";
-
-                RCLCPP_FATAL(node()->get_logger(), error_message.c_str());
-
-                throw std::runtime_error(error_message);
-
-            }
-
-            trajectory_generator_client_->Reset(state);
-
-            ref = trajectory_generator_client_->GetReferenceTrajectory().references()[0];
-
-            trajectory_generator_client_->ComputeReferenceTrajectoryAsync(
-                state,
-                target_reference_,
-                true,
-                true,
-                MPC_mode_t::positional
-            );
-
-            first_iteration_ = false;
-
-        } else {
-
-            while (!trajectory_generator_client_->done()) {
-
-                rclcpp::sleep_for(std::chrono::milliseconds(parameters_->GetParameter("generate_trajectories_poll_period_ms").as_int()));
-
-            }
-
-            ref = trajectory_generator_client_->GetReferenceTrajectory().references()[1];
-
-            trajectory_generator_client_->ComputeReferenceTrajectoryAsync(
-                state,
-                target_reference_,
-                false,
-                false,
-                MPC_mode_t::positional
-            );
-
-        }
-
-    } else {
-
-        if (trajectory_generator_client_->busy()) {
-
-            std::string error_message = "FlyToPositionManeuverServer::computeReference(): Trajectory generator client is busy on first iteration, cannot start execution of maneuver.";
-
-            RCLCPP_FATAL(node()->get_logger(), error_message.c_str());
-
-            throw std::runtime_error(error_message);
-
-        }
-
-        bool first_it = first_iteration_;
-
-        if (first_it) {
-
-            trajectory_generator_client_->Reset(state);
-
-            first_iteration_ = false;
-
-        }
-
-        trajectory_generator_client_->ComputeReferenceTrajectoryBlocking(
-            state,
-            target_reference_,
-            first_it,
-            first_it,
-            MPC_mode_t::positional,
-            parameters_->GetParameter("generate_trajectories_poll_period_ms").as_int()
-        );
-
-        ref = trajectory_generator_client_->GetReferenceTrajectory().references()[0];
+        first_iteration_ = false;
 
     }
 
@@ -298,5 +255,20 @@ void FlyToPositionManeuverServer::registerReferenceCallbackOnSuccess(const Maneu
             std::placeholders::_1
         )
     );
+
+}
+
+bool FlyToPositionManeuverServer::validateManeuverParameters(const fly_to_position_maneuver_params_t & maneuver_params) const {
+
+    auto cda_handler = awareness_handler();
+
+    point_t target_position_in_world_frame = maneuver_params.transform_target_position(
+        parameters_->GetParameter("world_frame_id").as_string(),
+        cda_handler->tf_buffer()
+    );
+
+    bool target_position_valid = target_position_in_world_frame[2] - cda_handler->ground_altitude_estimate() >= parameters_->GetParameter("minimum_target_altitude").as_double();
+
+    return target_position_valid;
 
 }

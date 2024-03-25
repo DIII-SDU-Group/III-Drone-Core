@@ -242,6 +242,15 @@ namespace maneuver {
             const iii_drone::control::State &state
         ) const;
 
+        /**
+         * @brief Validates the drone awareness.
+         * 
+         * @param drone_awareness The drone awareness.
+         * 
+         * @return bool Whether the awareness is valid.
+         */
+        bool validateAwareness(combined_drone_awareness_t drone_awareness) const;
+
     };
 
 } // namespace maneuver

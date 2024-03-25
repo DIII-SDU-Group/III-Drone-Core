@@ -56,11 +56,20 @@ namespace control {
         Reference();
 
         /**
-         * Constructor from state.
+         * @brief Constructor from state.
          *
          * @param state The state object.
          */
         Reference(const State& state);
+
+        /**
+         * @brief Copies the object with a new timestamp.
+         * 
+         * @param stamp The new timestamp.
+         * 
+         * @return The copied object with the new timestamp.
+         */
+        Reference CopyWithNewStamp(const rclcpp::Time stamp = rclcpp::Clock().now()) const;
 
         /**
          * Getter for the reference position.

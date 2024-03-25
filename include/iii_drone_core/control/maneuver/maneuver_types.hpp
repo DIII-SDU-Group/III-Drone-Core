@@ -8,6 +8,7 @@
 // III-Drone-Core:
 
 #include <iii_drone_core/utils/types.hpp>
+#include <iii_drone_core/utils/math.hpp>
 
 #include <iii_drone_core/adapters/target_adapter.hpp>
 
@@ -80,17 +81,39 @@ namespace maneuver {
 			tf2_ros::Buffer::SharedPtr tf_buffer
 		) const;
 
+		double transform_target_yaw(
+			const std::string target_frame_id,
+			tf2_ros::Buffer::SharedPtr tf_buffer
+		) const;
+
+	};
+
+	/**
+	 * @brief CableLanding maneuver parameters
+	 */
+	struct cable_landing_maneuver_params_t {
+		int target_cable_id;
+
+		cable_landing_maneuver_params_t();
+		cable_landing_maneuver_params_t(int target_cable_id);
+		cable_landing_maneuver_params_t(std::shared_ptr<void> params);
 	};
 
 	/**
 	 * @brief CableTakeoff maneuver parameters
 	 */
 	struct cable_takeoff_maneuver_params_t {
+		int target_cable_id;
 		float target_cable_distance;
 
 		cable_takeoff_maneuver_params_t();
-		cable_takeoff_maneuver_params_t(float target_cable_distance);
+		cable_takeoff_maneuver_params_t(
+			int target_cable_id,
+			float target_cable_distance
+		);
 		cable_takeoff_maneuver_params_t(std::shared_ptr<void> params);
+
+		transform_matrix_t get_target_transform() const;
 	};
 
 	/**
@@ -134,12 +157,14 @@ namespace maneuver {
 	 * @brief HoverOnCable maneuver parameters
 	 */
 	struct hover_on_cable_maneuver_params_t {
+		int target_cable_id;
 		double target_z_velocity;
 		double target_yaw_rate;
 		double duration_s;
 
 		hover_on_cable_maneuver_params_t();
 		hover_on_cable_maneuver_params_t(
+			int target_cable_id,
 			double target_z_velocity, 
 			double target_yaw_rate,
 			double duration_s

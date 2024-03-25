@@ -1,31 +1,3 @@
-    # DeclareParameter<"int">("/control/maneuver_controller/ground_estimate_window_size");
-    # DeclareParameter<"int">("/control/maneuver_controller/ground_estimate_update_period_ms");
-    # DeclareParameter<"float">("/control/maneuver_controller/landed_altitude_threshold");
-    # DeclareParameter<"float">("/control/maneuver_controller/on_cable_max_euc_distance");
-    # DeclareParameter<"bool">("/control/maneuver_controller/fail_on_unable_to_locate");
-    # DeclareParameter<"float">("/control/maneuver_controller/maneuver_register_update_timeout_s");
-    # DeclareParameter<"float">("/control/maneuver_controller/maneuver_start_timeout_s");
-    # DeclareParameter<"int">("/control/maneuver_controller/maneuver_queue_size");
-    # DeclareParameter<"int">("/control/maneuver_controller/maneuver_execution_period_ms");
-    # DeclareParameter<"bool">("/control/maneuver_controller/use_nans_when_hovering");
-    # DeclareParameter<"float">("/control/maneuver_controller/no_maneuver_idle_cnt_s");
-    # DeclareParameter<"float">("/control/maneuver_controller/hover_by_object_max_euc_dist");
-    # DeclareParameter<"float">("/control/maneuver_controller/hover_on_cable_default_z_velocity");
-    # DeclareParameter<"float">("/control/maneuver_controller/hover_on_cable_default_yaw_rate");
-    # DeclareParameter<"int">("/control/maneuver_controller/maneuver_wait_for_execute_poll_ms");
-    # DeclareParameter<"int">("/control/maneuver_controller/maneuver_evaluate_done_poll_ms");
-    # DeclareParameter<"float">("/control/maneuver_controller/reached_position_euclidean_distance_threshold");
-    # DeclareParameter<"float">("/control/maneuver_controller/minimum_target_altitude");
-    # DeclareParameter<"bool">("/control/maneuver_controller/generate_trajectories_asynchronously_with_delay");
-    # DeclareParameter<"int">("/control/maneuver_controller/generate_trajectories_poll_period_ms");
-
-    # DeclareParameter<std::"string">("/tf/cable_gripper_frame_id");
-    # DeclareParameter<std::"string">("/tf/drone_frame_id");
-    # DeclareParameter<std::"string">("/tf/world_frame_id");
-    # DeclareParameter<std::"string">("/tf/ground_frame_id");
-
-    # DeclareParameter<std::vector<"int">>("/px4/px4_offboard_mode_ids");
-
 parameters:
   ground_estimate_window_size:
     name: "/control/maneuver_controller/ground_estimate_window_size"
@@ -81,11 +53,50 @@ parameters:
   minimum_target_altitude:
     name: "/control/maneuver_controller/minimum_target_altitude"
     type: "float"
+  cable_landing_min_z_distance:
+    name: "/control/maneuver_controller/cable_landing_min_z_distance"
+    type: "float"
+  cable_landing_max_z_distance:
+    name: "/control/maneuver_controller/cable_landing_max_z_distance"
+    type: "float"
+  cable_landing_max_initial_distance_error:
+    name: "/control/maneuver_controller/cable_landing_max_initial_distance_error"
+    type: "float"
+  cable_landing_max_initial_yaw_error:
+    name: "/control/maneuver_controller/cable_landing_max_initial_yaw_error"
+    type: "float"
+  cable_landing_safety_zone_radius:
+    name: "/control/maneuver_controller/cable_landing_safety_zone_radius"
+    type: "float"
+  cable_landing_safety_margin_max_xy_position_error:
+    name: "/control/maneuver_controller/cable_landing_safety_margin_max_xy_position_error"
+    type: "float"
+  cable_landing_safety_margin_max_xy_velocity:
+    name: "/control/maneuver_controller/cable_landing_safety_margin_max_xy_velocity"
+    type: "float"
+  cable_landing_safety_margin_max_yaw_error:
+    name: "/control/maneuver_controller/cable_landing_safety_margin_max_yaw_error"
+    type: "float"
+  cable_landing_safety_margin_max_yaw_rate:
+    name: "/control/maneuver_controller/cable_landing_safety_margin_max_yaw_rate"
+    type: "float"
+  cable_landing_reference_truncate_radius:
+    name: "/control/maneuver_controller/cable_landing_reference_truncate_radius"
+    type: "float"
+  cable_takeoff_min_target_cable_distance:
+    name: "/control/maneuver_controller/cable_takeoff_min_target_cable_distance"
+    type: "float"
+  cable_takeoff_max_target_cable_distance:
+    name: "/control/maneuver_controller/cable_takeoff_max_target_cable_distance"
+    type: "float"
   generate_trajectories_asynchronously_with_delay:
     name: "/control/maneuver_controller/generate_trajectories_asynchronously_with_delay"
     type: "bool"
   generate_trajectories_poll_period_ms:
     name: "/control/maneuver_controller/generate_trajectories_poll_period_ms"
+    type: "int"
+  generate_trajectories_timeout_ms:
+    name: "/control/maneuver_controller/generate_trajectories_timeout_ms"
     type: "int"
   cable_gripper_frame_id:
     name: "/tf/cable_gripper_frame_id"
@@ -132,6 +143,9 @@ parameter_bundles:
     ground_frame_id:
       remap_name: "ground_frame_id"
       update: false
+    px4_offboard_mode_ids:
+      remap_name: "px4_offboard_mode_ids"
+      update: false
 
   maneuver_scheduler:
     maneuver_register_update_timeout_s:
@@ -162,6 +176,22 @@ parameter_bundles:
       remap_name: "hover_on_cable_default_yaw_rate"
       update: true
 
+  trajectory_generator_client:
+    generate_trajectories_asynchronously_with_delay:
+      remap_name: "generate_trajectories_asynchronously_with_delay"
+      update: false
+    generate_trajectories_poll_period_ms:
+      remap_name: "generate_trajectories_poll_period_ms"
+      update: false
+    generate_trajectories_timeout_ms:
+      remap_name: "generate_trajectories_timeout_ms"
+      update: false
+
+  hover_on_cable_maneuver_server:
+    gripper_frame_id:
+      remap_name: "cable_gripper_frame_id"
+      update: false
+
   fly_to_position_maneuver_server:
     reached_position_euclidean_distance_threshold:
       remap_name: "reached_position_euclidean_distance_threshold"
@@ -169,12 +199,6 @@ parameter_bundles:
     minimum_target_altitude:
       remap_name: "minimum_target_altitude"
       update: true
-    generate_trajectories_asynchronously_with_delay:
-      remap_name: "generate_trajectories_asynchronously_with_delay"
-      update: false
-    generate_trajectories_poll_period_ms:
-      remap_name: "generate_trajectories_poll_period_ms"
-      update: false
     world_frame_id:
       remap_name: "world_frame_id"
       update: false
@@ -186,15 +210,78 @@ parameter_bundles:
     minimum_target_altitude:
       remap_name: "minimum_target_altitude"
       update: true
-    generate_trajectories_asynchronously_with_delay:
-      remap_name: "generate_trajectories_asynchronously_with_delay"
+    world_frame_id:
+      remap_name: "world_frame_id"
       update: false
-    generate_trajectories_poll_period_ms:
-      remap_name: "generate_trajectories_poll_period_ms"
+
+  cable_landing_maneuver_server:
+    cable_landing_min_z_distance:
+      remap_name: "cable_landing_min_z_distance"
+      update: true
+    cable_landing_max_z_distance:
+      remap_name: "cable_landing_max_z_distance"
+      update: true
+    cable_landing_max_initial_distance_error:
+      remap_name: "cable_landing_max_initial_distance_error"
+      update: true
+    cable_landing_max_initial_yaw_error:
+      remap_name: "cable_landing_max_initial_yaw_error"
+      update: true
+    reached_position_euclidean_distance_threshold:
+      remap_name: "reached_position_euclidean_distance_threshold"
+      update: true
+    gripper_frame_id:
+      remap_name: "cable_gripper_frame_id"
+      update: false
+    drone_frame_id:
+      remap_name: "drone_frame_id"
       update: false
     world_frame_id:
       remap_name: "world_frame_id"
       update: false
+    hover_on_cable_default_z_velocity:
+      remap_name: "hover_on_cable_default_z_velocity"
+      update: true
+    hover_on_cable_default_yaw_rate:
+      remap_name: "hover_on_cable_default_yaw_rate"
+      update: true
+    cable_landing_safety_zone_radius:
+      remap_name: "cable_landing_safety_zone_radius"
+      update: true
+    cable_landing_safety_margin_max_xy_position_error:
+      remap_name: "cable_landing_safety_margin_max_xy_position_error"
+      update: true
+    cable_landing_safety_margin_max_xy_velocity:
+      remap_name: "cable_landing_safety_margin_max_xy_velocity"
+      update: true
+    cable_landing_safety_margin_max_yaw_error:
+      remap_name: "cable_landing_safety_margin_max_yaw_error"
+      update: true
+    cable_landing_safety_margin_max_yaw_rate:
+      remap_name: "cable_landing_safety_margin_max_yaw_rate"
+      update: true
+    cable_landing_reference_truncate_radius:
+      remap_name: "cable_landing_reference_truncate_radius"
+      update: true
+
+  cable_takeoff_maneuver_server:
+    cable_takeoff_min_target_cable_distance:
+      remap_name: "cable_takeoff_min_target_cable_distance"
+      update: true
+    cable_takeoff_max_target_cable_distance:
+      remap_name: "cable_takeoff_max_target_cable_distance"
+      update: true
+    reached_position_euclidean_distance_threshold:
+      remap_name: "reached_position_euclidean_distance_threshold"
+      update: true
+    drone_frame_id:
+      remap_name: "drone_frame_id"
+      update: false
+    world_frame_id:
+      remap_name: "world_frame_id"
+      update: false
+    
+    
 
   
   

@@ -44,43 +44,12 @@ bool FlyToObjectManeuverServer::CanExecuteManeuver(
         return false;
     }
 
-    auto cda_handler = awareness_handler();
-
     fly_to_object_maneuver_params_t params(maneuver.maneuver_params());
 
-    if (params.target_adapter.target_type() != TARGET_TYPE_CABLE) {
-        return false;
-    }
-
-    if (!drone_awareness.offboard) {
-        return false;
-    }
-
-    if (!drone_awareness.armed) {
-        return false;
-    }
-
-    if (!drone_awareness.in_flight()) {
-        return false;
-    }
-
-    transform_matrix_t target_transform;
-    
-    try {
-
-        target_transform = awareness_handler()->ComputeTargetTransform(target_adapter_);
-
-    } catch (const std::runtime_error &e) {
-
-        return false;
-
-    }
-
-    point_t target_position_in_world_frame = target_transform.block<3, 1>(0, 3);
-
-    bool target_position_valid = target_position_in_world_frame[2] - cda_handler->ground_altitude_estimate() >= parameters_->GetParameter("minimum_target_altitude").as_double();
-
-    return target_position_valid;
+    return validateAwarenessAndParameters(
+        drone_awareness,
+        params
+    );
 
 }
 
@@ -90,9 +59,7 @@ combined_drone_awareness_t FlyToObjectManeuverServer::ExpectedAwarenessAfterExec
 
     TargetAdapter target_adapter = params.target_adapter;
 
-    if (target_adapter.target_type() != TARGET_TYPE_CABLE) {
-        throw std::runtime_error("FlyToObjectManeuverServer::ExpectedAwarenessAfterExecution(): Target type is not TARGET_TYPE_CABLE.");
-    }
+    State target_state = awareness_handler()->ComputeTargetState(target_adapter);
 
     combined_drone_awareness_t awareness_after;
 
@@ -101,6 +68,7 @@ combined_drone_awareness_t FlyToObjectManeuverServer::ExpectedAwarenessAfterExec
     awareness_after.target_adapter = target_adapter;
     awareness_after.target_position_known = true;
     awareness_after.drone_location = DRONE_LOCATION_IN_FLIGHT;
+    awareness_after.state = target_state;
 
     return awareness_after;
 
@@ -118,8 +86,6 @@ void FlyToObjectManeuverServer::startExecution(Maneuver & maneuver) {
 
     target_adapter_ = params.target_adapter;
 
-    cda_handler->SetTarget(target_adapter_);
-
     if (trajectory_generator_client_->busy()) {
 
         std::string error_message = "FlyToObjectManeuverServer::startExecution(): Trajectory generator client is busy, cannot start execution of maneuver.";
@@ -133,6 +99,8 @@ void FlyToObjectManeuverServer::startExecution(Maneuver & maneuver) {
     first_iteration_ = true;
     has_failed_ = false;
 
+    cda_handler->SetTarget(target_adapter_);
+
 }
 
 bool FlyToObjectManeuverServer::canCancel() {
@@ -143,88 +111,20 @@ Reference FlyToObjectManeuverServer::computeReference(const State & state) {
 
     Reference target_reference = getUpdatedTargetReference(state);
 
-    Reference ref;
+    bool reset = first_iteration_;
+    bool set_reference = true;
 
-    if (parameters_->GetParameter("generate_trajectories_asynchronously_with_delay").as_bool()) {
+    Reference ref = trajectory_generator_client_->ComputeReference(
+        state,
+        target_reference,
+        set_reference,
+        reset,
+        MPC_mode_t::positional
+    );
 
-        if (first_iteration_) {
+    if (first_iteration_) {
 
-            if (trajectory_generator_client_->busy()) {
-
-                std::string error_message = "FlyToObjectManeuverServer::computeReference(): Trajectory generator client is busy on first iteration, cannot start execution of maneuver.";
-
-                RCLCPP_FATAL(node()->get_logger(), error_message.c_str());
-
-                throw std::runtime_error(error_message);
-
-            }
-
-            trajectory_generator_client_->Reset(state);
-
-            ref = trajectory_generator_client_->GetReferenceTrajectory().references()[0];
-
-            trajectory_generator_client_->ComputeReferenceTrajectoryAsync(
-                state,
-                target_reference,
-                true,
-                true,
-                MPC_mode_t::positional
-            );
-
-            first_iteration_ = false;
-
-        } else {
-
-            while (!trajectory_generator_client_->done()) {
-
-                rclcpp::sleep_for(std::chrono::milliseconds(parameters_->GetParameter("generate_trajectories_poll_period_ms").as_int()));
-
-            }
-
-            ref = trajectory_generator_client_->GetReferenceTrajectory().references()[1];
-
-            trajectory_generator_client_->ComputeReferenceTrajectoryAsync(
-                state,
-                target_reference,
-                true,
-                false,
-                MPC_mode_t::positional
-            );
-
-        }
-
-    } else {
-
-        if (trajectory_generator_client_->busy()) {
-
-            std::string error_message = "FlyToObjectManeuverServer::computeReference(): Trajectory generator client is busy on first iteration, cannot start execution of maneuver.";
-
-            RCLCPP_FATAL(node()->get_logger(), error_message.c_str());
-
-            throw std::runtime_error(error_message);
-
-        }
-
-        bool first_it = first_iteration_;
-
-        if (first_it) {
-
-            trajectory_generator_client_->Reset(state);
-
-            first_iteration_ = false;
-
-        }
-
-        trajectory_generator_client_->ComputeReferenceTrajectoryBlocking(
-            state,
-            target_reference,
-            true,
-            first_it,
-            MPC_mode_t::positional,
-            parameters_->GetParameter("generate_trajectories_poll_period_ms").as_int()
-        );
-
-        ref = trajectory_generator_client_->GetReferenceTrajectory().references()[0];
+        first_iteration_ = false;
 
     }
 
@@ -271,7 +171,7 @@ bool FlyToObjectManeuverServer::hasFailed(Maneuver &) {
     return !cda_handler->in_flight() 
         || !cda_handler->offboard()
         || !cda_handler->armed()
-        || cda_handler->target_adapter().target_type() != TARGET_TYPE_CABLE
+        || cda_handler->target_adapter() != *target_adapter_
         || !cda_handler->target_position_known()
         || has_failed_;
 
@@ -346,30 +246,49 @@ Reference FlyToObjectManeuverServer::getUpdatedTargetReference(const iii_drone::
 
     auto cda_handler = awareness_handler();
 
-    transform_matrix_t target_transform;
+    return Reference(cda_handler->ComputeTargetState(target_adapter_));
 
+}
+
+bool FlyToObjectManeuverServer::validateAwarenessAndParameters(
+    const combined_drone_awareness_t & drone_awareness,
+    const fly_to_object_maneuver_params_t & params
+) const {
+
+    auto cda_handler = awareness_handler();
+
+    if (params.target_adapter.target_type() != TARGET_TYPE_CABLE) {
+        return false;
+    }
+
+    if (!drone_awareness.offboard) {
+        return false;
+    }
+
+    if (!drone_awareness.armed) {
+        return false;
+    }
+
+    if (!drone_awareness.in_flight()) {
+        return false;
+    }
+
+    transform_matrix_t target_transform;
+    
     try {
 
-        target_transform = cda_handler->ComputeTargetTransform(target_adapter_);
+        target_transform = awareness_handler()->ComputeTargetTransform(target_adapter_);
 
     } catch (const std::runtime_error &e) {
 
-        has_failed_ = true;
-
-        return Reference(
-            state.position(),
-            state.yaw()
-        );
+        return false;
 
     }
 
     point_t target_position_in_world_frame = target_transform.block<3, 1>(0, 3);
-    quaternion_t target_orientation_in_world_frame = quaternionFromTransformMatrix(target_transform);
-    double target_yaw = quatToEul(target_orientation_in_world_frame)[2];
 
-    return Reference(
-        target_position_in_world_frame,
-        target_yaw
-    );
+    bool target_position_valid = target_position_in_world_frame[2] - cda_handler->ground_altitude_estimate() >= parameters_->GetParameter("minimum_target_altitude").as_double();
+
+    return target_position_valid;
 
 }

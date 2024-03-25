@@ -13,6 +13,7 @@
 #include <string>
 #include <future>
 #include <chrono>
+#include <iostream>
 
 /*****************************************************************************/
 // III-Drone-Core:
@@ -42,8 +43,9 @@ namespace utils {
          */
         Token(const Token<T> & other) {
 
+            
             resource_mutex_ = other.resource_mutex_;
-            resource_local_lock_ = std::unique_lock<std::mutex>(*resource_mutex_);
+            resource_local_lock_ = std::unique_lock<std::mutex>(*resource_mutex_, std::defer_lock);
             resource_ = other.resource_;
 
             name_ = other.name_;
@@ -58,6 +60,7 @@ namespace utils {
 
             master_acquired_token_callback_ = other.master_acquired_token_callback_;
 
+            
         }
 
         /**
@@ -190,6 +193,7 @@ namespace utils {
          */
         Token<T> CreateSlaveHandle(const std::string & slave_name) {
 
+            
             std::unique_lock<std::mutex> lock(*slaves_mutex_);
 
             if (!is_master()) {
@@ -235,6 +239,7 @@ namespace utils {
                 this
             );
 
+            
             return slave_handle;
 
         }

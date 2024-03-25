@@ -273,6 +273,7 @@ namespace maneuver {
         /**
          * @brief This function should publish the result and finalize the maneuver according to the result type.
          * This must be implemented specific to the maneuver type. Finalization needs to be done on the maneuver's goal handle.
+         * This function is responsible for clearing or setting the target adapter with the combined drone awareness handler.
          */
         virtual void publishResultAndFinalize(
             Maneuver & maneuver,

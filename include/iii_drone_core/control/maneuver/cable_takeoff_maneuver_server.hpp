@@ -12,13 +12,16 @@
 #include <tf2/convert.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
-#include <geometry_msgs/msg/point_stamped.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/quaternion_stamped.hpp>
 
 /*****************************************************************************/
 // III-Drone-Core:
 
 #include <iii_drone_core/utils/types.hpp>
 #include <iii_drone_core/utils/math.hpp>
+#include <iii_drone_core/utils/atomic.hpp>
 
 #include <iii_drone_core/configuration/parameter_bundle.hpp>
 
@@ -28,17 +31,18 @@
 #include <iii_drone_core/control/maneuver/maneuver.hpp>
 #include <iii_drone_core/control/maneuver/maneuver_types.hpp>
 
-#include <iii_drone_core/control/maneuver/hover_by_object_maneuver_server.hpp>
+#include <iii_drone_core/control/maneuver/hover_maneuver_server.hpp>
 
 #include <iii_drone_core/control/trajectory_generator_client.hpp>
 
 #include <iii_drone_core/adapters/state_adapter.hpp>
 #include <iii_drone_core/adapters/reference_trajectory_adapter.hpp>
+#include <iii_drone_core/adapters/target_adapter.hpp>
 
 /*****************************************************************************/
 // III-Drone-Interfaces:
 
-#include <iii_drone_interfaces/action/fly_to_object.hpp>
+#include <iii_drone_interfaces/action/cable_takeoff.hpp>
 
 /*****************************************************************************/
 // Class
@@ -49,11 +53,11 @@ namespace control {
 namespace maneuver {
 
     /**
-     * @brief Class for serving flying to an object.     
+     * @brief Class for serving cable landing.     
      */
-    class FlyToObjectManeuverServer : public ManeuverServer {
-        using FlyToObject = iii_drone_interfaces::action::FlyToObject;
-        using GoalHandleFlyToObject = rclcpp_action::ServerGoalHandle<FlyToObject>;
+    class CableTakeoffManeuverServer : public ManeuverServer {
+        using CableTakeoff = iii_drone_interfaces::action::CableTakeoff;
+        using GoalHandleCableTakeoff = rclcpp_action::ServerGoalHandle<CableTakeoff>;
     public:
         /**
          * @brief Constructor.
@@ -63,16 +67,16 @@ namespace maneuver {
          * @param action_name Action name
          * @param wait_for_execute_poll_ms Wait for execute poll milliseconds
          * @param evaluate_done_poll_ms Evaluate done poll milliseconds
-         * @param fly_to_object_maneuver_server_parameters Fly to object maneuver server parameters
+         * @param cable_takeoff_maneuver_server_parameters Cable takeoff maneuver server parameters
          * @param trajectory_generator_client Trajectory generator client shared pointer
          */
-        FlyToObjectManeuverServer(
+        CableTakeoffManeuverServer(
             rclcpp::Node * node,
             CombinedDroneAwarenessHandler::SharedPtr combined_drone_awareness_handler,
             const std::string & action_name,
             unsigned int wait_for_execute_poll_ms,
             unsigned int evaluate_done_poll_ms,
-            iii_drone::configuration::ParameterBundle::SharedPtr fly_to_object_maneuver_server_parameters,
+            iii_drone::configuration::ParameterBundle::SharedPtr cable_takeoff_maneuver_server_parameters,
             iii_drone::control::TrajectoryGeneratorClient::SharedPtr trajectory_generator_client
         );
 
@@ -100,7 +104,7 @@ namespace maneuver {
 
     private:
         /**
-         * @brief The maneuver type (MANEUVER_TYPE_FLY_TO_OBJECT)
+         * @brief The maneuver type (MANEUVER_TYPE_cable_takeoff)
          * 
          * @return The maneuver type.
          */
@@ -172,7 +176,7 @@ namespace maneuver {
         ) override;
 
         /**
-         * @brief Registers the hover by object reference callback on success.
+         * @brief Registers the hover reference callback on success.
          * 
          * @param maneuver The maneuver.
          * 
@@ -181,7 +185,7 @@ namespace maneuver {
         void registerReferenceCallbackOnSuccess(const Maneuver & maneuver) override;
 
         /**
-         * @brief The fly to object maneuver server parameters shared pointer.
+         * @brief The cable takeoff maneuver server parameters shared pointer.
          */
         iii_drone::configuration::ParameterBundle::SharedPtr parameters_;
 
@@ -191,9 +195,14 @@ namespace maneuver {
         iii_drone::control::TrajectoryGeneratorClient::SharedPtr trajectory_generator_client_;
 
         /**
-         * @brief The hover reference target adapter.
+         * @brief The target adapter.
          */
         iii_drone::utils::Atomic<iii_drone::adapters::TargetAdapter> target_adapter_;
+
+        /**
+         * @brief The initial state when the maneuver is started.
+         */
+        iii_drone::utils::Atomic<iii_drone::control::State> start_state_;
 
         /**
          * @brief Flag for first iteration.
@@ -201,30 +210,18 @@ namespace maneuver {
         iii_drone::utils::Atomic<bool> first_iteration_ = true;
 
         /**
-         * @brief Has failed flag.
-         */
-        iii_drone::utils::Atomic<bool> has_failed_ = false;
-
-        /**
          * @brief Get updated target reference. 
          * Sets the has_failed flag if the target is not visible.
          * 
+         * @param state The state.
+         * @param compute Whether to compute the reference or return the last computed one, default false.
+         * 
          * @return Updated target reference.
          */
-        iii_drone::control::Reference getUpdatedTargetReference(const iii_drone::control::State & state);
-
-        /**
-         * @brief Validates the drone awareness and maneuver parameters.
-         * 
-         * @param drone_awareness The drone awareness.
-         * @param maneuever_params The maneuver parameters.
-         * 
-         * @return bool Whether the drone awareness and maneuver parameters are valid.
-         */
-        bool validateAwarenessAndParameters(
-            const combined_drone_awareness_t & drone_awareness,
-            const fly_to_object_maneuver_params_t & maneuver_params
-        ) const;
+        iii_drone::control::Reference getUpdatedTargetReference(
+            const iii_drone::control::State & state,
+            bool compute = false
+        );
 
     };
 

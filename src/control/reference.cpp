@@ -56,6 +56,18 @@ Reference::Reference(const State& state) {
 
 }
 
+Reference Reference::CopyWithNewStamp(const rclcpp::Time stamp) const {
+    return Reference(
+        position_,
+        yaw_,
+        velocity_,
+        yaw_rate_,
+        acceleration_,
+        yaw_acceleration_,
+        stamp
+    );
+}
+
 const point_t Reference::position() const {
     return position_;
 }

@@ -39,6 +39,8 @@
 #include <iii_drone_core/control/reference.hpp>
 #include <iii_drone_core/control/reference_trajectory.hpp>
 
+#include <iii_drone_core/configuration/parameter_bundle.hpp>
+
 /*****************************************************************************/
 // Class
 /*****************************************************************************/
@@ -56,8 +58,12 @@ namespace control {
          * @brief Constructor.
          * 
          * @param node Node pointer
+         * @param parameters Trajectory generator client parameter bundle
          */
-        TrajectoryGeneratorClient(rclcpp::Node * node);
+        TrajectoryGeneratorClient(
+            rclcpp::Node * node,
+            iii_drone::configuration::ParameterBundle::SharedPtr parameters
+        );
 
         /**
          * @brief Resets the client with the current state.
@@ -70,6 +76,27 @@ namespace control {
          * @brief Cancels the trajectory generation if it is active.
          */
         void Cancel();
+
+        /**
+         * @brief Computes a reference according to the settings.
+         * 
+         * @param state Current state
+         * @param reference Reference
+         * @param set_reference Updates the internal MPC reference if true
+         * @param reset Resets the internal MPC if true
+         * @param mpc_mode The MPC mode
+         * 
+         * @return reference
+         * 
+         * @throws std::runtime_error if the trajectory generator is busy
+         */
+        iii_drone::control::Reference ComputeReference(
+            const iii_drone::control::State & state,
+            const iii_drone::control::Reference & reference,
+            bool set_reference,
+            bool reset,
+            MPC_mode_t mpc_mode
+        );
 
         /**
          * @brief Starts generating a trajectory.
@@ -146,6 +173,11 @@ namespace control {
         rclcpp::Node * node_;
 
         /**
+         * @brief Trajectory generator client parameters
+         */
+        iii_drone::configuration::ParameterBundle::SharedPtr parameters_;
+
+        /**
          * @brief Service client
          */
         rclcpp::Client<iii_drone_interfaces::srv::ComputeReferenceTrajectory>::SharedPtr client_;
@@ -153,7 +185,7 @@ namespace control {
         /**
          * @brief Reference trajectory adapter history
          */
-        iii_drone::utils::History<iii_drone::adapters::ReferenceTrajectoryAdapter> reference_trajectory_adapter_history_;
+        iii_drone::utils::History<iii_drone::adapters::ReferenceTrajectoryAdapter>::SharedPtr reference_trajectory_adapter_history_;
 
         /**
          * @brief Busy flag

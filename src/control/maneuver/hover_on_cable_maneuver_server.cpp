@@ -7,6 +7,8 @@
 using namespace iii_drone::control::maneuver;
 using namespace iii_drone::control;
 using namespace iii_drone::types;
+using namespace iii_drone::adapters;
+using namespace iii_drone::configuration;
 
 /*****************************************************************************/
 // Implementation:
@@ -18,8 +20,7 @@ HoverOnCableManeuverServer::HoverOnCableManeuverServer(
     const std::string & action_name,
     unsigned int wait_for_execute_poll_ms,
     unsigned int evaluate_done_poll_ms,
-    double default_target_z_velocity,
-    double default_target_yaw_rate
+    ParameterBundle::SharedPtr parameters
 ) : ManeuverServer(
         node,
         combined_drone_awareness_handler,
@@ -27,10 +28,8 @@ HoverOnCableManeuverServer::HoverOnCableManeuverServer(
         wait_for_execute_poll_ms,
         evaluate_done_poll_ms
     ),
-    has_on_fail_callback_(false),
-    target_z_velocity_(default_target_z_velocity),
-    target_yaw_rate_(default_target_yaw_rate) {
-    
+    parameters_(parameters),
+    has_on_fail_callback_(false) {
 
     createServer<HoverOnCable>();
 
@@ -50,7 +49,23 @@ bool HoverOnCableManeuverServer::CanExecuteManeuver(
     if (params.target_z_velocity < 0.0) {
         return false;
     }
-    
+
+    if (drone_awareness.target_adapter.target_type() != TARGET_TYPE_CABLE) {
+        return false;
+    }
+
+    if (drone_awareness.target_adapter.reference_frame_id() != parameters_->GetParameter("gripper_frame_id").as_string()) {
+        return false;
+    }
+
+    if (drone_awareness.target_adapter.target_transform().isApprox(transform_matrix_t::Identity())) {
+        return false;
+    }
+
+    if (drone_awareness.target_adapter.target_id() != params.target_cable_id) {
+        return false;
+    }
+
     if (!validateAwareness(drone_awareness)) {
         return false;
     }
@@ -63,18 +78,23 @@ combined_drone_awareness_t HoverOnCableManeuverServer::ExpectedAwarenessAfterExe
 
     hover_on_cable_maneuver_params_t params(maneuver.maneuver_params());
 
+    TargetAdapter target_adapter = iii_drone::adapters::TargetAdapter(
+        iii_drone::adapters::TARGET_TYPE_CABLE,
+        params.target_cable_id,
+        parameters_->GetParameter("gripper_frame_id").as_string(),
+        iii_drone::types::transform_matrix_t::Identity()
+    );
+
+    State target_state = awareness_handler()->ComputeTargetState(target_adapter);
+
     combined_drone_awareness_t awareness_after;
 
     awareness_after.armed = true;
     awareness_after.offboard = true;
-    awareness_after.target_adapter = iii_drone::adapters::TargetAdapter(
-        iii_drone::adapters::TARGET_TYPE_CABLE,
-        0,
-        "",
-        iii_drone::types::transform_matrix_t()
-    );
+    awareness_after.target_adapter = target_adapter;
     awareness_after.target_position_known = true;
     awareness_after.drone_location = DRONE_LOCATION_ON_CABLE;
+    awareness_after.state = target_state;
 
     return awareness_after;
 
@@ -88,6 +108,7 @@ void HoverOnCableManeuverServer::RegisterOnFailCallback(std::function<void()> on
 }
 
 bool HoverOnCableManeuverServer::Update(
+    int target_cable_id,
     double target_z_velocity,
     double target_yaw_rate
 ) {
@@ -95,6 +116,23 @@ bool HoverOnCableManeuverServer::Update(
     if (target_z_velocity < 0.0) {
         return false;
     }
+
+    int prev_target_cable_id = target_cable_id_;
+    target_cable_id_ = target_cable_id;
+
+    if(!validateAwareness(awareness_handler()->combined_drone_awareness())) {
+        target_cable_id_ = prev_target_cable_id;
+        return false;
+    }
+
+    TargetAdapter target_adapter = iii_drone::adapters::TargetAdapter(
+        iii_drone::adapters::TARGET_TYPE_CABLE,
+        target_cable_id,
+        parameters_->GetParameter("gripper_frame_id").as_string(),
+        iii_drone::types::transform_matrix_t::Identity()
+    );
+
+    awareness_handler()->SetTarget(target_adapter);
     
     target_z_velocity_ = target_z_velocity;
     target_yaw_rate_ = target_yaw_rate;
@@ -138,8 +176,19 @@ void HoverOnCableManeuverServer::startExecution(Maneuver &maneuver) {
 
     hover_on_cable_maneuver_params_t params(maneuver.maneuver_params());
 
-    target_z_velocity_ = params.target_z_velocity;
-    target_yaw_rate_ = params.target_yaw_rate;
+    if (!Update(
+        params.target_cable_id,
+        params.target_z_velocity,
+        params.target_yaw_rate
+    )) {
+
+        std::string msg = "HoverOnCableManeuverServer::startExecution(): Failed to update target.";
+
+        RCLCPP_FATAL(node()->get_logger(), msg.c_str());
+
+        throw std::runtime_error(msg);
+
+    }
 
 }
 
@@ -221,6 +270,26 @@ bool HoverOnCableManeuverServer::validateAwareness(combined_drone_awareness_t dr
     }
 
     if (!drone_awareness.on_cable()) {
+        return false;
+    }
+
+    if (!drone_awareness.has_target()) {
+        return false;
+    }
+
+    if (drone_awareness.target_adapter.target_type() != TARGET_TYPE_CABLE) {
+        return false;
+    }
+
+    if (drone_awareness.target_adapter.target_id() != target_cable_id_) {
+        return false;
+    }
+
+    if (drone_awareness.target_adapter.reference_frame_id() != parameters_->GetParameter("gripper_frame_id").as_string()) {
+        return false;
+    }
+
+    if (!drone_awareness.target_position_known) {
         return false;
     }
 

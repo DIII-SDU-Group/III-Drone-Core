@@ -21,6 +21,7 @@
 // III-Drone-Interfaces:
 
 #include <iii_drone_interfaces/msg/reference.hpp>
+#include <iii_drone_interfaces/srv/get_reference.hpp>
 
 /*****************************************************************************/
 // III-Drone-Core:
@@ -70,6 +71,8 @@ namespace maneuver {
      * including checking whether a maneuver can be executed immediately or later.
      * Maneuvers are queued for later execution. When a maneuver is finished,
      * the next maneuver is started using the maneuver server API.
+     * The class exposes a service with which a client can fetch the next reference,
+     * which underlyingly is fetched from the executing maneuver server.
      */
     class ManeuverScheduler {
         using ReferenceCallbackToken = iii_drone::utils::Token<iii_drone::utils::Atomic<std::function<Reference(const State &)>>>;
@@ -234,6 +237,15 @@ namespace maneuver {
         void onReferenceCallbackTokenReacquired();
 
         /**
+         * @brief Get passthrough reference.
+         * 
+         * @param state The state.
+         * 
+         * @return The reference.
+         */
+        Reference getPassthroughReference(const State & state) const;
+
+        /**
          * @brief Reference to the node for creating of ROS2 objects.
          */
         rclcpp::Node *node_;
@@ -301,6 +313,24 @@ namespace maneuver {
         rclcpp::Publisher<iii_drone_interfaces::msg::Reference>::SharedPtr reference_publisher_;
 
         /**
+         * @brief Get reference service.
+         */
+        rclcpp::Service<iii_drone_interfaces::srv::GetReference>::SharedPtr get_reference_service_;
+
+        /**
+         * @brief Get reference service callback.
+         * 
+         * @param request The request.
+         * @param response The response.
+         * 
+         * @return void
+         */
+        void getReferenceServiceCallback(
+            const std::shared_ptr<iii_drone_interfaces::srv::GetReference::Request> request,
+            std::shared_ptr<iii_drone_interfaces::srv::GetReference::Response> response
+        );
+
+        /**
          * @brief The maneuver execution timer callback.
          */
         void maneuverExecutionTimerCallback();
@@ -325,9 +355,9 @@ namespace maneuver {
          * no more references will be published until a new maneuver is scheduled and
          * the timer is restarted.
          * 
-         * @return void
+         * @return reference msg
          */
-        void fetchNextReferenceAndPublish();
+        iii_drone_interfaces::msg::Reference fetchNextReferenceAndPublish();
 
         /**
          * @brief Cancels all pending maneuvers.

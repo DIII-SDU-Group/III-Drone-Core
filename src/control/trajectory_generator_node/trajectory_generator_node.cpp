@@ -25,6 +25,8 @@ TrajectoryGeneratorNode::TrajectoryGeneratorNode(
     )
 {
 
+    RCLCPP_INFO(this->get_logger(), "TrajectoryGeneratorNode::TrajectoryGeneratorNode(): Initializing.");
+
     compute_reference_trajectory_service_ = this->create_service<iii_drone_interfaces::srv::ComputeReferenceTrajectory>(
         "compute_reference_trajectory",
         std::bind(

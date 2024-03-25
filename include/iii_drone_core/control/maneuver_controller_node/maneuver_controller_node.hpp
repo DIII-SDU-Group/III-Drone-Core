@@ -35,6 +35,8 @@
 #include <iii_drone_core/control/maneuver/hover_on_cable_maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/fly_to_position_maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/fly_to_object_maneuver_server.hpp>
+#include <iii_drone_core/control/maneuver/cable_landing_maneuver_server.hpp>
+#include <iii_drone_core/control/maneuver/cable_takeoff_maneuver_server.hpp>
 
 #include <iii_drone_core/control/trajectory_generator_client.hpp>
 
@@ -161,6 +163,18 @@ namespace maneuver_controller_node {
          * Will serve fly to object action requests.
          */
         std::shared_ptr<iii_drone::control::maneuver::FlyToObjectManeuverServer> fly_to_object_maneuver_server_;
+
+        /**
+         * @brief The cable landing maneuver server shared pointer.
+         * Will serve cable landing action requests.
+         */
+        std::shared_ptr<iii_drone::control::maneuver::CableLandingManeuverServer> cable_landing_maneuver_server_;
+
+        /**
+         * @brief The cable takeoff maneuver server shared pointer.
+         * Will serve cable takeoff action requests.
+         */
+        std::shared_ptr<iii_drone::control::maneuver::CableTakeoffManeuverServer> cable_takeoff_maneuver_server_;
 
         /**
          * @brief Creates and registers all maneuver servers with the maneuver scheduler.

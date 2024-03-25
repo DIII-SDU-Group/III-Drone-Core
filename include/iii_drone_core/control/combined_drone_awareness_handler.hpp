@@ -79,7 +79,7 @@ namespace control {
 	 * @brief Represents a combination of drone awareness information, on which behavior execution depends.
 	 */
     typedef struct {
-        State state;
+        iii_drone::control::State state;
         bool armed;
         bool offboard;
         iii_drone::adapters::TargetAdapter target_adapter;
@@ -144,11 +144,13 @@ namespace control {
          * @param params Shared pointer to the parameters for the combined drone awareness handler object.
          * @param tf_buffer Shared pointer to the tf2 buffer.
          * @param node Simple pointer to the containing node.
+         * @param debug Whether to print debug messages.
          */
         CombinedDroneAwarenessHandler(
             iii_drone::configuration::ParameterBundle::SharedPtr params,
             tf2_ros::Buffer::SharedPtr tf_buffer,
-            rclcpp::Node * node
+            rclcpp::Node * node,
+            bool debug = false
         );
 
         /**
@@ -168,7 +170,16 @@ namespace control {
         iii_drone::control::State GetState() const;
 
         /**
-         * @brief Computes a target transform given a target adapter.
+         * @brief Computes the target state of the drone given a target adapter.
+         * 
+         * @param target_adapter The target adapter.
+         * 
+         * @return The target state.
+         */
+        iii_drone::control::State ComputeTargetState(const iii_drone::adapters::TargetAdapter & target_adapter) const;
+
+        /**
+         * @brief Computes the target transform world to drone given a target adapter.
          * 
          * @param target_adapter The target adapter.
          * 
@@ -177,13 +188,22 @@ namespace control {
         iii_drone::types::transform_matrix_t ComputeTargetTransform(const iii_drone::adapters::TargetAdapter & target_adapter) const;
 
         /**
+         * @brief Gets the pose of the target.
+         * 
+         * @param target_adapter The target adapter.
+         * 
+         * @return The pose of the target.
+         */
+        iii_drone::types::pose_t GetPoseOfTarget(const iii_drone::adapters::TargetAdapter & target_adapter) const;
+
+        /**
          * @brief Sets the current target.
          * 
          * @param target_adapter The target adapter.
          * 
          * @return void
          */
-        void SetTarget(const iii_drone::adapters::TargetAdapter & target_adapter);
+        void SetTarget(iii_drone::adapters::TargetAdapter target_adapter);
 
         /**
          * @brief Clears the current target.
@@ -299,6 +319,10 @@ namespace control {
         typedef std::shared_ptr<CombinedDroneAwarenessHandler> SharedPtr;
 
     private:
+        /**
+         * @brief Whether to print debug messages.
+         */
+        bool debug_;
 
         /**
          * @brief Parameters for the combined drone awareness handler.

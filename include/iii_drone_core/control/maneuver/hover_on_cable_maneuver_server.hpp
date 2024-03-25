@@ -27,6 +27,8 @@
 #include <iii_drone_core/control/maneuver/maneuver.hpp>
 #include <iii_drone_core/control/maneuver/maneuver_types.hpp>
 
+#include <iii_drone_core/configuration/parameter_bundle.hpp>
+
 /*****************************************************************************/
 // III-Drone-Core:
 
@@ -63,8 +65,7 @@ namespace maneuver {
          * @param action_name Action name
          * @param wait_for_execute_poll_ms Wait for execute poll milliseconds
          * @param evaluate_done_poll_ms Evaluate done poll milliseconds
-         * @param default_target_z_velocity The default target z velocity
-         * @param default_target_yaw_rate The default target yaw rate
+         * @param parameters The hover on cable parameter bundle
          */
         HoverOnCableManeuverServer(
             rclcpp::Node * node,
@@ -72,8 +73,7 @@ namespace maneuver {
             const std::string & action_name,
             unsigned int wait_for_execute_poll_ms,
             unsigned int evaluate_done_poll_ms,
-            double default_target_z_velocity,
-            double default_target_yaw_rate
+            iii_drone::configuration::ParameterBundle::SharedPtr parameters
         );
 
         /**
@@ -108,12 +108,14 @@ namespace maneuver {
         /**
          * @brief Updates the hover on cable reference.
          * 
+         * @param target_cable_id The target cable id.
          * @param target_z_velocity The target z velocity.
          * @param target_yaw_rate The target yaw rate.
          * 
          * @return bool Whether the update was successful.
          */
         bool Update(
+            int target_cable_id,
             double target_z_velocity,
             double target_yaw_rate
         );
@@ -128,6 +130,11 @@ namespace maneuver {
         iii_drone::control::Reference GetReference(const iii_drone::control::State &state);
 
     private:
+        /**
+         * @brief The hover on cable parameter bundle.
+         */
+        iii_drone::configuration::ParameterBundle::SharedPtr parameters_;
+
         /**
          * @brief Get the maneuver type (MANEUVER_TYPE_HOVER_ON_CABLE).
          * 
@@ -218,6 +225,11 @@ namespace maneuver {
          * @brief Has on fail callback flag.
          */
         iii_drone::utils::Atomic<bool> has_on_fail_callback_;
+
+        /**
+         * @brief The target cable id.
+         */
+        int target_cable_id_;
 
         /**
          * @brief The target z velocity.

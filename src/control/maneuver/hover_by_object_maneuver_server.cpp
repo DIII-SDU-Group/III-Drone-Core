@@ -52,52 +52,17 @@ bool HoverByObjectManeuverServer::CanExecuteManeuver(
         return false;
     }
 
-    if (!drone_awareness.offboard) {
-        return false;
-    }
-
-    if (!drone_awareness.armed) {
-        return false;
-    }
-
-    if (!drone_awareness.in_flight()) {
-        return false;
-    }
-
-    if (!drone_awareness.has_target()) {
-        return false;
-    }
-
-    if (drone_awareness.target_adapter.target_type() != TARGET_TYPE_CABLE) {
-        return false;
-    }
-
-    transform_matrix_t target_transform;
-    
-    try {
-
-        target_transform = awareness_handler()->ComputeTargetTransform(target_adapter_);
-
-    } catch (const std::runtime_error &e) {
-
-        return false;
-
-    }
-
-    if (!validateTargetTransform(
-        target_transform,
-        drone_awareness.state
-    )) {
-
-        return false;
-
-    }
-
-    return true;
+    return validateAwareness(drone_awareness);
 
 }
 
-combined_drone_awareness_t HoverByObjectManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver & ) {
+combined_drone_awareness_t HoverByObjectManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver & maneuver) {
+
+    hover_by_object_maneuver_params_t params(maneuver.maneuver_params());
+
+    TargetAdapter target_adapter = params.target_adapter;
+
+    State target_state = awareness_handler()->ComputeTargetState(target_adapter);
 
     combined_drone_awareness_t awareness_after;
     awareness_after.armed = true;
@@ -105,6 +70,7 @@ combined_drone_awareness_t HoverByObjectManeuverServer::ExpectedAwarenessAfterEx
     awareness_after.target_adapter = target_adapter_;
     awareness_after.target_position_known = true;
     awareness_after.drone_location = DRONE_LOCATION_IN_FLIGHT;
+    awareness_after.state = target_state;
 
     return awareness_after;
 
@@ -121,22 +87,7 @@ bool HoverByObjectManeuverServer::Update(const iii_drone::adapters::TargetAdapte
 
     transform_matrix_t target_transform;
     
-    try {
-
-        target_transform = awareness_handler()->ComputeTargetTransform(target_adapter);
-
-    } catch (const std::runtime_error &e) {
-
-        has_target_ = false;
-
-        return false;
-
-    }
-
-    if (!validateTargetTransform(
-        target_transform,
-        awareness_handler()->GetState()
-    )) {
+    if (!validateAwareness(awareness_handler()->combined_drone_awareness())) {
 
         has_target_ = false;
 
@@ -178,10 +129,7 @@ iii_drone::control::Reference HoverByObjectManeuverServer::GetReference(const ii
 
     }
 
-    if (!validateTargetTransform(
-        target_transform,
-        awareness_handler()->GetState()
-    )) {
+    if (!validateAwareness(awareness_handler()->combined_drone_awareness())) {
 
         has_target_ = false;
 
@@ -256,6 +204,8 @@ void HoverByObjectManeuverServer::startExecution(Maneuver & maneuver) {
     target_adapter_ = params.target_adapter;
     has_target_ = true;
 
+    awareness_handler()->SetTarget(target_adapter_);
+
 }
 
 bool HoverByObjectManeuverServer::canCancel() {
@@ -272,22 +222,7 @@ iii_drone::control::Reference HoverByObjectManeuverServer::computeReference(cons
 
 bool HoverByObjectManeuverServer::hasSucceeded(Maneuver & ) {
 
-    transform_matrix_t target_transform;
-    
-    try {
-
-        target_transform = awareness_handler()->ComputeTargetTransform(target_adapter_);
-
-    } catch (const std::runtime_error &e) {
-
-        has_target_ = false;
-
-    }
-
-    return validateTargetTransform(
-        target_transform,
-        awareness_handler()->GetState()
-    );
+    return validateAwareness(awareness_handler()->combined_drone_awareness());
 
 }
 
@@ -355,5 +290,48 @@ bool HoverByObjectManeuverServer::validateTargetTransform(
     }
 
     return true;    
+
+}
+
+bool HoverByObjectManeuverServer::validateAwareness(combined_drone_awareness_t drone_awareness) const {
+
+    if (!drone_awareness.offboard) {
+        return false;
+    }
+
+    if (!drone_awareness.armed) {
+        return false;
+    }
+
+    if (!drone_awareness.in_flight()) {
+        return false;
+    }
+
+    if (!drone_awareness.has_target()) {
+        return false;
+    }
+
+    transform_matrix_t target_transform;
+    
+    try {
+
+        target_transform = awareness_handler()->ComputeTargetTransform(target_adapter_);
+
+    } catch (const std::runtime_error &e) {
+
+        return false;
+
+    }
+
+    if (!validateTargetTransform(
+        target_transform,
+        drone_awareness.state
+    )) {
+
+        return false;
+
+    }
+
+    return true;
 
 }

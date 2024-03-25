@@ -95,3 +95,18 @@ TargetAdapter & TargetAdapter::operator=(const TargetAdapter & other) {
     return *this;
 
 }
+
+bool TargetAdapter::operator==(const TargetAdapter & other) const {
+    
+    return (
+        target_type_ == other.target_type_ &&
+        target_id_ == other.target_id_ &&
+        reference_frame_id_ == other.reference_frame_id_ &&
+        target_transform_ == other.target_transform_
+    );
+
+}
+
+bool TargetAdapter::operator!=(const TargetAdapter & other) const {
+    return !(*this == other);
+}

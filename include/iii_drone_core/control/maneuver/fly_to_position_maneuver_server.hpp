@@ -5,9 +5,20 @@
 /*****************************************************************************/
 
 /*****************************************************************************/
+// ROS2:
+
+#include <rclcpp/rclcpp.hpp>
+
+#include <tf2/convert.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+
+#include <geometry_msgs/msg/point_stamped.hpp>
+
+/*****************************************************************************/
 // III-Drone-Core:
 
 #include <iii_drone_core/utils/types.hpp>
+#include <iii_drone_core/utils/math.hpp>
 
 #include <iii_drone_core/configuration/parameter_bundle.hpp>
 
@@ -188,6 +199,15 @@ namespace maneuver {
          * @brief Flag for first iteration.
          */
         iii_drone::utils::Atomic<bool> first_iteration_ = true;
+
+        /**
+         * @brief Validates the maneuver parameters.
+         * 
+         * @param maneuver_params The maneuver parameters.
+         * 
+         * @return bool Whether the maneuver parameters are valid.
+         */
+        bool validateManeuverParameters(const fly_to_position_maneuver_params_t & maneuver_params) const;
 
     };
 

@@ -285,6 +285,78 @@ control:
       value: 1.
       min: 0.5
       max: 2.0
+    cable_landing_min_z_distance:
+      # Minimum z distance to cable before cable landing
+      type: "float"
+      value: 1.
+      min: 0.5
+      max: "/control/maneuver_controller/cable_landing_max_z_distance - 0.5"
+    cable_landing_max_z_distance:
+      # Maximum z distance to cable before cable landing
+      type: "float"
+      value: 2.
+      min: "/control/maneuver_controller/cable_landing_min_z_distance + 0.5"
+      max: 3.0
+    cable_landing_max_initial_distance_error:
+      # Maximum initial distance error to cable before cable landing
+      type: "float"
+      value: 0.25
+      min: 0.05
+      max: 0.5
+    cable_landing_max_initial_yaw_error:
+      # Maximum initial yaw error to cable before cable landing
+      type: "float"
+      value: 0.314159265
+      min: 0.1
+      max: 1.0
+    cable_landing_safety_zone_radius:
+      # Radius of the safety zone around the cable for cable landing
+      type: "float"
+      value: 0.5
+      min: 0.1
+      max: 1.0
+    cable_landing_safety_margin_max_xy_position_error:
+      # Maximum xy position error when within safety zone
+      type: "float"
+      value: 0.1
+      min: 0.05
+      max: 0.5
+    cable_landing_safety_margin_max_xy_velocity:
+      # Maximum xy velocity when within safety zone
+      type: "float"
+      value: 0.5
+      min: 0.1
+      max: 5.0
+    cable_landing_safety_margin_max_yaw_error:
+      # Maximum yaw error when within safety zone
+      type: "float"
+      value: 0.314159265
+      min: 0.1
+      max: 1.0
+    cable_landing_safety_margin_max_yaw_rate:
+      # Maximum yaw rate when within safety zone
+      type: "float"
+      value: 1.570796327
+      min: 0.1
+      max: 10.0
+    cable_landing_reference_truncate_radius:
+      # Radius for truncating the reference when within safety zone
+      type: "float"
+      value: 0.25
+      min: 0.1
+      max: 1.0
+    cable_takeoff_min_target_cable_distance:
+      # Minimum distance to cable for takeoff
+      type: "float"
+      value: 0.5
+      min: 0.1
+      max: "/control/maneuver_controller/cable_takeoff_max_target_cable_distance"
+    cable_takeoff_max_target_cable_distance:
+      # Maximum distance to cable for takeoff
+      type: "float"
+      value: 2.0
+      min: "/control/maneuver_controller/cable_takeoff_min_target_cable_distance"
+      max: 3.0
     generate_trajectories_asynchronously_with_delay:
       # Generate trajectories asynchronously in a separate thread, 
       # using the second entry in the previously generated trajectory as reference.
@@ -298,6 +370,13 @@ control:
       value: 1
       min: 1
       max: "/control/maneuver_controller/maneuver_execution_period_ms / 10"
+      constant: true
+    generate_trajectories_timeout_ms:
+      # Timeout for waiting for trajectory generation to finish
+      type: "int"
+      value: 10
+      min: "/control/maneuver_controller/generate_trajectories_poll_period_ms"
+      max: "/control/maneuver_controller/maneuver_execution_period_ms / 2"
       constant: true
     # always_armed_for_debug:
     #   type: "bool"

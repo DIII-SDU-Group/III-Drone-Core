@@ -71,7 +71,7 @@ namespace adapters {
          * @param target_type Target type
          * @param target_id Target id
          * @param reference_frame_id Reference frame id
-         * @param target_transform Target transform
+         * @param target_transform Target transform drone to object
          */
         TargetAdapter(
             target_type_t target_type,
@@ -116,7 +116,7 @@ namespace adapters {
         std::string reference_frame_id() const;
 
         /**
-         * @brief Gets the target transform.
+         * @brief Gets the target transform drone to object.
          * 
          * @return Target transform
          */
@@ -128,6 +128,20 @@ namespace adapters {
          * @param other Other target adapter
          */
         TargetAdapter & operator=(const TargetAdapter & other);
+
+        /**
+         * @brief Comparison operator.
+         * 
+         * @param other Other target adapter
+         */
+        bool operator==(const TargetAdapter & other) const;
+
+        /**
+         * @brief Comparison operator.
+         * 
+         * @param other Other target adapter
+         */
+        bool operator!=(const TargetAdapter & other) const;
 
     private:
         /**

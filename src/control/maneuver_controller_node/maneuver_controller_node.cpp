@@ -24,8 +24,12 @@ ManeuverControllerNode::ManeuverControllerNode(
     options
 ),  configurator_(this) {
 
+    RCLCPP_INFO(get_logger(), "ManeuverControllerNode::ManeuverControllerNode()");
+
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
+    RCLCPP_INFO(get_logger(), "ManeuverControllerNode::ManeuverControllerNode(): Initializing combined drone awareness handler");
 
     combined_drone_awareness_handler_ = std::make_shared<CombinedDroneAwarenessHandler>(
         configurator_.GetParameterBundle("combined_drone_awareness_handler"),
@@ -33,13 +37,22 @@ ManeuverControllerNode::ManeuverControllerNode(
         this
     );
 
+    RCLCPP_INFO(get_logger(), "ManeuverControllerNode::ManeuverControllerNode(): Registering offboard modes");
+
     std::vector<int64_t> px4_offboard_mode_ids = configurator_.GetParameter("px4_offboard_mode_ids").as_integer_array();
 
     for (const auto & id : px4_offboard_mode_ids) {
         combined_drone_awareness_handler_->RegisterOffboardMode(id);
     }
 
-    trajectory_generator_client_ = std::make_shared<TrajectoryGeneratorClient>(this);
+    RCLCPP_INFO(get_logger(), "ManeuverControllerNode::ManeuverControllerNode(): Initializing trajectory generator client");
+
+    trajectory_generator_client_ = std::make_shared<TrajectoryGeneratorClient>(
+        this,
+        configurator_.GetParameterBundle("trajectory_generator_client")
+    );
+
+    RCLCPP_INFO(get_logger(), "ManeuverControllerNode::ManeuverControllerNode(): Initializing maneuver scheduler");
 
     maneuver_execution_cb_group_ = this->create_callback_group(
         rclcpp::CallbackGroupType::MutuallyExclusive
@@ -52,7 +65,11 @@ ManeuverControllerNode::ManeuverControllerNode(
         maneuver_execution_cb_group_
     );
 
+    RCLCPP_INFO(get_logger(), "ManeuverControllerNode::ManeuverControllerNode(): Registering maneuver servers");
+
     registerManeuverServers();
+
+    RCLCPP_INFO(get_logger(), "ManeuverControllerNode::ManeuverControllerNode(): Finished initializing maneuver controller node");
     
 }
 
@@ -61,6 +78,10 @@ ManeuverControllerNode::~ManeuverControllerNode() {
 }
 
 void ManeuverControllerNode::registerManeuverServers() {
+
+    RCLCPP_INFO(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Creating hover maneuver server");
+
+    RCLCPP_DEBUG(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Creating hover maneuver server");
     
     hover_maneuver_server_ = std::make_shared<HoverManeuverServer>(
         this,
@@ -71,10 +92,14 @@ void ManeuverControllerNode::registerManeuverServers() {
         configurator_.GetParameter("use_nans_when_hovering").as_bool()
     );
 
+    RCLCPP_DEBUG(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Registering hover maneuver server");
+
     maneuver_scheduler_->RegisterManeuverServer(
         MANEUVER_TYPE_HOVER,
-        std::static_pointer_cast<ManeuverServer>(hover_maneuver_server_)
+        std::dynamic_pointer_cast<ManeuverServer>(hover_maneuver_server_)
     );
+
+    RCLCPP_DEBUG(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Creating hover by object maneuver server");
 
     hover_by_object_maneuver_server_ = std::make_shared<HoverByObjectManeuverServer>(
         this,
@@ -86,10 +111,14 @@ void ManeuverControllerNode::registerManeuverServers() {
         configurator_.GetParameter("hover_by_object_max_euc_dist").as_double()
     );
 
+    RCLCPP_DEBUG(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Registering hover by object maneuver server");
+
     maneuver_scheduler_->RegisterManeuverServer(
         MANEUVER_TYPE_HOVER_BY_OBJECT,
-        std::static_pointer_cast<ManeuverServer>(hover_by_object_maneuver_server_)
+        std::dynamic_pointer_cast<ManeuverServer>(hover_by_object_maneuver_server_)
     );
+
+    RCLCPP_DEBUG(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Creating hover on cable maneuver server");
 
     hover_on_cable_maneuver_server_ = std::make_shared<HoverOnCableManeuverServer>(
         this,
@@ -97,14 +126,17 @@ void ManeuverControllerNode::registerManeuverServers() {
         "hover_on_cable",
         configurator_.GetParameter("maneuver_wait_for_execute_poll_ms").as_int(),
         configurator_.GetParameter("maneuver_evaluate_done_poll_ms").as_int(),
-        configurator_.GetParameter("hover_on_cable_default_z_velocity").as_double(),
-        configurator_.GetParameter("hover_on_cable_default_yaw_rate").as_double()
+        configurator_.GetParameterBundle("hover_on_cable_maneuver_server")
     );
+
+    RCLCPP_DEBUG(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Registering hover on cable maneuver server");
 
     maneuver_scheduler_->RegisterManeuverServer(
         MANEUVER_TYPE_HOVER_ON_CABLE,
-        std::static_pointer_cast<ManeuverServer>(hover_on_cable_maneuver_server_)
+        std::dynamic_pointer_cast<ManeuverServer>(hover_on_cable_maneuver_server_)
     );
+
+    RCLCPP_DEBUG(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Creating fly to position maneuver server");
 
     fly_to_position_maneuver_server_ = std::make_shared<FlyToPositionManeuverServer>(
         this,
@@ -116,10 +148,14 @@ void ManeuverControllerNode::registerManeuverServers() {
         trajectory_generator_client_
     );
 
+    RCLCPP_DEBUG(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Registering fly to position maneuver server");
+
     maneuver_scheduler_->RegisterManeuverServer(
         MANEUVER_TYPE_FLY_TO_POSITION,
-        std::static_pointer_cast<ManeuverServer>(fly_to_position_maneuver_server_)
+        std::dynamic_pointer_cast<ManeuverServer>(fly_to_position_maneuver_server_)
     );
+
+    RCLCPP_DEBUG(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Creating fly to object maneuver server");
 
     fly_to_object_maneuver_server_ = std::make_shared<FlyToObjectManeuverServer>(
         this,
@@ -130,6 +166,53 @@ void ManeuverControllerNode::registerManeuverServers() {
         configurator_.GetParameterBundle("fly_to_object_maneuver_server"),
         trajectory_generator_client_
     );
+
+    RCLCPP_DEBUG(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Registering fly to object maneuver server");
+
+    maneuver_scheduler_->RegisterManeuverServer(
+        MANEUVER_TYPE_FLY_TO_OBJECT,
+        std::dynamic_pointer_cast<ManeuverServer>(fly_to_object_maneuver_server_)
+    );
+
+    RCLCPP_DEBUG(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Creating cable landing maneuver server");
+
+    cable_landing_maneuver_server_ = std::make_shared<CableLandingManeuverServer>(
+        this,
+        combined_drone_awareness_handler_,
+        "cable_landing",
+        configurator_.GetParameter("maneuver_wait_for_execute_poll_ms").as_int(),
+        configurator_.GetParameter("maneuver_evaluate_done_poll_ms").as_int(),
+        configurator_.GetParameterBundle("cable_landing_maneuver_server"),
+        trajectory_generator_client_
+    );
+
+    RCLCPP_DEBUG(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Registering cable landing maneuver server");
+
+    maneuver_scheduler_->RegisterManeuverServer(
+        MANEUVER_TYPE_CABLE_LANDING,
+        std::dynamic_pointer_cast<ManeuverServer>(cable_landing_maneuver_server_)
+    );
+
+    RCLCPP_DEBUG(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Creating cable takeoff maneuver server");
+
+    cable_takeoff_maneuver_server_ = std::make_shared<CableTakeoffManeuverServer>(
+        this,
+        combined_drone_awareness_handler_,
+        "cable_takeoff",
+        configurator_.GetParameter("maneuver_wait_for_execute_poll_ms").as_int(),
+        configurator_.GetParameter("maneuver_evaluate_done_poll_ms").as_int(),
+        configurator_.GetParameterBundle("cable_takeoff_maneuver_server"),
+        trajectory_generator_client_
+    );
+
+    RCLCPP_DEBUG(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Registering cable takeoff maneuver server");
+
+    maneuver_scheduler_->RegisterManeuverServer(
+        MANEUVER_TYPE_CABLE_TAKEOFF,
+        std::dynamic_pointer_cast<ManeuverServer>(cable_takeoff_maneuver_server_)
+    );
+
+    RCLCPP_INFO(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Finished registering maneuver servers");
 
 }
 

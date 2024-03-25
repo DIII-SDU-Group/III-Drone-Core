@@ -215,3 +215,20 @@ const transform_matrix_t iii_drone::types::transformMatrixFromTransformMsg(const
     return transform_matrix;
 
 }
+
+const quaternion_t iii_drone::types::quaternionFromTransformMatrix(const transform_matrix_t & transform_matrix) {
+
+    return matToQuat(transform_matrix.block<3, 3>(0, 0));
+
+}
+
+const pose_t iii_drone::types::poseFromTransformMatrix(const transform_matrix_t & transform_matrix) {
+
+    pose_t pose;
+
+    pose.position = transform_matrix.block<3, 1>(0, 3);
+    pose.orientation = quaternionFromTransformMatrix(transform_matrix);
+
+    return pose;
+
+}

@@ -154,6 +154,7 @@ def generate_launch_description():
             package='iii_drone_core',
             executable='configuration_server_node.py',
             parameters=[ros_params],
+            arguments=["--ros-args", "--log-level", configuration_server_log_level],
         )
         
         launch_list = [configuration_server] + launch_list

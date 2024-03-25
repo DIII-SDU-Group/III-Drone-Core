@@ -31,6 +31,18 @@ ManeuverScheduler::ManeuverScheduler(
         )
     ) {
 
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::ManeuverScheduler()");
+
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::ManeuverScheduler(): Initializing reference callback");
+
+    reference_callback_ = std::bind(
+        &ManeuverScheduler::getPassthroughReference,
+        this,
+        std::placeholders::_1
+    );
+
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::ManeuverScheduler(): Initializing maneuver queue");
+
     maneuver_queue_ = std::make_unique<ManeuverQueue>(parameters_->GetParameter("maneuver_queue_size").as_int());
     
     current_maneuver_ = Maneuver();
@@ -39,6 +51,8 @@ ManeuverScheduler::ManeuverScheduler(
         "reference",
         10 // Fix QoS
     );
+
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::ManeuverScheduler(): Initializing maneuver execution timer");
 
     maneuver_execution_timer_ = node_->create_wall_timer(
         std::chrono::milliseconds(parameters_->GetParameter("maneuver_execution_period_ms").as_int()),
@@ -51,12 +65,28 @@ ManeuverScheduler::ManeuverScheduler(
 
     maneuver_execution_timer_->cancel();
 
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::ManeuverScheduler(): Initializing get reference service");
+
+    get_reference_service_ = node_->create_service<iii_drone_interfaces::srv::GetReference>(
+        "get_reference",
+        std::bind(
+            &ManeuverScheduler::getReferenceServiceCallback,
+            this,
+            std::placeholders::_1,
+            std::placeholders::_2
+        )
+    );
+
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::ManeuverScheduler(): Finished initializing");
+
 }
 
 void ManeuverScheduler::RegisterManeuverServer(
     maneuver_type_t maneuver_type,
     ManeuverServer::SharedPtr maneuver_server
 ) {
+
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::RegisterManeuverServer(): registering maneuver type %d", maneuver_type);
     
     // Check if the maneuver type is already registered
     if (registered_maneuvers_.find(maneuver_type) != registered_maneuvers_.end()) {
@@ -69,12 +99,16 @@ void ManeuverScheduler::RegisterManeuverServer(
 
     }
 
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::RegisterManeuverServer(): Inserting maneuver server");
+
     registered_maneuvers_.insert(
         std::pair<maneuver_type_t, ManeuverServer::SharedPtr>(
             maneuver_type,
             maneuver_server
         )
     );
+
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::RegisterManeuverServer(): Starting maneuver server");
 
     maneuver_server->Start(
         std::bind(
@@ -120,6 +154,8 @@ void ManeuverScheduler::RegisterManeuverServer(
 
     if (maneuver_type == MANEUVER_TYPE_HOVER_BY_OBJECT) {
 
+        RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::RegisterManeuverServer(): Registering on fail callback for hover by object");
+
         std::static_pointer_cast<HoverByObjectManeuverServer>(maneuver_server)->RegisterOnFailCallback(
             std::bind(
                 &ManeuverScheduler::onHoveringFail,
@@ -129,6 +165,8 @@ void ManeuverScheduler::RegisterManeuverServer(
 
     } else if (maneuver_type == MANEUVER_TYPE_HOVER_ON_CABLE) {
 
+        RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::RegisterManeuverServer(): Registering on fail callback for hover on cable");
+
         std::static_pointer_cast<HoverOnCableManeuverServer>(maneuver_server)->RegisterOnFailCallback(
             std::bind(
                 &ManeuverScheduler::onHoveringFail,
@@ -137,6 +175,8 @@ void ManeuverScheduler::RegisterManeuverServer(
         );
 
     }
+
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::RegisterManeuverServer(): Finished registering maneuver type %d", maneuver_type);
 
 }
 
@@ -207,24 +247,6 @@ bool ManeuverScheduler::ProjectExpectedAwarenessSingle(
     auto registered_maneuver = registered_maneuvers_.find(maneuver.maneuver_type());
     
     awareness_after = registered_maneuver->second->ExpectedAwarenessAfterExecution(maneuver);
-
-    // switch(maneuver.maneuver_type()) {
-
-        // case maneuver::MANEUVER_TYPE_CABLE_LANDING:
-        //     awareness_after.armed = true;
-        //     awareness_after.offboard = true;
-        //     awareness_after.has_target_cable = true;
-        //     awareness_after.drone_location = DRONE_LOCATION_ON_CABLE;
-        //     break;
-
-        // case maneuver::MANEUVER_TYPE_CABLE_TAKEOFF:
-        //     awareness_after.armed = true;
-        //     awareness_after.offboard = true;
-        //     awareness_after.has_target_cable = true;
-        //     awareness_after.drone_location = DRONE_LOCATION_IN_FLIGHT;
-        //     break;
-
-    // }
 
     return true;
 
@@ -418,25 +440,6 @@ bool ManeuverScheduler::maneuverCanExecute(
         awareness
     );
 
-    // switch(maneuver.type) {
-
-    //     case maneuver::MANEUVER_TYPE_CABLE_LANDING:
-    //         return behavior_state.in_flight() && 
-    //             behavior_state.offboard && 
-    //             behavior_state.has_target_cable && 
-    //             behavior_state.target_cable_position_known;
-
-    //     case maneuver::MANEUVER_TYPE_CABLE_TAKEOFF:
-    //         return behavior_state.on_cable() && 
-    //             behavior_state.offboard && 
-    //             behavior_state.armed && 
-    //             behavior_state.has_target_cable && 
-    //             behavior_state.target_cable_position_known;
-
-    //     default:
-    //         return true;
-
-    // }
 }
 
 void ManeuverScheduler::onManeuverCompleted(Maneuver maneuver) {
@@ -490,27 +493,12 @@ void ManeuverScheduler::onReferenceCallbackTokenReacquired() {
 
     }
 
+}
 
-    // switch(maneuver_type) {
-    //     case MANEUVER_TYPE_CABLE_LANDING: {
-    //         auto registered_maneuver = registered_maneuvers_.find(MANEUVER_TYPE_HOVER_ON_CABLE);
+Reference ManeuverScheduler::getPassthroughReference(const State & state) const {
 
-    //         std::shared_ptr<HoverOnCableManeuverServer> maneuver_server = std::static_pointer_cast<HoverOnCableManeuverServer>(registered_maneuver->second);
+    return Reference(state);
 
-    //         maneuver_server->Update(
-    //             parameters_->GetParameter("hover_on_cable_default_z_velocity").as_string(),
-    //             parameters_->GetParameter("hover_on_cable_default_yaw_rate").as_string()
-    //         );
-
-    //         reference_callback_token_.resource() = std::bind(
-    //             &HoverOnCableManeuverServer::GetReference,
-    //             &(*maneuver_server),
-    //             std::placeholders::_1
-    //         );
-
-    //         break;
-    //     }
-    // }
 }
 
 void ManeuverScheduler::onHoveringFail() {
@@ -519,11 +507,21 @@ void ManeuverScheduler::onHoveringFail() {
 
 }
 
+void ManeuverScheduler::getReferenceServiceCallback(
+    const std::shared_ptr<iii_drone_interfaces::srv::GetReference::Request> request,
+    std::shared_ptr<iii_drone_interfaces::srv::GetReference::Response> response
+) {
+
+    iii_drone_interfaces::msg::Reference ref_msg = fetchNextReferenceAndPublish();
+
+    response->reference = ref_msg;
+    response->is_valid = maneuverIsExecutingOrPending();
+
+}
+
 void ManeuverScheduler::maneuverExecutionTimerCallback() {
 
     progressScheduler();
-
-    fetchNextReferenceAndPublish();
 
 }
 
@@ -579,6 +577,12 @@ void ManeuverScheduler::progressScheduler() {
         }
 
         if (*no_maneuver_idle_cnt_ < 0) {
+
+            reference_callback_ = std::bind(
+                &ManeuverScheduler::getPassthroughReference,
+                this,
+                std::placeholders::_1
+            );
 
             maneuver_execution_timer_->cancel();
 
@@ -714,13 +718,17 @@ void ManeuverScheduler::progressScheduler() {
     }
 }
 
-void ManeuverScheduler::fetchNextReferenceAndPublish() {
+iii_drone_interfaces::msg::Reference ManeuverScheduler::fetchNextReferenceAndPublish() {
 
     Reference ref = (*reference_callback_)(combined_drone_awareness_handler_->GetState());
 
     ReferenceAdapter ref_adapter(ref);
 
-    reference_publisher_->publish(ref_adapter.ToMsg());
+    iii_drone_interfaces::msg::Reference ref_msg = ref_adapter.ToMsg();
+
+    reference_publisher_->publish(ref_msg);
+
+    return ref_msg;
 
 }
 

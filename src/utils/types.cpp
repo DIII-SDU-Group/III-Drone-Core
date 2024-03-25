@@ -221,20 +221,3 @@ const geometry_msgs::msg::Transform iii_drone::types::transformMsgFromTransformM
     return transform_msg;
 
 }
-
-const quaternion_t iii_drone::types::quaternionFromTransformMatrix(const transform_matrix_t & transform_matrix) {
-
-    return quaternionFromTransformMsg(transformMsgFromTransformMatrix(transform_matrix));
-
-}
-
-const pose_t iii_drone::types::poseFromTransformMatrix(const transform_matrix_t & transform_matrix) {
-
-    pose_t pose;
-
-    pose.position = transform_matrix.block<3, 1>(0, 3);
-    pose.orientation = quaternionFromTransformMatrix(transform_matrix);
-
-    return pose;
-
-}

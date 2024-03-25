@@ -58,12 +58,22 @@ bool HoverManeuverServer::CanExecuteManeuver(
 
 combined_drone_awareness_t HoverManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver & ) {
 
+    State state = awareness_handler()->GetState();
+
+    State expected_state(
+        state.position(),
+        vector_t::Zero(),
+        0.0,
+        vector_t::Zero()
+    );
+
     combined_drone_awareness_t awareness_after;
     awareness_after.armed = true;
     awareness_after.offboard = true;
     awareness_after.target_adapter = iii_drone::adapters::TargetAdapter();
     awareness_after.target_position_known = false;
     awareness_after.drone_location = DRONE_LOCATION_IN_FLIGHT;
+    awareness_after.state = expected_state;
 
     return awareness_after;
 
@@ -137,14 +147,9 @@ void HoverManeuverServer::Update(const Reference & hover_reference) {
 
 iii_drone::control::Reference HoverManeuverServer::GetReference(const iii_drone::control::State & ) {
 
-    return Reference(
-        hover_reference_->position(),
-        hover_reference_->yaw(),
-        hover_reference_->velocity(),
-        hover_reference_->yaw_rate(),
-        hover_reference_->acceleration(),
-        hover_reference_->yaw_acceleration()
-    );
+    hover_reference_ = hover_reference_->CopyWithNewStamp();
+
+    return hover_reference_;
 
 }
 
