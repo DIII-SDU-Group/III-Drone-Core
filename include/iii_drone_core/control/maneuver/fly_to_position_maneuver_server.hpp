@@ -150,13 +150,13 @@ namespace maneuver {
         bool hasFailed(Maneuver & maneuver) override;
 
         /**
-         * @brief Publishes the feedback.
+         * @brief Get the feedback.
          * 
          * @param maneuver The maneuver.
          * 
-         * @return void
+         * @return The feedback.
          */
-        void publishFeedback(Maneuver & maneuver) override;
+        std::shared_ptr<void> getFeedback(Maneuver & maneuver) override;
 
         /**
          * @brief Publishes the result and finalizes the maneuver according to the maneuver result type.

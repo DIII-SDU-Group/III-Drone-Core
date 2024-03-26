@@ -186,15 +186,6 @@ namespace maneuver {
         bool hasFailed(Maneuver & maneuver) override;
 
         /**
-         * @brief Will not do anything, as the action succeeds immediately and has no feedback.
-         * 
-         * @param maneuver The maneuver.
-         * 
-         * @return void
-         */
-        void publishFeedback(Maneuver & maneuver) override;
-
-        /**
          * @brief Publish the result and finalize the maneuver based on the maneuver result type.
          * 
          * @param maneuver The maneuver.

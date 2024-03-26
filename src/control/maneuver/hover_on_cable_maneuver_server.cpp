@@ -216,12 +216,6 @@ bool HoverOnCableManeuverServer::hasFailed(Maneuver &) {
 
 }
 
-void HoverOnCableManeuverServer::publishFeedback(Maneuver &) {
-
-    // No feedback to publish
-
-}
-
 void HoverOnCableManeuverServer::publishResultAndFinalize(
     Maneuver &maneuver,
     maneuver_result_type_t maneuver_result_type

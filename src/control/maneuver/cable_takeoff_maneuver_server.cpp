@@ -234,7 +234,7 @@ bool CableTakeoffManeuverServer::hasFailed(Maneuver &) {
 
 }
 
-void CableTakeoffManeuverServer::publishFeedback(Maneuver & maneuver) {
+std::shared_ptr<void> CableTakeoffManeuverServer::getFeedback(Maneuver & maneuver) {
 
     ReferenceTrajectory reference_trajectory = trajectory_generator_client_->GetReferenceTrajectory();
 
@@ -250,9 +250,7 @@ void CableTakeoffManeuverServer::publishFeedback(Maneuver & maneuver) {
     feedback->vehicle_pose = StateAdapter(awareness_handler()->GetState()).ToPoseStampedMsg(parameters_->GetParameter("world_frame_id").as_string());
     feedback->distance_vehicle_to_cable = (state.position() - target_reference.position()).norm();
 
-    auto goal_handle = std::static_pointer_cast<GoalHandleCableTakeoff>(maneuver.goal_handle());
-
-    goal_handle->publish_feedback(feedback);
+    return std::static_pointer_cast<void>(feedback);
 
 }
 

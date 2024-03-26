@@ -177,7 +177,7 @@ bool FlyToObjectManeuverServer::hasFailed(Maneuver &) {
 
 }
 
-void FlyToObjectManeuverServer::publishFeedback(Maneuver & maneuver) {
+std::shared_ptr<void> FlyToObjectManeuverServer::getFeedback(Maneuver & maneuver) {
 
     auto feedback = std::make_shared<iii_drone_interfaces::action::FlyToObject::Feedback>();
 
@@ -191,9 +191,7 @@ void FlyToObjectManeuverServer::publishFeedback(Maneuver & maneuver) {
     feedback->vehicle_pose = StateAdapter(awareness_handler()->GetState()).ToPoseStampedMsg(parameters_->GetParameter("world_frame_id").as_string());
     feedback->distance_vehicle_to_target = (target_reference.position() - state.position()).norm();
 
-    auto goal_handle = std::static_pointer_cast<GoalHandleFlyToObject>(maneuver.goal_handle());
-
-    goal_handle->publish_feedback(feedback);
+    return std::static_pointer_cast<void>(feedback);
 
 }
 

@@ -232,12 +232,6 @@ bool HoverByObjectManeuverServer::hasFailed(Maneuver & maneuver) {
 
 }
 
-void HoverByObjectManeuverServer::publishFeedback(Maneuver & ) {
-
-    // No feedback to publish
-
-}
-
 void HoverByObjectManeuverServer::publishResultAndFinalize(
     Maneuver & maneuver,
     maneuver_result_type_t maneuver_result_type

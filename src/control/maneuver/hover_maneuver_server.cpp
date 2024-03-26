@@ -183,10 +183,6 @@ bool HoverManeuverServer::hasFailed(Maneuver & ) {
     return false;
 }
 
-void HoverManeuverServer::publishFeedback(Maneuver & ) {
-    // No feedback to publish
-}
-
 void HoverManeuverServer::publishResultAndFinalize(
     Maneuver & maneuver,
     maneuver_result_type_t maneuver_result_type

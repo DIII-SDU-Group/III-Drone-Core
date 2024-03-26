@@ -255,6 +255,15 @@ void Maneuver::Terminate(bool success) {
 
 }
 
+template <typename ActionT>
+void Maneuver::PublishFeedback(const std::shared_ptr<void> feedback) {
+
+    auto goal_handle = std::static_pointer_cast<rclcpp_action::ServerGoalHandle<ActionT>>(goal_handle_);
+    auto feedback_casted = std::static_pointer_cast<const typename ActionT::Feedback>(feedback);
+    goal_handle->publish_feedback(feedback_casted);
+
+}
+
 bool Maneuver::operator==(const Maneuver & rhs) const {
 
     return uuid_ == rhs.uuid_ && maneuver_type_ == rhs.maneuver_type_;
@@ -323,3 +332,11 @@ template void Maneuver::SetFromGoal<iii_drone_interfaces::action::CableTakeoff>(
 template void Maneuver::SetFromGoal<iii_drone_interfaces::action::Hover>(const std::shared_ptr<const iii_drone_interfaces::action::Hover::Goal> goal);
 template void Maneuver::SetFromGoal<iii_drone_interfaces::action::HoverByObject>(const std::shared_ptr<const iii_drone_interfaces::action::HoverByObject::Goal> goal);
 template void Maneuver::SetFromGoal<iii_drone_interfaces::action::HoverOnCable>(const std::shared_ptr<const iii_drone_interfaces::action::HoverOnCable::Goal> goal);
+
+template void Maneuver::PublishFeedback<iii_drone_interfaces::action::FlyToPosition>(const std::shared_ptr<void> feedback);
+template void Maneuver::PublishFeedback<iii_drone_interfaces::action::FlyToObject>(const std::shared_ptr<void> feedback);
+template void Maneuver::PublishFeedback<iii_drone_interfaces::action::CableLanding>(const std::shared_ptr<void> feedback);
+template void Maneuver::PublishFeedback<iii_drone_interfaces::action::CableTakeoff>(const std::shared_ptr<void> feedback);
+template void Maneuver::PublishFeedback<iii_drone_interfaces::action::Hover>(const std::shared_ptr<void> feedback);
+template void Maneuver::PublishFeedback<iii_drone_interfaces::action::HoverByObject>(const std::shared_ptr<void> feedback);
+template void Maneuver::PublishFeedback<iii_drone_interfaces::action::HoverOnCable>(const std::shared_ptr<void> feedback);

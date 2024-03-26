@@ -263,12 +263,9 @@ namespace maneuver {
         virtual bool hasFailed(Maneuver &) = 0;
 
         /**
-         * @brief Publish feedback virtual function. This function should publish feedback for the maneuver
-         * using the maneuver's goal handle, if feedback is desired.
+         * @brief Returns the feedback. This function can be overwritten if feedback is desired.
          */
-        virtual void publishFeedback(
-            Maneuver & maneuver
-        ) = 0;
+        virtual std::shared_ptr<void> getFeedback(Maneuver & maneuver);
 
         /**
          * @brief This function should publish the result and finalize the maneuver according to the result type.

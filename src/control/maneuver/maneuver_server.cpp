@@ -90,6 +90,11 @@ rclcpp::Node * ManeuverServer::node() const {
     return node_;
 }
 
+std::shared_ptr<void> ManeuverServer::getFeedback(Maneuver & maneuver) {
+    
+    return nullptr;
+}
+
 template <typename ActionT>
 rclcpp_action::GoalResponse ManeuverServer::handleGoal(
     const rclcpp_action::GoalUUID & uuid,
@@ -265,7 +270,17 @@ void ManeuverServer::asyncExecute(
             break;
         }
 
-        publishFeedback(maneuver);
+        auto feedback = getFeedback<ActionT>(maneuver);
+
+        if (feedback == nullptr) {
+            
+            feedback = std::static_pointer_cast<void>(
+                std::make_shared<typename ActionT::Feedback>()
+            );
+        
+        }
+
+        maneuver.PublishFeedback<ActionT>(feedback);
 
         rate.sleep();
 
@@ -317,6 +332,7 @@ void ManeuverServer::createServer() {
     server_ = std::static_pointer_cast<void>(server);
 
 }
+
 
 
 /*****************************************************************************/

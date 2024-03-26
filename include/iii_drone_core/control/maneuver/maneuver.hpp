@@ -104,6 +104,16 @@ namespace maneuver {
 		 */
 		void Terminate(bool success);
 
+		/**
+		 * @brief Published feedback to the goal handle.
+		 * 
+		 * @param feedback Feedback
+		 * 
+		 * @return void
+		 */
+		template <typename ActionT>
+		void PublishFeedback(const std::shared_ptr<void> feedback);
+
         /**
 		 * @brief Equality operator.
 		 * 
