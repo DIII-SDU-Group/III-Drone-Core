@@ -113,7 +113,7 @@ namespace maneuver {
 		);
 		cable_takeoff_maneuver_params_t(std::shared_ptr<void> params);
 
-		transform_matrix_t get_target_transform() const;
+		iii_drone::types::transform_matrix_t get_target_transform() const;
 	};
 
 	/**

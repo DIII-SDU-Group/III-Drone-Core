@@ -166,6 +166,7 @@ void Maneuver::SetFromGoal(const std::shared_ptr<const typename ActionT::Goal> g
         }
 
         *p = hover_on_cable_maneuver_params_t(
+            goal->target_cable_id,
             goal->target_z_velocity,
             goal->target_yaw_rate,
             goal->duration_s
@@ -259,7 +260,7 @@ template <typename ActionT>
 void Maneuver::PublishFeedback(const std::shared_ptr<void> feedback) {
 
     auto goal_handle = std::static_pointer_cast<rclcpp_action::ServerGoalHandle<ActionT>>(goal_handle_);
-    auto feedback_casted = std::static_pointer_cast<const typename ActionT::Feedback>(feedback);
+    auto feedback_casted = std::static_pointer_cast<typename ActionT::Feedback>(feedback);
     goal_handle->publish_feedback(feedback_casted);
 
 }

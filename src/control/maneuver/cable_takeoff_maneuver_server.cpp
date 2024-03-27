@@ -93,7 +93,7 @@ combined_drone_awareness_t CableTakeoffManeuverServer::ExpectedAwarenessAfterExe
         TARGET_TYPE_CABLE,
         cable_takeoff_maneuver_params.target_cable_id,
         parameters_->GetParameter("drone_frame_id").as_string(),
-        transform_matrix_t::Identity()
+        target_transform
     );
 
     State target_state;
@@ -144,7 +144,7 @@ void CableTakeoffManeuverServer::startExecution(Maneuver & maneuver) {
         TARGET_TYPE_CABLE,
         cable_takeoff_maneuver_params.target_cable_id,
         parameters_->GetParameter("drone_frame_id").as_string(),
-        transform_matrix_t::Identity()
+        target_transform
     );
 
     start_state_ = cda_handler->GetState();
@@ -234,7 +234,7 @@ bool CableTakeoffManeuverServer::hasFailed(Maneuver &) {
 
 }
 
-std::shared_ptr<void> CableTakeoffManeuverServer::getFeedback(Maneuver & maneuver) {
+std::shared_ptr<void> CableTakeoffManeuverServer::getFeedback(Maneuver &) {
 
     ReferenceTrajectory reference_trajectory = trajectory_generator_client_->GetReferenceTrajectory();
 
@@ -300,7 +300,7 @@ void CableTakeoffManeuverServer::registerReferenceCallbackOnSuccess(const Maneuv
 }
 
 Reference CableTakeoffManeuverServer::getUpdatedTargetReference(
-    const iii_drone::control::State & state,
+    const iii_drone::control::State &,
     bool compute
 ) {
 

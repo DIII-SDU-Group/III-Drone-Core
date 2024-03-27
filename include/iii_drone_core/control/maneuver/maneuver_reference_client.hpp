@@ -110,6 +110,11 @@ namespace maneuver {
          */
         iii_drone::control::Reference GetReference(double dt);
 
+        /**
+         * @brief Shared pointer type.
+         */
+        typedef std::shared_ptr<ManeuverReferenceClient> SharedPtr;
+
     private:
         /**
          * @brief The node pointer.

@@ -117,6 +117,10 @@ set(III_DRONE_LIBRARY_HEADERS
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/hover_on_cable_maneuver_server.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/fly_to_position_maneuver_server.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/fly_to_object_maneuver_server.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/cable_landing_maneuver_server.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/cable_takeoff_maneuver_server.hpp"
+
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_reference_client.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/single_line_adapter.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/projection_plane_adapter.hpp"
@@ -168,6 +172,10 @@ set(III_DRONE_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/hover_on_cable_maneuver_server.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/fly_to_position_maneuver_server.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/fly_to_object_maneuver_server.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver/cable_landing_maneuver_server.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver/cable_takeoff_maneuver_server.cpp"
+
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver/maneuver_reference_client.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/adapters/single_line_adapter.cpp"
   "${PROJECT_SOURCE_DIR}/src/adapters/projection_plane_adapter.cpp"
@@ -187,15 +195,27 @@ set(III_DRONE_LIBRARY_SOURCES
 )
 
 set(III_DRONE_BEHAVIOR_HDRS
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/maneuver_action_node.hpp"
+
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/hover_maneuver_action_node.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/hover_by_object_maneuver_action_node.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/hover_on_cable_maneuver_action_node.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/fly_to_position_maneuver_action_node.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/fly_to_object_maneuver_action_node.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/cable_landing_maneuver_action_node.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/cable_takeoff_maneuver_action_node.hpp"
 )
 
 set(III_DRONE_BEHAVIOR_SRCS
+  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/maneuver_action_node.cpp"
+
   "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/hover_maneuver_action_node.cpp"
   "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/hover_by_object_maneuver_action_node.cpp"
+  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/hover_on_cable_maneuver_action_node.cpp"
+  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/fly_to_position_maneuver_action_node.cpp"
   "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/fly_to_object_maneuver_action_node.cpp"
+  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/cable_landing_maneuver_action_node.cpp"
+  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/cable_takeoff_maneuver_action_node.cpp"
 )
 
 include_directories(
@@ -354,11 +374,11 @@ custom_cpp_target(trajectory_generator
   "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator_node/trajectory_generator_node.cpp"
 )
 
-# # Maneuver controller:
-# custom_cpp_target(maneuver_controller
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver_controller_node/maneuver_controller_node.hpp"
-#   "${PROJECT_SOURCE_DIR}/src/control/maneuver_controller_node/maneuver_controller_node.cpp"
-# )
+# Maneuver controller:
+custom_cpp_target(maneuver_controller
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver_controller_node/maneuver_controller_node.hpp"
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver_controller_node/maneuver_controller_node.cpp"
+)
 
 # # Continuous mission orchestrator:
 # custom_cpp_target(continuous_mission_orchestrator

@@ -270,7 +270,7 @@ void ManeuverServer::asyncExecute(
             break;
         }
 
-        auto feedback = getFeedback<ActionT>(maneuver);
+        auto feedback = getFeedback(maneuver);
 
         if (feedback == nullptr) {
             

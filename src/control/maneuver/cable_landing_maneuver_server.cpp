@@ -93,10 +93,10 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
 
     CombinedDroneAwarenessHandler::SharedPtr cda_handler = awareness_handler();
 
-    euler_angles_t target_euler_angles = quatToEul(matToQuat(target_transform.block<3, 3>(0, 0)));
+    quaternion_t target_quat = matToQuat(target_transform.block<3, 3>(0, 0));
 
     geometry_msgs::msg::QuaternionStamped target_quat_gripper_to_cable;
-    target_quat_gripper_to_cable.quaternion = quaternionMsgFromQuaternion(quaternion_t(1,0,0,0));
+    target_quat_gripper_to_cable.quaternion = quaternionMsgFromQuaternion(target_quat);
     target_quat_gripper_to_cable.header.frame_id = parameters_->GetParameter("gripper_frame_id").as_string();
 
     geometry_msgs::msg::QuaternionStamped target_quat_drone_to_cable = cda_handler->tf_buffer()->transform(
@@ -282,7 +282,7 @@ bool CableLandingManeuverServer::hasFailed(Maneuver &) {
 
 }
 
-std::shared_ptr<void> CableLandingManeuverServer::getFeedback(Maneuver & maneuver) {
+std::shared_ptr<void> CableLandingManeuverServer::getFeedback(Maneuver &) {
 
     ReferenceTrajectory reference_trajectory = trajectory_generator_client_->GetReferenceTrajectory();
 
