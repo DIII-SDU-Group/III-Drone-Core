@@ -668,21 +668,16 @@ class ParameterHandler:
 
         if param_name in self.params_dict:
             raise KeyError(f"Parameter {param_name} already exists")
-        
+
         dict_to_update = self._get_raw_yaml_param_dict(
             param_name, 
             create_missing_namespaces=True
         )
-        
+
         for key in param_dict.keys():
             dict_to_update[key] = param_dict[key]
-            
-        self.params_dict[param_name] = param_dict
 
-        self.validate_param(
-            param_name,
-            self.get_param_value(param_name)
-        )
+            self.params_dict[param_name] = param_dict
         
     def remove_param(
         self,
@@ -1035,7 +1030,13 @@ class ParameterHandler:
             expression = expression.replace(param_name, str(param['value']))
 
         # Evaluate the expression and return the result:
-        return eval(expression)
+        try:
+            val = eval(expression)
+
+        except Exception as e:
+            raise ValueError(f"Error evaluating expression {expression}") from e
+        
+        return val
 
 ####################################################################################################
 # Main

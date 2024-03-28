@@ -294,7 +294,7 @@ control:
       type: "float"
       value: 1.
       min: 0.5
-      max: "/control/maneuver_controller/cable_landing_max_z_distance - 0.5"
+      max: "/control/maneuver_controller/cable_landing_max_z_distance-0.5"
     cable_landing_max_z_distance:
       # Maximum z distance to cable before cable landing
       type: "float"
