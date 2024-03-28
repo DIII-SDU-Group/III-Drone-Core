@@ -119,6 +119,13 @@ perception:
       value: 5
       min: 1
       max: 100
+    overwrite_non_FOV_line_positions_from_inter_pos:
+    # If true, the computed inter line position will overwrite the line positions for lines that are not in the FOV,
+    # bypassing the Kalman filter update step.
+    # If false, the computed inter line position will be used to call the kalman filter update step instead.
+      type: "bool"
+      value: true
+      constant: false
 
 sensor:
   iwr6843_pcl_pub:

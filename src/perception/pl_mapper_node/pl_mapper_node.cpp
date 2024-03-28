@@ -138,6 +138,8 @@ void PowerlineMapperNode::plMapperCommandCallback(
     std::shared_ptr<iii_drone_interfaces::srv::PLMapperCommand::Response> response
 ) {
 
+    pl_mapper_state_t previous_state = pl_mapper_state_;
+
     RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Received command");
 
     if (request->pl_mapper_cmd.command == iii_drone_interfaces::msg::PLMapperCommand::PL_MAPPER_CMD_START) {
@@ -178,7 +180,7 @@ void PowerlineMapperNode::plMapperCommandCallback(
 
     }
 
-    if (request->pl_mapper_cmd.reset) {
+    if (request->pl_mapper_cmd.reset || (previous_state == pl_mapper_state_idle && pl_mapper_state_ == pl_mapper_state_running)) {
 
         RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Resetting PL mapper");
 
@@ -255,7 +257,7 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
             configurator_.GetParameterBundle("powerline")
         );
 
-        if(!line.IsInFOVStrict()) {
+        if(!line.IsInFOV()) {
 
             continue;
 
@@ -279,6 +281,12 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
     }   
 
+    powerline_->CleanupLines();
+
+    powerline_->ComputeInterLinePositions();
+
+    powerline_->UpdateNonFOVLines();
+
     publishPoints(
         transformed_points, 
         transformed_points_pub_
@@ -289,9 +297,7 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
         projected_points_pub_
     );
 
-    powerline_->CleanupLines();
 
-    powerline_->ComputeInterLinePositions();
 
 }
 

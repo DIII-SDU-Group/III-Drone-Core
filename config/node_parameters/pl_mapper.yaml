@@ -50,6 +50,9 @@ parameters:
   inter_pos_window_size:
     name: "/perception/pl_mapper/inter_pos_window_size"
     type: "int"
+  overwrite_non_FOV_line_positions_from_inter_pos:
+    name: "/perception/pl_mapper/overwrite_non_FOV_line_positions_from_inter_pos"
+    type: "bool"
   simulation:
     name: "/global/simulation"
     type: "bool"
@@ -109,6 +112,9 @@ parameter_bundles:
       update: true
     inter_pos_window_size:
       remap_name: "inter_pos_window_size"
+      update: true
+    overwrite_non_FOV_line_positions_from_inter_pos:
+      remap_name: "overwrite_non_FOV_line_positions_from_inter_pos"
       update: true
     drone_frame_id:
       remap_name: "drone_frame_id"

@@ -217,6 +217,116 @@ void Powerline::UpdateOdometry(const pose_t & drone_pose) {
 
 }
 
+void Powerline::UpdateNonFOVLines() {
+
+    if (pl_dir_history_.empty()) {
+
+        return;
+
+    }
+
+    quaternion_t q_drone_to_pl = pl_dir_history_[0];
+
+    rotation_matrix_t R_drone_to_pl = quatToMat(q_drone_to_pl);
+
+    std::unique_lock<std::shared_mutex> lines_lock(lines_mutex_);
+
+    for (unsigned int i = 0; i < lines_.size(); i++) {
+
+        if (lines_[i].IsInFOV()) {
+
+            continue;
+
+        }
+
+        unsigned int idx = i;
+
+        std::vector<point_t> expected_positions;
+
+        for (unsigned int j = 0; j < inter_line_positions_.size(); j++) {
+
+            if (inter_line_positions_[j].inter_line_position_window.size() < 1)
+                continue;
+
+            int id1 = inter_line_positions_[j].line_id_1;
+            int id2 = inter_line_positions_[j].line_id_2;
+
+            bool id1_match = id1 == lines_[idx].id();
+            bool id2_match = id2 == lines_[idx].id();
+
+            if (id1_match || id2_match) {
+
+                int ref_line_id = id1_match ? id2 : id1;
+
+                point_t reference_line_point;
+                bool ref_line_point_found = false;
+
+                for (unsigned int k = 0; k < lines_.size(); k++) {
+
+                    if (k == idx)
+                        continue;
+
+                    if (lines_[k].id() == ref_line_id && lines_[k].IsInFOV()) {
+
+                        reference_line_point = lines_[k].position();
+                        ref_line_point_found = true;
+
+                        break;
+
+                    }
+                }
+
+                if (ref_line_point_found) {
+
+                    vector_t mean_vec = inter_line_positions_[j].inter_line_position_window[0];
+
+                    for (unsigned int k = 1; k < inter_line_positions_[j].inter_line_position_window.size(); k++) {
+
+                        mean_vec += inter_line_positions_[j].inter_line_position_window[k];
+
+                    }
+
+                    mean_vec /= inter_line_positions_[j].inter_line_position_window.size();
+
+                    float mult = id1_match ? -1. : 1.;
+
+                    mean_vec *= mult;
+
+                    mean_vec = R_drone_to_pl * mean_vec;
+
+                    point_t expected_pos = reference_line_point + mean_vec;
+
+                    expected_positions.push_back(expected_pos);
+
+                }
+            }
+        }
+
+        if (expected_positions.size() > 0) {
+
+            point_t mean_pos = expected_positions[0];
+
+            for (unsigned int j = 1; j < expected_positions.size(); j++) {
+
+                mean_pos += expected_positions[j];
+
+            }
+
+            mean_pos /= expected_positions.size();
+
+            if (parameters_->GetParameter("overwrite_non_FOV_line_positions_from_inter_pos").as_bool()) {
+
+                lines_[idx].SetPosition(mean_pos);
+
+            } else {
+
+                lines_[idx].Update(mean_pos);
+
+            }
+        }
+    }
+}
+
 void Powerline::CleanupLines() {
 
     std::unique_lock<std::shared_mutex> lines_lock(lines_mutex_);
@@ -512,7 +622,7 @@ const point_t Powerline::projectPoint(const point_t & point) const {
 void Powerline::predictLines() {
 
     vector_t delta_position;
-    quaternion_t delta_quat, q_drone_to_pl;
+    quaternion_t delta_quat;
 
     pose_t drone_pose = drone_pose_history_[0];
     pose_t last_drone_pose = drone_pose_history_[-1];
@@ -526,115 +636,13 @@ void Powerline::predictLines() {
     delta_position = drone_pose.position - last_drone_pose.position;
     delta_position = D2_R_W * delta_position;
 
-    q_drone_to_pl = pl_dir_history_[0];
-
-    rotation_matrix_t R_drone_to_pl = quatToMat(q_drone_to_pl);
-
     plane_t projection_plane = projection_plane_;
 
-    {
+    std::unique_lock<std::shared_mutex> lock(lines_mutex_);
 
-        std::unique_lock<std::shared_mutex> lock(lines_mutex_);
+    for (unsigned int i = 0; i < lines_.size(); i++) {
 
-        std::vector<unsigned int> non_visible_line_indices;
+        lines_[i].Predict(delta_position, delta_quat, projection_plane);
 
-        for (unsigned int i = 0; i < lines_.size(); i++) {
-
-            if (lines_[i].IsInFOV()) {
-
-                lines_[i].Predict(delta_position, delta_quat, projection_plane);
-
-            } else {
-
-                non_visible_line_indices.push_back(i);
-
-            }
-        }
-
-        for (unsigned int i = 0; i < non_visible_line_indices.size(); i++) {
-
-            unsigned int idx = non_visible_line_indices[i];
-
-            std::vector<point_t> expected_positions;
-
-            for (unsigned int j = 0; j < inter_line_positions_.size(); j++) {
-
-                if (inter_line_positions_[j].inter_line_position_window.size() < 1)
-                    continue;
-
-                int id1 = inter_line_positions_[j].line_id_1;
-                int id2 = inter_line_positions_[j].line_id_2;
-
-                bool id1_match = id1 == lines_[idx].id();
-                bool id2_match = id2 == lines_[idx].id();
-
-                if (id1_match || id2_match) {
-
-                    int ref_line_id = id1_match ? id2 : id1;
-
-                    point_t reference_line_point;
-                    bool ref_line_point_found = false;
-
-                    for (unsigned int k = 0; k < lines_.size(); k++) {
-
-                        if (k == idx)
-                            continue;
-
-                        if (lines_[k].id() == ref_line_id && lines_[k].IsInFOV()) {
-
-                            reference_line_point = lines_[k].position();
-                            ref_line_point_found = true;
-
-                            break;
-
-                        }
-                    }
-
-                    if (ref_line_point_found) {
-
-                        vector_t mean_vec = inter_line_positions_[j].inter_line_position_window[0];
-
-                        for (unsigned int k = 1; k < inter_line_positions_[j].inter_line_position_window.size(); k++) {
-
-                            mean_vec += inter_line_positions_[j].inter_line_position_window[k];
-
-                        }
-
-                        mean_vec /= inter_line_positions_[j].inter_line_position_window.size();
-
-                        float mult = id1_match ? -1. : 1.;
-
-                        mean_vec *= mult;
-
-                        mean_vec = R_drone_to_pl * mean_vec;
-
-                        point_t expected_pos = reference_line_point + mean_vec;
-
-                        expected_positions.push_back(expected_pos);
-
-                    }
-                }
-            }
-
-            if (expected_positions.size() > 0) {
-
-                point_t mean_pos = expected_positions[0];
-
-                for (unsigned int j = 1; j < expected_positions.size(); j++) {
-
-                    mean_pos += expected_positions[j];
-
-                }
-
-                mean_pos /= expected_positions.size();
-
-                lines_[idx].SetPosition(mean_pos);
-
-            } else {
-
-                lines_[idx].Predict(delta_position, delta_quat, projection_plane);
-
-            }
-        }
     }
 }

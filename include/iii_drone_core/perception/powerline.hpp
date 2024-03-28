@@ -135,6 +135,12 @@ namespace perception {
         void UpdateOdometry(const iii_drone::types::pose_t & drone_pose);
 
         /**
+         * @brief Updates the lines not in FOV from the computed inter line positions.
+         * Call ComputeInterLinePositions() before calling this function to have a recent estimate.
+         */
+        void UpdateNonFOVLines();
+
+        /**
          * @brief Cleans up the lines that are not in the sensor FOV.
         */
         void CleanupLines();

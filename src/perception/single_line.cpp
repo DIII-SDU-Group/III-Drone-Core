@@ -137,7 +137,7 @@ bool SingleLine::IsAlive() {
 
     std::shared_lock<std::shared_mutex> lock(mutex_);
 
-    if (IsInFOV() && --alive_cnt_ <= parameters_->GetParameter("alive_cnt_low_thresh").as_int()) {
+    if (IsInFOVStrict() && --alive_cnt_ <= parameters_->GetParameter("alive_cnt_low_thresh").as_int()) {
 
         return false;
 
