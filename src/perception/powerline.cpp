@@ -270,6 +270,12 @@ void Powerline::CleanupLines() {
 
 void Powerline::ComputeInterLinePositions() {
 
+    if (pl_dir_history_.empty()) {
+
+        return;
+
+    }
+
     quaternion_t direction = pl_dir_history_[0];
 
     quaternion_t q_pl_to_drone = quatInv(direction);

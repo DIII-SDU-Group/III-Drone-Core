@@ -24,6 +24,8 @@ PowerlineMapperNode::PowerlineMapperNode(
     configurator_(this),
     pl_mapper_state_(configurator_.GetParameter("pl_mapper_begin_running").as_bool() ? pl_mapper_state_running : pl_mapper_state_idle) {
 
+    RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::PowerlineMapperNode(): Initializing PL mapper");
+
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
@@ -127,6 +129,8 @@ PowerlineMapperNode::PowerlineMapperNode(
     R_drone_to_mmw_ = quatToMat(mmw_quat);
     v_drone_to_mmw_ = vectorFromTransformMsg(mmw_tf.transform);
 
+    RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::PowerlineMapperNode(): PL mapper initialized");
+
 }
 
 void PowerlineMapperNode::plMapperCommandCallback(
@@ -134,12 +138,18 @@ void PowerlineMapperNode::plMapperCommandCallback(
     std::shared_ptr<iii_drone_interfaces::srv::PLMapperCommand::Response> response
 ) {
 
+    RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Received command");
+
     if (request->pl_mapper_cmd.command == iii_drone_interfaces::msg::PLMapperCommand::PL_MAPPER_CMD_START) {
+
+        RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Starting PL mapper");
 
         pl_mapper_state_ = pl_mapper_state_running;
         response->pl_mapper_ack = iii_drone_interfaces::srv::PLMapperCommand::Response::PL_MAPPER_ACK_SUCCESS;
 
     } else if (request->pl_mapper_cmd.command == iii_drone_interfaces::msg::PLMapperCommand::PL_MAPPER_CMD_STOP) {
+
+        RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Stopping PL mapper");
 
         pl_mapper_state_ = pl_mapper_state_idle;
         response->pl_mapper_ack = iii_drone_interfaces::srv::PLMapperCommand::Response::PL_MAPPER_ACK_SUCCESS;
@@ -153,10 +163,14 @@ void PowerlineMapperNode::plMapperCommandCallback(
 
     } else if (request->pl_mapper_cmd.command == iii_drone_interfaces::msg::PLMapperCommand::PL_MAPPER_CMD_PAUSE) {
 
+        RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Pausing PL mapper");
+
         pl_mapper_state_ = pl_mapper_state_paused;
         response->pl_mapper_ack = iii_drone_interfaces::srv::PLMapperCommand::Response::PL_MAPPER_ACK_SUCCESS;
 
     } else {
+
+        RCLCPP_ERROR(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Invalid command");
 
         response->pl_mapper_ack = iii_drone_interfaces::srv::PLMapperCommand::Response::PL_MAPPER_ACK_INVALID_CMD;
 
@@ -166,6 +180,8 @@ void PowerlineMapperNode::plMapperCommandCallback(
 
     if (request->pl_mapper_cmd.reset) {
 
+        RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Resetting PL mapper");
+
         powerline_->Reset();
 
     }
@@ -173,6 +189,8 @@ void PowerlineMapperNode::plMapperCommandCallback(
 }
 
 void PowerlineMapperNode::odometryCallback() {
+
+    RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::odometryCallback(): Updating powerline by odometry");
 
     if (pl_mapper_state_ == pl_mapper_state_idle) {
 
@@ -210,6 +228,8 @@ void PowerlineMapperNode::odometryCallback() {
 }
 
 void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
+
+    RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::mmWaveCallback(): Received mmWave point cloud, updating powerline");
 
     if (pl_mapper_state_ != pl_mapper_state_running) {
 
@@ -276,6 +296,8 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 }
 
 void PowerlineMapperNode::plDirectionCallback(const geometry_msgs::msg::QuaternionStamped::SharedPtr msg) {
+
+    RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::plDirectionCallback(): Received powerline direction, updating powerline");
 
     if (pl_mapper_state_ != pl_mapper_state_running) {
 
