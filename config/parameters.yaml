@@ -36,6 +36,10 @@ perception:
       constant: true
 
   pl_mapper:
+    pl_mapper_begin_running:
+      type: "bool"
+      value: false
+      constant: true
     kf_r: 
       type: "float"
       value: 0.999

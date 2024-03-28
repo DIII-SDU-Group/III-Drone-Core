@@ -42,12 +42,16 @@
 // III-Drone-Interfaces:
 
 #include <iii_drone_interfaces/msg/powerline.hpp>
+#include <iii_drone_interfaces/msg/pl_mapper_command.hpp>
+
+#include <iii_drone_interfaces/srv/pl_mapper_command.hpp>
 
 /*****************************************************************************/
 // III-Drone-Core:
 
 #include <iii_drone_core/utils/math.hpp>
 #include <iii_drone_core/utils/types.hpp>
+#include <iii_drone_core/utils/atomic.hpp>
 
 #include <iii_drone_core/configuration/configurator.hpp>
 
@@ -122,6 +126,38 @@ private:
     */
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr projected_points_pub_;
 
+    /**
+     * @brief PL-mapper state type.
+     */
+    enum pl_mapper_state_t {
+        pl_mapper_state_idle,
+        pl_mapper_state_paused,
+        pl_mapper_state_running
+    };
+
+    /**
+     * @brief Current state of the PL-mapper.
+     */
+    iii_drone::utils::Atomic<pl_mapper_state_t> pl_mapper_state_;
+
+    /**
+     * @brief PL-mapper command service.
+     */
+    rclcpp::Service<iii_drone_interfaces::srv::PLMapperCommand>::SharedPtr pl_mapper_command_srv_;
+
+    /**
+     * @brief PL-mapper command service callback.
+     * 
+     * @param request Request message
+     * @param response Response message
+     * 
+     * @return void
+     */
+    void plMapperCommandCallback(
+        const std::shared_ptr<iii_drone_interfaces::srv::PLMapperCommand::Request> request,
+        std::shared_ptr<iii_drone_interfaces::srv::PLMapperCommand::Response> response
+    );
+
     std::shared_ptr<tf2_ros::TransformListener> transform_listener_{nullptr};
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
 
@@ -178,9 +214,11 @@ private:
     /**
      * @brief Publishes the powerline message
      * 
+     * @param powerline Powerline object
+     * 
      * @return void
     */
-    void publishPowerline() const;
+    void publishPowerline(const Powerline & powerline) const;
 
     /**
      * @brief Publishes point cloud data on a given publisher

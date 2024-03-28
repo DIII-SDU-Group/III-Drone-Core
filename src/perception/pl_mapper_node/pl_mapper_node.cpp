@@ -21,7 +21,8 @@ PowerlineMapperNode::PowerlineMapperNode(
         node_namespace,
         options
     ), 
-    configurator_(this) {
+    configurator_(this),
+    pl_mapper_state_(configurator_.GetParameter("pl_mapper_begin_running").as_bool() ? pl_mapper_state_running : pl_mapper_state_idle) {
 
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
@@ -66,6 +67,16 @@ PowerlineMapperNode::PowerlineMapperNode(
     projected_points_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
         "projected_points", 
         10
+    );
+
+    pl_mapper_command_srv_ = this->create_service<iii_drone_interfaces::srv::PLMapperCommand>(
+        "pl_mapper_command", 
+        std::bind(
+            &PowerlineMapperNode::plMapperCommandCallback, 
+            this, 
+            std::placeholders::_1, 
+            std::placeholders::_2
+        )
     );
 
     geometry_msgs::msg::TransformStamped mmw_tf;
@@ -118,7 +129,56 @@ PowerlineMapperNode::PowerlineMapperNode(
 
 }
 
+void PowerlineMapperNode::plMapperCommandCallback(
+    const std::shared_ptr<iii_drone_interfaces::srv::PLMapperCommand::Request> request,
+    std::shared_ptr<iii_drone_interfaces::srv::PLMapperCommand::Response> response
+) {
+
+    if (request->pl_mapper_cmd.command == iii_drone_interfaces::msg::PLMapperCommand::PL_MAPPER_CMD_START) {
+
+        pl_mapper_state_ = pl_mapper_state_running;
+        response->pl_mapper_ack = iii_drone_interfaces::srv::PLMapperCommand::Response::PL_MAPPER_ACK_SUCCESS;
+
+    } else if (request->pl_mapper_cmd.command == iii_drone_interfaces::msg::PLMapperCommand::PL_MAPPER_CMD_STOP) {
+
+        pl_mapper_state_ = pl_mapper_state_idle;
+        response->pl_mapper_ack = iii_drone_interfaces::srv::PLMapperCommand::Response::PL_MAPPER_ACK_SUCCESS;
+
+        publishPowerline(
+            Powerline(
+                configurator_.GetParameterBundle("powerline"),
+                tf_buffer_
+            )
+        );
+
+    } else if (request->pl_mapper_cmd.command == iii_drone_interfaces::msg::PLMapperCommand::PL_MAPPER_CMD_PAUSE) {
+
+        pl_mapper_state_ = pl_mapper_state_paused;
+        response->pl_mapper_ack = iii_drone_interfaces::srv::PLMapperCommand::Response::PL_MAPPER_ACK_SUCCESS;
+
+    } else {
+
+        response->pl_mapper_ack = iii_drone_interfaces::srv::PLMapperCommand::Response::PL_MAPPER_ACK_INVALID_CMD;
+
+        return;
+
+    }
+
+    if (request->pl_mapper_cmd.reset) {
+
+        powerline_->Reset();
+
+    }
+
+}
+
 void PowerlineMapperNode::odometryCallback() {
+
+    if (pl_mapper_state_ == pl_mapper_state_idle) {
+
+        return;
+
+    }
 
     geometry_msgs::msg::TransformStamped tf;
 
@@ -145,11 +205,17 @@ void PowerlineMapperNode::odometryCallback() {
 
     powerline_->UpdateOdometry(drone_pose);
 
-    publishPowerline();
+    publishPowerline(*powerline_);
 
 }
 
 void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
+
+    if (pl_mapper_state_ != pl_mapper_state_running) {
+
+        return;
+
+    }
 
     iii_drone::adapters::PointCloudAdapter pcl_adapter(msg);
 
@@ -211,6 +277,12 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
 void PowerlineMapperNode::plDirectionCallback(const geometry_msgs::msg::QuaternionStamped::SharedPtr msg) {
 
+    if (pl_mapper_state_ != pl_mapper_state_running) {
+
+        return;
+
+    }
+
     quaternion_t quat = quaternionFromQuaternionMsg(msg->quaternion);
 
     pl_direction_ = quat;
@@ -218,11 +290,11 @@ void PowerlineMapperNode::plDirectionCallback(const geometry_msgs::msg::Quaterni
     powerline_->UpdateDirection(quat);
 }
 
-void PowerlineMapperNode::publishPowerline() const {
+void PowerlineMapperNode::publishPowerline(const Powerline & powerline) const {
 
-    auto msg = powerline_->ToAdapter(true).ToMsg();
+    auto msg = powerline.ToAdapter(true).ToMsg();
 
-    iii_drone::adapters::PointCloudAdapter pcl_adapter = powerline_->ToPointCloudAdapter(true);
+    iii_drone::adapters::PointCloudAdapter pcl_adapter = powerline.ToPointCloudAdapter(true);
 
     powerline_pub_->publish(msg);
     points_est_pub_->publish(pcl_adapter.ToMsg());
