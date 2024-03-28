@@ -196,7 +196,10 @@ void Powerline::UpdateDirection(const quaternion_t & pl_direction) {
 
 }
 
-void Powerline::UpdateOdometry(const pose_t & drone_pose) {
+void Powerline::UpdateOdometry(
+    const pose_t & drone_pose,
+    bool only_orientation
+) {
 
     drone_pose_history_ = drone_pose;
 
@@ -211,7 +214,7 @@ void Powerline::UpdateOdometry(const pose_t & drone_pose) {
 
     }
 
-    predictLines();
+    predictLines(only_orientation);
 
     stamp_.Update();
 
@@ -469,6 +472,38 @@ void Powerline::ComputeInterLinePositions() {
 
 }
 
+void Powerline::UpdateStamp() {
+
+    std::unique_lock<std::shared_mutex> lines_lock(lines_mutex_);
+
+    stamp_.Update();
+
+    for (unsigned int i = 0; i < lines_.size(); i++) {
+
+        lines_[i].OverwriteStamp(stamp_);
+
+    }
+
+}
+
+bool Powerline::HasLine(int line_id) const {
+
+    std::shared_lock<std::shared_mutex> lock(lines_mutex_);
+
+    for (unsigned int i = 0; i < lines_.size(); i++) {
+
+        if (lines_[i].id() == line_id) {
+
+            return true;
+
+        }
+
+    }
+
+    return false;
+
+}
+
 void Powerline::Reset() {
 
     {
@@ -619,7 +654,7 @@ const point_t Powerline::projectPoint(const point_t & point) const {
 
 }
 
-void Powerline::predictLines() {
+void Powerline::predictLines(bool only_orientation) {
 
     vector_t delta_position;
     quaternion_t delta_quat;
@@ -633,8 +668,16 @@ void Powerline::predictLines() {
 
     delta_quat = matToQuat(D2_R_W*W_R_D1);
 
-    delta_position = drone_pose.position - last_drone_pose.position;
-    delta_position = D2_R_W * delta_position;
+    if (only_orientation) {
+
+        delta_position = vector_t::Zero();
+
+    } else {
+
+        delta_position = drone_pose.position - last_drone_pose.position;
+        delta_position = D2_R_W * delta_position;
+
+    }
 
     plane_t projection_plane = projection_plane_;
 

@@ -104,7 +104,7 @@ perception:
       value: 1000
       min: 0
       constant: true
-    odometry_callback_period_ms:
+    predict_callback_period_ms:
       type: "int"
       value: 25
       min: 5

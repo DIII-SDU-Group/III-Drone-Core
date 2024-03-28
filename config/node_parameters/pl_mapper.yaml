@@ -41,8 +41,8 @@ parameters:
   init_sleep_time_ms:
     name: "/perception/pl_mapper/init_sleep_time_ms"
     type: "int"
-  odometry_callback_period_ms:
-    name: "/perception/pl_mapper/odometry_callback_period_ms"
+  predict_callback_period_ms:
+    name: "/perception/pl_mapper/predict_callback_period_ms"
     type: "int"
   max_lines:
     name: "/perception/pl_mapper/max_lines"

@@ -131,8 +131,9 @@ private:
      */
     enum pl_mapper_state_t {
         pl_mapper_state_idle,
+        pl_mapper_state_running,
         pl_mapper_state_paused,
-        pl_mapper_state_running
+        pl_mapper_state_frozen
     };
 
     /**
@@ -162,9 +163,9 @@ private:
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
 
     /**
-     * @brief Timer for fetching drone transform
+     * @brief Timer for predicting the powerline position estimates
     */
-    rclcpp::TimerBase::SharedPtr drone_tf_timer_{nullptr};
+    rclcpp::TimerBase::SharedPtr pl_predict_timer_{nullptr};
 
     /**
      * @brief The powerline object holding the tracked powerlines
@@ -187,11 +188,12 @@ private:
     iii_drone::types::quaternion_t pl_direction_;
 
     /**
-     * @brief Callback for fetching drone transform
+     * @brief Callback for running predict step of Kalman filter when in running state,
+     * or updating from inter line positions when in paused with fixed line state.
      * 
      * @return void
     */
-    void odometryCallback();
+    void predictCallback();
 
     /**
      * @brief Callback for mmwave data topic

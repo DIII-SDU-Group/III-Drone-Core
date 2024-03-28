@@ -115,11 +115,11 @@ PowerlineMapperNode::PowerlineMapperNode(
 	init_sleep_rate.sleep();
 
     // Call on_timer function every second
-    std::chrono::milliseconds odom_callback_ms(configurator_.GetParameter("odometry_callback_period_ms").as_int());
-    drone_tf_timer_ = this->create_wall_timer(
-        odom_callback_ms, 
+    std::chrono::milliseconds predict_callback_ms(configurator_.GetParameter("predict_callback_period_ms").as_int());
+    pl_predict_timer_ = this->create_wall_timer(
+        predict_callback_ms, 
         std::bind(
-            &PowerlineMapperNode::odometryCallback, 
+            &PowerlineMapperNode::predictCallback, 
             this
         )
     );
@@ -170,6 +170,13 @@ void PowerlineMapperNode::plMapperCommandCallback(
         pl_mapper_state_ = pl_mapper_state_paused;
         response->pl_mapper_ack = iii_drone_interfaces::srv::PLMapperCommand::Response::PL_MAPPER_ACK_SUCCESS;
 
+    } else if (request->pl_mapper_cmd.command == iii_drone_interfaces::msg::PLMapperCommand::PL_MAPPER_CMD_FREEZE) {
+
+        RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Freezing PL mapper");
+
+        pl_mapper_state_ = pl_mapper_state_frozen;
+        response->pl_mapper_ack = iii_drone_interfaces::srv::PLMapperCommand::Response::PL_MAPPER_ACK_SUCCESS;
+
     } else {
 
         RCLCPP_ERROR(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Invalid command");
@@ -190,40 +197,57 @@ void PowerlineMapperNode::plMapperCommandCallback(
 
 }
 
-void PowerlineMapperNode::odometryCallback() {
+void PowerlineMapperNode::predictCallback() {
 
-    RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::odometryCallback(): Updating powerline by odometry");
+    RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::predictCallback(): Running predict step");
 
-    if (pl_mapper_state_ == pl_mapper_state_idle) {
+    pl_mapper_state_t pl_mapper_state = pl_mapper_state_;
 
-        return;
+    bool only_orientation = false;
+
+    switch(pl_mapper_state) {
+
+        case pl_mapper_state_idle:
+            return;
+
+        case pl_mapper_state_frozen:
+            only_orientation = true;
+        case pl_mapper_state_running:
+        case pl_mapper_state_paused: {
+
+            geometry_msgs::msg::TransformStamped tf;
+
+            try {
+
+                tf = tf_buffer_->lookupTransform(
+                    configurator_.GetParameter("world_frame_id").as_string(), 
+                    configurator_.GetParameter("drone_frame_id").as_string(), 
+                    tf2::TimePointZero
+                );
+
+            } catch(tf2::TransformException & ex) {
+
+                RCLCPP_WARN(
+                    this->get_logger(), 
+                    "Could not get odometry transform, frame drone to world"
+                );
+
+                return;
+
+            }
+
+            pose_t drone_pose = poseFromTransformMsg(tf.transform);
+
+            powerline_->UpdateOdometry(
+                drone_pose,
+                only_orientation
+            );
+
+            break;
+
+        }
 
     }
-
-    geometry_msgs::msg::TransformStamped tf;
-
-    try {
-
-        tf = tf_buffer_->lookupTransform(
-            configurator_.GetParameter("world_frame_id").as_string(), 
-            configurator_.GetParameter("drone_frame_id").as_string(), 
-            tf2::TimePointZero
-        );
-
-    } catch(tf2::TransformException & ex) {
-
-        RCLCPP_WARN(
-            this->get_logger(), 
-            "Could not get odometry transform, frame drone to world"
-        );
-
-        return;
-
-    }
-
-    pose_t drone_pose = poseFromTransformMsg(tf.transform);
-
-    powerline_->UpdateOdometry(drone_pose);
 
     publishPowerline(*powerline_);
 

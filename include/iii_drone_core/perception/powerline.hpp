@@ -131,8 +131,12 @@ namespace perception {
          * @brief Updates the powerline from odometry.
          * 
          * @param drone_pose The drone pose.
+         * @param only_orientation Whether to only update the orientation.
         */
-        void UpdateOdometry(const iii_drone::types::pose_t & drone_pose);
+        void UpdateOdometry(
+            const iii_drone::types::pose_t & drone_pose,
+            bool only_orientation = false
+        );
 
         /**
          * @brief Updates the lines not in FOV from the computed inter line positions.
@@ -149,6 +153,20 @@ namespace perception {
          * @brief Computes the inter line positions.
         */
         void ComputeInterLinePositions();
+
+        /**
+         * @brief Updates the time stamp.
+         */
+        void UpdateStamp();
+
+        /**
+         * @brief Whether a line with the given ID is registered.
+         * 
+         * @param line_id The ID of the line.
+         * 
+         * @return Whether a line with the given ID is registered.
+         */
+        bool HasLine(int line_id) const;
 
         /**
          * @brief Resets the powerline object.
@@ -284,8 +302,10 @@ namespace perception {
 
         /**
          * @brief Runs the Kalman Filter predict step for all lines.
+         * 
+         * @param only_orientation Whether to only predict the orientation.
         */
-        void predictLines();
+        void predictLines(bool only_orientation = false);
 
     };
 
