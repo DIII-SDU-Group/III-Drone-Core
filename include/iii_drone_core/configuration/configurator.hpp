@@ -145,6 +145,11 @@ public:
      */
     void PrintParameterBundles() const;
 
+    /**
+     * @brief Shared pointer type.
+     */
+    typedef std::shared_ptr<Configurator> SharedPtr;
+
 private:
     /*
     * @brief Reference to the handling node.

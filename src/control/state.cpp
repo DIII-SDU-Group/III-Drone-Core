@@ -51,6 +51,7 @@ State::State() {
     position_ = point_t::Zero();
     velocity_ = vector_t::Zero();
     quaternion_ = quaternion_t::Identity();
+    yaw_ = 0;
     angular_velocity_ = vector_t::Zero();
     stamp_ = rclcpp::Clock().now();
 

@@ -118,6 +118,7 @@ namespace control {
          * @param reset_weights Whether to reset the MPC weights
          * @param use_state_feedback Whether to use state feedback
          * @param planned_traj The MPC planned trajectory
+         * @param planned_u_traj The MPC planned control input trajectory
          * @param x The MPC state
          * @param target The MPC target state
          * 
@@ -138,6 +139,7 @@ namespace control {
             int &reset_weights,
             bool &use_state_feedback,
             double planned_traj[120],
+            double planned_u_traj[30],
             double x[6],
             double target[6]
         );
@@ -148,6 +150,7 @@ namespace control {
 		 * @param x The MPC state
 		 * @param u The MPC control input
 		 * @param planned_traj The MPC planned trajectory
+         * @param planned_u_traj The MPC planned control input trajectory
 		 * @param target The MPC target state
 		 * @param reset_target Whether to reset the MPC target state
 		 * @param reset_trajectory Whether to reset the MPC trajectory
@@ -160,7 +163,8 @@ namespace control {
 		void stepMPC(
 			double *x, 
 			double *u, 
-			double *planned_traj, 
+			double *planned_traj,
+            double *planned_u_traj,
 			double *target, 
 			int reset_target, 
 			int reset_trajectory, 
@@ -177,6 +181,7 @@ namespace control {
          * @param dt The MPC timestep
          * @param u The MPC control input
          * @param planned_traj The MPC planned trajectory
+         * @param planned_u_traj The MPC planned control input trajectory
          * @param target_yaw The MPC target yaw
          * 
          * @return The MPC reference trajectory
@@ -187,6 +192,7 @@ namespace control {
             double dt,
             double *u, 
             double *planned_traj,
+            double *planned_u_traj,
             double target_yaw
         );
 

@@ -51,6 +51,14 @@ def generate_launch_description():
         description="The logging level for the trajectory_generator node, default is warn",
     )
 
+    maneuver_controller_log_level = LaunchConfiguration("maneuver_controller_log_level")
+    
+    maneuver_controller_log_level_arg = DeclareLaunchArgument(
+        "maneuver_controller_log_level",
+        default_value=["warn"],
+        description="The logging level for the maneuver_controller node, default is warn",
+    )
+
     drone_frame_broadcaster_log_level = LaunchConfiguration("drone_frame_broadcaster_log_level")
 
     drone_frame_broadcaster_log_level_arg = DeclareLaunchArgument(
@@ -86,6 +94,7 @@ def generate_launch_description():
             package='micro_ros_agent',
             executable='micro_ros_agent',
             arguments=["udp4", "--port", "8888"],
+            parameters=[ros_params],
         )
     
         sensors = IncludeLaunchDescription(
@@ -107,6 +116,7 @@ def generate_launch_description():
             package='micro_ros_agent',
             executable='micro_ros_agent',
             arguments=["udp4", "--port", "8888"], # Fix for real drone
+            parameters=[ros_params],
         )
 
         sensors = IncludeLaunchDescription(
@@ -134,10 +144,13 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(
             PathJoinSubstitution([FindPackageShare('iii_drone_core'), 'launch', 'control.launch.py'])
         ),
-        launch_arguments={"trajectory_generator_log_level": trajectory_generator_log_level}.items()
+        launch_arguments={
+            "trajectory_generator_log_level": trajectory_generator_log_level,
+            "maneuver_controller_log_level": maneuver_controller_log_level
+        }.items()
     )
     
-    launch_list = [micro_ros_agent, sensors, tf, perception, control]
+    launch_list = [micro_ros_agent, sensors, tf, perception]#, control]
 
     cmd = "ros2 node list"
     running_nodes = os.popen(cmd).read().split("\n")
@@ -159,7 +172,7 @@ def generate_launch_description():
         
         launch_list = [configuration_server] + launch_list
         
-    args_list = [mmwave_log_level_arg, hough_transformer_log_level_arg, pl_dir_computer_log_level_arg, pl_mapper_log_level_arg, trajectory_generator_log_level_arg, drone_frame_broadcaster_log_level_arg, configuration_server_log_level_arg]
+    args_list = [mmwave_log_level_arg, hough_transformer_log_level_arg, pl_dir_computer_log_level_arg, pl_mapper_log_level_arg, trajectory_generator_log_level_arg, maneuver_controller_log_level_arg, drone_frame_broadcaster_log_level_arg, configuration_server_log_level_arg]
 
         
     return LaunchDescription(args_list + launch_list)

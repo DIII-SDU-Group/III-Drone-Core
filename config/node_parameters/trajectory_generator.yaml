@@ -6,7 +6,7 @@ parameters:
     name: "/control/trajectory_generator/MPC_N"
     type: "int"
   dt:
-    name: "/control/trajectory_generator/dt"
+    name: "/control/dt"
     type: "float"
   world_frame_id:
     name: "/tf/world_frame_id"
@@ -183,10 +183,10 @@ parameters:
 parameter_bundles:
   position_MPC:
     MPC_use_state_feedback:
-      remap_name: "MPC_use_state_feedback"
+      remap_name: "use_state_feedback"
       update: true
     MPC_N:
-      remap_name: "MPC_N"
+      remap_name: "N"
       update: false
     dt:
       remap_name: "dt"

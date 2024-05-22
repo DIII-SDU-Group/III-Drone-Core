@@ -67,7 +67,7 @@ perception:
 
     min_point_dist:
       type: "float"
-      value: 0.1
+      value: 0.5
       min: 0.05
       max: 2.0
     max_point_dist:
@@ -194,6 +194,13 @@ control:
       min: 10
       max: 1000
       constant: true
+    ground_estimate_initial_delay_s:
+      # Initial delay for updating ground estimate when on the ground
+      type: "float"
+      value: 2.0
+      min: 0.1
+      max: 10.0
+      constant: true
     landed_altitude_threshold:
       # Altitude threshold for considering the drone as landed
       type: "float"
@@ -209,7 +216,21 @@ control:
     fail_on_unable_to_locate:
       # Fail the maneuver if the combined drone awareness handler is unable to find the drone location
       type: "bool"
-      value: true
+      value: false
+      constant: true
+    combined_drone_awareness_pub_period_ms:
+      # Period for publishing the combined drone awareness message
+      type: "int"
+      value: 500
+      min: 10
+      max: 2000
+      constant: true
+    maneuver_publish_period_ms:
+      # Period for publishing the maneuver message
+      type: "int"
+      value: 100
+      min: 10
+      max: 2000
       constant: true
     maneuver_register_update_timeout_s:
       # Timeout for updating a registered maneuver with a goal handle
@@ -233,7 +254,7 @@ control:
       max: 10
       constant: true
     maneuver_execution_period_ms:
-      # Period for the maneuver execution scheduler and reference computation callback (running multi threaded)
+      # Period for the maneuver execution scheduler (running multi threaded)
       type: "int"
       value: 50
       min: 10
@@ -533,23 +554,24 @@ control:
     #   value: 0.5
     #   min: 0.0
     #   max: 5.0
+
+  dt:
+    type: "float"
+    value: 0.2
+    min: 0.01
+    max: 0.5
+    constant: true
   
   trajectory_generator:
     MPC_N:
       type: "int"
       value: 10
-      min: 1
-      max: 100
+      min: 10
+      max: 10
       constant: true
     MPC_use_state_feedback:
       type: "bool"
       value: false
-    dt:
-      type: "float"
-      value: 0.2
-      min: 0.01
-      max: 0.5
-      constant: true
     position_MPC_vx_max:
       type: "float"
       value: 0.5
@@ -930,11 +952,49 @@ mission:
       value: -1
       min: -1
 
-px4:
-  px4_offboard_mode_ids:
-    type: "int_array"
-    value: [14]
+# px4:
+#   px4_offboard_mode_ids:
+#     type: "int_array"
+#     value: [14]
+#     constant: true
+
+behavior:
+  server_timeout_ms:
+    type: "int"
+    value: 1000
+    min: 10
+    max: 10000
     constant: true
+  wait_for_server_timeout_ms:
+    type: "int"
+    value: 1000
+    min: 10
+    max: 10000
+    constant: true
+  tree_xml_file:
+    type: "string"
+    value: "/home/ffn/Workspace/ros2_humble_ws/src/III-Drone-Core/behavior_trees/test_tree.xml"
+    constant: true
+  tick_period_ms:
+    type: "int"
+    value: 10
+    min: 1
+    max: 100
+    constant: true
+  target_cable_distance:
+    type: "float"
+    value: 1.5
+    min: 0.5
+    max: 3.0
+  line_min_height_above_drone:
+    type: "float"
+    value: 1.0
+    min: 0.5
+    max: 2.
+  select_target_line_method:
+    type: "string"
+    value: "farthest_above"
+    options: ["random_above", "closest_above", "closest_xy_above", "closest_z_above", "farthest_above"]
 
 tf:
   world_frame_id:
@@ -983,5 +1043,6 @@ tf:
       constant: true
     drone_to_depth_cam:
       type: "float_array"
-      value: [0.035, -0.23, 0.28, -1.57079632679, 0.0, 0.0]
+      value: [0.035, -0.23, 0.28, 0.0, -1.57079632679, 0.0]
+      # value: [0.035, -0.23, 0.28, -1.57079632679, 0.0, 0.0]
       constant: true

@@ -34,6 +34,10 @@
 #include <iii_drone_interfaces/msg/powerline.hpp>
 #include <iii_drone_interfaces/msg/gripper_status.hpp>
 #include <iii_drone_interfaces/msg/target.hpp>
+#include <iii_drone_interfaces/msg/combined_drone_awareness.hpp>
+#include <iii_drone_interfaces/msg/state.hpp>
+
+#include <iii_drone_interfaces/srv/register_offboard_mode.hpp>
 
 /*****************************************************************************/
 // III-Drone-Core:
@@ -52,6 +56,7 @@
 #include <iii_drone_core/adapters/single_line_adapter.hpp>
 #include <iii_drone_core/adapters/gripper_status_adapter.hpp>
 #include <iii_drone_core/adapters/target_adapter.hpp>
+#include <iii_drone_core/adapters/state_adapter.hpp>
 
 #include <iii_drone_core/control/state.hpp>
 #include <iii_drone_core/control/reference.hpp>
@@ -152,15 +157,6 @@ namespace control {
             rclcpp::Node * node,
             bool debug = false
         );
-
-        /**
-         * @brief Register a new navigation state id which should be considered offboard.
-         * 
-         * @param navigation_state_id The navigation state id to be considered offboard.
-         * 
-         * @return void
-         */
-        void RegisterOffboardMode(int navigation_state_id);
 
         /**
          * @brief Get the current drone state.
@@ -345,6 +341,34 @@ namespace control {
         rclcpp::Node * node_;
 
         /**
+         * @brief Atomic vector of navigation state ids which are considered to be offboard.
+         */
+        AtomicIntVector offboard_nav_state_ids_;
+
+        /**
+         * @brief Register a new navigation state id which should be considered offboard.
+         * 
+         * @param navigation_state_id The navigation state id to be considered offboard.
+         * 
+         * @return void
+         */
+        void registerOffboardMode(int navigation_state_id);
+
+        /**
+         * @brief De-register a navigation state id which should no longer be considered offboard.
+         * 
+         * @param navigation_state_id The navigation state id to no longer be considered offboard.
+         * 
+         * @return void
+         */
+        void deregisterOffboardMode(int navigation_state_id);
+
+        /**
+         * @brief Register offboard mode service.
+         */
+        rclcpp::Service<iii_drone_interfaces::srv::RegisterOffboardMode>::SharedPtr register_offboard_mode_srv_;
+
+        /**
          * @brief Atomic combined drone awareness simple type member.
          */
         iii_drone::utils::Atomic<combined_drone_awareness_t>::SharedPtr combined_drone_awareness_;
@@ -358,9 +382,19 @@ namespace control {
         void updateCombinedDroneAwareness();
 
         /**
-         * @brief Atomic vector of navigation state ids which are considered to be offboard.
+         * @brief Combined drone awareness publisher timer.
          */
-        AtomicIntVector offboard_nav_state_ids_;
+        rclcpp::TimerBase::SharedPtr combined_drone_awareness_pub_timer_;
+
+        /**
+         * @brief Combined drone awareness publisher.
+         */
+        rclcpp::Publisher<iii_drone_interfaces::msg::CombinedDroneAwareness>::SharedPtr combined_drone_awareness_pub_;
+
+        /**
+         * @brief Has found initial location flag.
+         */
+        iii_drone::utils::Atomic<bool> has_found_initial_location_ = false;
 
 		/**
 		 * @brief PX4 vehicle status subscription
@@ -526,7 +560,6 @@ namespace control {
          * To be called after updates to vehicle odometry, vehicle status, or target cable.
          * Will set the ground altitude estimate to the current altitude if the drone is on the ground, based on the following criteria:
          * - The drone is unarmed; and
-         * - The drone is not in a navigation state considered offboard; and
          * - No target cable is registered.
          * The ground altitude estimate is used to determine the drone location (on ground, in flight, on cable).
          * Updates the ground altitude estimate by pushing the current altitude to the history and taking the mean of the history.

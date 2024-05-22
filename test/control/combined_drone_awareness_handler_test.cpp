@@ -50,7 +50,7 @@ bool testOffboardModes(bool &is_done) {
 
             RCLCPP_INFO(node->get_logger(), "Registering id 2 (position) as offboard");
 
-            cdah->RegisterOffboardMode(2);
+            // cdah->RegisterOffboardMode(2);
             break;
 
         case 2: {

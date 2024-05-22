@@ -178,7 +178,14 @@ namespace maneuver {
 		const rclcpp::Time start_time() const;
 
 		/**
-		 * @brief Getter for the termianted flag.
+		 * @brief Getter for the started flag.
+		 * 
+		 * @return Whether the maneuver has started.
+		 */
+		bool started() const;
+
+		/**
+		 * @brief Getter for the terminated flag.
 		 *
 		 * @return Whether the maneuver has terminated.
 		 */
@@ -196,11 +203,6 @@ namespace maneuver {
 		 * @brief The ROS2 time at which the maneuver was created.
 		 */
 		rclcpp::Time creation_time_;
-
-		/**
-		 * @brief The ROS2 time at which the maneuver is started.
-		 */
-		rclcpp::Time start_time_;
 
 		/**
 		 * @brief The ROS2 action server goal handle void pointer.
@@ -221,6 +223,16 @@ namespace maneuver {
 		 * @brief The maneuver parameters void pointer.
 		 */
 		std::shared_ptr<void> maneuver_params_;
+
+		/**
+		 * @brief The ROS2 time at which the maneuver is started.
+		 */
+		rclcpp::Time start_time_;
+
+		/**
+		 * @brief Whether the maneuver has started.
+		 */
+		bool started_ = false;
 
 		/**
 		 * @brief Whether the maneuver has terminated.

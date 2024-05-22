@@ -132,9 +132,13 @@ namespace maneuver {
 	 */
 	struct hover_maneuver_params_t {
 		double duration_s;
+		bool sustain_action;
 
 		hover_maneuver_params_t();
-		hover_maneuver_params_t(double duration_s);
+		hover_maneuver_params_t(
+			double duration_s,
+			bool sustain_action
+		);
 		hover_maneuver_params_t(std::shared_ptr<void> params);
 	};
 
@@ -144,11 +148,13 @@ namespace maneuver {
 	struct hover_by_object_maneuver_params_t {
 		iii_drone::adapters::TargetAdapter target_adapter;
 		double duration_s;
+		bool sustain_action;
 
 		hover_by_object_maneuver_params_t();
 		hover_by_object_maneuver_params_t(
 			iii_drone::adapters::TargetAdapter target_adapter,
-			double duration_s
+			double duration_s,
+			bool sustain_action
 		);
 		hover_by_object_maneuver_params_t(std::shared_ptr<void> params);
 	};
@@ -161,13 +167,15 @@ namespace maneuver {
 		double target_z_velocity;
 		double target_yaw_rate;
 		double duration_s;
+		bool sustain_action;
 
 		hover_on_cable_maneuver_params_t();
 		hover_on_cable_maneuver_params_t(
 			int target_cable_id,
 			double target_z_velocity, 
 			double target_yaw_rate,
-			double duration_s
+			double duration_s,
+			bool sustain_action
 		);
 		hover_on_cable_maneuver_params_t(std::shared_ptr<void> params);
 	};

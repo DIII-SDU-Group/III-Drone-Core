@@ -10,6 +10,8 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 def generate_launch_description():
+    ros_params = "/home/" + os.getenv("USER") + "/.config/iii_drone/ros_params.yaml"
+
     mmwave_log_level = LaunchConfiguration("mmwave_log_level")
 
     mmwave_log_level_arg = DeclareLaunchArgument(
@@ -22,6 +24,7 @@ def generate_launch_description():
         executable="usb_cam_node_exe",
         name="usb_cam",
         namespace="/sensor/cable_camera",
+        parameters=[ros_params],
     )
 
     mmwave_node = Node(
@@ -29,7 +32,8 @@ def generate_launch_description():
         executable="pcl_pub",
         namespace="/sensor/mmwave",
         remappings=[("/sensor/iwr6843_pcl", "/sensor/mmwave/pcl")],
-        arguments=["--ros-args", "--log-level", mmwave_log_level]
+        arguments=["--ros-args", "--log-level", mmwave_log_level],
+        parameters=[ros_params],
     )
 
 

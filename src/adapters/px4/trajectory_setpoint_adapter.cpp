@@ -33,32 +33,26 @@ TrajectorySetpointAdapter::TrajectorySetpointAdapter(const rclcpp::Time & stamp)
 
 }
 
-TrajectorySetpointAdapter::TrajectorySetpointAdapter(
-    const rclcpp::Time & stamp,
-    const Reference & reference
-) {
+TrajectorySetpointAdapter::TrajectorySetpointAdapter(const Reference & reference) {
 
     init(
-        stamp,
+        reference.stamp(),
         reference.position(),
-        {NAN, NAN, NAN},
-        {NAN, NAN, NAN},
+        reference.velocity(),
+        reference.acceleration(),
         reference.yaw(),
-        NAN
+        reference.yaw_rate()
     );
 
 }
 
-TrajectorySetpointAdapter::TrajectorySetpointAdapter(
-    const rclcpp::Time & stamp,
-    const State & state
-) {
+TrajectorySetpointAdapter::TrajectorySetpointAdapter(const State & state) {
 
     quaternion_t q = state.quaternion();
     euler_angles_t euler_orientation = quatToEul(q);
 
     init(
-        stamp,
+        state.stamp(),
         state.position(),
         state.velocity(),
         {NAN, NAN, NAN},

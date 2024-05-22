@@ -5,6 +5,9 @@ parameters:
   ground_estimate_update_period_ms:
     name: "/control/maneuver_controller/ground_estimate_update_period_ms"
     type: "int"
+  ground_estimate_initial_delay_s:
+    name: "/control/maneuver_controller/ground_estimate_initial_delay_s"
+    type: "float"
   landed_altitude_threshold:
     name: "/control/maneuver_controller/landed_altitude_threshold"
     type: "float"
@@ -14,6 +17,12 @@ parameters:
   fail_on_unable_to_locate:
     name: "/control/maneuver_controller/fail_on_unable_to_locate"
     type: "bool"
+  combined_drone_awareness_pub_period_ms:
+    name: "/control/maneuver_controller/combined_drone_awareness_pub_period_ms"
+    type: "int"
+  maneuver_publish_period_ms:
+    name: "/control/maneuver_controller/maneuver_publish_period_ms"
+    type: "int"
   maneuver_register_update_timeout_s:
     name: "/control/maneuver_controller/maneuver_register_update_timeout_s"
     type: "float"
@@ -110,9 +119,6 @@ parameters:
   ground_frame_id:
     name: "/tf/ground_frame_id"
     type: "string"
-  px4_offboard_mode_ids:
-    name: "/px4/px4_offboard_mode_ids"
-    type: "int_array"
 
 parameter_bundles:
   combined_drone_awareness_handler:
@@ -122,6 +128,9 @@ parameter_bundles:
     ground_estimate_update_period_ms:
       remap_name: "ground_estimate_update_period_ms"
       update: false
+    ground_estimate_initial_delay_s:
+      remap_name: "ground_estimate_initial_delay_s"
+      update: false
     landed_altitude_threshold:
       remap_name: "landed_altitude_threshold"
       update: true
@@ -130,6 +139,9 @@ parameter_bundles:
       update: true
     fail_on_unable_to_locate:
       remap_name: "fail_on_unable_to_locate"
+      update: false
+    combined_drone_awareness_pub_period_ms:
+      remap_name: "combined_drone_awareness_pub_period_ms"
       update: false
     cable_gripper_frame_id:
       remap_name: "cable_gripper_frame_id"
@@ -143,11 +155,11 @@ parameter_bundles:
     ground_frame_id:
       remap_name: "ground_frame_id"
       update: false
-    px4_offboard_mode_ids:
-      remap_name: "px4_offboard_mode_ids"
-      update: false
 
   maneuver_scheduler:
+    maneuver_publish_period_ms:
+      remap_name: "maneuver_publish_period_ms"
+      update: false
     maneuver_register_update_timeout_s:
       remap_name: "maneuver_register_update_timeout_s"
       update: false
@@ -188,8 +200,8 @@ parameter_bundles:
       update: false
 
   hover_on_cable_maneuver_server:
-    gripper_frame_id:
-      remap_name: "cable_gripper_frame_id"
+    cable_gripper_frame_id:
+      remap_name: "gripper_frame_id"
       update: false
 
   fly_to_position_maneuver_server:
@@ -230,8 +242,8 @@ parameter_bundles:
     reached_position_euclidean_distance_threshold:
       remap_name: "reached_position_euclidean_distance_threshold"
       update: true
-    gripper_frame_id:
-      remap_name: "cable_gripper_frame_id"
+    cable_gripper_frame_id:
+      remap_name: "gripper_frame_id"
       update: false
     drone_frame_id:
       remap_name: "drone_frame_id"

@@ -37,20 +37,38 @@ bool HoverManeuverServer::CanExecuteManeuver(
 ) const {
 
     if (maneuver.maneuver_type() != MANEUVER_TYPE_HOVER) {
+
+        RCLCPP_DEBUG(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Maneuver is not of type hover, cannot execute");
+
         return false;
+
     }
 
     if (!drone_awareness.offboard) {
+
+        RCLCPP_DEBUG(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Drone is not in offboard mode, cannot execute");
+
         return false;
+
     }
 
     if (!drone_awareness.armed) {
+
+        RCLCPP_DEBUG(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Drone is not armed, cannot execute");
+
         return false;
+
     }
 
     if (!drone_awareness.in_flight()) {
+
+        RCLCPP_DEBUG(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Drone is not in flight, cannot execute");
+
         return false;
+
     }
+
+    //RCLCPP_DEBUG(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Hover maneuver can be executed");
 
     return true;
 
@@ -147,6 +165,8 @@ void HoverManeuverServer::Update(const Reference & hover_reference) {
 
 iii_drone::control::Reference HoverManeuverServer::GetReference(const iii_drone::control::State & ) {
 
+    //RCLCPP_DEBUG(node()->get_logger(), "HoverManeuverServer::GetReference(): Returning hover reference");
+
     hover_reference_ = hover_reference_->CopyWithNewStamp();
 
     return hover_reference_;
@@ -157,11 +177,26 @@ maneuver_type_t HoverManeuverServer::maneuver_type() const {
     return MANEUVER_TYPE_HOVER;
 }
 
-void HoverManeuverServer::startExecution(Maneuver & ) {
+void HoverManeuverServer::startExecution(Maneuver & maneuver) {
+
+    hover_maneuver_params_t params(maneuver.maneuver_params());
 
     Update(awareness_handler()->GetState());
 
     awareness_handler()->ClearTarget();
+
+    hover_duration_s_ = params.duration_s;
+
+    sustain_action_ = params.sustain_action;
+
+    hover_start_time_ = rclcpp::Clock().now();
+
+    RCLCPP_DEBUG(
+        node()->get_logger(), 
+        "HoverManeuverServer::startExecution(): Starting hover maneuver for %f seconds at time %f", 
+        (float)hover_duration_s_,
+        hover_start_time_->seconds()
+    );
 
 }
 
@@ -176,7 +211,26 @@ iii_drone::control::Reference HoverManeuverServer::computeReference(const iii_dr
 }
 
 bool HoverManeuverServer::hasSucceeded(Maneuver & ) {
-    return true;
+
+    if (!sustain_action_) {
+
+        RCLCPP_DEBUG(node()->get_logger(), "HoverManeuverServer::hasSucceeded(): Hover maneuver not sustained, succeeding immediately");
+
+        return true;
+
+    }
+
+    rclcpp::Duration elapsed_time = rclcpp::Clock().now() - (rclcpp::Time)hover_start_time_;
+    
+    if (elapsed_time.seconds() >= (float)hover_duration_s_) {
+
+        RCLCPP_DEBUG(node()->get_logger(), "HoverManeuverServer::hasSucceeded(): Hover maneuver has succeeded after %f seconds", (float)hover_duration_s_);
+
+        return true;
+    }
+
+    return false;
+
 }
 
 bool HoverManeuverServer::hasFailed(Maneuver & ) {

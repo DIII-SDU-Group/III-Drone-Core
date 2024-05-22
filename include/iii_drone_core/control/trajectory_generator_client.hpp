@@ -183,6 +183,11 @@ namespace control {
         rclcpp::Client<iii_drone_interfaces::srv::ComputeReferenceTrajectory>::SharedPtr client_;
 
         /**
+         * @brief Client callback group
+         */
+        rclcpp::CallbackGroup::SharedPtr callback_group_;
+
+        /**
          * @brief Reference trajectory adapter history
          */
         iii_drone::utils::History<iii_drone::adapters::ReferenceTrajectoryAdapter>::SharedPtr reference_trajectory_adapter_history_;

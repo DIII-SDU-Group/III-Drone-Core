@@ -10,6 +10,8 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 def generate_launch_description():
+    ros_params = "/home/" + os.getenv("USER") + "/.config/iii_drone/ros_params.yaml"
+
     hough_transformer_log_level = LaunchConfiguration("hough_transformer_log_level")
 
     hough_transformer_log_level_arg = DeclareLaunchArgument(
@@ -38,21 +40,24 @@ def generate_launch_description():
         package="iii_drone_core",
         executable="hough_transformer",
         namespace="/perception/hough_transformer",
-        arguments=["--ros-args", "--log-level", hough_transformer_log_level]
+        arguments=["--ros-args", "--log-level", hough_transformer_log_level],
+        parameters=[ros_params],
     )
 
     pl_dir_computer = Node(
         package="iii_drone_core",
         executable="pl_dir_computer",
         namespace="/perception/pl_dir_computer",
-        arguments=["--ros-args", "--log-level", pl_dir_computer_log_level]
+        arguments=["--ros-args", "--log-level", pl_dir_computer_log_level],
+        parameters=[ros_params],
     )
 
     pl_mapper = Node(
         package="iii_drone_core",
         executable="pl_mapper",
         namespace="/perception/pl_mapper",
-        arguments=["--ros-args", "--log-level", pl_mapper_log_level]
+        arguments=["--ros-args", "--log-level", pl_mapper_log_level],
+        parameters=[ros_params],
     )
 
     return LaunchDescription([

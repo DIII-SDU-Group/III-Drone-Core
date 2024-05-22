@@ -201,8 +201,6 @@ Maneuver ManeuverQueue::Find(const rclcpp_action::GoalUUID &uuid) {
 
 std::vector<Maneuver>::iterator ManeuverQueue::find(const rclcpp_action::GoalUUID &uuid) {
 
-    std::unique_lock<std::mutex> lck(mutex_);
-
     return std::find_if(std::vector<Maneuver>::begin(), std::vector<Maneuver>::end(), [&uuid](const Maneuver &maneuver) {
         return maneuver.uuid() == uuid;
     });

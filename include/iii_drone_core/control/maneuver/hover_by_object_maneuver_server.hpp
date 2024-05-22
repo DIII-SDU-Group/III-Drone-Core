@@ -8,6 +8,7 @@
 // III-Drone-Core:
 
 #include <iii_drone_core/utils/types.hpp>
+#include <iii_drone_core/utils/atomic.hpp>
 
 #include <iii_drone_core/control/combined_drone_awareness_handler.hpp>
 
@@ -36,10 +37,8 @@ namespace maneuver {
     /**
      * @brief HoverByObject maneuver server class. When the hover by object action is called,
      * and the target is valid (object is visible and the drone is within the maximum euclidean distance to the object),
-     * the drone will start hovering by the object, and the action
-     * will succeed immediately. The maneuver scheduler will then keep hovering by the object
-     * until a new maneuver is scheduled or the timeout elapses by the duration given
-     * in the hover by object action call. Exposes external methods for getting the reference
+     * the drone will start hovering by the object. Hovering will continue for the given duration.
+     * Exposes external methods for getting the reference
      * and updating the hover reference parameters. Other maneuver servers will
      * use this server to generate references before a new maneuver is scheduled.
      * Will fail if the target is not visible or the drone has drifted too far away from the target relative pose.
@@ -241,6 +240,21 @@ namespace maneuver {
          * @return bool Whether the awareness is valid.
          */
         bool validateAwareness(combined_drone_awareness_t drone_awareness) const;
+
+        /**
+         * @brief The hover duration.
+         */
+        iii_drone::utils::Atomic<float> hover_duration_s_;
+
+        /**
+         * @brief Whether to sustain the action.
+         */
+        iii_drone::utils::Atomic<bool> sustain_action_;
+
+        /**
+         * @brief The start time of the hover maneuver.
+         */
+        iii_drone::utils::Atomic<rclcpp::Time> hover_start_time_;
 
     };
 

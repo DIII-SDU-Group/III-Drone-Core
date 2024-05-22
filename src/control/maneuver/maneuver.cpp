@@ -35,6 +35,10 @@ Maneuver::Maneuver(
 
     creation_time_ = rclcpp::Clock().now();
 
+    terminated_ = false;
+    success_ = false;
+    started_ = false;
+
 }
 
 Maneuver::Maneuver(const Maneuver & other) : 
@@ -44,6 +48,10 @@ Maneuver::Maneuver(const Maneuver & other) :
     maneuver_params_(other.maneuver_params_) {
 
     creation_time_ = rclcpp::Clock().now();
+
+    terminated_ = other.terminated_;
+    success_ = other.success_;
+    started_ = other.started_;
 
 }
       
@@ -55,6 +63,9 @@ Maneuver Maneuver::FromGoalHandle(const std::shared_ptr<rclcpp_action::ServerGoa
     m.uuid_ = goal_handle->get_goal_id();
     m.SetFromGoal<ActionT>(goal_handle->get_goal());
     m.creation_time_ = rclcpp::Clock().now();
+    m.terminated_ = false;
+    m.success_ = false;
+    m.started_ = false;
 
     return m;
 
@@ -132,7 +143,10 @@ void Maneuver::SetFromGoal(const std::shared_ptr<const typename ActionT::Goal> g
             throw std::runtime_error(msg);
         }
 
-        *p = hover_maneuver_params_t(goal->duration_s);
+        *p = hover_maneuver_params_t(
+            goal->duration_s,
+            goal->sustain_action
+        );
 
     } else if constexpr (std::is_same<ActionT, iii_drone_interfaces::action::HoverByObject>::value) {
 
@@ -149,7 +163,8 @@ void Maneuver::SetFromGoal(const std::shared_ptr<const typename ActionT::Goal> g
 
         *p = hover_by_object_maneuver_params_t(
             TargetAdapter(goal->target),
-            goal->duration_s
+            goal->duration_s,
+            goal->sustain_action
         );
 
     } else if constexpr (std::is_same<ActionT, iii_drone_interfaces::action::HoverOnCable>::value) {
@@ -169,7 +184,8 @@ void Maneuver::SetFromGoal(const std::shared_ptr<const typename ActionT::Goal> g
             goal->target_cable_id,
             goal->target_z_velocity,
             goal->target_yaw_rate,
-            goal->duration_s
+            goal->duration_s,
+            goal->sustain_action
         );
 
     // } else if constexpr (std::is_same<ActionT, iii_drone_interfaces::action::DisarmOnCable>::value) {
@@ -245,6 +261,7 @@ void Maneuver::Start() {
     }
 
     start_time_ = rclcpp::Clock().now();
+    started_ = true;
 
 }
 
@@ -278,6 +295,11 @@ Maneuver & Maneuver::operator=(const Maneuver & rhs) {
     uuid_ = rhs.uuid_;
     maneuver_type_ = rhs.maneuver_type_;
     maneuver_params_ = rhs.maneuver_params_;
+    creation_time_ = rhs.creation_time_;
+    start_time_ = rhs.start_time_;
+    terminated_ = rhs.terminated_;
+    success_ = rhs.success_;
+    started_ = rhs.started_;
 
     return *this;
 }
@@ -304,6 +326,10 @@ const rclcpp::Time Maneuver::creation_time() const {
 
 const rclcpp::Time Maneuver::start_time() const {
     return start_time_;
+}
+
+bool Maneuver::started() const {
+    return started_;
 }
 
 bool Maneuver::terminated() const {

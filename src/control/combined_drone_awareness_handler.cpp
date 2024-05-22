@@ -43,11 +43,21 @@ CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(
     target_adapter_ = std::make_shared<iii_drone::utils::Atomic<TargetAdapter>>();
 
     
-    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(): Creating offboard_nav_state_ids_");
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(): Creating Register Offboard Mode service");
 
-    for (auto & id : params_->GetParameter("px4_offboard_mode_ids").as_integer_array()) {
-        offboard_nav_state_ids_->push_back(id);
-    }
+    register_offboard_mode_srv_ = node_->create_service<iii_drone_interfaces::srv::RegisterOffboardMode>(
+        "register_offboard_mode",
+        [this](
+            const std::shared_ptr<iii_drone_interfaces::srv::RegisterOffboardMode::Request> request, 
+            std::shared_ptr<iii_drone_interfaces::srv::RegisterOffboardMode::Response>
+        ) {
+            if (request->deregister) {
+                deregisterOffboardMode(request->mode_id);
+            } else {
+                registerOffboardMode(request->mode_id);
+            }
+        }
+    );
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(): Creating ground altitude estimate");
     int ground_estimate_window_size = params_->GetParameter("ground_estimate_window_size").as_int();
@@ -68,6 +78,37 @@ CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(): Updating combined drone awareness");
     updateCombinedDroneAwareness();
+
+    if (debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(): Creating combined drone awareness publisher and timer");
+
+    combined_drone_awareness_pub_ = node_->create_publisher<iii_drone_interfaces::msg::CombinedDroneAwareness>(
+        "combined_drone_awareness",
+        10
+    );
+
+    combined_drone_awareness_pub_timer_ = node_->create_wall_timer(
+        std::chrono::milliseconds(params_->GetParameter("combined_drone_awareness_pub_period_ms").as_int()),
+        [this]() {
+            if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::combined_drone_awareness_pub_timer_: Publishing combined drone awareness");
+
+            combined_drone_awareness_t cda = combined_drone_awareness();
+            
+            iii_drone_interfaces::msg::CombinedDroneAwareness msg;
+
+            msg.state = StateAdapter(cda.state).ToMsg();
+            msg.armed = cda.armed;
+            msg.offboard = cda.offboard;
+            msg.target = cda.target_adapter.ToMsg();
+            msg.target_position_known = cda.target_position_known;
+            msg.drone_location = (uint8_t)cda.drone_location;
+            msg.on_cable_id = cda.on_cable_id;
+            msg.ground_altitude_estimate = cda.ground_altitude_estimate;
+            msg.gripper_open = cda.gripper_open;
+
+            combined_drone_awareness_pub_->publish(msg);
+
+        }
+    );
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(): Creating subscribers and publishers");
 	rclcpp::QoS px4_sub_qos(rclcpp::KeepLast(1));
@@ -134,19 +175,6 @@ CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(
 
 }
 
-void CombinedDroneAwarenessHandler::RegisterOffboardMode(int navigation_state_id) {
-
-    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::RegisterOffboardMode(): Registering offboard mode with id %d", navigation_state_id);
-
-    std::vector<int> offboard_states = offboard_nav_state_ids_.Load();
-
-    if (std::find(offboard_states.begin(), offboard_states.end(), navigation_state_id) == offboard_states.end()) {
-        offboard_states.push_back(navigation_state_id);
-        offboard_nav_state_ids_.Store(offboard_states);
-    }
-
-}
-
 iii_drone::control::State CombinedDroneAwarenessHandler::GetState() const {
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::GetState(): Getting state");
@@ -190,6 +218,8 @@ iii_drone::types::transform_matrix_t CombinedDroneAwarenessHandler::ComputeTarge
 
         } catch (std::runtime_error & e) {
 
+            if (debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::ComputeTargetTransform: target line with id %d not found", target_adapter.target_id());
+
             throw std::runtime_error("CombinedDroneAwarenessHandler::ComputeTargetReference: target line with id " + std::to_string(target_adapter.target_id()) + " not found");
         }
 
@@ -197,14 +227,24 @@ iii_drone::types::transform_matrix_t CombinedDroneAwarenessHandler::ComputeTarge
 
         geometry_msgs::msg::PoseStamped target_object_pose_stamped_world;
 
+        rclcpp::Time now = rclcpp::Clock().now();
+
         try {
 
             target_object_pose_stamped_world = tf_buffer_->transform(
                 target_object_pose_stamped,
-                params_->GetParameter("world_frame_id").as_string()
+                params_->GetParameter("world_frame_id").as_string(),
+                tf2::durationFromSec(1.)
             );
 
         } catch (tf2::TransformException & e) {
+
+            if (debug_) RCLCPP_DEBUG(
+                node_->get_logger(), 
+                "CombinedDroneAwarenessHandler::ComputeTargetTransform: could not transform target object pose to world frame after %f seconds: %s", 
+                (now - rclcpp::Clock().now()).seconds(),
+                e.what()
+            );
 
             throw std::runtime_error("CombinedDroneAwarenessHandler::ComputeTargetReference: could not transform target object pose to world frame: " + std::string(e.what()));
 
@@ -229,7 +269,9 @@ iii_drone::types::transform_matrix_t CombinedDroneAwarenessHandler::ComputeTarge
 
     } else {
 
-        throw std::runtime_error("CombinedDroneAwarenessHandler::ComputeTargetReference: target type not implemented");
+        std::string msg = "CombinedDroneAwarenessHandler::ComputeTargetReference(): target type " + std::to_string(target_adapter.target_type()) + " not implemented";
+
+        throw std::runtime_error(msg);
 
     }
 }
@@ -355,6 +397,31 @@ drone_location_t CombinedDroneAwarenessHandler::drone_location() const {
 
 tf2_ros::Buffer::SharedPtr CombinedDroneAwarenessHandler::tf_buffer() const {
     return tf_buffer_;
+}
+
+void CombinedDroneAwarenessHandler::registerOffboardMode(int navigation_state_id) {
+
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::RegisterOffboardMode(): Registering offboard mode with id %d", navigation_state_id);
+
+    std::vector<int> offboard_states = offboard_nav_state_ids_.Load();
+
+    if (std::find(offboard_states.begin(), offboard_states.end(), navigation_state_id) == offboard_states.end()) {
+        offboard_states.push_back(navigation_state_id);
+        offboard_nav_state_ids_.Store(offboard_states);
+    }
+
+}
+
+void CombinedDroneAwarenessHandler::deregisterOffboardMode(int navigation_state_id) {
+
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::DeregisterOffboardMode(): Deregistering offboard mode with id %d", navigation_state_id);
+
+    std::vector<int> offboard_states = offboard_nav_state_ids_.Load();
+
+    offboard_states.erase(std::remove(offboard_states.begin(), offboard_states.end(), navigation_state_id), offboard_states.end());
+
+    offboard_nav_state_ids_.Store(offboard_states);
+
 }
 
 void CombinedDroneAwarenessHandler::updateCombinedDroneAwareness() {
@@ -527,9 +594,11 @@ void CombinedDroneAwarenessHandler::updateGroundAltitudeEstimate(
     bool has_target_cable
 ) {
 
-    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::updateGroundAltitudeEstimate(): Updating ground altitude estimate");
+    if (!has_found_initial_location_) {
+        return;
+    }
 
-    bool is_on_ground = !armed && !offboard && !has_target_cable;
+    bool is_on_ground = !armed && !has_target_cable;
 
     if (!is_on_ground) {
         ground_altitude_update_timer_->cancel();
@@ -543,6 +612,8 @@ void CombinedDroneAwarenessHandler::updateGroundAltitudeEstimate(
     if (!ground_altitude_update_timer_->is_canceled()) {
         return;
     }
+
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::updateGroundAltitudeEstimate(): Updating ground altitude estimate");
 
     double ground_altitude = (*vehicle_odometry_adapter_history_)[0].position()[2];
 
@@ -589,6 +660,7 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness
     if (drone_position[2] - ground_altitude_estimate_->Load() < params_->GetParameter("landed_altitude_threshold").as_double()) {
         combined_drone_awareness.drone_location = DRONE_LOCATION_ON_GROUND;
         combined_drone_awareness.on_cable_id = -1;
+        has_found_initial_location_ = true;
         return;
     }
 
@@ -627,6 +699,8 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness
                 combined_drone_awareness.drone_location = DRONE_LOCATION_ON_CABLE;
                 combined_drone_awareness.on_cable_id = closest_line.id();
 
+                has_found_initial_location_ = true;
+
                 return;
 
             }
@@ -636,6 +710,7 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness
     // Check if in flight:
     if (combined_drone_awareness.armed) {
         combined_drone_awareness.drone_location = DRONE_LOCATION_IN_FLIGHT;
+        has_found_initial_location_ = true;
         return;
     }
 

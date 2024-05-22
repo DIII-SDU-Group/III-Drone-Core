@@ -3,6 +3,7 @@
 /*****************************************************************************/
 
 #include <iii_drone_core/control/trajectory_generator.hpp>
+#include <iostream>
 
 using namespace iii_drone::control;
 using namespace iii_drone::types;
@@ -45,12 +46,13 @@ ReferenceTrajectory TrajectoryGenerator::ComputeReferenceTrajectory(
 
 	static bool first = true;
 
-	static int MPC_N = mpc_params->GetParameter("MPC_N").as_int();
+	static int MPC_N = mpc_params->GetParameter("N").as_int();
     static double dt = mpc_params->GetParameter("dt").as_double();
 
 	static bool use_state_feedback = mpc_params->GetParameter("use_state_feedback").as_bool();
 
 	static double planned_traj[120];
+	static double planned_u_traj[30];
 	static double x[6];
 	static double u[3];
 
@@ -82,6 +84,7 @@ ReferenceTrajectory TrajectoryGenerator::ComputeReferenceTrajectory(
         reset_weights,
         use_state_feedback,
         planned_traj,
+        planned_u_traj,
         x,
         target
     );
@@ -94,6 +97,7 @@ ReferenceTrajectory TrajectoryGenerator::ComputeReferenceTrajectory(
         x, 
         u, 
         planned_traj, 
+        planned_u_traj,
         target, 
         reset_target, 
         reset_trajectory, 
@@ -109,7 +113,8 @@ ReferenceTrajectory TrajectoryGenerator::ComputeReferenceTrajectory(
         dt,
         u, 
         planned_traj,
-        target[5]
+        planned_u_traj,
+        ref.yaw()
     );
 
 }
@@ -129,6 +134,7 @@ void TrajectoryGenerator::setupMPC(
     int &reset_weights,
     bool &use_state_feedback,
     double planned_traj[120],
+    double planned_u_traj[30],
     double x[6],
     double target[6]
 ) {
@@ -190,6 +196,7 @@ void TrajectoryGenerator::setupMPC(
 			for (int j = 0; j < 3; j++) {
 
 				planned_traj[i*6+j] = vehicle_position[j];
+                planned_u_traj[i*3+j] = 0;
 
 			}
 
@@ -217,12 +224,14 @@ void TrajectoryGenerator::setupMPC(
 
         }
 	}
+
 }
 
 void TrajectoryGenerator::stepMPC(
     double *x, 
     double *u, 
     double *planned_traj, 
+    double *planned_u_traj,
     double *target, 
 	int reset_target, 
     int reset_trajectory, 
@@ -354,10 +363,14 @@ void TrajectoryGenerator::stepMPC(
 
 	pos_MPC::coder::mpcmoveCodeGeneration(&mpcmovestate, &mpconlinedata, u, &Info);
 
-	for (int j = 0; j < 6; j++) x[j] = Info.Yopt[j*(N+1)+1];
+	for (int j = 0; j < 6; j++) x[j] = Info.Yopt[j*(N+1)];
+	// for (int j = 0; j < 6; j++) x[j] = Info.Yopt[j*(N+1)+1];
 	for (int i = 0; i < N; i++) {
 
-		for (int j = 0; j < 6; j++) planned_traj[i*6+j] = Info.Yopt[j*(N+1)+(i+1)];
+		for (int j = 0; j < 6; j++) planned_traj[i*6+j] = Info.Yopt[j*(N+1)+(i)];
+		// for (int j = 0; j < 6; j++) planned_traj[i*6+j] = Info.Yopt[j*(N+1)+(i+1)];
+
+        for (int j = 0; j < 3; j++) planned_u_traj[i*3+j] = Info.Uopt[j*N+i];
 
 	} 
 
@@ -369,6 +382,7 @@ ReferenceTrajectory TrajectoryGenerator::postProcessMPC(
     double dt,
     double *u, 
     double *planned_traj,
+    double *planned_u_traj,
     double target_yaw
 ) {
 
@@ -394,39 +408,45 @@ ReferenceTrajectory TrajectoryGenerator::postProcessMPC(
 
         Reference ref;
 
-        if (i == 0) {
+        // if (i == 0) {
+
+            // vector_t reference_acceleration(
+            //     u[0],
+            //     u[1],
+            //     u[2]
+            // );
 
             vector_t reference_acceleration(
-                u[0],
-                u[1],
-                u[2]
+                planned_u_traj[i*3+0],
+                planned_u_traj[i*3+1],
+                planned_u_traj[i*3+2]
             );
 
             ref = Reference(
                 reference_position,
                 target_yaw,
                 reference_velocity,
-                0,
+                NAN,
                 reference_acceleration,
                 NAN,
                 stamp
             );
 
-        } else {
+        // } else {
 
-            ref = Reference(
-                reference_position,
-                target_yaw,
-                reference_velocity,
-                0,
-                vector_t::Zero(),
-                NAN,
-                stamp
-            );
+        //     ref = Reference(
+        //         reference_position,
+        //         target_yaw,
+        //         reference_velocity,
+        //         NAN,
+        //         vector_t::Constant(NAN),
+        //         NAN,
+        //         stamp
+        //     );
         
-        }
+        // }
 
-        trajectory_vector.push_back(ref);
+        trajectory_vector[i] = ref;
 
         stamp = rclcpp::Time(stamp.nanoseconds() + dt*1e9);
 

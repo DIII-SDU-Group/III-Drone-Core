@@ -57,24 +57,16 @@ namespace px4 {
         /*
         * @brief Constructor from iii::control::Reference
         *
-        * @param stamp ROS2 time stamp
         * @param reference iii_drone::control::Reference
         */
-        TrajectorySetpointAdapter(
-            const rclcpp::Time & stamp,
-            const iii_drone::control::Reference & reference
-        );
+        TrajectorySetpointAdapter(const iii_drone::control::Reference & reference);
 
         /*
         * @brief Constructor from iii_drone::control::State
         *
-        * @param stamp ROS2 time stamp
         * @param state iii_drone::control::State
         */
-        TrajectorySetpointAdapter(
-            const rclcpp::Time & stamp,
-            const iii_drone::control::State & state
-        );
+        TrajectorySetpointAdapter(const iii_drone::control::State & state);
 
         /**
          * @brief Sets velocity and acceleration to NAN

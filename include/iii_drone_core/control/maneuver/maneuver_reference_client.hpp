@@ -82,6 +82,13 @@ namespace maneuver {
         void UpdateReference();
 
         /**
+         * @brief Sets the reference if the reference mode is hover or passthrough, otherwise do nothing.
+         * 
+         * @param reference The reference.
+         */
+        void SetReference(iii_drone::control::Reference reference);
+
+        /**
          * @brief Sets the reference mode to passthrough, only if the current reference mode is not maneuver.
          */
         void SetReferenceModePassthrough();
@@ -102,6 +109,33 @@ namespace maneuver {
         void StopManeuver();
 
         /**
+         * @brief Stops a maneuver. The reference will be set to the given reference and the reference mode will be set to hover.
+         * 
+         * @param reference The reference.
+         */
+        void StopManeuver(iii_drone::control::Reference reference);
+
+        /**
+         * @brief Stops a maneuver after a timeout if a maneuver is not started again.
+         * The reference will be reset to the current state and the reference mode will be set to hover.
+         * 
+         * @param timeout_ms The timeout in milliseconds.
+         */
+        void StopManeuverAfterTimeout(int timeout_ms);
+
+        /**
+         * @brief Stops a maneuver after a timeout if a maneuver is not started again.
+         * The reference will be set to the given reference and the reference mode will be set to hover.
+         * 
+         * @param reference The reference.
+         * @param timeout_ms The timeout in milliseconds.
+         */
+        void StopManeuverAfterTimeout(
+            iii_drone::control::Reference reference, 
+            int timeout_ms
+        );
+
+        /**
          * @brief Get the reference.
          * 
          * @param dt The time step since the last update.
@@ -120,6 +154,21 @@ namespace maneuver {
          * @brief The node pointer.
          */
         rclcpp::Node * node_;
+
+        /**
+         * @brief Get reference callback group.
+         */
+        rclcpp::CallbackGroup::SharedPtr get_reference_cb_group_;
+
+        /**
+         * @brief Stop maneuver timer.
+         */
+        rclcpp::TimerBase::SharedPtr stop_maneuver_timer_;
+
+        /**
+         * @brief Stop maneuver timer mutex.
+         */
+        std::mutex stop_maneuver_timer_mutex_;
 
         /**
          * @brief Shared pointer to the vehicle odometry adapter history.

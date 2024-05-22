@@ -8,6 +8,7 @@
 // III-Drone-Core:
 
 #include <iii_drone_core/utils/types.hpp>
+#include <iii_drone_core/utils/atomic.hpp>
 
 #include <iii_drone_core/control/combined_drone_awareness_handler.hpp>
 
@@ -34,9 +35,7 @@ namespace maneuver {
     /**
      * @brief Class for serving hovering. When the hover action is called,
      * the drone will start hovering, and the action
-     * will succeed immediately. The maneuver scheduler will then keep hovering
-     * until a new maneuver is scheduled or the timeout elapses by the duration given
-     * in the hover action call. Exposes external methods for getting the reference
+     * will succeed after the given duration. Exposes external methods for getting the reference
      * and updating the hover reference. Other maneuver servers will
      * use this server to generate references before a new maneuver is scheduled.
      */
@@ -193,6 +192,21 @@ namespace maneuver {
          * @brief Whether to use NaNs for velocity and acceleration, otherwise uses zeros.
          */
         bool use_nans_;
+
+        /**
+         * @brief The hover duration.
+         */
+        iii_drone::utils::Atomic<float> hover_duration_s_;
+
+        /**
+         * @brief Sustain action flag.
+         */
+        iii_drone::utils::Atomic<bool> sustain_action_;
+
+        /**
+         * @brief The start time of the hover maneuver.
+         */
+        iii_drone::utils::Atomic<rclcpp::Time> hover_start_time_;
 
     };
 

@@ -21,6 +21,9 @@
 // III-Drone-Interfaces:
 
 #include <iii_drone_interfaces/msg/reference.hpp>
+#include <iii_drone_interfaces/msg/maneuver.hpp>
+#include <iii_drone_interfaces/msg/maneuver_queue.hpp>
+
 #include <iii_drone_interfaces/srv/get_reference.hpp>
 
 /*****************************************************************************/
@@ -39,6 +42,7 @@
 #include <iii_drone_core/adapters/single_line_adapter.hpp>
 #include <iii_drone_core/adapters/gripper_status_adapter.hpp>
 #include <iii_drone_core/adapters/reference_adapter.hpp>
+#include <iii_drone_core/adapters/maneuver_adapter.hpp>
 
 #include <iii_drone_core/control/state.hpp>
 #include <iii_drone_core/control/combined_drone_awareness_handler.hpp>
@@ -107,12 +111,14 @@ namespace maneuver {
          * @brief Returns the expected combined drone awareness upon completion or failure of given maneuver type, considering the full maneuver queue.
          * 
          * @param maneuver The maneuver.
+         * @param awareness_after The combined drone awareness after the maneuver.
          * 
-         * @return The expected combined drone awareness upon completion of given maneuver.
-         * 
-         * @throws std::runtime_error if a maneuver in the queue cannot be executed and parameter fail_on_corrupted_queue is true.
+         * @return true if all maneuvers in the queue could execute successfully, and the maneuver could execute succesfully after them.
          */
-        combined_drone_awareness_t ProjectExpectedAwarenessFull(const iii_drone::control::maneuver::Maneuver & maneuver) const;
+        bool ProjectExpectedAwarenessFull(
+            const iii_drone::control::maneuver::Maneuver & maneuver,
+            combined_drone_awareness_t & awareness_after
+        ) const;
 
         /**
          * @brief Returns the expected combined drone awareness upon completion or failure of given maneuver type, given a current combined drone awareness.
@@ -288,7 +294,7 @@ namespace maneuver {
         /**
          * @brief The reference callback function atomic.
          */
-        iii_drone::utils::Atomic<std::function<Reference(const State &)>> reference_callback_;
+        iii_drone::utils::Atomic<std::function<Reference(const State &)>>::SharedPtr reference_callback_;
 
         /**
          * @brief The master token for the reference callback function access.
@@ -370,6 +376,22 @@ namespace maneuver {
          * @brief The registered maneuvers. Map of maneuver type to maneuver server base class.
          */
         std::map<iii_drone::control::maneuver::maneuver_type_t, iii_drone::control::maneuver::ManeuverServer::SharedPtr> registered_maneuvers_;
+
+        /**
+         * @brief Current maneuver publisher.
+         */
+        rclcpp::Publisher<iii_drone_interfaces::msg::Maneuver>::SharedPtr current_maneuver_publisher_;
+
+        /**
+         * @brief Maneuver queue publisher.
+         */
+        rclcpp::Publisher<iii_drone_interfaces::msg::ManeuverQueue>::SharedPtr maneuver_queue_publisher_;
+
+        /**
+         * @brief Maneuver publish timer.
+         */
+        rclcpp::TimerBase::SharedPtr maneuver_publish_timer_;
+
 
     };
 

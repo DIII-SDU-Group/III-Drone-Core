@@ -46,10 +46,8 @@ namespace maneuver {
 
     /**
      * @brief Class for serving hovering on a cable. When the hover on cable action is called,
-     * the drone will start hovering on the cable, and the action
-     * will succeed immediately. The maneuver scheduler will then keep hovering on the cable 
-     * until a new maneuver is scheduled or the timeout elapses by the duration given
-     * in the hover action call. Exposes external methods for getting the reference
+     * the drone will start hovering on the cable. Hovering will continue for the given duration.
+     * Exposes external methods for getting the reference
      * and updating the hover reference parameters. Other maneuver server will
      * use this server to generate references before a new maneuver is scheduled.
      * Will fail if the drone is not on a cable.
@@ -240,6 +238,21 @@ namespace maneuver {
          * @return bool Whether the state is valid.
          */
         bool validateAwareness(combined_drone_awareness_t drone_awareness) const;
+
+        /**
+         * @brief The hover duration.
+         */
+        iii_drone::utils::Atomic<float> hover_duration_s_;
+
+        /**
+         * @brief The sustain action flag.
+         */
+        iii_drone::utils::Atomic<bool> sustain_action_;
+
+        /**
+         * @brief The start time of the hover maneuver.
+         */
+        iii_drone::utils::Atomic<rclcpp::Time> hover_start_time_;
 
     };
 

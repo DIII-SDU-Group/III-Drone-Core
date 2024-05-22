@@ -41,15 +41,21 @@ bool FlyToObjectManeuverServer::CanExecuteManeuver(
 ) const {
 
     if (maneuver.maneuver_type() != MANEUVER_TYPE_FLY_TO_OBJECT) {
+        RCLCPP_DEBUG(node()->get_logger(), "FlyToObjectManeuverServer::CanExecuteManeuver(): Maneuver type is not MANEUVER_TYPE_FLY_TO_OBJECT, returning false.");
         return false;
     }
 
     fly_to_object_maneuver_params_t params(maneuver.maneuver_params());
 
-    return validateAwarenessAndParameters(
+    if (!validateAwarenessAndParameters(
         drone_awareness,
         params
-    );
+    )) {
+        RCLCPP_DEBUG(node()->get_logger(), "FlyToObjectManeuverServer::CanExecuteManeuver(): Awareness and parameters are not valid, returning false.");
+        return false;
+    }
+
+    return true;
 
 }
 
@@ -86,6 +92,14 @@ void FlyToObjectManeuverServer::startExecution(Maneuver & maneuver) {
 
     target_adapter_ = params.target_adapter;
 
+    RCLCPP_DEBUG(
+        node()->get_logger(), 
+        "FlyToObjectManeuverServer::startExecution(): Starting execution of maneuver with target type %d, target id %d, and target frame id %s.",
+        target_adapter_->target_type(),
+        target_adapter_->target_id(),
+        target_adapter_->reference_frame_id().c_str()
+    );
+
     if (trajectory_generator_client_->busy()) {
 
         std::string error_message = "FlyToObjectManeuverServer::startExecution(): Trajectory generator client is busy, cannot start execution of maneuver.";
@@ -109,7 +123,20 @@ bool FlyToObjectManeuverServer::canCancel() {
 
 Reference FlyToObjectManeuverServer::computeReference(const State & state) {
 
-    Reference target_reference = getUpdatedTargetReference(state);
+    RCLCPP_DEBUG(node()->get_logger(), "FlyToObjectManeuverServer::computeReference(): Computing reference.");
+
+    Reference target_reference;
+    
+    try {
+
+        target_reference = getUpdatedTargetReference(state);
+
+    } catch (const std::runtime_error &e) {
+
+        has_failed_ = true;
+        return Reference(state);
+
+    }
 
     bool reset = first_iteration_;
     bool set_reference = true;
@@ -168,16 +195,41 @@ bool FlyToObjectManeuverServer::hasFailed(Maneuver &) {
 
     auto cda_handler = awareness_handler();
 
-    return !cda_handler->in_flight() 
-        || !cda_handler->offboard()
-        || !cda_handler->armed()
-        || cda_handler->target_adapter() != *target_adapter_
-        || !cda_handler->target_position_known()
-        || has_failed_;
+    if (!cda_handler->in_flight()) {
+        RCLCPP_DEBUG(node()->get_logger(), "FlyToObjectManeuverServer::hasFailed(): Drone is not in flight, returning true.");
+        return true;
+    }
+
+    if (!cda_handler->offboard()) {
+        RCLCPP_DEBUG(node()->get_logger(), "FlyToObjectManeuverServer::hasFailed(): Drone is not in offboard mode, returning true.");
+        return true;
+    }
+
+    if (!cda_handler->armed()) {
+        RCLCPP_DEBUG(node()->get_logger(), "FlyToObjectManeuverServer::hasFailed(): Drone is not armed, returning true.");
+        return true;
+    }
+
+    if (cda_handler->target_adapter() != *target_adapter_) {
+        RCLCPP_DEBUG(node()->get_logger(), "FlyToObjectManeuverServer::hasFailed(): Target adapter has changed, returning true.");
+        return true;
+    }
+
+    if (!cda_handler->target_position_known()) {
+        RCLCPP_DEBUG(node()->get_logger(), "FlyToObjectManeuverServer::hasFailed(): Target position is not known, returning true.");
+        return true;
+    }
+
+    if (has_failed_) {
+        RCLCPP_DEBUG(node()->get_logger(), "FlyToObjectManeuverServer::hasFailed(): The has_failed_ flag is set, returning true.");
+        return true;
+    }
+
+    return false;
 
 }
 
-std::shared_ptr<void> FlyToObjectManeuverServer::getFeedback(Maneuver & maneuver) {
+std::shared_ptr<void> FlyToObjectManeuverServer::getFeedback(Maneuver &) {
 
     auto feedback = std::make_shared<iii_drone_interfaces::action::FlyToObject::Feedback>();
 
@@ -203,9 +255,12 @@ void FlyToObjectManeuverServer::publishResultAndFinalize(
     auto result = std::make_shared<iii_drone_interfaces::action::FlyToObject::Result>();
     auto goal_handle = std::static_pointer_cast<GoalHandleFlyToObject>(maneuver.goal_handle());
 
+    Reference target_reference = getUpdatedTargetReference(awareness_handler()->GetState());
+
     switch (maneuver_result_type) {
         case MANEUVER_RESULT_TYPE_SUCCEED:
             result->success = true;
+            result->target_reference = ReferenceAdapter(target_reference).ToMsg();
             goal_handle->succeed(result);
             break;
         case MANEUVER_RESULT_TYPE_ABORT:
@@ -240,7 +295,7 @@ void FlyToObjectManeuverServer::registerReferenceCallbackOnSuccess(const Maneuve
 
 }
 
-Reference FlyToObjectManeuverServer::getUpdatedTargetReference(const iii_drone::control::State & state) {
+Reference FlyToObjectManeuverServer::getUpdatedTargetReference(const iii_drone::control::State &) {
 
     auto cda_handler = awareness_handler();
 
@@ -253,21 +308,27 @@ bool FlyToObjectManeuverServer::validateAwarenessAndParameters(
     const fly_to_object_maneuver_params_t & params
 ) const {
 
+    RCLCPP_DEBUG(node()->get_logger(), "FlyToObjectManeuverServer::validateAwarenessAndParameters(): Validating awareness and parameters.");
+
     auto cda_handler = awareness_handler();
 
     if (params.target_adapter.target_type() != TARGET_TYPE_CABLE) {
+        RCLCPP_DEBUG(node()->get_logger(), "FlyToObjectManeuverServer::validateAwarenessAndParameters(): Target type is not TARGET_TYPE_CABLE, returning false.");
         return false;
     }
 
     if (!drone_awareness.offboard) {
+        RCLCPP_DEBUG(node()->get_logger(), "FlyToObjectManeuverServer::validateAwarenessAndParameters(): Drone is not in offboard mode, returning false.");
         return false;
     }
 
     if (!drone_awareness.armed) {
+        RCLCPP_DEBUG(node()->get_logger(), "FlyToObjectManeuverServer::validateAwarenessAndParameters(): Drone is not armed, returning false.");
         return false;
     }
 
     if (!drone_awareness.in_flight()) {
+        RCLCPP_DEBUG(node()->get_logger(), "FlyToObjectManeuverServer::validateAwarenessAndParameters(): Drone is not in flight, returning false.");
         return false;
     }
 
@@ -275,9 +336,11 @@ bool FlyToObjectManeuverServer::validateAwarenessAndParameters(
     
     try {
 
-        target_transform = awareness_handler()->ComputeTargetTransform(target_adapter_);
+        target_transform = awareness_handler()->ComputeTargetTransform(params.target_adapter);
 
     } catch (const std::runtime_error &e) {
+
+        RCLCPP_DEBUG(node()->get_logger(), "FlyToObjectManeuverServer::validateAwarenessAndParameters(): Failed to compute target transform, returning false. Exception: %s", e.what());
 
         return false;
 
@@ -287,6 +350,11 @@ bool FlyToObjectManeuverServer::validateAwarenessAndParameters(
 
     bool target_position_valid = target_position_in_world_frame[2] - cda_handler->ground_altitude_estimate() >= parameters_->GetParameter("minimum_target_altitude").as_double();
 
-    return target_position_valid;
+    if (!target_position_valid) {
+        RCLCPP_DEBUG(node()->get_logger(), "FlyToObjectManeuverServer::validateAwarenessAndParameters(): Target position is not valid, returning false.");
+        return false;
+    }
+
+    return true;
 
 }

@@ -37,14 +37,6 @@ ManeuverControllerNode::ManeuverControllerNode(
         this
     );
 
-    RCLCPP_INFO(get_logger(), "ManeuverControllerNode::ManeuverControllerNode(): Registering offboard modes");
-
-    std::vector<int64_t> px4_offboard_mode_ids = configurator_.GetParameter("px4_offboard_mode_ids").as_integer_array();
-
-    for (const auto & id : px4_offboard_mode_ids) {
-        combined_drone_awareness_handler_->RegisterOffboardMode(id);
-    }
-
     RCLCPP_INFO(get_logger(), "ManeuverControllerNode::ManeuverControllerNode(): Initializing trajectory generator client");
 
     trajectory_generator_client_ = std::make_shared<TrajectoryGeneratorClient>(
@@ -78,8 +70,6 @@ ManeuverControllerNode::~ManeuverControllerNode() {
 }
 
 void ManeuverControllerNode::registerManeuverServers() {
-
-    RCLCPP_INFO(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Creating hover maneuver server");
 
     RCLCPP_DEBUG(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Creating hover maneuver server");
     

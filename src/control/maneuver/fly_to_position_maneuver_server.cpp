@@ -105,15 +105,31 @@ void FlyToPositionManeuverServer::startExecution(Maneuver & maneuver) {
 
     fly_to_position_maneuver_params_t fly_to_position_maneuver_params(maneuver.maneuver_params());
 
+    State state = cda_handler->GetState();
+
+    RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): State: %f, %f, %f, %f", state.position()[0], state.position()[1], state.position()[2], state.yaw());
+
+    point_t target_point = fly_to_position_maneuver_params.target_position;
+
+    RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): Target point: %f, %f, %f", target_point[0], target_point[1], target_point[2]);
+
     point_t target_position_in_world_frame = fly_to_position_maneuver_params.transform_target_position(
         parameters_->GetParameter("world_frame_id").as_string(),
         cda_handler->tf_buffer()
     );
 
+    RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): Target position in world frame: %f, %f, %f", target_position_in_world_frame[0], target_position_in_world_frame[1], target_position_in_world_frame[2]);
+
+    double yaw = fly_to_position_maneuver_params.target_yaw;
+
+    RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): Yaw: %f", yaw);
+
     double target_yaw_in_world_frame = fly_to_position_maneuver_params.transform_target_yaw(
         parameters_->GetParameter("world_frame_id").as_string(),
         cda_handler->tf_buffer()
     );
+
+    RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): Target yaw in world frame: %f", target_yaw_in_world_frame);
 
     target_reference_ = iii_drone::control::Reference(
         target_position_in_world_frame,
@@ -142,7 +158,8 @@ bool FlyToPositionManeuverServer::canCancel() {
 
 Reference FlyToPositionManeuverServer::computeReference(const State & state) {
 
-    bool reset, set_reference = first_iteration_;
+    bool reset, set_reference;
+    reset = set_reference = first_iteration_;
 
     Reference ref = trajectory_generator_client_->ComputeReference(
         state,
@@ -182,7 +199,10 @@ bool FlyToPositionManeuverServer::hasSucceeded(Maneuver &) {
         target_reference_->yaw()
     };
 
-    double distance = (euc_pos - target_euc_pos).norm();
+    double distance = (state.position() - target_reference_->position()).norm();
+    // double distance = (euc_pos - target_euc_pos).norm();
+
+    RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::hasSucceeded(): Euc pos: %f, %f, %f, %f, target euc pos: %f, %f, %f, %f, distance: %f", euc_pos[0], euc_pos[1], euc_pos[2], euc_pos[3], target_euc_pos[0], target_euc_pos[1], target_euc_pos[2], target_euc_pos[3], distance);
 
     return distance < parameters_->GetParameter("reached_position_euclidean_distance_threshold").as_double();
 
@@ -198,7 +218,7 @@ bool FlyToPositionManeuverServer::hasFailed(Maneuver &) {
 
 }
 
-std::shared_ptr<void> FlyToPositionManeuverServer::getFeedback(Maneuver & maneuver) {
+std::shared_ptr<void> FlyToPositionManeuverServer::getFeedback(Maneuver &) {
 
     auto feedback = std::make_shared<iii_drone_interfaces::action::FlyToPosition::Feedback>();
 
@@ -224,6 +244,7 @@ void FlyToPositionManeuverServer::publishResultAndFinalize(
     switch (maneuver_result_type) {
         case MANEUVER_RESULT_TYPE_SUCCEED:
             result->success = true;
+            result->target_reference = ReferenceAdapter(target_reference_).ToMsg();
             goal_handle->succeed(result);
             break;
         case MANEUVER_RESULT_TYPE_ABORT:

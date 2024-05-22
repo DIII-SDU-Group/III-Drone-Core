@@ -16,6 +16,11 @@
 #include <iostream>
 
 /*****************************************************************************/
+// ROS2:
+
+#include <rclcpp/rclcpp.hpp>
+
+/*****************************************************************************/
 // III-Drone-Core:
 
 #include <iii_drone_core/utils/atomic.hpp>
@@ -41,8 +46,22 @@ namespace utils {
          * 
          * @param other The other token.
          */
-        Token(const Token<T> & other) {
+        Token(const Token<T> & other) : logger_(other.logger_) {
 
+            token_name_counter_ = other.token_name_counter_;
+
+            // Increment token name counter
+            auto it = token_name_counter_->find(other.name_);
+
+            if (it != token_name_counter_->end()) {
+
+                it->second++;
+
+            } else {
+
+                throw std::runtime_error("Token::Token(): Copy constructor: Token name not found in token name counter.");
+
+            }
             
             resource_mutex_ = other.resource_mutex_;
             resource_local_lock_ = std::unique_lock<std::mutex>(*resource_mutex_, std::defer_lock);
@@ -59,37 +78,7 @@ namespace utils {
             slaves_request_queue_ = other.slaves_request_queue_;
 
             master_acquired_token_callback_ = other.master_acquired_token_callback_;
-
             
-        }
-
-        /**
-         * @brief Constructor
-         * 
-         * @param resource Resource
-         * @param master_acquired_token_callback Callback to be called when master acquires token
-         */
-        Token(
-            T & resource,
-            std::function<void()> master_acquired_token_callback
-        ) {
-
-            resource_mutex_ = std::make_shared<std::mutex>();
-            resource_local_lock_ = std::unique_lock<std::mutex>(*resource_mutex_);
-            resource_ = std::make_shared<T>(resource);
-
-            name_ = "master";
-
-            slaves_mutex_ = std::make_shared<std::mutex>();
-            slaves_ = std::make_shared<std::vector<std::string>>();
-
-            token_holder_ = std::make_shared<iii_drone::utils::Atomic<std::string>>("master");
-
-            slaves_request_queue_mutex_ = std::make_shared<std::mutex>();
-            slaves_request_queue_ = std::make_shared<std::vector<slave_request_t>>();
-
-            master_acquired_token_callback_ = master_acquired_token_callback;
-
         }
 
         /**
@@ -97,17 +86,25 @@ namespace utils {
          * 
          * @param resource Resource
          * @param master_acquired_token_callback Callback to be called when master acquires token
+         * @param logger Logger,
+         * @param name Name, default is "master"
          */
         Token(
             std::shared_ptr<T> resource,
-            std::function<void()> master_acquired_token_callback
-        ) {
+            std::function<void()> master_acquired_token_callback,
+            rclcpp::Logger logger,
+            const std::string & name = "master"
+        ) : logger_(logger) {
+
+            token_name_counter_ = std::make_shared<std::map<std::string, unsigned int>>();
+
+            token_name_counter_->insert(std::make_pair(name, 1));
 
             resource_mutex_ = std::make_shared<std::mutex>();
             resource_local_lock_ = std::unique_lock<std::mutex>(*resource_mutex_);
             resource_ = resource;
 
-            name_ = "master";
+            name_ = name;
 
             slaves_mutex_ = std::make_shared<std::mutex>();
             slaves_ = std::make_shared<std::vector<std::string>>();
@@ -125,6 +122,12 @@ namespace utils {
          * @brief Destructor
          */
         ~Token() {
+
+            if (rclcpp::ok()) {
+
+                RCLCPP_DEBUG(logger_, "Token::~Token(): Destroying token %s", name_.c_str());
+
+            }
 
             if (is_master()) {
 
@@ -161,12 +164,47 @@ namespace utils {
 
                 std::unique_lock<std::mutex> slaves_lock(*slaves_mutex_);
 
+                // Decrease token name counter
+                bool remove_name = false;
+
+                auto it2 = token_name_counter_->find(name_);
+
+                if (it2 != token_name_counter_->end()) {
+
+                    if (it2->second == 1) {
+
+                        remove_name = true;
+
+                        token_name_counter_->erase(it2);
+
+                    } else {
+
+                        it2->second--;
+
+                    }
+
+                } else {
+
+                    std::cerr << "Slave destroyed but not in token name counter.";
+
+                }
+
                 // Remove slave from master
-                auto it2 = std::find(slaves_->begin(), slaves_->end(), name_);
+                auto it3 = std::find(slaves_->begin(), slaves_->end(), name_);
 
-                if (it2 != slaves_->end()) {
+                if (it3 != slaves_->end()) {
 
-                    slaves_->erase(it2);
+                    if (remove_name) {
+
+                        if (rclcpp::ok()) {
+
+                            RCLCPP_DEBUG(logger_, "Token::~Token(): Token name counter reached 0, removing slave %s from master's slave list", name_.c_str());
+
+                        }
+
+                        slaves_->erase(it3);
+
+                    }
 
                 } else {
 
@@ -193,6 +231,7 @@ namespace utils {
          */
         Token<T> CreateSlaveHandle(const std::string & slave_name) {
 
+            RCLCPP_DEBUG(logger_, "Token::CreateSlaveHandle(): Creating slave handle %s", slave_name.c_str());
             
             std::unique_lock<std::mutex> lock(*slaves_mutex_);
 
@@ -216,7 +255,8 @@ namespace utils {
 
             Token<T> slave_handle(
                 resource_,
-                master_acquired_token_callback_
+                master_acquired_token_callback_,
+                logger_
             );
 
             slave_handle.resource_mutex_ = resource_mutex_;
@@ -225,9 +265,44 @@ namespace utils {
 
             slave_handle.name_ = slave_name;
 
+            slave_handle.token_name_counter_ = token_name_counter_;
+
+            auto it = token_name_counter_->find(slave_name);
+
+            if (it != token_name_counter_->end()) {
+
+                throw std::runtime_error("Slave name already exists.");
+
+            } else {
+
+                token_name_counter_->insert(std::make_pair(slave_name, 1));
+
+            }
+
             slave_handle.slaves_mutex_ = slaves_mutex_;
             slave_handle.slaves_ = slaves_;
+
+            RCLCPP_DEBUG(logger_, "Token::CreateSlaveHandle(): Adding slave %s to slave list", slave_name.c_str());
+
             slave_handle.slaves_->push_back(slave_name);
+
+            RCLCPP_DEBUG(logger_, "Token::CreateSlaveHandle(): Verifying slave %s in slave list", slave_name.c_str());
+
+            if (std::find(slaves_->begin(), slaves_->end(), slave_name) == slaves_->end()) {
+
+                throw std::runtime_error("Slave " + slave_name + " was not added to slave list.");
+
+            }
+
+            std::string msg = "Token::CreateSlaveHandle(): Slave list: ";
+            for (auto & slave : *slaves_) {
+                msg += "\n" + slave + ", ";
+            }
+            // Remove last comma
+            msg.pop_back();
+            msg.pop_back();
+
+            RCLCPP_DEBUG(logger_, msg.c_str());
 
             slave_handle.token_holder_ = token_holder_;
 
@@ -239,6 +314,7 @@ namespace utils {
                 this
             );
 
+            slave_handle.logger_ = logger_;
             
             return slave_handle;
 
@@ -255,6 +331,8 @@ namespace utils {
             unsigned int timeout_ms = 0
         ) {
 
+            RCLCPP_DEBUG(logger_, "Token::Acquire(): Acquiring token by slave %s", name_.c_str());
+
             if (is_master()) {
 
                 throw std::runtime_error("Master cannot request token.");
@@ -262,6 +340,8 @@ namespace utils {
             }
 
             if (has_token()) {
+
+                RCLCPP_DEBUG(logger_, "Token::Acquire(): Already has token, returning true.");
 
                 return true;
 
@@ -283,6 +363,8 @@ namespace utils {
                 throw std::runtime_error("Slave has already requested token.");
 
             }
+
+            RCLCPP_DEBUG(logger_, "Token::Acquire(): Sending slave request.");
 
             slave_request_t slave_request {
                 name_, 
@@ -313,6 +395,8 @@ namespace utils {
 
                     }
 
+                    RCLCPP_DEBUG(logger_, "Token::Acquire(): Acquired token, returning true.");
+
                     return true;
 
                 }
@@ -335,11 +419,15 @@ namespace utils {
 
                         }
 
+                        RCLCPP_DEBUG(logger_, "Token::Acquire(): Acquired token, returning true.");
+
                         return true;
 
                     }
                 }
             }
+
+            RCLCPP_DEBUG(logger_, "Token::Acquire(): Did not acquire token, erasing request and returning false.");
 
             lock.lock();
 
@@ -365,6 +453,8 @@ namespace utils {
          * @brief Releases the token, to be called by a slave.
          */
         void Release() {
+
+            RCLCPP_DEBUG(logger_, "Token::Release(): Release token");
 
             if (is_master()) {
 
@@ -392,6 +482,8 @@ namespace utils {
          * @param slave_name Slave name
          */
         void Give(const std::string & slave_name) {
+
+            RCLCPP_DEBUG(logger_, "Token::Give(): Give token to slave %s", slave_name.c_str());
 
             answerSlaveAcquisitionRequest(
                 slave_name, 
@@ -583,6 +675,16 @@ namespace utils {
 
     private:
         /**
+         * @brief The logger.
+         */
+        rclcpp::Logger logger_;
+
+        /**
+         * @brief Token name counter map.
+         */
+        std::shared_ptr<std::map<std::string, unsigned int>> token_name_counter_;
+
+        /**
          * @brief Answers a slave acquisition request
          * 
          * @param slave_name Slave name
@@ -609,7 +711,13 @@ namespace utils {
 
             if (std::find(slaves_->begin(), slaves_->end(), slave_name) == slaves_->end()) {
 
-                throw std::runtime_error("Slave name does not exist.");
+                std::string msg = "Slave name does not exist: " + slave_name + ".\n";
+                msg += "Available slaves: ";
+                for (auto & slave : *slaves_) {
+                    msg += "\n" + slave + ", ";
+                }
+
+                throw std::runtime_error(msg);
 
             }
 

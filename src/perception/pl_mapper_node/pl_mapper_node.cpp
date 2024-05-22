@@ -227,7 +227,7 @@ void PowerlineMapperNode::predictCallback() {
 
             } catch(tf2::TransformException & ex) {
 
-                RCLCPP_WARN(
+                RCLCPP_DEBUG(
                     this->get_logger(), 
                     "Could not get odometry transform, frame drone to world"
                 );

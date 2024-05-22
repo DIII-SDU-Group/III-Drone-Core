@@ -206,6 +206,12 @@ void HoverByObjectManeuverServer::startExecution(Maneuver & maneuver) {
 
     awareness_handler()->SetTarget(target_adapter_);
 
+    hover_duration_s_ = params.duration_s;
+
+    sustain_action_ = params.sustain_action;
+
+    hover_start_time_ = node()->now();
+
 }
 
 bool HoverByObjectManeuverServer::canCancel() {
@@ -220,15 +226,33 @@ iii_drone::control::Reference HoverByObjectManeuverServer::computeReference(cons
 
 }
 
-bool HoverByObjectManeuverServer::hasSucceeded(Maneuver & ) {
+bool HoverByObjectManeuverServer::hasSucceeded(Maneuver & maneuver) {
 
-    return validateAwareness(awareness_handler()->combined_drone_awareness());
+    if (!sustain_action_) {
+
+        return true;
+
+    }
+
+    if (hasFailed(maneuver)) {
+
+        return false;
+
+    }
+
+    if (node()->now() - hover_start_time_ >= rclcpp::Duration::from_seconds(hover_duration_s_)) {
+
+        return true;
+
+    }
+
+    return false;
 
 }
 
 bool HoverByObjectManeuverServer::hasFailed(Maneuver & maneuver) {
 
-    return !hasSucceeded(maneuver);
+    return !validateAwareness(awareness_handler()->combined_drone_awareness());
 
 }
 
