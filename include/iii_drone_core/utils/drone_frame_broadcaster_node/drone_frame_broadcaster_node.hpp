@@ -18,7 +18,7 @@
 #include <iii_drone_core/utils/types.hpp>
 #include <iii_drone_core/utils/math.hpp>
 
-#include <iii_drone_core/configuration/configurator.hpp>
+#include <iii_drone_configuration/configurator.hpp>
 
 #include <iii_drone_core/adapters/px4/vehicle_odometry_adapter.hpp>
 

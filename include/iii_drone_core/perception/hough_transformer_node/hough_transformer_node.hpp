@@ -28,9 +28,13 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 /*****************************************************************************/
+// III-Drone-Configuration:
+
+#include <iii_drone_configuration/configurator.hpp>
+
+/*****************************************************************************/
 // III-Drone-Core:
 
-#include <iii_drone_core/configuration/configurator.hpp>
 // #include <iii_drone_core/perception/hough_transformer_node/hough_transformer_node_configurator.hpp>
 // #include <iii_drone_core/perception/hough_transformer_parameters.hpp>
 #include <iii_drone_core/perception/hough_transformer.hpp>

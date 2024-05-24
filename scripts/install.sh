@@ -17,24 +17,24 @@ fi
 
 sudo apt install -y tmux tmuxinator
 
-mkdir -p ~/.config/tmuxinator/
-cp $SCRIPT_DIR/../tmuxinator/* ~/.config/tmuxinator/
+# mkdir -p ~/.config/tmuxinator/
+# cp $SCRIPT_DIR/../tmuxinator/* ~/.config/tmuxinator/
 
-mkdir -p ~/.config/iii_drone/parameters/
+# mkdir -p ~/.config/iii_drone/parameters/
 
-if [ ! -f ~/.config/iii_drone/parameters/parameters.yaml ]; then
-    cp $SCRIPT_DIR/../config/parameters.yaml ~/.config/iii_drone/parameters/parameters.yaml
-else
-    $SCRIPT_DIR/update_installed_parameters.py $SCRIPT_DIR/../config/parameters.yaml ~/.config/iii_drone/parameters/
-fi
+# if [ ! -f ~/.config/iii_drone/parameters/parameters.yaml ]; then
+#     cp $SCRIPT_DIR/../config/parameters.yaml ~/.config/iii_drone/parameters/parameters.yaml
+# else
+#     $SCRIPT_DIR/update_installed_parameters.py $SCRIPT_DIR/../config/parameters.yaml ~/.config/iii_drone/parameters/
+# fi
 
-cp -f $SCRIPT_DIR/../config/ros_params.yaml ~/.config/iii_drone/ros_params.yaml
-rm -rf ~/.config/iii_drone/node_parameters 2> /dev/null
-cp -rf $SCRIPT_DIR/../config/node_parameters ~/.config/iii_drone/
+# cp -f $SCRIPT_DIR/../config/ros_params.yaml ~/.config/iii_drone/ros_params.yaml
+# rm -rf ~/.config/iii_drone/node_parameters 2> /dev/null
+# cp -rf $SCRIPT_DIR/../config/node_parameters ~/.config/iii_drone/
 
 # If $1 is equal to "--drone", install udev rules
 if [ "$1" = "--drone" ]; then
     sudo cp $SCRIPT_DIR/../udev/99-diii-usb.rules /etc/udev/rules.d/
 fi
 
-echo "Finished installation. Use the script update_installed_parameters.py to make future updates to the parameters"
+# echo "Finished installation. Use the script update_installed_parameters.py to make future updates to the parameters"

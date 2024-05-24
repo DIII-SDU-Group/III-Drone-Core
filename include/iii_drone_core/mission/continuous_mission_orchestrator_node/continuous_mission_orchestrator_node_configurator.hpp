@@ -5,9 +5,9 @@
 /*****************************************************************************/
 
 /*****************************************************************************/
-// III-Drone-Core:
+// III-Drone-Configuration:
 
-#include <iii_drone_core/configuration/configurator.hpp>
+#include <iii_drone_configuration/configurator.hpp>
 
 /*****************************************************************************/
 // ROS2:

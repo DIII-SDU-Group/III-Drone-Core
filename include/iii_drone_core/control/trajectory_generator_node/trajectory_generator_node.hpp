@@ -22,9 +22,12 @@
 #include <iii_drone_interfaces/srv/compute_reference_trajectory.hpp>
 
 /*****************************************************************************/
-// III-Drone-Core:
+// III-Drone-Configuration:
 
-#include <iii_drone_core/configuration/configurator.hpp>
+#include <iii_drone_configuration/configurator.hpp>
+
+/*****************************************************************************/
+// III-Drone-Core:
 
 #include <iii_drone_core/control/trajectory_generator.hpp>
 

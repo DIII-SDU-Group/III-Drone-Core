@@ -33,6 +33,11 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 /*****************************************************************************/
+// III-Drone-Configuration:
+
+#include <iii_drone_configuration/parameter_bundle.hpp>
+
+/*****************************************************************************/
 // III-Drone-Core:
 
 #include <iii_drone_core/utils/math.hpp>
@@ -40,8 +45,6 @@
 #include <iii_drone_core/utils/timestamp.hpp>
 #include <iii_drone_core/utils/atomic.hpp>
 #include <iii_drone_core/utils/history.hpp>
-
-#include <iii_drone_core/configuration/parameter_bundle.hpp>
 
 #include <iii_drone_core/perception/single_line.hpp>
 

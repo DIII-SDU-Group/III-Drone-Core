@@ -14,6 +14,7 @@
 
   <depend>rclcpp</depend>
   <depend>iii_drone_interfaces</depend>
+  <depend>iii_drone_configuration</depend>
   <depend>sensor_msgs</depend>
   <depend>px4_msgs</depend>
   <depend>builtin_interfaces</depend>

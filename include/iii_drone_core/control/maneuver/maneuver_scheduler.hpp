@@ -27,14 +27,17 @@
 #include <iii_drone_interfaces/srv/get_reference.hpp>
 
 /*****************************************************************************/
+// III-Drone-Configuration:
+
+#include <iii_drone_configuration/parameter_bundle.hpp>
+
+/*****************************************************************************/
 // III-Drone-Core:
 
 #include <iii_drone_core/utils/types.hpp>
 #include <iii_drone_core/utils/atomic.hpp>
 #include <iii_drone_core/utils/history.hpp>
 #include <iii_drone_core/utils/token.hpp>
-
-#include <iii_drone_core/configuration/parameter_bundle.hpp>
 
 #include <iii_drone_core/adapters/px4/vehicle_status_adapter.hpp>
 #include <iii_drone_core/adapters/px4/vehicle_odometry_adapter.hpp>

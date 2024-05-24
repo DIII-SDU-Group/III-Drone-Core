@@ -7,10 +7,13 @@
 /*****************************************************************************/
 // III-Drone-Core:
 
+#include <iii_drone_configuration/parameter_bundle.hpp>
+
+/*****************************************************************************/
+// III-Drone-Core:
+
 #include <iii_drone_core/behavior/action_nodes/maneuver_action_node.hpp>
 #include <iii_drone_core/control/maneuver/maneuver_reference_client.hpp>
-
-#include <iii_drone_core/configuration/parameter_bundle.hpp>
 
 /*****************************************************************************/
 // III-Drone-Interfaces:

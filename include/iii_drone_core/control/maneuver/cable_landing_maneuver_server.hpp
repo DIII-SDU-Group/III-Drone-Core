@@ -17,13 +17,16 @@
 #include <geometry_msgs/msg/quaternion_stamped.hpp>
 
 /*****************************************************************************/
+// III-Drone-Configuration:
+
+#include <iii_drone_configuration/parameter_bundle.hpp>
+
+/*****************************************************************************/
 // III-Drone-Core:
 
 #include <iii_drone_core/utils/types.hpp>
 #include <iii_drone_core/utils/math.hpp>
 #include <iii_drone_core/utils/atomic.hpp>
-
-#include <iii_drone_core/configuration/parameter_bundle.hpp>
 
 #include <iii_drone_core/control/combined_drone_awareness_handler.hpp>
 

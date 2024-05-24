@@ -10,6 +10,11 @@
 #include <memory>
 
 /*****************************************************************************/
+// III-Drone-Configuration:
+
+#include <iii_drone_configuration/parameter_bundle.hpp>
+
+/*****************************************************************************/
 // III-Drone-Core:
 
 #include <iii_drone_core/control/state.hpp>
@@ -27,10 +32,8 @@
 #include <iii_drone_core/control/maneuver/maneuver.hpp>
 #include <iii_drone_core/control/maneuver/maneuver_types.hpp>
 
-#include <iii_drone_core/configuration/parameter_bundle.hpp>
-
 /*****************************************************************************/
-// III-Drone-Core:
+// III-Drone-Interfaces:
 
 #include <iii_drone_interfaces/action/hover_on_cable.hpp>
 

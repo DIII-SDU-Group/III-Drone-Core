@@ -21,9 +21,9 @@
 #include <memory>
 
 /*****************************************************************************/
-// III-Drone-Core:
+// III-Drone-Configuration:
 
-#include <iii_drone_core/configuration/parameter_bundle.hpp>
+#include <iii_drone_configuration/parameter_bundle.hpp>
 
 /*****************************************************************************/
 // Class

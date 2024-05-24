@@ -12,12 +12,15 @@
 /*****************************************************************************/
 // III-Drone-Core:
 
+#include <iii_drone_configuration/parameter_bundle.hpp>
+
+/*****************************************************************************/
+// III-Drone-Core:
+
 #include <iii_drone_core/utils/math.hpp>
 #include <iii_drone_core/utils/types.hpp>
 #include <iii_drone_core/utils/timestamp.hpp>
 #include <iii_drone_core/utils/history.hpp>
-
-#include <iii_drone_core/configuration/parameter_bundle.hpp>
 
 #include <iii_drone_core/adapters/powerline_adapter.hpp>
 

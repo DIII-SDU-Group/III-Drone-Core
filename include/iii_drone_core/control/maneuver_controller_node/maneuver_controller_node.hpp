@@ -22,7 +22,10 @@
 /*****************************************************************************/
 // III-Drone-Core:
 
-#include <iii_drone_core/configuration/configurator.hpp>
+#include <iii_drone_configuration/configurator.hpp>
+
+/*****************************************************************************/
+// III-Drone-Core:
 
 #include <iii_drone_core/control/combined_drone_awareness_handler.hpp>
 

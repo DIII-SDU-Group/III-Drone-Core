@@ -1,7 +1,7 @@
 #include <iii_drone_core/utils/history.hpp>
 
-#include <iii_drone_core/configuration/configurator.hpp>
-#include <iii_drone_core/configuration/parameter_bundle.hpp>
+#include <iii_drone_configuration/configurator.hpp>
+#include <iii_drone_configuration/parameter_bundle.hpp>
 
 #include <iii_drone_core/adapters/px4/vehicle_odometry_adapter.hpp>
 

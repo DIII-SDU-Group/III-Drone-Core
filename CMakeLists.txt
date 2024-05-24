@@ -37,6 +37,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(iii_drone_interfaces REQUIRED)
+find_package(iii_drone_configuration REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(px4_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
@@ -74,6 +75,7 @@ set(dependencies
   cv_bridge
   image_transport
   iii_drone_interfaces
+  iii_drone_configuration
   behaviortree_cpp
   behaviortree_ros2
   px4_ros2_cpp
@@ -84,9 +86,6 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/src/extern")
 
 # Library files:
 set(III_DRONE_LIBRARY_HEADERS
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/configuration/configurator.hpp"
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/configuration/parameter_bundle.hpp"
-
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/math.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/types.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/timestamp.hpp"
@@ -143,9 +142,6 @@ set(III_DRONE_LIBRARY_HEADERS
 )
 
 set(III_DRONE_LIBRARY_SOURCES
-  "${PROJECT_SOURCE_DIR}/src/configuration/configurator.cpp"
-  "${PROJECT_SOURCE_DIR}/src/configuration/parameter_bundle.cpp"
-
   "${PROJECT_SOURCE_DIR}/src/utils/math.cpp"
   "${PROJECT_SOURCE_DIR}/src/utils/types.cpp"
   "${PROJECT_SOURCE_DIR}/src/utils/timestamp.cpp"
@@ -282,7 +278,7 @@ target_include_directories(iii_drone_lib
 
 target_link_libraries(iii_drone_lib
   matlab_mpc
-  yaml-cpp::yaml-cpp
+  # yaml-cpp::yaml-cpp
 )
 
 ament_target_dependencies(iii_drone_lib
@@ -484,7 +480,6 @@ ament_python_install_package(${PROJECT_NAME})
 # Install Python executables
 install(PROGRAMS
   "${PROJECT_SOURCE_DIR}/scripts/payload/charger_gripper_node/charger_gripper_node.py"
-  "${PROJECT_SOURCE_DIR}/scripts/configuration/configuration_server_node/configuration_server_node.py"
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -514,11 +509,5 @@ if (BUILD_TESTING)
     DESTINATION share/${PROJECT_NAME}
   )
 endif()
-
-# install the config directory
-install(DIRECTORY
-  config
-  DESTINATION share/${PROJECT_NAME}/
-)
 
 ament_package()

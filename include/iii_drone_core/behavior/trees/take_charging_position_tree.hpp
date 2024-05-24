@@ -19,13 +19,16 @@
 #include <tf2_ros/buffer.h>
 
 /*****************************************************************************/
+// III-Drone-Configuration:
+
+#include <iii_drone_configuration/configurator.hpp>
+#include <iii_drone_configuration/parameter_bundle.hpp>
+
+/*****************************************************************************/
 // III-Drone-Core:
 
 #include <iii_drone_core/utils/types.hpp>
 #include <iii_drone_core/utils/atomic.hpp>
-
-#include <iii_drone_core/configuration/configurator.hpp>
-#include <iii_drone_core/configuration/parameter_bundle.hpp>
 
 #include <iii_drone_core/behavior/action_nodes/hover_maneuver_action_node.hpp>
 #include <iii_drone_core/behavior/action_nodes/hover_on_cable_maneuver_action_node.hpp>

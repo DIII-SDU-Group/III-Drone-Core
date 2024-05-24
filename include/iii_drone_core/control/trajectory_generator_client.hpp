@@ -24,6 +24,11 @@
 #include <iii_drone_interfaces/srv/compute_reference_trajectory.hpp>
 
 /*****************************************************************************/
+// III-Drone-Configuration:
+
+#include <iii_drone_configuration/parameter_bundle.hpp>
+
+/*****************************************************************************/
 // III-Drone-Core:
 
 #include <iii_drone_core/utils/types.hpp>
@@ -38,8 +43,6 @@
 #include <iii_drone_core/control/state.hpp>
 #include <iii_drone_core/control/reference.hpp>
 #include <iii_drone_core/control/reference_trajectory.hpp>
-
-#include <iii_drone_core/configuration/parameter_bundle.hpp>
 
 /*****************************************************************************/
 // Class

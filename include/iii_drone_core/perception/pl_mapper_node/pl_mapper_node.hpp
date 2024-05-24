@@ -47,13 +47,16 @@
 #include <iii_drone_interfaces/srv/pl_mapper_command.hpp>
 
 /*****************************************************************************/
+// III-Drone-Configuration:
+
+#include <iii_drone_configuration/configurator.hpp>
+
+/*****************************************************************************/
 // III-Drone-Core:
 
 #include <iii_drone_core/utils/math.hpp>
 #include <iii_drone_core/utils/types.hpp>
 #include <iii_drone_core/utils/atomic.hpp>
-
-#include <iii_drone_core/configuration/configurator.hpp>
 
 #include <iii_drone_core/perception/powerline.hpp>
 
