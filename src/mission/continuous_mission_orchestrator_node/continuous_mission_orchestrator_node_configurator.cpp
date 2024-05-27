@@ -37,12 +37,6 @@ ContinuousMissionOrchestratorConfigurator::ContinuousMissionOrchestratorConfigur
 
 }
 
-const bool ContinuousMissionOrchestratorConfigurator::simulation() const {
-
-    return GetParameter("/global/simulation").as_bool();
-
-}
-
 const float ContinuousMissionOrchestratorConfigurator::under_cable_target_distance() const {
 
     return GetParameter("/mission/continuous_mission_orchestrator/under_cable_target_distance").as_double();
@@ -99,7 +93,6 @@ const int ContinuousMissionOrchestratorConfigurator::charging_maximum_duration_s
 
 void ContinuousMissionOrchestratorConfigurator::declareNodeParameters() {
 
-    DeclareParameter<bool>("/global/simulation");
     DeclareParameter<float>("/mission/continuous_mission_orchestrator/under_cable_target_distance");
     DeclareParameter<bool>("/mission/continuous_mission_orchestrator/use_charger_gripper_info");
     DeclareParameter<int>("/mission/continuous_mission_orchestrator/cable_landing_max_retries");

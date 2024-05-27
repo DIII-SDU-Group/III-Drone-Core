@@ -55,13 +55,6 @@ namespace continuous_mission_orchestrator_node {
         );
 
         /**
-         * @brief Get the simulation flag
-         * 
-         * @return Simulation flag
-         */
-        const bool simulation() const;
-
-        /**
          * @brief Get the under cable target distance
          * 
          * @return Under cable target distance

@@ -20,7 +20,6 @@ ContinuousMissionOrchestrator::ContinuousMissionOrchestrator(const std::string &
     RCLCPP_INFO(this->get_logger(), "ContinuousMissionOrchestrator()");
 
     // Parameters:
-    this->declare_parameter<bool>("simulation", false);
     this->declare_parameter<float>("under_cable_target_distance", 1.5);
     this->declare_parameter<bool>("use_charger_gripper_info", true);
     this->declare_parameter<int>("cable_landing_max_retries", 3);
@@ -1080,8 +1079,8 @@ bool ContinuousMissionOrchestrator::gripperIsClosed() {
     bool use_charger_gripper_info;
     this->get_parameter("use_charger_gripper_info", use_charger_gripper_info);
 
-    bool simulation;
-    this->get_parameter("simulation", simulation);
+    const char* simulation_env = std::getenv("SIMULATION");
+    bool simulation = (simulation_env != nullptr) ? (std::string(simulation_env) == "True") : false;
 
     use_charger_gripper_info &= !simulation;
 
@@ -1103,8 +1102,8 @@ bool ContinuousMissionOrchestrator::gripperIsOpen() {
     bool use_charger_gripper_info;
     this->get_parameter("use_charger_gripper_info", use_charger_gripper_info);
 
-    bool simulation;
-    this->get_parameter("simulation", simulation);
+    const char* simulation_env = std::getenv("SIMULATION");
+    bool simulation = (simulation_env != nullptr) ? (std::string(simulation_env) == "True") : false;
 
     use_charger_gripper_info &= !simulation;
 
@@ -1391,8 +1390,8 @@ void ContinuousMissionOrchestrator::evaluateChargingStatus() {
             use_charger_gripper_info;
             this->get_parameter("use_charger_gripper_info", use_charger_gripper_info);
 
-            simulation;
-            this->get_parameter("simulation", simulation);
+            const char* simulation_env = std::getenv("SIMULATION");
+            simulation = (simulation_env != nullptr) ? (std::string(simulation_env) == "True") : false;
 
             use_charger_gripper_info &= !simulation;
 

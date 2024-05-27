@@ -23,7 +23,7 @@ def generate_launch_description():
     
     params_dict = yaml.safe_load(open(parameters_file,"r").read())
     
-    simulation = params_dict["global"]["simulation"]["value"]
+    simulation = bool(os.getenv("SIMULATION", False))
 
     if not simulation:
         raise Exception("This launch file is only for simulation")

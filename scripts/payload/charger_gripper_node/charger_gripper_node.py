@@ -13,6 +13,7 @@ from iii_drone_interfaces.srv import GripperCommand
 from threading import Lock
 
 import serial
+import os
 
 #import pigpio
 
@@ -26,8 +27,7 @@ class ChargerGripperNode(Node):
 
         self.get_logger().info("Initializing Charger Gripper Node...")
 
-        self.declare_parameter("simulation", False)
-        self.simulation_ = self.get_parameter("simulation").value
+        self.simulation_ = bool(os.getenv("SIMULATION", False))
 
         if self.simulation_:
             raise NotImplementedError("Simulation mode is not implemented yet.")

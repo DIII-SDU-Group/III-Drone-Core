@@ -170,7 +170,10 @@ bool SingleLine::IsInFOV(
     in_FOV &= dist <= max_point_dist;
     in_FOV &= dist >= min_point_dist;
 
-    if (parameters_->GetParameter("simulation").as_bool()) {
+    const char* simulation_env = std::getenv("SIMULATION");
+    bool simulation = (simulation_env != nullptr) ? (std::string(simulation_env) == "True") : false;
+
+    if (simulation) {
 
         float yz_dist = sqrt(position(1)*position(1)+position(2)*position(2));
         in_FOV &= position(0) > view_cone_slope*yz_dist;
