@@ -47,7 +47,7 @@ namespace drone_frame_broadcaster_node {
 
         iii_drone::types::rotation_matrix_t R_NED_to_body_frame;
 
-        iii_drone::configuration::Configurator configurator_;
+        iii_drone::configuration::Configurator<rclcpp::Node>::SharedPtr configurator_;
 
     };
 

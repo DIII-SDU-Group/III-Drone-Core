@@ -19,6 +19,7 @@
 
 #include <vector>
 #include <memory>
+#include <thread>
 
 /*****************************************************************************/
 // III-Drone-Configuration:
@@ -87,6 +88,11 @@ namespace perception {
             const cv::Mat img,
             float & angle
         ) const;
+
+        /**
+         * @brief Shared ptr type.
+         */
+        typedef std::shared_ptr<HoughTransformer> SharedPtr;
 
     private:
         /**

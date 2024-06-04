@@ -12,7 +12,11 @@ using namespace iii_drone::perception;
 
 HoughTransformer::HoughTransformer(iii_drone::configuration::ParameterBundle::SharedPtr parameters) : parameters_(parameters) { }
 
-HoughTransformer::~HoughTransformer() { }
+HoughTransformer::~HoughTransformer() {
+
+	parameters_.reset();
+
+ }
 
 const std::vector<cv::Vec2f> HoughTransformer::GetHoughLines(const cv::Mat img) const {
 

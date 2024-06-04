@@ -20,7 +20,12 @@ DroneFrameBroadcasterNode::DroneFrameBroadcasterNode(
     node_name, 
     node_namespace,
     options
-), configurator_(this) {
+// ), configurator_(this) {
+) {
+
+    RCLCPP_DEBUG(this->get_logger(), "DroneFrameBroadcasterNode::DroneFrameBroadcasterNode(): Constructor");
+
+    configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp::Node>>(this);
 
     // Initialize the transform broadcaster
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
@@ -38,29 +43,38 @@ DroneFrameBroadcasterNode::DroneFrameBroadcasterNode(
 
     R_NED_to_body_frame = eulToMat(euler_angles_t(M_PI, 0, 0));
 
+    RCLCPP_DEBUG(this->get_logger(), "DroneFrameBroadcasterNode::DroneFrameBroadcasterNode(): Initialized");
+
 }
 
 void DroneFrameBroadcasterNode::odometryCallback(const std::shared_ptr<px4_msgs::msg::VehicleOdometry> msg) {
 
+    // RCLCPP_DEBUG(this->get_logger(), "DroneFrameBroadcasterNode::odometryCallback(): Received odometry message");
+
     iii_drone::adapters::px4::VehicleOdometryAdapter adapter(*msg);
 
     geometry_msgs::msg::TransformStamped t = adapter.ToTransformStamped(
-        configurator_.GetParameter("drone_frame_id").as_string(),
-        configurator_.GetParameter("world_frame_id").as_string()
+        configurator_->GetParameter("drone_frame_id").as_string(),
+        configurator_->GetParameter("world_frame_id").as_string()
     );
 
     // Send the transformation
     tf_broadcaster_->sendTransform(t);
 
     // RCLCPP debug published transform
-    RCLCPP_DEBUG(this->get_logger(), "Published transform: %s -> %s", t.header.frame_id.c_str(), t.child_frame_id.c_str());
+    // RCLCPP_DEBUG(this->get_logger(), "Published transform: %s -> %s", t.header.frame_id.c_str(), t.child_frame_id.c_str());
 
 }
 
 int main(int argc, char * argv[]) {
 
     rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<iii_drone::utils::drone_frame_broadcaster_node::DroneFrameBroadcasterNode>());
+
+    auto multi_threaded_executor = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
+    auto node = std::make_shared<DroneFrameBroadcasterNode>();
+    RCLCPP_DEBUG(node->get_logger(), "DroneFrameBroadcasterNode::main(): Node created");
+    multi_threaded_executor->add_node(node);
+    multi_threaded_executor->spin();
     rclcpp::shutdown();
     return 0;
 

@@ -10,6 +10,9 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/qos.hpp>
 
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
+#include <rclcpp_lifecycle/lifecycle_publisher.hpp>
+
 #include <sensor_msgs/msg/image.hpp>
 
 #include <std_msgs/msg/float32.hpp>
@@ -64,7 +67,7 @@ namespace hough_transformer_node {
 	/**
 	 * @brief Node for computing hough transform on images to detect powerline direction.
 	*/
-	class HoughTransformerNode : public rclcpp::Node {
+	class HoughTransformerNode : public rclcpp_lifecycle::LifecycleNode {
 	public:
 		/**
 		 *	@brief Constructor
@@ -84,16 +87,78 @@ namespace hough_transformer_node {
 		 */
 		~HoughTransformerNode();
 
+		// Lifecycle callbacks
+
+		/**
+		 * @brief Callback for configuration of the node
+		 * 
+		 * @param state State of the node
+		 * 
+		 * @return Callback return
+		 */
+		rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn 
+		on_configure(const rclcpp_lifecycle::State & state);
+
+		/**
+		 * @brief Callback for cleanup of the node
+		 * 
+		 * @param state State of the node
+		 * 
+		 * @return Callback return
+		 */
+		rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+		on_cleanup(const rclcpp_lifecycle::State & state);
+
+		/**
+		 * @brief Callback for activation of the node
+		 * 
+		 * @param state State of the node
+		 * 
+		 * @return Callback return
+		 */
+		rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+		on_activate(const rclcpp_lifecycle::State & state);
+
+		/**
+		 * @brief Callback for deactivation of the node
+		 * 
+		 * @param state State of the node
+		 * 
+		 * @return Callback return
+		 */
+		rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+		on_deactivate(const rclcpp_lifecycle::State & state);
+
+		/**
+		 * @brief Callback for shutdown of the node
+		 * 
+		 * @param state State of the node
+		 * 
+		 * @return Callback return
+		 */
+		rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+		on_shutdown(const rclcpp_lifecycle::State & state);
+
+		/**
+		 * @brief Callback for error of the node
+		 * 
+		 * @param state State of the node
+		 * 
+		 * @return Callback return
+		 */
+		rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+		on_error(const rclcpp_lifecycle::State & state);
+
 	private:
 		/**
 		 * @brief Configurator object
 		 */
-		iii_drone::configuration::Configurator configurator_;
+		iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>::SharedPtr configurator_;
 
 		/**
 		 * @brief HoughTransformer object
 		 */
-		HoughTransformer hough_transformer_;
+		HoughTransformer::SharedPtr hough_transformer_;
 
 		/**
 		 *	@brief Subscription object for the image topic
@@ -110,7 +175,7 @@ namespace hough_transformer_node {
 		/**
 		 * @brief Publisher object for the cable yaw angle
 		 */
-		rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr cable_yaw_publisher_;
+		rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::Float32>::SharedPtr cable_yaw_publisher_;
 
 	};
 
