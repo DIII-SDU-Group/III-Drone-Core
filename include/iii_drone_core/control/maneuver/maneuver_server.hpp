@@ -13,6 +13,7 @@
 // ROS2:
 
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 
@@ -89,7 +90,7 @@ namespace maneuver {
          * @param evaluate_done_poll_ms Evaluate done poll milliseconds, default 100
          */
         ManeuverServer(
-            rclcpp::Node * node,
+            rclcpp_lifecycle::LifecycleNode * node,
             CombinedDroneAwarenessHandler::SharedPtr awareness_handler,
             const std::string & action_name,
             unsigned int wait_for_execute_poll_ms,
@@ -203,7 +204,7 @@ namespace maneuver {
         /**
          * @brief Node pointer getter.
          */
-        rclcpp::Node * node() const;
+        rclcpp_lifecycle::LifecycleNode * node() const;
 
         /**
          * @brief Registered maneuvers map getter.
@@ -311,7 +312,7 @@ namespace maneuver {
         /**
          * @brief Node pointer
          */
-        rclcpp::Node * node_;
+        rclcpp_lifecycle::LifecycleNode * node_;
 
         /**
          * @brief Combined drone awareness handler, accessible to derived classes through the protected method.

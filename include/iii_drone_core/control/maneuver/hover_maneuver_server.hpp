@@ -24,6 +24,9 @@
 /*****************************************************************************/
 // ROS2:
 
+#include <rclcpp/rclcpp.hpp>
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
+
 /*****************************************************************************/
 // Class
 /*****************************************************************************/
@@ -53,7 +56,7 @@ namespace maneuver {
          * @param use_nans Whether to use NaNs for velocity and acceleration, otherwise uses zeros, default true.
          */
         HoverManeuverServer(
-            rclcpp::Node * node,
+            rclcpp_lifecycle::LifecycleNode * node,
             CombinedDroneAwarenessHandler::SharedPtr combined_drone_awareness_handler,
             const std::string & action_name,
             unsigned int wait_for_execute_poll_ms,

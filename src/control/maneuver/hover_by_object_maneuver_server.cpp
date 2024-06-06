@@ -15,7 +15,7 @@ using namespace iii_drone::math;
 /*****************************************************************************/
 
 HoverByObjectManeuverServer::HoverByObjectManeuverServer(
-    rclcpp::Node * node,
+    rclcpp_lifecycle::LifecycleNode * node,
     CombinedDroneAwarenessHandler::SharedPtr combined_drone_awareness_handler,
     const std::string & action_name,
     unsigned int wait_for_execute_poll_ms,

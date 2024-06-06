@@ -98,6 +98,11 @@ namespace control {
 			MPC_mode_t mpc_mode
 		);
 
+        /**
+         * @brief Shared pointer type
+         */
+        typedef std::shared_ptr<TrajectoryGenerator> SharedPtr;
+
     private:
         /**
          * @brief The MPC parameters

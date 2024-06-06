@@ -22,7 +22,17 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(
     options
 ) {
 
-    RCLCPP_DEBUG(this->get_logger(), "Initialized PowerlineDirectionComputerNode");
+    pl_direction_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
+        "powerline_direction_pose", 
+        10
+    );
+
+    pl_direction_quat_pub_ = this->create_publisher<geometry_msgs::msg::QuaternionStamped>(
+        "powerline_direction_quat", 
+        10
+    );
+
+    RCLCPP_DEBUG(this->get_logger(), "PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(): PL dir computer");
 
 }
 
@@ -151,17 +161,7 @@ PowerlineDirectionComputerNode::on_activate(const rclcpp_lifecycle::State & stat
 
     RCLCPP_DEBUG(
         this->get_logger(), 
-        "PowerlineDirectionComputerNode::on_activate(): Initializing subscribers and publishers."
-    );
-
-    pl_direction_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
-        "powerline_direction_pose", 
-        10
-    );
-
-    pl_direction_quat_pub_ = this->create_publisher<geometry_msgs::msg::QuaternionStamped>(
-        "powerline_direction_quat", 
-        10
+        "PowerlineDirectionComputerNode::on_activate(): Initializing subscribers."
     );
 
     pl_angle_sub_ = this->create_subscription<std_msgs::msg::Float32>(
@@ -237,7 +237,7 @@ PowerlineDirectionComputerNode::on_deactivate(const rclcpp_lifecycle::State & st
 
     RCLCPP_DEBUG(
         this->get_logger(), 
-        "PowerlineDirectionComputerNode::on_deactivate(): Cleaning up subscribers and publishers."
+        "PowerlineDirectionComputerNode::on_deactivate(): Cleaning up subscribers."
     );
 
     pl_angle_sub_->clear_on_new_message_callback();
@@ -247,12 +247,6 @@ PowerlineDirectionComputerNode::on_deactivate(const rclcpp_lifecycle::State & st
     pl_sub_->clear_on_new_message_callback();
     pl_sub_.reset();
     pl_sub_ = nullptr;
-
-    pl_direction_pose_pub_.reset();
-    pl_direction_pose_pub_ = nullptr;
-
-    pl_direction_quat_pub_.reset();
-    pl_direction_quat_pub_ = nullptr;
 
     return CallbackReturn::SUCCESS;
 
@@ -343,6 +337,8 @@ void PowerlineDirectionComputerNode::publishPowerlineDirection() {
 
     pl_direction_pose_pub_->publish(pose_msg);
     pl_direction_quat_pub_->publish(quat_msg);
+
+    RCLCPP_DEBUG(this->get_logger(), "Finished publishing powerline direction");
 
 }
 

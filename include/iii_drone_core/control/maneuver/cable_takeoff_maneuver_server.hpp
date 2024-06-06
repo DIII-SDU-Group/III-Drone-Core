@@ -8,6 +8,7 @@
 // ROS2:
 
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
 
 #include <tf2/convert.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -74,7 +75,7 @@ namespace maneuver {
          * @param trajectory_generator_client Trajectory generator client shared pointer
          */
         CableTakeoffManeuverServer(
-            rclcpp::Node * node,
+            rclcpp_lifecycle::LifecycleNode * node,
             CombinedDroneAwarenessHandler::SharedPtr combined_drone_awareness_handler,
             const std::string & action_name,
             unsigned int wait_for_execute_poll_ms,

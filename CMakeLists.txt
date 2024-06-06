@@ -433,23 +433,23 @@ custom_cpp_target(pl_dir_computer
   "${PROJECT_SOURCE_DIR}/src/perception/pl_dir_computer_node/pl_dir_computer_node.cpp"
 )
 
-# # PL mapper:
-# custom_cpp_target(pl_mapper
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/pl_mapper_node/pl_mapper_node.hpp"
-#   "${PROJECT_SOURCE_DIR}/src/perception/pl_mapper_node/pl_mapper_node.cpp"
-# )
+# PL mapper:
+custom_cpp_target(pl_mapper
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/pl_mapper_node/pl_mapper_node.hpp"
+  "${PROJECT_SOURCE_DIR}/src/perception/pl_mapper_node/pl_mapper_node.cpp"
+)
 
-# # Trajectory generator:
-# custom_cpp_target(trajectory_generator
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator_node/trajectory_generator_node.hpp"
-#   "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator_node/trajectory_generator_node.cpp"
-# )
+# Trajectory generator:
+custom_cpp_target(trajectory_generator
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator_node/trajectory_generator_node.hpp"
+  "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator_node/trajectory_generator_node.cpp"
+)
 
-# # Maneuver controller:
-# custom_cpp_target(maneuver_controller
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver_controller_node/maneuver_controller_node.hpp"
-#   "${PROJECT_SOURCE_DIR}/src/control/maneuver_controller_node/maneuver_controller_node.cpp"
-# )
+# Maneuver controller:
+custom_cpp_target(maneuver_controller
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver_controller_node/maneuver_controller_node.hpp"
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver_controller_node/maneuver_controller_node.cpp"
+)
 
 # # Continuous mission orchestrator:
 # custom_cpp_target(continuous_mission_orchestrator

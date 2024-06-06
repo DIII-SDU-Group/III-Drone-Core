@@ -26,6 +26,9 @@
 /*****************************************************************************/
 // ROS2:
 
+#include <rclcpp/rclcpp.hpp>
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
+
 /*****************************************************************************/
 // Class
 /*****************************************************************************/
@@ -58,7 +61,7 @@ namespace maneuver {
          * @param max_euc_dist The maximum euclidean distance to the object before the fail callback is called.
          */
         HoverByObjectManeuverServer(
-            rclcpp::Node * node,
+            rclcpp_lifecycle::LifecycleNode * node,
             CombinedDroneAwarenessHandler::SharedPtr combined_drone_awareness_handler,
             const std::string & action_name,
             unsigned int wait_for_execute_poll_ms,

@@ -16,22 +16,154 @@ PowerlineMapperNode::PowerlineMapperNode(
     const std::string & node_name, 
     const std::string & node_namespace,
     const rclcpp::NodeOptions & options
-) : rclcpp::Node(
-        node_name, 
-        node_namespace,
-        options
-    ), 
-    configurator_(this),
-    pl_mapper_state_(configurator_.GetParameter("pl_mapper_begin_running").as_bool() ? pl_mapper_state_running : pl_mapper_state_idle) {
+) : rclcpp_lifecycle::LifecycleNode(
+    node_name, 
+    node_namespace,
+    options
+) {
 
-    RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::PowerlineMapperNode(): Initializing PL mapper");
+    powerline_pub_ = this->create_publisher<iii_drone_interfaces::msg::Powerline>(
+        "powerline", 
+        10
+    );
+    points_est_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
+        "points_est",
+        10
+    );
+    transformed_points_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
+        "transformed_points", 
+        10
+    );
+    projected_points_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
+        "projected_points", 
+        10
+    );
+
+    RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::PowerlineMapperNode(): PL mapper ready");
+
+}
+
+PowerlineMapperNode::~PowerlineMapperNode() {
+
+    RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::~PowerlineMapperNode(): Destroying PL mapper");
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn 
+PowerlineMapperNode::on_configure(const rclcpp_lifecycle::State & state) {
+
+    RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::on_configure(): Configuring PL mapper");
+
+    CallbackReturn parent_return = rclcpp_lifecycle::LifecycleNode::on_configure(state);
+
+    if (parent_return != CallbackReturn::SUCCESS) {
+        RCLCPP_ERROR(
+            this->get_logger(), 
+            "PowerlineMapperNode::on_configure(): Failed to configure parent class."
+        );
+        return parent_return;
+    }
+
+    RCLCPP_DEBUG(
+        this->get_logger(), 
+        "PowerlineMapperNode::on_configure(): Initializing configurator object"
+    );
+
+    configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>>(
+        this
+    );
+
+    RCLCPP_DEBUG(
+        this->get_logger(), 
+        "PowerlineMapperNode::on_configure(): Setting internal state"
+    );
+
+    pl_mapper_state_ = configurator_->GetParameter("pl_mapper_begin_running").as_bool() ? pl_mapper_state_running : pl_mapper_state_idle;
+
+    // Tf:
+    RCLCPP_DEBUG(
+        this->get_logger(), 
+        "PowerlineMapperNode::on_configure(): Setting up tf2 buffer and listener"
+    );
 
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
+    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+PowerlineMapperNode::on_cleanup(const rclcpp_lifecycle::State & state) {
+
+    RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::on_cleanup(): Cleaning up PL mapper");
+
+    CallbackReturn parent_return = rclcpp_lifecycle::LifecycleNode::on_cleanup(state);
+
+    if (parent_return != CallbackReturn::SUCCESS) {
+        RCLCPP_ERROR(
+            this->get_logger(), 
+            "PowerlineMapperNode::on_cleanup(): Failed to cleanup parent class."
+        );
+        return parent_return;
+    }
+
+    // Tf:
+    RCLCPP_DEBUG(
+        this->get_logger(), 
+        "PowerlineMapperNode::on_cleanup(): Cleaning up tf2 buffer and listener"
+    );
+
+    transform_listener_.reset();
+    transform_listener_ = nullptr;
+
+    tf_buffer_->clear();
+    tf_buffer_.reset();
+    tf_buffer_ = nullptr;
+
+    // Configurator:
+    RCLCPP_DEBUG(
+        this->get_logger(), 
+        "PowerlineMapperNode::on_cleanup(): Cleaning up configurator object"
+    );
+
+    configurator_.reset();
+    configurator_ = nullptr;
+
+    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+PowerlineMapperNode::on_activate(const rclcpp_lifecycle::State & state) {
+
+    RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::on_activate(): Activating PL mapper");
+
+    CallbackReturn parent_return = rclcpp_lifecycle::LifecycleNode::on_activate(state);
+
+    if (parent_return != CallbackReturn::SUCCESS) {
+        RCLCPP_ERROR(
+            this->get_logger(), 
+            "PowerlineMapperNode::on_activate(): Failed to activate parent class."
+        );
+        return parent_return;
+    }
+
+    // Powerline object:
+    RCLCPP_DEBUG(
+        this->get_logger(), 
+        "PowerlineMapperNode::on_activate(): Initializing powerline object"
+    );
+
     powerline_ = std::make_shared<Powerline>(
-        configurator_.GetParameterBundle("powerline"),
+        configurator_->GetParameterBundle("powerline"),
         tf_buffer_
+    );
+
+    // Subscribers:
+    RCLCPP_DEBUG(
+        this->get_logger(), 
+        "PowerlineMapperNode::on_activate(): Initializing subscribers"
     );
 
     pl_direction_sub_ = this->create_subscription<geometry_msgs::msg::QuaternionStamped>(
@@ -54,21 +186,10 @@ PowerlineMapperNode::PowerlineMapperNode(
         )
     );
 
-    powerline_pub_ = this->create_publisher<iii_drone_interfaces::msg::Powerline>(
-        "powerline", 
-        10
-    );
-    points_est_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
-        "points_est",
-        10
-    );
-    transformed_points_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
-        "transformed_points", 
-        10
-    );
-    projected_points_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
-        "projected_points", 
-        10
+    // PL mapper command service:
+    RCLCPP_DEBUG(
+        this->get_logger(), 
+        "PowerlineMapperNode::on_activate(): Creating PL mapper command service"
     );
 
     pl_mapper_command_srv_ = this->create_service<iii_drone_interfaces::srv::PLMapperCommand>(
@@ -81,6 +202,30 @@ PowerlineMapperNode::PowerlineMapperNode(
         )
     );
 
+    // Prediction timer:
+    RCLCPP_DEBUG(
+        this->get_logger(), 
+        "PowerlineMapperNode::on_activate(): Setting up prediction timer"
+    );
+
+    std::chrono::milliseconds predict_callback_ms(
+        configurator_->GetParameter("predict_callback_period_ms").as_int()
+    );
+
+    pl_predict_timer_ = this->create_wall_timer(
+        predict_callback_ms, 
+        std::bind(
+            &PowerlineMapperNode::predictCallback, 
+            this
+        )
+    );
+
+    // Getting initial transforms:
+    RCLCPP_DEBUG(
+        this->get_logger(), 
+        "PowerlineMapperNode::on_activate(): Getting initial transforms"
+    );
+
     geometry_msgs::msg::TransformStamped mmw_tf;
 
     rclcpp::Rate tf_poll_rate(std::chrono::milliseconds(500));
@@ -90,8 +235,8 @@ PowerlineMapperNode::PowerlineMapperNode(
         try {
 
             mmw_tf = tf_buffer_->lookupTransform(
-                configurator_.GetParameter("drone_frame_id").as_string(), 
-                configurator_.GetParameter("mmwave_frame_id").as_string(), 
+                configurator_->GetParameter("drone_frame_id").as_string(), 
+                configurator_->GetParameter("mmwave_frame_id").as_string(), 
                 tf2::TimePointZero
             );
 
@@ -110,26 +255,112 @@ PowerlineMapperNode::PowerlineMapperNode(
 
     }
 
-    std::chrono::milliseconds sleep_ms(configurator_.GetParameter("init_sleep_time_ms").as_int());
-	rclcpp::Rate init_sleep_rate(sleep_ms);
-	init_sleep_rate.sleep();
-
-    // Call on_timer function every second
-    std::chrono::milliseconds predict_callback_ms(configurator_.GetParameter("predict_callback_period_ms").as_int());
-    pl_predict_timer_ = this->create_wall_timer(
-        predict_callback_ms, 
-        std::bind(
-            &PowerlineMapperNode::predictCallback, 
-            this
-        )
-    );
-
     quaternion_t mmw_quat = quaternionFromTransformMsg(mmw_tf.transform);
 
     R_drone_to_mmw_ = quatToMat(mmw_quat);
     v_drone_to_mmw_ = vectorFromTransformMsg(mmw_tf.transform);
 
-    RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::PowerlineMapperNode(): PL mapper initialized");
+
+    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+PowerlineMapperNode::on_deactivate(const rclcpp_lifecycle::State & state) {
+
+    RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::on_deactivate(): Deactivating PL mapper");
+
+    CallbackReturn parent_return = rclcpp_lifecycle::LifecycleNode::on_deactivate(state);
+
+    if (parent_return != CallbackReturn::SUCCESS) {
+        RCLCPP_ERROR(
+            this->get_logger(), 
+            "PowerlineMapperNode::on_deactivate(): Failed to deactivate parent class."
+        );
+        return parent_return;
+    }
+
+    // Prediction timer:
+    RCLCPP_DEBUG(
+        this->get_logger(), 
+        "PowerlineMapperNode::on_deactivate(): Stopping prediction timer"
+    );
+
+    pl_predict_timer_->cancel();
+    pl_predict_timer_.reset();
+    pl_predict_timer_ = nullptr;
+
+    // PL mapper command service:
+    RCLCPP_DEBUG(
+        this->get_logger(), 
+        "PowerlineMapperNode::on_deactivate(): Stopping PL mapper command service"
+    );
+
+    pl_mapper_command_srv_->clear_on_new_request_callback();
+    pl_mapper_command_srv_.reset();
+    pl_mapper_command_srv_ = nullptr;
+
+    //Subscribers:
+    RCLCPP_DEBUG(
+        this->get_logger(), 
+        "PowerlineMapperNode::on_deactivate(): Cleaning up publishers and subscribers"
+    );
+
+    pl_direction_sub_->clear_on_new_message_callback();
+    pl_direction_sub_.reset();
+    pl_direction_sub_ = nullptr;
+
+    mmwave_sub_->clear_on_new_message_callback();
+    mmwave_sub_.reset();
+    mmwave_sub_ = nullptr;
+
+    // Powerline object:
+    RCLCPP_DEBUG(
+        this->get_logger(), 
+        "PowerlineMapperNode::on_deactivate(): Cleaning up powerline object"
+    );
+
+    powerline_.reset();
+    powerline_ = nullptr;
+
+    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+PowerlineMapperNode::on_shutdown(const rclcpp_lifecycle::State & state) {
+
+    RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::on_shutdown(): Shutting down PL mapper");
+
+    CallbackReturn parent_return = rclcpp_lifecycle::LifecycleNode::on_shutdown(state);
+
+    if (parent_return != CallbackReturn::SUCCESS) {
+        RCLCPP_ERROR(
+            this->get_logger(), 
+            "PowerlineMapperNode::on_shutdown(): Failed to shutdown parent class."
+        );
+        return parent_return;
+    }
+
+    // Create and start thread detached which sleeps for 1 second, then shuts down rclcpp
+    std::thread shutdown_thread([this](){
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        rclcpp::shutdown();
+    });
+    shutdown_thread.detach();
+
+    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+PowerlineMapperNode::on_error(const rclcpp_lifecycle::State & state) {
+
+    RCLCPP_FATAL(this->get_logger(), "PowerlineMapperNode::on_error(): An error occured");
+
+    throw std::runtime_error("An error occured");
+
+    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::ERROR;
 
 }
 
@@ -158,7 +389,7 @@ void PowerlineMapperNode::plMapperCommandCallback(
 
         publishPowerline(
             Powerline(
-                configurator_.GetParameterBundle("powerline"),
+                configurator_->GetParameterBundle("powerline"),
                 tf_buffer_
             )
         );
@@ -220,8 +451,8 @@ void PowerlineMapperNode::predictCallback() {
             try {
 
                 tf = tf_buffer_->lookupTransform(
-                    configurator_.GetParameter("world_frame_id").as_string(), 
-                    configurator_.GetParameter("drone_frame_id").as_string(), 
+                    configurator_->GetParameter("world_frame_id").as_string(), 
+                    configurator_->GetParameter("drone_frame_id").as_string(), 
                     tf2::TimePointZero
                 );
 
@@ -276,9 +507,9 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
             -1,
             pcl_points[i],
             pl_direction_,
-            configurator_.GetParameter("mmwave_frame_id").as_string(),
+            configurator_->GetParameter("mmwave_frame_id").as_string(),
             tf_buffer_,
-            configurator_.GetParameterBundle("powerline")
+            configurator_->GetParameterBundle("powerline")
         );
 
         if(!line.IsInFOV()) {
@@ -293,7 +524,7 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
         pt = tf_buffer_->transform(
             pt, 
-            configurator_.GetParameter("drone_frame_id").as_string()
+            configurator_->GetParameter("drone_frame_id").as_string()
         );
 
         point_t transformed_point = pointFromPointMsg(pt.point);
@@ -355,12 +586,12 @@ void PowerlineMapperNode::publishPowerline(const Powerline & powerline) const {
 
 void PowerlineMapperNode::publishPoints(
     std::vector<point_t> points, 
-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub
+    rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub
 ) const {
 
     iii_drone::adapters::PointCloudAdapter pcl_adapter(
         powerline_->stamp(),
-        configurator_.GetParameter("drone_frame_id").as_string(),
+        configurator_->GetParameter("drone_frame_id").as_string(),
         points
     );
 
@@ -370,13 +601,29 @@ void PowerlineMapperNode::publishPoints(
 
 int main(int argc, char *argv[]) {
 
+    setvbuf(stdout, NULL, _IONBF, BUFSIZ);
     rclcpp::init(argc, argv);
+
+    rclcpp::executors::MultiThreadedExecutor executor;
 
     auto node = std::make_shared<PowerlineMapperNode>();
 
-    rclcpp::spin(node);
+    executor.add_node(node->get_node_base_interface());
 
-    rclcpp::shutdown();
+    try {
+        
+        executor.spin();
+
+    } catch(const std::exception& e) {
+        
+        node.reset();
+
+    }
+    
+	if (rclcpp::ok()) {
+		node.reset();
+		rclcpp::shutdown();
+	}
 
     return 0;
 
