@@ -49,7 +49,7 @@ DroneFrameBroadcasterNode::DroneFrameBroadcasterNode(
 
 void DroneFrameBroadcasterNode::odometryCallback(const std::shared_ptr<px4_msgs::msg::VehicleOdometry> msg) {
 
-    // RCLCPP_DEBUG(this->get_logger(), "DroneFrameBroadcasterNode::odometryCallback(): Received odometry message");
+    RCLCPP_DEBUG(this->get_logger(), "DroneFrameBroadcasterNode::odometryCallback(): Received odometry message");
 
     iii_drone::adapters::px4::VehicleOdometryAdapter adapter(*msg);
 
@@ -62,7 +62,7 @@ void DroneFrameBroadcasterNode::odometryCallback(const std::shared_ptr<px4_msgs:
     tf_broadcaster_->sendTransform(t);
 
     // RCLCPP debug published transform
-    // RCLCPP_DEBUG(this->get_logger(), "Published transform: %s -> %s", t.header.frame_id.c_str(), t.child_frame_id.c_str());
+    RCLCPP_DEBUG(this->get_logger(), "Published transform: %s -> %s", t.header.frame_id.c_str(), t.child_frame_id.c_str());
 
 }
 
