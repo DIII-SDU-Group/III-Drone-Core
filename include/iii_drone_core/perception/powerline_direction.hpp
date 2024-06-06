@@ -113,6 +113,11 @@ namespace perception {
          */
         const rclcpp::Time stamp() const;
 
+        /**
+         * @brief Shared pointer type.
+         */
+        typedef std::shared_ptr<PowerlineDirection> SharedPtr;
+
     private:
         /**
          * @brief Time stamp for latest change.

@@ -427,11 +427,11 @@ custom_cpp_target(hough_transformer
   "${PROJECT_SOURCE_DIR}/src/perception/hough_transformer_node/hough_transformer_node.cpp"
 )
 
-# # PL dir computer:
-# custom_cpp_target(pl_dir_computer
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/pl_dir_computer_node/pl_dir_computer_node.hpp"
-#   "${PROJECT_SOURCE_DIR}/src/perception/pl_dir_computer_node/pl_dir_computer_node.cpp"
-# )
+# PL dir computer:
+custom_cpp_target(pl_dir_computer
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/pl_dir_computer_node/pl_dir_computer_node.hpp"
+  "${PROJECT_SOURCE_DIR}/src/perception/pl_dir_computer_node/pl_dir_computer_node.cpp"
+)
 
 # # PL mapper:
 # custom_cpp_target(pl_mapper
