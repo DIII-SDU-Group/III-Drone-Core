@@ -277,9 +277,10 @@ int main(int argc, char *argv[])
 		node.reset();
 	}
 	
-	if (rclcpp::ok()) 
+	if (rclcpp::ok()) {
 		node.reset();
 		rclcpp::shutdown();
+	}
 
 	return 0;
 }
