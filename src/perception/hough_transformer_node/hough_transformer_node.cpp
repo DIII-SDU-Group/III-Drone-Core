@@ -221,6 +221,10 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughT
 // mmwave message callback function
 void HoughTransformerNode::OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg){
 
+	RCLCPP_DEBUG(this->get_logger(), "Received image message, running hough transform...");
+
+	int a = 0;
+
 	cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(
 		_msg, 
 		_msg->encoding
@@ -269,7 +273,7 @@ int main(int argc, char *argv[])
 
 	} catch (const std::exception & e) {
 
-		std::cerr << e.what() << std::endl;
+		// std::cerr << e.what() << std::endl;
 		node.reset();
 	}
 	

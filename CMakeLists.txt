@@ -421,11 +421,11 @@ custom_cpp_target(drone_frame_broadcaster
   "${PROJECT_SOURCE_DIR}/src/utils/drone_frame_broadcaster_node/drone_frame_broadcaster_node.cpp"
 )
 
-# # Hough transformer:
-# custom_cpp_target(hough_transformer
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/hough_transformer_node/hough_transformer_node.hpp"
-#   "${PROJECT_SOURCE_DIR}/src/perception/hough_transformer_node/hough_transformer_node.cpp"
-# )
+# Hough transformer:
+custom_cpp_target(hough_transformer
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/hough_transformer_node/hough_transformer_node.hpp"
+  "${PROJECT_SOURCE_DIR}/src/perception/hough_transformer_node/hough_transformer_node.cpp"
+)
 
 # # PL dir computer:
 # custom_cpp_target(pl_dir_computer
