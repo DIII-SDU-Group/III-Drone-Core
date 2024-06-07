@@ -16,6 +16,32 @@ TrajectoryGeneratorNode::TrajectoryGeneratorNode(
     const rclcpp::NodeOptions & options
 ) : LifecycleNode(node_name, node_namespace, options) {
 
+	std::string log_level = std::getenv("TRAJECTORY_GENERATOR_LOG_LEVEL");
+
+	if (log_level != "") {
+
+		// Convert to upper case:
+		std::transform(
+			log_level.begin(), 
+			log_level.end(), 
+			log_level.begin(), 
+			[](unsigned char c){ return std::toupper(c); }
+		);
+
+		if (log_level == "DEBUG") {
+			rcutils_logging_set_logger_level(this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_DEBUG);
+		} else if (log_level == "INFO") {
+			rcutils_logging_set_logger_level(this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_INFO);
+		} else if (log_level == "WARN") {
+			rcutils_logging_set_logger_level(this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_WARN);
+		} else if (log_level == "ERROR") {
+			rcutils_logging_set_logger_level(this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_ERROR);
+		} else if (log_level == "FATAL") {
+			rcutils_logging_set_logger_level(this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_FATAL);
+		}
+
+	}
+
     RCLCPP_INFO(this->get_logger(), "TrajectoryGeneratorNode::TrajectoryGeneratorNode(): Ready.");
 
 }
