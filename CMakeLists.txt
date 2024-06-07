@@ -196,60 +196,60 @@ set(III_DRONE_LIBRARY_SOURCES
 
 )
 
-# set(III_DRONE_PX4_HDRS
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/px4/modes/maneuver_mode.hpp"
+set(III_DRONE_PX4_HDRS
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/px4/modes/maneuver_mode.hpp"
 
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/px4/mode_executors/generic_mode_executor.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/px4/mode_executors/generic_mode_executor.hpp"
 
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/px4/setpoints/trajectory_setpoint.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/px4/setpoints/trajectory_setpoint.hpp"
 
-# )
+)
 
-# set(III_DRONE_PX4_SRCS
-#   "${PROJECT_SOURCE_DIR}/src/px4/modes/maneuver_mode.cpp"
+set(III_DRONE_PX4_SRCS
+  "${PROJECT_SOURCE_DIR}/src/px4/modes/maneuver_mode.cpp"
 
-#   "${PROJECT_SOURCE_DIR}/src/px4/mode_executors/generic_mode_executor.cpp"
+  "${PROJECT_SOURCE_DIR}/src/px4/mode_executors/generic_mode_executor.cpp"
 
-#   "${PROJECT_SOURCE_DIR}/src/px4/setpoints/trajectory_setpoint.cpp"
+  "${PROJECT_SOURCE_DIR}/src/px4/setpoints/trajectory_setpoint.cpp"
 
-# )
+)
 
-# set(III_DRONE_BEHAVIOR_HDRS
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/maneuver_action_node.hpp"
+set(III_DRONE_BEHAVIOR_HDRS
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/maneuver_action_node.hpp"
 
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/hover_maneuver_action_node.hpp"
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/hover_by_object_maneuver_action_node.hpp"
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/hover_on_cable_maneuver_action_node.hpp"
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/fly_to_position_maneuver_action_node.hpp"
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/fly_to_object_maneuver_action_node.hpp"
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/cable_landing_maneuver_action_node.hpp"
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/cable_takeoff_maneuver_action_node.hpp"
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/pl_mapper_command_action_node.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/hover_maneuver_action_node.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/hover_by_object_maneuver_action_node.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/hover_on_cable_maneuver_action_node.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/fly_to_position_maneuver_action_node.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/fly_to_object_maneuver_action_node.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/cable_landing_maneuver_action_node.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/cable_takeoff_maneuver_action_node.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/pl_mapper_command_action_node.hpp"
 
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/condition_nodes/verify_powerline_detected_condition_node.hpp"
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/condition_nodes/select_target_line_condition_node.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/condition_nodes/verify_powerline_detected_condition_node.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/condition_nodes/select_target_line_condition_node.hpp"
 
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/trees/take_charging_position_tree.hpp"
-# )
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/trees/take_charging_position_tree.hpp"
+)
 
-# set(III_DRONE_BEHAVIOR_SRCS
-#   "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/maneuver_action_node.cpp"
+set(III_DRONE_BEHAVIOR_SRCS
+  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/maneuver_action_node.cpp"
 
-#   "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/hover_maneuver_action_node.cpp"
-#   "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/hover_by_object_maneuver_action_node.cpp"
-#   "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/hover_on_cable_maneuver_action_node.cpp"
-#   "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/fly_to_position_maneuver_action_node.cpp"
-#   "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/fly_to_object_maneuver_action_node.cpp"
-#   "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/cable_landing_maneuver_action_node.cpp"
-#   "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/cable_takeoff_maneuver_action_node.cpp"
-#   "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/pl_mapper_command_action_node.cpp"
+  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/hover_maneuver_action_node.cpp"
+  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/hover_by_object_maneuver_action_node.cpp"
+  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/hover_on_cable_maneuver_action_node.cpp"
+  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/fly_to_position_maneuver_action_node.cpp"
+  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/fly_to_object_maneuver_action_node.cpp"
+  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/cable_landing_maneuver_action_node.cpp"
+  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/cable_takeoff_maneuver_action_node.cpp"
+  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/pl_mapper_command_action_node.cpp"
 
-#   "${PROJECT_SOURCE_DIR}/src/behavior/condition_nodes/verify_powerline_detected_condition_node.cpp"
-#   "${PROJECT_SOURCE_DIR}/src/behavior/condition_nodes/select_target_line_condition_node.cpp"
+  "${PROJECT_SOURCE_DIR}/src/behavior/condition_nodes/verify_powerline_detected_condition_node.cpp"
+  "${PROJECT_SOURCE_DIR}/src/behavior/condition_nodes/select_target_line_condition_node.cpp"
 
-#   "${PROJECT_SOURCE_DIR}/src/behavior/trees/take_charging_position_tree.cpp"
+  "${PROJECT_SOURCE_DIR}/src/behavior/trees/take_charging_position_tree.cpp"
 
-# )
+)
 
 include_directories(
   ${III_DRONE_INCLUDE_DIRS}
@@ -298,76 +298,76 @@ install(TARGETS iii_drone_lib
 )
 
 # III-Drone-PX4:
-# add_library(iii_drone_px4_lib 
-#   SHARED
-#   ${III_DRONE_PX4_HDRS}
-#   ${III_DRONE_PX4_SRCS}
-# )
+add_library(iii_drone_px4_lib 
+  SHARED
+  ${III_DRONE_PX4_HDRS}
+  ${III_DRONE_PX4_SRCS}
+)
 
-# target_sources(iii_drone_px4_lib
-#   PUBLIC
-#   ${III_DRONE_PX4_HDRS}
-#   ${III_DRONE_PX4_SRCS}
-# )
+target_sources(iii_drone_px4_lib
+  PUBLIC
+  ${III_DRONE_PX4_HDRS}
+  ${III_DRONE_PX4_SRCS}
+)
 
-# target_include_directories(iii_drone_px4_lib
-#   PUBLIC
-#   ${III_DRONE_INCLUDE_DIRS}
-# )
+target_include_directories(iii_drone_px4_lib
+  PUBLIC
+  ${III_DRONE_INCLUDE_DIRS}
+)
 
-# target_link_libraries(iii_drone_px4_lib
-#   iii_drone_lib
-# )
+target_link_libraries(iii_drone_px4_lib
+  iii_drone_lib
+)
 
-# ament_target_dependencies(iii_drone_px4_lib
-#   ${dependencies}
-# )
+ament_target_dependencies(iii_drone_px4_lib
+  ${dependencies}
+)
 
-# ament_export_libraries(iii_drone_px4_lib)
+ament_export_libraries(iii_drone_px4_lib)
 
-# install(TARGETS iii_drone_px4_lib
-#   ARCHIVE DESTINATION lib
-#   LIBRARY DESTINATION lib
-#   RUNTIME DESTINATION bin
-#   INCLUDES DESTINATION include
-# )
+install(TARGETS iii_drone_px4_lib
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)
 
-# # III-Drone-Behavior:
-# add_library(iii_drone_behavior_lib 
-#   SHARED
-#   ${III_DRONE_BEHAVIOR_HDRS}
-#   ${III_DRONE_BEHAVIOR_SRCS}
-# )
+# III-Drone-Behavior:
+add_library(iii_drone_behavior_lib 
+  SHARED
+  ${III_DRONE_BEHAVIOR_HDRS}
+  ${III_DRONE_BEHAVIOR_SRCS}
+)
 
-# target_sources(iii_drone_behavior_lib
-#   PUBLIC
-#   ${III_DRONE_BEHAVIOR_HDRS}
-#   ${III_DRONE_BEHAVIOR_SRCS}
-# )
+target_sources(iii_drone_behavior_lib
+  PUBLIC
+  ${III_DRONE_BEHAVIOR_HDRS}
+  ${III_DRONE_BEHAVIOR_SRCS}
+)
 
-# target_include_directories(iii_drone_behavior_lib
-#   PUBLIC
-#   ${III_DRONE_INCLUDE_DIRS}
-# )
+target_include_directories(iii_drone_behavior_lib
+  PUBLIC
+  ${III_DRONE_INCLUDE_DIRS}
+)
 
-# target_link_libraries(iii_drone_behavior_lib
-#   iii_drone_lib
-#   iii_drone_px4_lib
-# )
+target_link_libraries(iii_drone_behavior_lib
+  iii_drone_lib
+  iii_drone_px4_lib
+)
 
-# ament_target_dependencies(iii_drone_behavior_lib
-#   ${dependencies}
-# )
+ament_target_dependencies(iii_drone_behavior_lib
+  ${dependencies}
+)
 
-# ament_export_libraries(iii_drone_behavior_lib)
-# ament_export_include_directories(${III_DRONE_INCLUDE_DIRS})
+ament_export_libraries(iii_drone_behavior_lib)
+ament_export_include_directories(${III_DRONE_INCLUDE_DIRS})
 
-# install(TARGETS iii_drone_behavior_lib
-#   ARCHIVE DESTINATION lib
-#   LIBRARY DESTINATION lib
-#   RUNTIME DESTINATION bin
-#   INCLUDES DESTINATION include
-# )
+install(TARGETS iii_drone_behavior_lib
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)
 
 # Executables:
 function(custom_cpp_target target_name target_sources)
@@ -388,8 +388,8 @@ function(custom_cpp_target target_name target_sources)
 
   add_dependencies(${target_name}
     iii_drone_lib
-    # iii_drone_px4_lib
-    # iii_drone_behavior_lib
+    iii_drone_px4_lib
+    iii_drone_behavior_lib
   )
 
   target_include_directories(${target_name}
@@ -399,8 +399,8 @@ function(custom_cpp_target target_name target_sources)
 
   target_link_libraries(${target_name}
     iii_drone_lib
-    # iii_drone_px4_lib
-    # iii_drone_behavior_lib
+    iii_drone_px4_lib
+    iii_drone_behavior_lib
   )
 
   ament_target_dependencies(${target_name}
