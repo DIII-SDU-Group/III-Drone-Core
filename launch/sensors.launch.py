@@ -39,6 +39,6 @@ def generate_launch_description():
 
     return LaunchDescription([
         camera_node,
+        mmwave_log_level_arg,
         mmwave_node,
-        mmwave_log_level_arg
     ])
