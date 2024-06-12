@@ -32,6 +32,22 @@ class ChargerGripperNode(Node):
 
         self.simulation_ = bool(os.getenv("SIMULATION", False))
 
+        log_level = os.environ.get('CHARGER_GRIPPER_LOG_LEVEL')
+        
+        if log_level is not None:
+            log_level = log_level.upper()
+            
+            if log_level == 'DEBUG':
+                self.get_logger().set_level(rclpy.logging.LoggingSeverity.DEBUG)
+            elif log_level == 'INFO':
+                self.get_logger().set_level(rclpy.logging.LoggingSeverity.INFO)
+            elif log_level == 'WARN':
+                self.get_logger().set_level(rclpy.logging.LoggingSeverity.WARN)
+            elif log_level == 'ERROR':
+                self.get_logger().set_level(rclpy.logging.LoggingSeverity.ERROR)
+            elif log_level == 'FATAL':
+                self.get_logger().set_level(rclpy.logging.LoggingSeverity.FATAL)
+
         self.get_logger().info("Charger Gripper Node initialized.")
 
     def on_configure(
@@ -271,10 +287,8 @@ class ChargerGripperNode(Node):
             self.get_logger().error("ChargerGripperNode.on_shutdown(): Base class shutdown failed.")
             return ret
         
-        print("hej")
         if hasattr(self, "configurator"):
             del self.configurator
-        print("farvel")
         
         def shutdown():
             sleep(1)
