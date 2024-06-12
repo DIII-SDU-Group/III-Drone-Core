@@ -297,77 +297,77 @@ install(TARGETS iii_drone_lib
   INCLUDES DESTINATION include
 )
 
-# III-Drone-PX4:
-add_library(iii_drone_px4_lib 
-  SHARED
-  ${III_DRONE_PX4_HDRS}
-  ${III_DRONE_PX4_SRCS}
-)
+# # III-Drone-PX4:
+# add_library(iii_drone_px4_lib 
+#   SHARED
+#   ${III_DRONE_PX4_HDRS}
+#   ${III_DRONE_PX4_SRCS}
+# )
 
-target_sources(iii_drone_px4_lib
-  PUBLIC
-  ${III_DRONE_PX4_HDRS}
-  ${III_DRONE_PX4_SRCS}
-)
+# target_sources(iii_drone_px4_lib
+#   PUBLIC
+#   ${III_DRONE_PX4_HDRS}
+#   ${III_DRONE_PX4_SRCS}
+# )
 
-target_include_directories(iii_drone_px4_lib
-  PUBLIC
-  ${III_DRONE_INCLUDE_DIRS}
-)
+# target_include_directories(iii_drone_px4_lib
+#   PUBLIC
+#   ${III_DRONE_INCLUDE_DIRS}
+# )
 
-target_link_libraries(iii_drone_px4_lib
-  iii_drone_lib
-)
+# target_link_libraries(iii_drone_px4_lib
+#   iii_drone_lib
+# )
 
-ament_target_dependencies(iii_drone_px4_lib
-  ${dependencies}
-)
+# ament_target_dependencies(iii_drone_px4_lib
+#   ${dependencies}
+# )
 
-ament_export_libraries(iii_drone_px4_lib)
+# ament_export_libraries(iii_drone_px4_lib)
 
-install(TARGETS iii_drone_px4_lib
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
-)
+# install(TARGETS iii_drone_px4_lib
+#   ARCHIVE DESTINATION lib
+#   LIBRARY DESTINATION lib
+#   RUNTIME DESTINATION bin
+#   INCLUDES DESTINATION include
+# )
 
-# III-Drone-Behavior:
-add_library(iii_drone_behavior_lib 
-  SHARED
-  ${III_DRONE_BEHAVIOR_HDRS}
-  ${III_DRONE_BEHAVIOR_SRCS}
-)
+# # III-Drone-Behavior:
+# add_library(iii_drone_behavior_lib 
+#   SHARED
+#   ${III_DRONE_BEHAVIOR_HDRS}
+#   ${III_DRONE_BEHAVIOR_SRCS}
+# )
 
-target_sources(iii_drone_behavior_lib
-  PUBLIC
-  ${III_DRONE_BEHAVIOR_HDRS}
-  ${III_DRONE_BEHAVIOR_SRCS}
-)
+# target_sources(iii_drone_behavior_lib
+#   PUBLIC
+#   ${III_DRONE_BEHAVIOR_HDRS}
+#   ${III_DRONE_BEHAVIOR_SRCS}
+# )
 
-target_include_directories(iii_drone_behavior_lib
-  PUBLIC
-  ${III_DRONE_INCLUDE_DIRS}
-)
+# target_include_directories(iii_drone_behavior_lib
+#   PUBLIC
+#   ${III_DRONE_INCLUDE_DIRS}
+# )
 
-target_link_libraries(iii_drone_behavior_lib
-  iii_drone_lib
-  iii_drone_px4_lib
-)
+# target_link_libraries(iii_drone_behavior_lib
+#   iii_drone_lib
+#   iii_drone_px4_lib
+# )
 
-ament_target_dependencies(iii_drone_behavior_lib
-  ${dependencies}
-)
+# ament_target_dependencies(iii_drone_behavior_lib
+#   ${dependencies}
+# )
 
-ament_export_libraries(iii_drone_behavior_lib)
-ament_export_include_directories(${III_DRONE_INCLUDE_DIRS})
+# ament_export_libraries(iii_drone_behavior_lib)
+# ament_export_include_directories(${III_DRONE_INCLUDE_DIRS})
 
-install(TARGETS iii_drone_behavior_lib
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
-)
+# install(TARGETS iii_drone_behavior_lib
+#   ARCHIVE DESTINATION lib
+#   LIBRARY DESTINATION lib
+#   RUNTIME DESTINATION bin
+#   INCLUDES DESTINATION include
+# )
 
 # Executables:
 function(custom_cpp_target target_name target_sources)
@@ -388,8 +388,8 @@ function(custom_cpp_target target_name target_sources)
 
   add_dependencies(${target_name}
     iii_drone_lib
-    iii_drone_px4_lib
-    iii_drone_behavior_lib
+    # iii_drone_px4_lib
+    # iii_drone_behavior_lib
   )
 
   target_include_directories(${target_name}
@@ -399,8 +399,8 @@ function(custom_cpp_target target_name target_sources)
 
   target_link_libraries(${target_name}
     iii_drone_lib
-    iii_drone_px4_lib
-    iii_drone_behavior_lib
+    # iii_drone_px4_lib
+    # iii_drone_behavior_lib
   )
 
   ament_target_dependencies(${target_name}
