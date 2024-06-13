@@ -39,6 +39,8 @@
 
 #include <iii_drone_interfaces/msg/powerline.hpp>
 
+#include <iii_drone_interfaces/srv/system_command.hpp>
+
 /*****************************************************************************/
 // III-Drone-Configuration:
 
@@ -49,6 +51,7 @@
 
 #include <iii_drone_core/utils/math.hpp>
 #include <iii_drone_core/utils/types.hpp>
+#include <iii_drone_core/utils/atomic.hpp>
 
 #include <iii_drone_core/perception/powerline_direction.hpp>
 
@@ -151,6 +154,29 @@ namespace pl_dir_computer_node {
          * @brief Configurator object
          */
         iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>::SharedPtr configurator_;
+
+        /**
+         * @brief Command service
+         */
+        rclcpp::Service<iii_drone_interfaces::srv::SystemCommand>::SharedPtr command_srv_;
+
+        /**
+         * @brief Command service callback
+         * 
+         * @param request The request
+         * @param response The response
+         */
+        void commandCallback(
+            const std::shared_ptr<iii_drone_interfaces::srv::SystemCommand::Request> request,
+            std::shared_ptr<iii_drone_interfaces::srv::SystemCommand::Response> response
+        );
+
+        /**
+         * @brief Running flag.
+         * 
+         * @details If the node is running, this flag is set to true.
+         */
+        utils::Atomic<bool> running_;
 
         /**
          * @brief Powerline direction object

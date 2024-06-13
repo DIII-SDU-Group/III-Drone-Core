@@ -38,9 +38,14 @@
 /*****************************************************************************/
 // III-Drone-Core:
 
-// #include <iii_drone_core/perception/hough_transformer_node/hough_transformer_node_configurator.hpp>
-// #include <iii_drone_core/perception/hough_transformer_parameters.hpp>
 #include <iii_drone_core/perception/hough_transformer.hpp>
+
+#include <iii_drone_core/utils/atomic.hpp>
+
+/*****************************************************************************/
+// III-Drone-Interfaces:
+
+#include <iii_drone_interfaces/srv/system_command.hpp>
 
 /*****************************************************************************/
 // Std:
@@ -166,11 +171,34 @@ namespace hough_transformer_node {
 		rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr camera_subscription_;
 
 		/**
+		 * @brief Command service
+		 */
+		rclcpp::Service<iii_drone_interfaces::srv::SystemCommand>::SharedPtr command_service_;
+
+		/**
+		 * @brief Callback function for the command service
+		 * 
+		 * @param request Request message
+		 * @param response Response message
+		 */
+		void commandCallback(
+			const std::shared_ptr<iii_drone_interfaces::srv::SystemCommand::Request> request,
+			std::shared_ptr<iii_drone_interfaces::srv::SystemCommand::Response> response
+		);
+
+		/**
+		 * @brief Running flag
+		 * 
+		 * @details Flag to indicate if the node is running
+		 */
+		utils::Atomic<bool> running_;
+
+		/**
 		 * @brief Callback function for the image topic
 		 *
 		 * @param _msg Message containing the image
 		 */
-		void OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg);
+		void onCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg);
 
 		/**
 		 * @brief Publisher object for the cable yaw angle

@@ -22,6 +22,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/qos.hpp>
+#include <rclcpp/callback_group.hpp>
 
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
 #include <rclcpp_lifecycle/lifecycle_publisher.hpp>
@@ -48,6 +49,7 @@
 #include <iii_drone_interfaces/msg/pl_mapper_command.hpp>
 
 #include <iii_drone_interfaces/srv/pl_mapper_command.hpp>
+#include <iii_drone_interfaces/srv/system_command.hpp>
 
 /*****************************************************************************/
 // III-Drone-Configuration:
@@ -218,6 +220,21 @@ private:
      * @brief PL-mapper command service.
      */
     rclcpp::Service<iii_drone_interfaces::srv::PLMapperCommand>::SharedPtr pl_mapper_command_srv_;
+
+    /**
+     * @brief Hough Transformer system command client.
+     */
+    rclcpp::Client<iii_drone_interfaces::srv::SystemCommand>::SharedPtr hough_transformer_command_client_;
+
+    /**
+     * @brief PL Dir Computer system command client.
+     */
+    rclcpp::Client<iii_drone_interfaces::srv::SystemCommand>::SharedPtr pl_dir_computer_command_client_;
+
+    /**
+     * @brief System command clients callback group
+     */
+    rclcpp::CallbackGroup::SharedPtr system_command_clients_callback_group_;
 
     /**
      * @brief PL-mapper command service callback.

@@ -65,6 +65,22 @@ PowerlineMapperNode::PowerlineMapperNode(
         10
     );
 
+    system_command_clients_callback_group_ = this->create_callback_group(
+        rclcpp::CallbackGroupType::MutuallyExclusive
+    );
+
+    hough_transformer_command_client_ = this->create_client<iii_drone_interfaces::srv::SystemCommand>(
+        "/perception/hough_transformer/command",
+        rmw_qos_profile_services_default,
+        system_command_clients_callback_group_
+    );
+
+    pl_dir_computer_command_client_ = this->create_client<iii_drone_interfaces::srv::SystemCommand>(
+        "/perception/pl_dir_computer/command",
+        rmw_qos_profile_services_default,
+        system_command_clients_callback_group_
+    );
+
     RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::PowerlineMapperNode(): PL mapper ready");
 
 }
@@ -104,7 +120,7 @@ PowerlineMapperNode::on_configure(const rclcpp_lifecycle::State & state) {
         "PowerlineMapperNode::on_configure(): Setting internal state"
     );
 
-    pl_mapper_state_ = configurator_->GetParameter("pl_mapper_begin_running").as_bool() ? pl_mapper_state_running : pl_mapper_state_idle;
+    pl_mapper_state_ = configurator_->GetParameter("begin_running").as_bool() ? pl_mapper_state_running : pl_mapper_state_idle;
 
     // Tf:
     RCLCPP_DEBUG(
@@ -256,7 +272,7 @@ PowerlineMapperNode::on_activate(const rclcpp_lifecycle::State & state) {
 
     rclcpp::Rate tf_poll_rate(std::chrono::milliseconds(500));
 
-    while(true) {
+    while(rclcpp::ok()) {
 
         try {
 
@@ -395,20 +411,83 @@ void PowerlineMapperNode::plMapperCommandCallback(
     std::shared_ptr<iii_drone_interfaces::srv::PLMapperCommand::Response> response
 ) {
 
+    auto send_system_command = [this](
+        bool start_nstop,
+        rclcpp::Client<iii_drone_interfaces::srv::SystemCommand>::SharedPtr command_client
+    ) {
+
+        if (!command_client->wait_for_service(std::chrono::seconds(1))) {
+            std::string fatal_msg = "PowerlineMapperNode::plMapperCommandCallback(): " + std::string(command_client->get_service_name()) + " service not available";
+
+            RCLCPP_FATAL(
+                this->get_logger(), 
+                fatal_msg.c_str()
+            );
+
+            throw std::runtime_error(fatal_msg);
+
+        }
+
+        auto req = std::make_shared<iii_drone_interfaces::srv::SystemCommand::Request>();
+        req->command = start_nstop ? req->SYSTEM_COMMAND_START : req->SYSTEM_COMMAND_STOP;
+
+        bool done = false;
+
+        auto cb = [this, &done](
+            rclcpp::Client<iii_drone_interfaces::srv::SystemCommand>::SharedFuture future
+        ) {
+            done = true;
+        };
+
+        auto res = command_client->async_send_request(
+            req,
+            cb
+        );
+
+        rclcpp::Rate rate(10);
+
+        while (!done) {
+            rate.sleep();
+        }
+
+        return;
+
+    };
+
     pl_mapper_state_t previous_state = pl_mapper_state_;
 
     RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Received command");
 
     if (request->pl_mapper_cmd.command == iii_drone_interfaces::msg::PLMapperCommand::PL_MAPPER_CMD_START) {
 
-        RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Starting PL mapper");
+        RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Starting PL mapper");
+
+        send_system_command(
+            true,
+            hough_transformer_command_client_
+        );
+        
+        send_system_command(
+            true,
+            pl_dir_computer_command_client_
+        );
 
         pl_mapper_state_ = pl_mapper_state_running;
         response->pl_mapper_ack = iii_drone_interfaces::srv::PLMapperCommand::Response::PL_MAPPER_ACK_SUCCESS;
 
     } else if (request->pl_mapper_cmd.command == iii_drone_interfaces::msg::PLMapperCommand::PL_MAPPER_CMD_STOP) {
 
-        RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Stopping PL mapper");
+        RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Stopping PL mapper");
+
+        send_system_command(
+            false,
+            hough_transformer_command_client_
+        );
+        
+        send_system_command(
+            false,
+            pl_dir_computer_command_client_
+        );
 
         pl_mapper_state_ = pl_mapper_state_idle;
         response->pl_mapper_ack = iii_drone_interfaces::srv::PLMapperCommand::Response::PL_MAPPER_ACK_SUCCESS;
@@ -422,21 +501,41 @@ void PowerlineMapperNode::plMapperCommandCallback(
 
     } else if (request->pl_mapper_cmd.command == iii_drone_interfaces::msg::PLMapperCommand::PL_MAPPER_CMD_PAUSE) {
 
-        RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Pausing PL mapper");
+        RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Pausing PL mapper");
+
+        send_system_command(
+            false,
+            hough_transformer_command_client_
+        );
+        
+        send_system_command(
+            false,
+            pl_dir_computer_command_client_
+        );
 
         pl_mapper_state_ = pl_mapper_state_paused;
         response->pl_mapper_ack = iii_drone_interfaces::srv::PLMapperCommand::Response::PL_MAPPER_ACK_SUCCESS;
 
     } else if (request->pl_mapper_cmd.command == iii_drone_interfaces::msg::PLMapperCommand::PL_MAPPER_CMD_FREEZE) {
 
-        RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Freezing PL mapper");
+        RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Freezing PL mapper");
+
+        send_system_command(
+            false,
+            hough_transformer_command_client_
+        );
+        
+        send_system_command(
+            false,
+            pl_dir_computer_command_client_
+        );
 
         pl_mapper_state_ = pl_mapper_state_frozen;
         response->pl_mapper_ack = iii_drone_interfaces::srv::PLMapperCommand::Response::PL_MAPPER_ACK_SUCCESS;
 
     } else {
 
-        RCLCPP_ERROR(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Invalid command");
+        RCLCPP_WARN(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Invalid command");
 
         response->pl_mapper_ack = iii_drone_interfaces::srv::PLMapperCommand::Response::PL_MAPPER_ACK_INVALID_CMD;
 

@@ -194,6 +194,10 @@ PowerlineDirectionComputerNode::on_activate(const rclcpp_lifecycle::State & stat
         "/perception/hough_transformer/cable_yaw_angle", 
         10, 
         [this](const std_msgs::msg::Float32::SharedPtr msg) {
+            if (!running_) {
+                return;
+            }
+
             RCLCPP_DEBUG(this->get_logger(), "Received powerline angle: %f", msg->data);
             pl_direction_->Update(msg->data);
         }
@@ -203,14 +207,13 @@ PowerlineDirectionComputerNode::on_activate(const rclcpp_lifecycle::State & stat
         "/perception/pl_mapper/powerline", 
         10, 
         [this](const iii_drone_interfaces::msg::Powerline::SharedPtr msg) {
+            if (!running_) {
+                return;
+            }
+
             RCLCPP_DEBUG(this->get_logger(), "Received powerline");
             pl_direction_->UpdatePowerlineAdapter(msg);
         }
-        // std::bind(
-        //     &PowerlineDirection::UpdatePowerlineAdapter, 
-        //     pl_direction_,
-        //     std::placeholders::_1
-        // )
     );
 
     RCLCPP_DEBUG(
@@ -229,6 +232,23 @@ PowerlineDirectionComputerNode::on_activate(const rclcpp_lifecycle::State & stat
             this
         )
     );
+
+    RCLCPP_DEBUG(
+        this->get_logger(), 
+        "PowerlineDirectionComputerNode::on_activate(): Initializing command service."
+    );
+
+    command_srv_ = this->create_service<iii_drone_interfaces::srv::SystemCommand>(
+        "command", 
+        std::bind(
+            &PowerlineDirectionComputerNode::commandCallback, 
+            this, 
+            std::placeholders::_1, 
+            std::placeholders::_2
+        )
+    );
+
+    running_ = configurator_->GetParameter("begin_running").as_bool();
 
     return CallbackReturn::SUCCESS;
 
@@ -273,6 +293,15 @@ PowerlineDirectionComputerNode::on_deactivate(const rclcpp_lifecycle::State & st
     pl_sub_->clear_on_new_message_callback();
     pl_sub_.reset();
     pl_sub_ = nullptr;
+
+    RCLCPP_DEBUG(
+        this->get_logger(), 
+        "PowerlineDirectionComputerNode::on_deactivate(): Cleaning up command service."
+    );
+
+    command_srv_->clear_on_new_request_callback();
+    command_srv_.reset();
+    command_srv_ = nullptr;
 
     return CallbackReturn::SUCCESS;
 
@@ -321,7 +350,52 @@ PowerlineDirectionComputerNode::on_error(const rclcpp_lifecycle::State & state) 
 
 }
 
+void PowerlineDirectionComputerNode::commandCallback(
+	const std::shared_ptr<iii_drone_interfaces::srv::SystemCommand::Request> request,
+	std::shared_ptr<iii_drone_interfaces::srv::SystemCommand::Response> response
+) {
+
+	uint8_t cmd = request->command;
+
+	if (cmd == iii_drone_interfaces::srv::SystemCommand::Request::SYSTEM_COMMAND_START) {
+
+		RCLCPP_INFO(
+			this->get_logger(), 
+			"PowerlineDirectionComputerNode::commandCallback(): Starting pl dir computer node"
+		);
+
+		running_ = true;
+
+		response->ack = response->SYSTEM_ACK_OK;
+
+	} else if (cmd == iii_drone_interfaces::srv::SystemCommand::Request::SYSTEM_COMMAND_STOP) {
+
+		RCLCPP_INFO(
+			this->get_logger(), 
+			"PowerlineDirectionComputerNode::commandCallback(): Stopping pl dir computer node"
+		);
+
+		running_ = false;
+
+		response->ack = response->SYSTEM_ACK_OK;
+
+	} else {
+
+		RCLCPP_WARN(
+			this->get_logger(), 
+			"PowerlineDirectionComputerNode::commandCallback(): Unknown command"
+		);
+
+		response->ack = response->SYSTEM_ACK_INVALID_CMD;
+
+	}
+}
+
 void PowerlineDirectionComputerNode::odometryCallback() {
+
+    if (!running_) {
+        return;
+    }
 
     RCLCPP_DEBUG(this->get_logger(), "Fetching odometry transform");
 

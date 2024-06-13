@@ -162,11 +162,23 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughT
 		"/sensor/cable_camera/image_raw",	
 		qos,
 		std::bind(
-			&HoughTransformerNode::OnCameraMsg, 
+			&HoughTransformerNode::onCameraMsg, 
 			this, 
 			std::placeholders::_1
 		)
 	);
+
+	command_service_ = this->create_service<iii_drone_interfaces::srv::SystemCommand>(
+		"command",
+		std::bind(
+			&HoughTransformerNode::commandCallback, 
+			this, 
+			std::placeholders::_1, 
+			std::placeholders::_2
+		)
+	);
+
+	running_ = configurator_->GetParameter("begin_running").as_bool();
 
 	return CallbackReturn::SUCCESS;
 
@@ -194,6 +206,10 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughT
 	camera_subscription_->clear_on_new_message_callback();
 	camera_subscription_.reset();
 	camera_subscription_ = nullptr;
+
+	command_service_->clear_on_new_request_callback();
+	command_service_.reset();
+	command_service_ = nullptr;
 
 	return CallbackReturn::SUCCESS;
 
@@ -244,8 +260,53 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughT
 
 }
 
+void HoughTransformerNode::commandCallback(
+	const std::shared_ptr<iii_drone_interfaces::srv::SystemCommand::Request> request,
+	std::shared_ptr<iii_drone_interfaces::srv::SystemCommand::Response> response
+) {
+
+	uint8_t cmd = request->command;
+
+	if (cmd == iii_drone_interfaces::srv::SystemCommand::Request::SYSTEM_COMMAND_START) {
+
+		RCLCPP_INFO(
+			this->get_logger(), 
+			"HoughTransformerNode::commandCallback(): Starting hough transformer node"
+		);
+
+		running_ = true;
+
+		response->ack = response->SYSTEM_ACK_OK;
+
+	} else if (cmd == iii_drone_interfaces::srv::SystemCommand::Request::SYSTEM_COMMAND_STOP) {
+
+		RCLCPP_INFO(
+			this->get_logger(), 
+			"HoughTransformerNode::commandCallback(): Stopping hough transformer node"
+		);
+
+		running_ = false;
+
+		response->ack = response->SYSTEM_ACK_OK;
+
+	} else {
+
+		RCLCPP_WARN(
+			this->get_logger(), 
+			"HoughTransformerNode::commandCallback(): Unknown command"
+		);
+
+		response->ack = response->SYSTEM_ACK_INVALID_CMD;
+
+	}
+}
+
 // mmwave message callback function
-void HoughTransformerNode::OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg){
+void HoughTransformerNode::onCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg){
+
+	if (!running_) {
+		return;
+	}
 
 	RCLCPP_DEBUG(this->get_logger(), "Received image message, running hough transform...");
 
