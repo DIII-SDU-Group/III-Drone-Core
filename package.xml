@@ -4,7 +4,7 @@
   <name>iii_drone_core</name>
   <version>2.2.0</version>
   <description>
-    The III-Drone core system. This package contains the main nodes for the III-Drone system. Includes namespace perception, motion, mission, hardware, and utilities.
+    The III-Drone core system. This package contains the main nodes for the III-Drone system. Includes namespaces perception, control, payload, and utilities.
   </description>
   <maintainer email="ffn@sdu.dk">ffn</maintainer>
   <license>Proprietary</license>
@@ -35,11 +35,6 @@
   <depend>iii_drone_configuration</depend>
 
   <depend>px4_msgs</depend>
-
-  <depend>px4_ros2_cpp</depend>
-
-  <depend>behaviortree_cpp</depend>
-  <depend>behaviortree_ros2</depend>
 
   <exec_depend>rclpy</exec_depend>
   <exec_depend>iwr6843aop_pub</exec_depend>
