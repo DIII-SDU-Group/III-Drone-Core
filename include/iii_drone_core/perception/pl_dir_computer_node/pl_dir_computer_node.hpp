@@ -19,6 +19,9 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/qos.hpp>
 
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
+#include <rclcpp_lifecycle/lifecycle_publisher.hpp>
+
 #include <std_msgs/msg/float32.hpp>
 
 #include <sensor_msgs/msg/point_cloud2.hpp>
@@ -36,6 +39,8 @@
 
 #include <iii_drone_interfaces/msg/powerline.hpp>
 
+#include <iii_drone_interfaces/srv/system_command.hpp>
+
 /*****************************************************************************/
 // III-Drone-Configuration:
 
@@ -46,6 +51,7 @@
 
 #include <iii_drone_core/utils/math.hpp>
 #include <iii_drone_core/utils/types.hpp>
+#include <iii_drone_core/utils/atomic.hpp>
 
 #include <iii_drone_core/perception/powerline_direction.hpp>
 
@@ -60,7 +66,7 @@ namespace pl_dir_computer_node {
     /**
      * @brief Node for kalman filtering the powerline direction based on hough transform output.
     */
-    class PowerlineDirectionComputerNode : public rclcpp::Node {
+    class PowerlineDirectionComputerNode : public rclcpp_lifecycle::LifecycleNode {
     public:
     explicit
         /**
@@ -76,16 +82,106 @@ namespace pl_dir_computer_node {
             const rclcpp::NodeOptions & options = rclcpp::NodeOptions()
         );
 
+        /**
+         * @brief Destructor
+         */
+        ~PowerlineDirectionComputerNode();
+
+        // Lifecycle callbacks
+
+        /**
+         * @brief Callback function for the configure transition
+         * 
+         * @param state The lifecycle state
+         * @return CallbackReturn The return value
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_configure(
+            const rclcpp_lifecycle::State & state
+        );
+
+        /**
+         * @brief Callback function for the cleanup transition
+         * 
+         * @param state The lifecycle state
+         * @return CallbackReturn The return value
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_cleanup(
+            const rclcpp_lifecycle::State & state
+        );
+
+        /**
+         * @brief Callback function for the activate transition
+         * 
+         * @param state The lifecycle state
+         * @return CallbackReturn The return value
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_activate(
+            const rclcpp_lifecycle::State & state
+        );
+
+        /**
+         * @brief Callback function for the deactivate transition
+         * 
+         * @param state The lifecycle state
+         * @return CallbackReturn The return value
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_deactivate(
+            const rclcpp_lifecycle::State & state
+        );
+
+        /**
+         * @brief Callback function for the shutdown transition
+         * 
+         * @param state The lifecycle state
+         * @return CallbackReturn The return value
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_shutdown(
+            const rclcpp_lifecycle::State & state
+        );
+
+        /**
+         * @brief Callback function for error handling
+         * 
+         * @param state The lifecycle state
+         * @return CallbackReturn The return value
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_error(
+            const rclcpp_lifecycle::State & state
+        );
+
     private:
         /**
          * @brief Configurator object
          */
-        iii_drone::configuration::Configurator configurator_;
+        iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>::SharedPtr configurator_;
+
+        /**
+         * @brief Command service
+         */
+        rclcpp::Service<iii_drone_interfaces::srv::SystemCommand>::SharedPtr command_srv_;
+
+        /**
+         * @brief Command service callback
+         * 
+         * @param request The request
+         * @param response The response
+         */
+        void commandCallback(
+            const std::shared_ptr<iii_drone_interfaces::srv::SystemCommand::Request> request,
+            std::shared_ptr<iii_drone_interfaces::srv::SystemCommand::Response> response
+        );
+
+        /**
+         * @brief Running flag.
+         * 
+         * @details If the node is running, this flag is set to true.
+         */
+        utils::Atomic<bool> running_;
 
         /**
          * @brief Powerline direction object
          */
-        PowerlineDirection pl_direction_;
+        PowerlineDirection::SharedPtr pl_direction_;
 
         /**
          * @brief Subscription object to powerline yaw angle
@@ -100,12 +196,12 @@ namespace pl_dir_computer_node {
         /**
          * @brief Estimated powerline direction pose publisher
          */
-        rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pl_direction_pose_pub_;
+        rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::PoseStamped>::SharedPtr pl_direction_pose_pub_;
 
         /**
          * @brief Estimated powerline direction quaternion publisher.
          */
-        rclcpp::Publisher<geometry_msgs::msg::QuaternionStamped>::SharedPtr pl_direction_quat_pub_;
+        rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::QuaternionStamped>::SharedPtr pl_direction_quat_pub_;
 
         std::shared_ptr<tf2_ros::TransformListener> transform_listener_{nullptr};
         std::unique_ptr<tf2_ros::Buffer> tf_buffer_;

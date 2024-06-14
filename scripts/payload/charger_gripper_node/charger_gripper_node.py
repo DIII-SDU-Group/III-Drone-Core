@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import rclpy
-from rclpy.node import Node
+from rclpy.lifecycle import Node, State, TransitionCallbackReturn
 
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
@@ -10,7 +10,10 @@ from std_msgs.msg import Float32
 from iii_drone_interfaces.msg import ChargerOperatingMode, ChargerStatus, GripperStatus
 from iii_drone_interfaces.srv import GripperCommand
 
-from threading import Lock
+from iii_drone_configuration.configurator import Configurator
+
+from threading import Lock, Thread
+from time import sleep
 
 import serial
 import os
@@ -29,65 +32,181 @@ class ChargerGripperNode(Node):
 
         self.simulation_ = True if os.getenv("SIMULATION", "false").lower() == "true" else False 
 
-        if self.simulation_:
-            raise NotImplementedError("Simulation mode is not implemented yet.")
+        log_level = os.environ.get('CHARGER_GRIPPER_LOG_LEVEL')
+        
+        if log_level is not None:
+            log_level = log_level.upper()
+            
+            if log_level == 'DEBUG':
+                self.get_logger().set_level(rclpy.logging.LoggingSeverity.DEBUG)
+            elif log_level == 'INFO':
+                self.get_logger().set_level(rclpy.logging.LoggingSeverity.INFO)
+            elif log_level == 'WARN':
+                self.get_logger().set_level(rclpy.logging.LoggingSeverity.WARN)
+            elif log_level == 'ERROR':
+                self.get_logger().set_level(rclpy.logging.LoggingSeverity.ERROR)
+            elif log_level == 'FATAL':
+                self.get_logger().set_level(rclpy.logging.LoggingSeverity.FATAL)
 
-        self.declare_parameter("gripper_command_only", False)
-        self.gripper_command_only_ = self.get_parameter("gripper_command_only").value | self.simulation_
+        self.get_logger().info("Charger Gripper Node initialized.")
 
-        self.declare_parameter("gripper_command_interface", "serial")
-        self.gripper_command_interface_ = self.get_parameter("gripper_command_interface").value
+    def on_configure(
+        self, 
+        state: State
+    ) -> TransitionCallbackReturn:
+        self.get_logger().info("ChargerGripperNode.on_configure()")
+        
+        ret = super().on_configure(state)
+        
+        if ret != TransitionCallbackReturn.SUCCESS:
+            self.get_logger().error("ChargerGripperNode.on_configure(): Base class configuration failed.")
+            return ret
+        
+        self.configurator = Configurator(
+            node=self,
+        )
+        
+        self.get_logger().info("Configuration loaded.")
 
-        self.declare_parameter("gripper_open_command", 0x00)
-        self.gripper_open_command_ = self.get_parameter("gripper_open_command").value
+        # #self.declare_parameter("gripper_command_only", False)
+        self.gripper_command_only_ = self.configurator.get_parameter("gripper_command_only").value | self.simulation_
 
-        self.declare_parameter("gripper_close_command", 0x01)
-        self.gripper_close_command_ = self.get_parameter("gripper_close_command").value
+        # #self.declare_parameter("gripper_command_interface", "serial")
+        self.gripper_command_interface_ = self.configurator.get_parameter("gripper_command_interface").value
 
-        self.declare_parameter("gripper_command_complete_poll_interval_ms", 100)
-        self.gripper_command_complete_poll_interval_ms_ = self.get_parameter("gripper_command_complete_poll_interval_ms").value
+        # #self.declare_parameter("gripper_open_command", 0x00)
+        self.gripper_open_command_ = self.configurator.get_parameter("gripper_open_command").value
 
-        self.declare_parameter("gripper_command_complete_timeout_ms", 1000)
-        self.gripper_command_complete_timeout_ms_ = self.get_parameter("gripper_command_complete_timeout_ms").value
+        # #self.declare_parameter("gripper_close_command", 0x01)
+        self.gripper_close_command_ = self.configurator.get_parameter("gripper_close_command").value
 
-        if (self.gripper_command_interface_ != "serial" and self.gripper_command_interface_ != "gpio"):
-            self.get_logger().fatal("Invalid gripper command interface: {}".format(self.gripper_command_interface_))
+        # #self.declare_parameter("gripper_command_complete_poll_interval_ms", 100)
+        self.gripper_command_complete_poll_interval_ms_ = self.configurator.get_parameter("gripper_command_complete_poll_interval_ms").value
+
+        # #self.declare_parameter("gripper_command_complete_timeout_ms", 1000)
+        self.gripper_command_complete_timeout_ms_ = self.configurator.get_parameter("gripper_command_complete_timeout_ms").value
+
+        if (self.configurator.get_parameter("gripper_command_interface").value != "serial" and \
+                self.configurator.get_parameter("gripper_command_interface").value != "gpio"):
+            self.get_logger().fatal("Invalid gripper command interface: {}".format(self.configurator.get_parameter("gripper_command_interface").value))
             exit(-1)
 
-        if self.gripper_command_interface_ == "serial" or not self.gripper_command_only_:
-            self.declare_parameter("charger_gripper_serial_port", "/dev/ttyUSB0")
-            self.charger_gripper_serial_port_ = self.get_parameter("charger_gripper_serial_port").value
+        if self.configurator.get_parameter("gripper_command_interface") == "serial" or not self.configurator.get_parameter("gripper_command_only").value:
+        #     #self.declare_parameter("charger_gripper_serial_port", "/dev/ttyUSB0")
+            self.charger_gripper_serial_port_ = self.configurator.get_parameter("charger_gripper_serial_port").value
 
-            self.declare_parameter("charger_gripper_serial_baudrate", 115200)
-            self.charger_gripper_serial_baudrate_ = self.get_parameter("charger_gripper_serial_baudrate").value
+        #     #self.declare_parameter("charger_gripper_serial_baudrate", 115200)
+            self.charger_gripper_serial_baudrate_ = self.configurator.get_parameter("charger_gripper_serial_baudrate").value
 
-            self.declare_parameter("charger_gripper_serial_timeout", 0.1)
-            self.charger_gripper_serial_timeout_ = self.get_parameter("charger_gripper_serial_timeout").value
+        #     #self.declare_parameter("charger_gripper_serial_timeout", 0.1)
+            self.charger_gripper_serial_timeout_ = self.configurator.get_parameter("charger_gripper_serial_timeout").value
 
-            self.declare_parameter("gripper_command_serial_period_ms", 500)
-            self.gripper_command_serial_period_ms_ = self.get_parameter("gripper_command_serial_period_ms").value
+        #     #self.declare_parameter("gripper_command_serial_period_ms", 500)
+            self.gripper_command_serial_period_ms_ = self.configurator.get_parameter("gripper_command_serial_period_ms").value
 
             self.ser_lock_ = Lock()
 
-            self.ser_ = serial.Serial(
-                port=self.charger_gripper_serial_port_,
-                baudrate=self.charger_gripper_serial_baudrate_,
-                timeout=self.charger_gripper_serial_timeout_
-            )
+        # #self.declare_parameter("status_timer_period_ms", 10)
+        self.status_timer_period_ms_ = self.configurator.get_parameter("status_timer_period_ms").value
+
+        if not self.gripper_command_only_ and not self.simulation_:
+            #self.declare_parameter("status_message_first_byte", 0xFA)
+            self.status_message_first_byte_ = self.configurator.get_parameter("status_message_first_byte").value
+
+            #self.declare_parameter("status_message_last_byte", 0xFC)
+            self.status_message_last_byte_ = self.configurator.get_parameter("status_message_last_byte").value
+
+            #self.declare_parameter("status_message_length", 9)
+            self.status_message_length_ = self.configurator.get_parameter("status_message_length").value
+
+            #self.declare_parameter("status_message_battery_voltage_start_index", 1)
+            self.status_message_battery_voltage_start_index_ = self.configurator.get_parameter("status_message_battery_voltage_start_index").value
+
+            #self.declare_parameter("status_message_battery_voltage_length", 2)
+            self.status_message_battery_voltage_length_ = self.configurator.get_parameter("status_message_battery_voltage_length").value
+
+            #self.declare_parameter("status_message_charging_power_start_index", 3)
+            self.status_message_charging_power_start_index_ = self.configurator.get_parameter("status_message_charging_power_start_index").value
+
+            #self.declare_parameter("status_message_charging_power_length", 2)
+            self.status_message_charging_power_length_ = self.configurator.get_parameter("status_message_charging_power_length").value
+
+            #self.declare_parameter("status_message_charger_status_index", 5)
+            self.status_message_charger_status_index_ = self.configurator.get_parameter("status_message_charger_status_index").value
+
+            #self.declare_parameter("status_message_charger_operating_mode_index", 6)
+            self.status_message_charger_operating_mode_index_ = self.configurator.get_parameter("status_message_charger_operating_mode_index").value
+
+            #self.declare_parameter("status_message_gripper_status_index", 7)
+            self.status_message_gripper_status_index_ = self.configurator.get_parameter("status_message_gripper_status_index").value
+
+            #self.declare_parameter("battery_voltage_avg_filter_size", 10)
+            self.battery_voltage_avg_filter_size_ = self.configurator.get_parameter("battery_voltage_avg_filter_size").value
+            self.battery_voltage_buffer_ = []
+
+            #self.declare_parameter("charging_power_avg_filter_size", 10)
+            self.charging_power_avg_filter_size_ = self.configurator.get_parameter("charging_power_avg_filter_size").value
+            self.charging_power_buffer_ = []
+
+            self.received_data_ = bytearray()
+
+        self.gripper_status_msg_ = GripperStatus()
+
+        self.last_gripper_command_ = "open"
+
+        return TransitionCallbackReturn.SUCCESS
+
+    def on_cleanup(
+        self,
+        state: State
+    ) -> TransitionCallbackReturn:
+        self.get_logger().info("ChargerGripperNode.on_cleanup()")
+        
+        ret = super().on_cleanup(state)
+        
+        if ret != TransitionCallbackReturn.SUCCESS:
+            self.get_logger().error("ChargerGripperNode.on_cleanup(): Base class cleanup failed.")
+            return ret
+
+        del self.configurator
+
+        return TransitionCallbackReturn.SUCCESS
+    
+    def on_activate(
+        self,
+        state: State
+    ) -> TransitionCallbackReturn:
+        self.get_logger().info("ChargerGripperNode.on_activate()")
+        
+        ret = super().on_activate(state)
+        
+        if ret != TransitionCallbackReturn.SUCCESS:
+            self.get_logger().error("ChargerGripperNode.on_activate(): Base class activation failed.")
+            return ret
+
+        if self.configurator.get_parameter("gripper_command_interface") == "serial" or not self.configurator.get_parameter("gripper_command_only").value:
+            if not self.simulation_:
+                self.ser_ = serial.Serial(
+                    port=self.configurator.get_parameter("charger_gripper_serial_port").value,
+                    baudrate=self.configurator.get_parameter("charger_gripper_serial_baudrate").value,
+                    timeout=self.configurator.get_parameter("charger_gripper_serial_timeout").value
+                )
 
             self.serial_gripper_cmd_timer_ = self.create_timer(
-                timer_period_sec=self.gripper_command_serial_period_ms_ / 1000.0,
+                timer_period_sec=self.configurator.get_parameter("gripper_command_serial_period_ms").value / 1000.0,
                 callback=self.send_serial_gripper_cmd_callback
             )
 
-        if self.gripper_command_interface_ == "gpio":
-            self.declare_parameter("charger_gripper_rpi_gpio_pin", 18)
-            self.charger_gripper_rpi_gpio_pin_ = self.get_parameter("charger_gripper_rpi_gpio_pin").value
+
+        if self.configurator.get_parameter("gripper_command_interface").value == "gpio" and not self.simulation_:
+            # #self.declare_parameter("charger_gripper_rpi_gpio_pin", 18)
+            self.charger_gripper_rpi_gpio_pin_ = self.configurator.get_parameter("charger_gripper_rpi_gpio_pin").value
 
             self.pi_gpio_ = pigpio.pi()
 
             self.pi_gpio_.set_mode(self.charger_gripper_rpi_gpio_pin_, pigpio.OUTPUT)
             self.pi_gpio_.write(self.charger_gripper_rpi_gpio_pin_, 0 if self.gripper_open_command_ == 0x00 else 1)
+
 
         pub_qos = QoSProfile(
             reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT,
@@ -95,65 +214,10 @@ class ChargerGripperNode(Node):
             depth=1
         )
 
-        self.declare_parameter("status_timer_period_ms", 10)
-        self.status_timer_period_ms_ = self.get_parameter("status_timer_period_ms").value
-
-        if not self.gripper_command_only_:
-            self.declare_parameter("status_message_first_byte", 0xFA)
-            self.status_message_first_byte_ = self.get_parameter("status_message_first_byte").value
-
-            self.declare_parameter("status_message_last_byte", 0xFC)
-            self.status_message_last_byte_ = self.get_parameter("status_message_last_byte").value
-
-            self.declare_parameter("status_message_length", 9)
-            self.status_message_length_ = self.get_parameter("status_message_length").value
-
-            self.declare_parameter("status_message_battery_voltage_start_index", 1)
-            self.status_message_battery_voltage_start_index_ = self.get_parameter("status_message_battery_voltage_start_index").value
-
-            self.declare_parameter("status_message_battery_voltage_length", 2)
-            self.status_message_battery_voltage_length_ = self.get_parameter("status_message_battery_voltage_length").value
-
-            self.declare_parameter("status_message_charging_power_start_index", 3)
-            self.status_message_charging_power_start_index_ = self.get_parameter("status_message_charging_power_start_index").value
-
-            self.declare_parameter("status_message_charging_power_length", 2)
-            self.status_message_charging_power_length_ = self.get_parameter("status_message_charging_power_length").value
-
-            self.declare_parameter("status_message_charger_status_index", 5)
-            self.status_message_charger_status_index_ = self.get_parameter("status_message_charger_status_index").value
-
-            self.declare_parameter("status_message_charger_operating_mode_index", 6)
-            self.status_message_charger_operating_mode_index_ = self.get_parameter("status_message_charger_operating_mode_index").value
-
-            self.declare_parameter("status_message_gripper_status_index", 7)
-            self.status_message_gripper_status_index_ = self.get_parameter("status_message_gripper_status_index").value
-
-            self.battery_voltage_pub_ = self.create_publisher(Float32, "battery_voltage", pub_qos)
-            self.charging_power_pub_ = self.create_publisher(Float32, "charging_power", pub_qos)
-
-            self.declare_parameter("battery_voltage_avg_filter_size", 10)
-            self.battery_voltage_avg_filter_size_ = self.get_parameter("battery_voltage_avg_filter_size").value
-            self.battery_voltage_buffer_ = []
-
-            self.declare_parameter("charging_power_avg_filter_size", 10)
-            self.charging_power_avg_filter_size_ = self.get_parameter("charging_power_avg_filter_size").value
-            self.charging_power_buffer_ = []
-
-            self.charger_operating_mode_pub_ = self.create_publisher(ChargerOperatingMode, "charger_operating_mode", pub_qos)
-            self.charger_status_pub_ = self.create_publisher(ChargerStatus, "charger_status", pub_qos)
-
-            self.received_data_ = bytearray()
-
-        self.gripper_status_pub_ = self.create_publisher(GripperStatus, "gripper_status", pub_qos)
-        self.gripper_status_msg_ = GripperStatus()
-
         self.status_timer_ = self.create_timer(
             self.status_timer_period_ms_ / 1000,
             self.status_timer_callback
         )
-
-        self.last_gripper_command_ = "open"
 
         self.gripper_command_srv_ = self.create_service(
             GripperCommand,
@@ -161,13 +225,96 @@ class ChargerGripperNode(Node):
             self.gripper_command_srv_callback
         )
 
+        if not hasattr(self, "gripper_status_pub_"):
+            self.gripper_status_pub_ = self.create_publisher(GripperStatus, "gripper_status", pub_qos)
+        
+        if not self.gripper_command_only_ and not self.simulation_:
+            if not hasattr(self, "battery_voltage_pub_"):
+                self.battery_voltage_pub_ = self.create_publisher(Float32, "battery_voltage", pub_qos)
+
+            if not hasattr(self, "charging_power_pub_"):
+                self.charging_power_pub_ = self.create_publisher(Float32, "charging_power", pub_qos)
+
+            if not hasattr(self, "charger_operating_mode_pub_"):
+                self.charger_operating_mode_pub_ = self.create_publisher(ChargerOperatingMode, "charger_operating_mode", pub_qos)
+
+            if not hasattr(self, "charger_status_pub_"):
+                self.charger_status_pub_ = self.create_publisher(ChargerStatus, "charger_status", pub_qos)
+
+        return TransitionCallbackReturn.SUCCESS
+        
+    def on_deactivate(
+        self,
+        state: State
+    ) -> TransitionCallbackReturn:
+        self.get_logger().info("ChargerGripperNode.on_deactivate()")
+        
+        ret = super().on_deactivate(state)
+        
+        if ret != TransitionCallbackReturn.SUCCESS:
+            self.get_logger().error("ChargerGripperNode.on_deactivate(): Base class deactivation failed.")
+            return ret
+
+        if self.configurator.get_parameter("gripper_command_interface").value == "serial" or not self.configurator.get_parameter("gripper_command_only").value:
+            if not self.simulation_:
+                self.ser_.close()
+                del self.ser_
+
+            self.serial_gripper_cmd_timer_.cancel()
+            self.serial_gripper_cmd_timer_.destroy()
+
+        if self.configurator.get_parameter("gripper_command_interface").value == "gpio" and not self.simulation_:
+            # self.pi_gpio_.write(self.charger_gripper_rpi_gpio_pin_, 0 if self.gripper_open_command_ == 0x00 else 1)
+            self.pi_gpio_.stop()
+            del self.pi_gpio_
+
+        self.status_timer_.cancel()
+        self.status_timer_.destroy()
+
+        self.gripper_command_srv_.destroy()
+
+        return TransitionCallbackReturn.SUCCESS
+    
+    def on_shutdown(
+        self,
+        state: State
+    ) -> TransitionCallbackReturn:
+        self.get_logger().info("ChargerGripperNode.on_shutdown()")
+        
+        ret = super().on_shutdown(state)
+        
+        if ret != TransitionCallbackReturn.SUCCESS:
+            self.get_logger().error("ChargerGripperNode.on_shutdown(): Base class shutdown failed.")
+            return ret
+        
+        if hasattr(self, "configurator"):
+            del self.configurator
+        
+        def shutdown():
+            sleep(1)
+            
+            rclpy.shutdown()
+        
+        shutdown_thread = Thread(target=shutdown)
+        shutdown_thread.start()
+
+        return TransitionCallbackReturn.SUCCESS
+    
+    def on_error(
+        self,
+        state: State
+    ) -> TransitionCallbackReturn:
+        self.get_logger().fatal("ChargerGripperNode.on_error(): Error occurred.")
+        
+        raise RuntimeError("ChargerGripperNode.on_error(): Error occurred.")
+
     def status_timer_callback(self):
         #if (self.ser_.in_waiting > 0):
         #    print(self.ser_.read(1))
 
         #return
 
-        if not self.gripper_command_only_:
+        if not self.gripper_command_only_ and not self.simulation_:
             # self.ser_lock_.acquire()
 
             if (self.ser_.in_waiting > 0):
@@ -335,7 +482,7 @@ class ChargerGripperNode(Node):
             response.gripper_command_response = GripperCommand.Response.GRIPPER_COMMAND_RESPONSE_INVALID_COMMAND
             return response
 
-        if not self.gripper_command_only_:
+        if not self.gripper_command_only_ and not self.simulation_:
             start_time = self.get_clock().now()
 
             while (self.get_clock().now() - start_time).nanoseconds / 1e6 < self.gripper_command_complete_timeout_ms_:
@@ -359,6 +506,10 @@ class ChargerGripperNode(Node):
 
 
     def open_gripper(self):
+        if self.simulation_:
+            self.get_logger().info("Opening gripper in simulation.")
+            return
+        
         if self.gripper_command_interface_ == "gpio":
             self.get_logger().info("Opening gripper using GPIO pin {}.".format(self.charger_gripper_rpi_gpio_pin_))
             gpio_output = 0 if self.gripper_open_command_ == 0x00 else 1
@@ -374,6 +525,10 @@ class ChargerGripperNode(Node):
             self.get_logger().error("Unknown gripper command interface. Not opening gripper.")
 
     def close_gripper(self):
+        if self.simulation_:
+            self.get_logger().info("Closing gripper in simulation.")
+            return
+        
         if self.gripper_command_interface_ == "gpio":
             self.get_logger().info("Closing gripper using GPIO pin {}.".format(self.charger_gripper_rpi_gpio_pin_))
             gpio_output = 0 if self.gripper_close_command_ == 0x00 else 1
@@ -392,16 +547,18 @@ def main(args=None):
     node = ChargerGripperNode()
 
     node.get_logger().info("Charger gripper node started.")
+    
+    executor = rclpy.executors.MultiThreadedExecutor()
+    
+    executor.add_node(node)
 
-    rclpy.spin(node)
-
-    # Destroy the node explicitly
-    # (optional - otherwise it will be done automatically
-    # when the garbage collector destroys the node object)
-    node.destroy_node()
-
-    rclpy.shutdown()
-
+    try:
+        executor.spin()
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
+    except KeyboardInterrupt:
+        del node.configurator
 
 if __name__ == '__main__':
     main()

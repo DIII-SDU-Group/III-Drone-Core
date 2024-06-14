@@ -34,6 +34,7 @@ link_directories(src/matlab_MPC_5Hz_hp10)
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_lifecycle REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(iii_drone_interfaces REQUIRED)
@@ -54,12 +55,10 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(nav_msgs REQUIRED)
-find_package(behaviortree_cpp REQUIRED)
-find_package(behaviortree_ros2 REQUIRED)
-find_package(px4_ros2_cpp REQUIRED)
 
 set(dependencies
   rclcpp
+  rclcpp_lifecycle
   rclcpp_action
   rclcpp_components
   Eigen3
@@ -76,9 +75,6 @@ set(dependencies
   image_transport
   iii_drone_interfaces
   iii_drone_configuration
-  behaviortree_cpp
-  behaviortree_ros2
-  px4_ros2_cpp
 )
 
 # MATLAB MPC Library:
@@ -134,7 +130,6 @@ set(III_DRONE_LIBRARY_HEADERS
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/target_adapter.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/maneuver_adapter.hpp"
 
-  # # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/offboard_control_mode_adapter.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/trajectory_setpoint_adapter.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/vehicle_odometry_adapter.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/vehicle_status_adapter.hpp"
@@ -187,65 +182,9 @@ set(III_DRONE_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/adapters/target_adapter.cpp"
   "${PROJECT_SOURCE_DIR}/src/adapters/maneuver_adapter.cpp"
 
-  ## "${PROJECT_SOURCE_DIR}/src/adapters/px4/offboard_control_mode_adapter.cpp"
   "${PROJECT_SOURCE_DIR}/src/adapters/px4/trajectory_setpoint_adapter.cpp"
   "${PROJECT_SOURCE_DIR}/src/adapters/px4/vehicle_odometry_adapter.cpp"
   "${PROJECT_SOURCE_DIR}/src/adapters/px4/vehicle_status_adapter.cpp"
-
-)
-
-set(III_DRONE_PX4_HDRS
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/px4/modes/maneuver_mode.hpp"
-
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/px4/mode_executors/generic_mode_executor.hpp"
-
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/px4/setpoints/trajectory_setpoint.hpp"
-
-)
-
-set(III_DRONE_PX4_SRCS
-  "${PROJECT_SOURCE_DIR}/src/px4/modes/maneuver_mode.cpp"
-
-  "${PROJECT_SOURCE_DIR}/src/px4/mode_executors/generic_mode_executor.cpp"
-
-  "${PROJECT_SOURCE_DIR}/src/px4/setpoints/trajectory_setpoint.cpp"
-
-)
-
-set(III_DRONE_BEHAVIOR_HDRS
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/maneuver_action_node.hpp"
-
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/hover_maneuver_action_node.hpp"
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/hover_by_object_maneuver_action_node.hpp"
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/hover_on_cable_maneuver_action_node.hpp"
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/fly_to_position_maneuver_action_node.hpp"
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/fly_to_object_maneuver_action_node.hpp"
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/cable_landing_maneuver_action_node.hpp"
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/cable_takeoff_maneuver_action_node.hpp"
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/action_nodes/pl_mapper_command_action_node.hpp"
-
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/condition_nodes/verify_powerline_detected_condition_node.hpp"
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/condition_nodes/select_target_line_condition_node.hpp"
-
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/behavior/trees/take_charging_position_tree.hpp"
-)
-
-set(III_DRONE_BEHAVIOR_SRCS
-  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/maneuver_action_node.cpp"
-
-  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/hover_maneuver_action_node.cpp"
-  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/hover_by_object_maneuver_action_node.cpp"
-  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/hover_on_cable_maneuver_action_node.cpp"
-  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/fly_to_position_maneuver_action_node.cpp"
-  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/fly_to_object_maneuver_action_node.cpp"
-  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/cable_landing_maneuver_action_node.cpp"
-  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/cable_takeoff_maneuver_action_node.cpp"
-  "${PROJECT_SOURCE_DIR}/src/behavior/action_nodes/pl_mapper_command_action_node.cpp"
-
-  "${PROJECT_SOURCE_DIR}/src/behavior/condition_nodes/verify_powerline_detected_condition_node.cpp"
-  "${PROJECT_SOURCE_DIR}/src/behavior/condition_nodes/select_target_line_condition_node.cpp"
-
-  "${PROJECT_SOURCE_DIR}/src/behavior/trees/take_charging_position_tree.cpp"
 
 )
 
@@ -295,78 +234,6 @@ install(TARGETS iii_drone_lib
   INCLUDES DESTINATION include
 )
 
-# III-Drone-PX4:
-add_library(iii_drone_px4_lib 
-  SHARED
-  ${III_DRONE_PX4_HDRS}
-  ${III_DRONE_PX4_SRCS}
-)
-
-target_sources(iii_drone_px4_lib
-  PUBLIC
-  ${III_DRONE_PX4_HDRS}
-  ${III_DRONE_PX4_SRCS}
-)
-
-target_include_directories(iii_drone_px4_lib
-  PUBLIC
-  ${III_DRONE_INCLUDE_DIRS}
-)
-
-target_link_libraries(iii_drone_px4_lib
-  iii_drone_lib
-)
-
-ament_target_dependencies(iii_drone_px4_lib
-  ${dependencies}
-)
-
-ament_export_libraries(iii_drone_px4_lib)
-
-install(TARGETS iii_drone_px4_lib
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
-)
-
-# III-Drone-Behavior:
-add_library(iii_drone_behavior_lib 
-  SHARED
-  ${III_DRONE_BEHAVIOR_HDRS}
-  ${III_DRONE_BEHAVIOR_SRCS}
-)
-
-target_sources(iii_drone_behavior_lib
-  PUBLIC
-  ${III_DRONE_BEHAVIOR_HDRS}
-  ${III_DRONE_BEHAVIOR_SRCS}
-)
-
-target_include_directories(iii_drone_behavior_lib
-  PUBLIC
-  ${III_DRONE_INCLUDE_DIRS}
-)
-
-target_link_libraries(iii_drone_behavior_lib
-  iii_drone_lib
-  iii_drone_px4_lib
-)
-
-ament_target_dependencies(iii_drone_behavior_lib
-  ${dependencies}
-)
-
-ament_export_libraries(iii_drone_behavior_lib)
-ament_export_include_directories(${III_DRONE_INCLUDE_DIRS})
-
-install(TARGETS iii_drone_behavior_lib
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
-)
-
 # Executables:
 function(custom_cpp_target target_name target_sources)
   # Loop over optional arguments and add to target sources:
@@ -386,8 +253,6 @@ function(custom_cpp_target target_name target_sources)
 
   add_dependencies(${target_name}
     iii_drone_lib
-    iii_drone_px4_lib
-    iii_drone_behavior_lib
   )
 
   target_include_directories(${target_name}
@@ -397,8 +262,6 @@ function(custom_cpp_target target_name target_sources)
 
   target_link_libraries(${target_name}
     iii_drone_lib
-    iii_drone_px4_lib
-    iii_drone_behavior_lib
   )
 
   ament_target_dependencies(${target_name}
@@ -449,29 +312,6 @@ custom_cpp_target(maneuver_controller
   "${PROJECT_SOURCE_DIR}/src/control/maneuver_controller_node/maneuver_controller_node.cpp"
 )
 
-# # Continuous mission orchestrator:
-# custom_cpp_target(continuous_mission_orchestrator
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/mission/continuous_mission_orchestrator_node/continuous_mission_orchestrator_node.hpp"
-#   "${PROJECT_SOURCE_DIR}/src/mission/continuous_mission_orchestrator_node/continuous_mission_orchestrator_node.cpp"
-# )
-
-# custom_cpp_target(test_tree
-#   "${PROJECT_SOURCE_DIR}/src/behavior/trees/test_tree.cpp"
-# )
-
-custom_cpp_target(px4_mode_test
-  "${PROJECT_SOURCE_DIR}/src/px4/px4_mode_test.cpp"
-)
-
-# Tests:
-if (BUILD_TESTING)
-
-  custom_cpp_target(combined_drone_awareness_handler_test
-    "${PROJECT_SOURCE_DIR}/test/control/combined_drone_awareness_handler_test.cpp"
-  )
-
-endif()
-
 ############
 # Install ##
 ############
@@ -484,11 +324,7 @@ install(PROGRAMS
 )
 
 # Export information to downstream packages
-if(ROS_DISTRO IN_LIST ROS_DISTROS)
-  ament_export_dependencies(ament_cmake rclcpp rosidl_default_runtime eigen3_cmake_module Eigen3 px4_msgs geometry_msgs sensor_msgs OpenCV)
-else()
-  ament_export_dependencies(ament_cmake rclcpp rosidl_default_runtime Eigen3 px4_msgs geometry_msgs sensor_msgs)
-endif()
+ament_export_dependencies(ament_cmake ${dependencies})
 
 # Install header files
 install(DIRECTORY 

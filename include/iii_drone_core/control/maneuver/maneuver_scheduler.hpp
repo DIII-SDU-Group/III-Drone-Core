@@ -15,7 +15,12 @@
 // ROS2:
 
 #include <rclcpp/rclcpp.hpp>
+
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
+#include <rclcpp_lifecycle/lifecycle_publisher.hpp>
+
 #include <tf2_ros/buffer.h>
+
 
 /*****************************************************************************/
 // III-Drone-Interfaces:
@@ -93,11 +98,26 @@ namespace maneuver {
          * @param maneuver_execution_callback_group Shared pointer to the callback group for parallel maneuver execution.
          */
         ManeuverScheduler(
-            rclcpp::Node *node,
+            rclcpp_lifecycle::LifecycleNode *node,
             const iii_drone::control::CombinedDroneAwarenessHandler::SharedPtr combined_drone_awareness_handler,
             const iii_drone::configuration::ParameterBundle::SharedPtr parameters,
             rclcpp::CallbackGroup::SharedPtr maneuver_execution_callback_group
         );
+
+        /**
+         * @brief Destructor
+         */
+        ~ManeuverScheduler();
+
+        /**
+         * @brief Starts the maneuver scheduler.
+         */
+        void Start();
+
+        /**
+         * @brief Stops the maneuver scheduler.
+         */
+        void Stop();
 
         /**
          * @brief Registers a maneuver type with a maneuver server.
@@ -109,6 +129,13 @@ namespace maneuver {
             iii_drone::control::maneuver::maneuver_type_t maneuver_type,
             ManeuverServer::SharedPtr maneuver_server
         );
+
+        /**
+         * @brief Unregisters a maneuver type. Removes the maneuver server associated with the maneuver type.
+         * 
+         * @param maneuver_type The maneuver type.
+         */
+        void UnregisterManeuverServer(iii_drone::control::maneuver::maneuver_type_t maneuver_type);
 
         /**
          * @brief Returns the expected combined drone awareness upon completion or failure of given maneuver type, considering the full maneuver queue.
@@ -218,6 +245,11 @@ namespace maneuver {
 
     private:
         /**
+         * @brief Is started flag.
+         */
+        iii_drone::utils::Atomic<bool> is_started_ = false;
+
+        /**
          * @brief Evaluates whether a maneuver can be executed given an awareness.
          * 
          * @param maneuver The maneuver.
@@ -257,7 +289,7 @@ namespace maneuver {
         /**
          * @brief Reference to the node for creating of ROS2 objects.
          */
-        rclcpp::Node *node_;
+        rclcpp_lifecycle::LifecycleNode *node_;
 
         /**
          * @brief Shared pointer to the combined drone awareness handler for retrieving drone awareness.
@@ -319,7 +351,7 @@ namespace maneuver {
         /**
          * @brief ROS2 reference publisher.
          */
-        rclcpp::Publisher<iii_drone_interfaces::msg::Reference>::SharedPtr reference_publisher_;
+        rclcpp_lifecycle::LifecyclePublisher<iii_drone_interfaces::msg::Reference>::SharedPtr reference_publisher_;
 
         /**
          * @brief Get reference service.
@@ -383,12 +415,12 @@ namespace maneuver {
         /**
          * @brief Current maneuver publisher.
          */
-        rclcpp::Publisher<iii_drone_interfaces::msg::Maneuver>::SharedPtr current_maneuver_publisher_;
+        rclcpp_lifecycle::LifecyclePublisher<iii_drone_interfaces::msg::Maneuver>::SharedPtr current_maneuver_publisher_;
 
         /**
          * @brief Maneuver queue publisher.
          */
-        rclcpp::Publisher<iii_drone_interfaces::msg::ManeuverQueue>::SharedPtr maneuver_queue_publisher_;
+        rclcpp_lifecycle::LifecyclePublisher<iii_drone_interfaces::msg::ManeuverQueue>::SharedPtr maneuver_queue_publisher_;
 
         /**
          * @brief Maneuver publish timer.

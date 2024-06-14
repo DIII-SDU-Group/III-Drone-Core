@@ -22,7 +22,7 @@ using GripperStatusAdapterHistory = iii_drone::utils::History<iii_drone::adapter
 CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(
     iii_drone::configuration::ParameterBundle::SharedPtr params,
     tf2_ros::Buffer::SharedPtr tf_buffer,
-    rclcpp::Node * node,
+    rclcpp_lifecycle::LifecycleNode * node,
     bool debug
 ) : params_(params),
     tf_buffer_(tf_buffer),
@@ -30,11 +30,51 @@ CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(
 
     debug_ = debug;
 
-    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(): Creating tf_broadcaster_");
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(): Creating publishers");
+
+    combined_drone_awareness_pub_ = node_->create_publisher<iii_drone_interfaces::msg::CombinedDroneAwareness>(
+        "combined_drone_awareness",
+        10
+    );
+
+	rclcpp::QoS px4_sub_qos(rclcpp::KeepLast(1));
+	px4_sub_qos.transient_local();
+	px4_sub_qos.best_effort();
+
+    target_pub_ = node_->create_publisher<iii_drone_interfaces::msg::Target>(
+        "target",
+        10
+    );
+
+}
+
+CombinedDroneAwarenessHandler::~CombinedDroneAwarenessHandler() {
+
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::~CombinedDroneAwarenessHandler(): Destroying CombinedDroneAwarenessHandler");
+
+    if (is_started_) {
+        Stop();
+    }
+
+}
+
+void CombinedDroneAwarenessHandler::Start() {
+
+    if (is_started_) {
+
+        RCLCPP_ERROR(node_->get_logger(), "CombinedDroneAwarenessHandler::Start(): CombinedDroneAwarenessHandler is already started");
+
+        return;
+
+    }
+
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Start(): Starting CombinedDroneAwarenessHandler");
+
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Start(): Creating tf_broadcaster_");
 
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*node_);
 
-    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(): Creating history and atomic member objects");
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Start(): Creating history and atomic member objects");
     vehicle_status_adapter_history_ = std::make_shared<VehicleStatusAdapterHistory>(1);
     vehicle_odometry_adapter_history_ = std::make_shared<VehicleOdometryAdapterHistory>(2);
     powerline_adapter_history_ = std::make_shared<PowerlineAdapterHistory>(1);
@@ -43,7 +83,7 @@ CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(
     target_adapter_ = std::make_shared<iii_drone::utils::Atomic<TargetAdapter>>();
 
     
-    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(): Creating Register Offboard Mode service");
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Start(): Creating Register Offboard Mode service");
 
     register_offboard_mode_srv_ = node_->create_service<iii_drone_interfaces::srv::RegisterOffboardMode>(
         "register_offboard_mode",
@@ -59,7 +99,7 @@ CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(
         }
     );
 
-    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(): Creating ground altitude estimate");
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Start(): Creating ground altitude estimate");
     int ground_estimate_window_size = params_->GetParameter("ground_estimate_window_size").as_int();
     ground_altitudes_history_ = std::make_shared<History<double>>(0, ground_estimate_window_size);
 
@@ -73,19 +113,13 @@ CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(
 
     ground_altitude_update_timer_->cancel();
 
-    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(): Creating combined_drone_awareness_");
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Start(): Creating combined_drone_awareness_");
     combined_drone_awareness_ = std::make_shared<Atomic<combined_drone_awareness_t>>();
 
-    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(): Updating combined drone awareness");
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Start(): Updating combined drone awareness");
     updateCombinedDroneAwareness();
 
-    if (debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(): Creating combined drone awareness publisher and timer");
-
-    combined_drone_awareness_pub_ = node_->create_publisher<iii_drone_interfaces::msg::CombinedDroneAwareness>(
-        "combined_drone_awareness",
-        10
-    );
-
+    if (debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Start(): Creating combined drone awareness publish timer");
     combined_drone_awareness_pub_timer_ = node_->create_wall_timer(
         std::chrono::milliseconds(params_->GetParameter("combined_drone_awareness_pub_period_ms").as_int()),
         [this]() {
@@ -110,15 +144,10 @@ CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(
         }
     );
 
-    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(): Creating subscribers and publishers");
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Start(): Creating subscribers");
 	rclcpp::QoS px4_sub_qos(rclcpp::KeepLast(1));
 	px4_sub_qos.transient_local();
 	px4_sub_qos.best_effort();
-
-    target_pub_ = node_->create_publisher<iii_drone_interfaces::msg::Target>(
-        "target",
-        10
-    );
 
     vehicle_status_sub_ = node_->create_subscription<px4_msgs::msg::VehicleStatus>(
         "/fmu/out/vehicle_status",
@@ -164,7 +193,7 @@ CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(
         }
     );
 
-    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(): Creating publish timer");
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Start(): Creating publish timer");
     publish_timer_ = node_->create_wall_timer(
         std::chrono::milliseconds(100),
         std::bind(
@@ -172,6 +201,100 @@ CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(
             this
         )
     );
+
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Start(): Started CombinedDroneAwarenessHandler");
+
+    is_started_ = true;
+
+}
+
+void CombinedDroneAwarenessHandler::Stop() {
+
+    if (!is_started_) {
+
+        RCLCPP_ERROR(node_->get_logger(), "CombinedDroneAwarenessHandler::Stop(): CombinedDroneAwarenessHandler is already stopped");
+
+        return;
+
+    }
+
+    is_started_ = false;
+
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Stop(): Stopping CombinedDroneAwarenessHandler");
+
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Stop(): Stopping publish timer");
+    publish_timer_->cancel();
+    publish_timer_.reset();
+    publish_timer_ = nullptr;
+
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Stop(): Stopping subscribers");
+    vehicle_status_sub_->clear_on_new_message_callback();
+    vehicle_status_sub_.reset();
+    vehicle_status_sub_ = nullptr;
+
+    vehicle_odometry_sub_->clear_on_new_message_callback();
+    vehicle_odometry_sub_.reset();
+    vehicle_odometry_sub_ = nullptr;
+
+    powerline_sub_->clear_on_new_message_callback();
+    powerline_sub_.reset();
+    powerline_sub_ = nullptr;
+
+    gripper_status_sub_->clear_on_new_message_callback();
+    gripper_status_sub_.reset();
+    gripper_status_sub_ = nullptr;
+
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Stop(): Stopping combined_drone_awareness_pub_timer_");
+    combined_drone_awareness_pub_timer_->cancel();
+    combined_drone_awareness_pub_timer_.reset();
+    combined_drone_awareness_pub_timer_ = nullptr;
+
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Stop(): Resetting combined_drone_awareness_");
+    combined_drone_awareness_.reset();
+    combined_drone_awareness_ = nullptr;
+
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Stop(): Stopping ground altitude estimate");
+    ground_altitude_update_timer_->cancel();
+    ground_altitude_update_timer_.reset();
+    ground_altitude_update_timer_ = nullptr;
+
+    ground_altitudes_history_->clear();
+    ground_altitudes_history_.reset();
+    ground_altitudes_history_ = nullptr;
+
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Stop(): Stopping Register Offboard Mode service");
+    register_offboard_mode_srv_->clear_on_new_request_callback();
+    register_offboard_mode_srv_.reset();
+    register_offboard_mode_srv_ = nullptr;
+
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Stop(): Clearing histories and atomics");
+    vehicle_status_adapter_history_->clear();
+    vehicle_status_adapter_history_.reset();
+    vehicle_status_adapter_history_ = nullptr;
+
+    vehicle_odometry_adapter_history_->clear();
+    vehicle_odometry_adapter_history_.reset();
+    vehicle_odometry_adapter_history_ = nullptr;
+
+    powerline_adapter_history_->clear();
+    powerline_adapter_history_.reset();
+    powerline_adapter_history_ = nullptr;
+
+    gripper_status_adapter_history_->clear();
+    gripper_status_adapter_history_.reset();
+    gripper_status_adapter_history_ = nullptr;
+
+    ground_altitude_estimate_.reset();
+    ground_altitude_estimate_ = nullptr;
+
+    target_adapter_.reset();
+    target_adapter_ = nullptr;
+
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Stop(): Destroying tf_broadcaster_");
+    tf_broadcaster_.reset();
+    tf_broadcaster_ = nullptr;
+
+    if (debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Stop(): Stopped CombinedDroneAwarenessHandler");
 
 }
 
@@ -712,6 +835,15 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness
         combined_drone_awareness.drone_location = DRONE_LOCATION_IN_FLIGHT;
         has_found_initial_location_ = true;
         return;
+
+    } else if (!has_found_initial_location_) {
+        // Drone is unarmed and initial location has not been found and drone is not on cable,
+        // assume drone is on ground
+
+        combined_drone_awareness.drone_location = DRONE_LOCATION_ON_GROUND;
+        combined_drone_awareness.on_cable_id = -1;
+        return;
+
     }
 
     // Throw error if no location found

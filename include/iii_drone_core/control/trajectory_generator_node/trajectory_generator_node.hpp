@@ -12,6 +12,9 @@
 
 #include <rclcpp/rclcpp.hpp>
 
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
+#include <rclcpp_lifecycle/lifecycle_publisher.hpp>
+
 /*****************************************************************************/
 // III-Drone-Interfaces:
 
@@ -43,12 +46,12 @@ namespace iii_drone {
 namespace control {
 namespace trajectory_generator_node {
 
-    class TrajectoryGeneratorNode : public rclcpp::Node {
+    class TrajectoryGeneratorNode : public rclcpp_lifecycle::LifecycleNode {
 
     public:
 
         /**
-         * Constructor.
+         * @brief Constructor.
          * 
          * @param node_name The name of the node.
          * @param node_namespace The namespace of the node.
@@ -61,20 +64,86 @@ namespace trajectory_generator_node {
         );
 
         /**
-         * Destructor.
+         * @brief Destructor.
          */
         ~TrajectoryGeneratorNode();
+
+        /**
+         * @brief Callback for configure transition.
+         * 
+         * @param state The lifecycle state
+         * 
+         * @return CallbackReturn The return value
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_configure(
+            const rclcpp_lifecycle::State & state
+        );
+
+        /**
+         * @brief Callback for cleanup transition.
+         * 
+         * @param state The lifecycle state
+         * 
+         * @return CallbackReturn The return value
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_cleanup(
+            const rclcpp_lifecycle::State & state
+        );
+
+        /**
+         * @brief Callback for activate transition.
+         * 
+         * @param state The lifecycle state
+         * 
+         * @return CallbackReturn The return value
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_activate(
+            const rclcpp_lifecycle::State & state
+        );
+
+        /**
+         * @brief Callback for deactivate transition.
+         * 
+         * @param state The lifecycle state
+         * 
+         * @return CallbackReturn The return value
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_deactivate(
+            const rclcpp_lifecycle::State & state
+        );
+
+        /**
+         * @brief Callback for shutdown transition.
+         * 
+         * @param state The lifecycle state
+         * 
+         * @return CallbackReturn The return value
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_shutdown(
+            const rclcpp_lifecycle::State & state
+        );
+
+        /**
+         * @brief Callback for error transition.
+         * 
+         * @param state The lifecycle state
+         * 
+         * @return CallbackReturn The return value
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_error(
+            const rclcpp_lifecycle::State & state
+        );
 
     private:
 		/**
 		 * @brief The configurator
 		 */
-		iii_drone::configuration::Configurator configurator_;
+		iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>::SharedPtr configurator_;
 
         /**
          * @brief The trajectory generator object
          */
-        TrajectoryGenerator trajectory_generator_;
+        TrajectoryGenerator::SharedPtr trajectory_generator_;
 
 		/**
 		 * @brief The compute reference trajectory service

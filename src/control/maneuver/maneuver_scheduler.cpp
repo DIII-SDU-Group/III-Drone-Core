@@ -15,7 +15,7 @@ using namespace iii_drone::adapters;
 /*****************************************************************************/
 
 ManeuverScheduler::ManeuverScheduler(
-    rclcpp::Node *node,
+    rclcpp_lifecycle::LifecycleNode *node,
     const CombinedDroneAwarenessHandler::SharedPtr combined_drone_awareness_handler,
     const iii_drone::configuration::ParameterBundle::SharedPtr parameters,
     rclcpp::CallbackGroup::SharedPtr maneuver_execution_callback_group
@@ -33,10 +33,6 @@ ManeuverScheduler::ManeuverScheduler(
         node_->get_logger()
     ) {
 
-    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::ManeuverScheduler()");
-
-    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::ManeuverScheduler(): Initializing reference callback");
-
     *reference_callback_ = std::bind(
         &ManeuverScheduler::getPassthroughReference,
         this,
@@ -48,14 +44,6 @@ ManeuverScheduler::ManeuverScheduler(
         10 // Fix QoS
     );
 
-    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::ManeuverScheduler(): Initializing maneuver queue");
-
-    maneuver_queue_ = std::make_unique<ManeuverQueue>(parameters_->GetParameter("maneuver_queue_size").as_int());
-    
-    current_maneuver_ = Maneuver();
-
-    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::ManeuverScheduler(): Initializing maneuver publisher and timer");
-
     current_maneuver_publisher_ = node_->create_publisher<iii_drone_interfaces::msg::Maneuver>(
         "current_maneuver",
         10 // Fix QoS
@@ -65,6 +53,33 @@ ManeuverScheduler::ManeuverScheduler(
         "maneuver_queue",
         10 // Fix QoS
     );
+
+}
+
+ManeuverScheduler::~ManeuverScheduler() {
+
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::~ManeuverScheduler()");
+
+    if (is_started_)
+        Stop();
+
+}
+
+void ManeuverScheduler::Start() {
+
+    if (is_started_) {
+
+        std::string msg = "ManeuverScheduler::Start(): maneuver scheduler is already started.";
+
+        RCLCPP_ERROR(node_->get_logger(), msg.c_str());
+
+        return;
+
+    }
+
+    maneuver_queue_ = std::make_unique<ManeuverQueue>(parameters_->GetParameter("maneuver_queue_size").as_int());
+    
+    current_maneuver_ = Maneuver();
 
     maneuver_publish_timer_ = node_->create_wall_timer(
         std::chrono::milliseconds(parameters_->GetParameter("maneuver_publish_period_ms").as_int()),
@@ -98,8 +113,6 @@ ManeuverScheduler::ManeuverScheduler(
         }
     );
 
-    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::ManeuverScheduler(): Initializing maneuver execution timer");
-
     maneuver_execution_timer_ = node_->create_wall_timer(
         std::chrono::milliseconds(parameters_->GetParameter("maneuver_execution_period_ms").as_int()),
         std::bind(
@@ -111,8 +124,6 @@ ManeuverScheduler::ManeuverScheduler(
 
     maneuver_execution_timer_->cancel();
 
-    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::ManeuverScheduler(): Initializing get reference service");
-
     get_reference_service_ = node_->create_service<iii_drone_interfaces::srv::GetReference>(
         "get_reference",
         std::bind(
@@ -123,7 +134,47 @@ ManeuverScheduler::ManeuverScheduler(
         )
     );
 
-    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::ManeuverScheduler(): Finished initializing");
+    is_started_ = true;
+
+}
+
+void ManeuverScheduler::Stop() {
+
+    if (!is_started_) {
+
+        std::string msg = "ManeuverScheduler::Stop(): maneuver scheduler is not started.";
+
+        RCLCPP_ERROR(node_->get_logger(), msg.c_str());
+
+        return;
+
+    }
+
+    is_started_ = false;
+
+    cancelAllPendingManeuvers();
+
+    maneuver_execution_timer_->cancel();
+    maneuver_execution_timer_.reset();
+    maneuver_execution_timer_ = nullptr;
+
+    get_reference_service_->clear_on_new_request_callback();
+    get_reference_service_.reset();
+    get_reference_service_ = nullptr;
+
+    maneuver_publish_timer_->cancel();
+    maneuver_publish_timer_.reset();
+    maneuver_publish_timer_ = nullptr;
+
+    maneuver_queue_.reset();
+    maneuver_queue_ = nullptr;
+
+    // Loop through manuever servers, remove all
+    for (auto registered_maneuver : registered_maneuvers_) {
+
+        UnregisterManeuverServer(registered_maneuver.first);
+
+    }
 
 }
 
@@ -132,8 +183,16 @@ void ManeuverScheduler::RegisterManeuverServer(
     ManeuverServer::SharedPtr maneuver_server
 ) {
 
-    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::RegisterManeuverServer(): registering maneuver type %d", maneuver_type);
-    
+    if (!is_started_) {
+
+        std::string msg = "ManeuverScheduler::RegisterManeuverServer(): maneuver scheduler is not started.";
+
+        RCLCPP_ERROR(node_->get_logger(), msg.c_str());
+
+        return;
+
+    }
+
     // Check if the maneuver type is already registered
     if (registered_maneuvers_.find(maneuver_type) != registered_maneuvers_.end()) {
 
@@ -145,16 +204,12 @@ void ManeuverScheduler::RegisterManeuverServer(
 
     }
 
-    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::RegisterManeuverServer(): Inserting maneuver server");
-
     registered_maneuvers_.insert(
         std::pair<maneuver_type_t, ManeuverServer::SharedPtr>(
             maneuver_type,
             maneuver_server
         )
     );
-
-    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::RegisterManeuverServer(): Starting maneuver server");
 
     maneuver_server->Start(
         std::bind(
@@ -200,8 +255,6 @@ void ManeuverScheduler::RegisterManeuverServer(
 
     if (maneuver_type == MANEUVER_TYPE_HOVER_BY_OBJECT) {
 
-        // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::RegisterManeuverServer(): Registering on fail callback for hover by object");
-
         std::static_pointer_cast<HoverByObjectManeuverServer>(maneuver_server)->RegisterOnFailCallback(
             std::bind(
                 &ManeuverScheduler::onHoveringFail,
@@ -210,8 +263,6 @@ void ManeuverScheduler::RegisterManeuverServer(
         );
 
     } else if (maneuver_type == MANEUVER_TYPE_HOVER_ON_CABLE) {
-
-        // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::RegisterManeuverServer(): Registering on fail callback for hover on cable");
 
         std::static_pointer_cast<HoverOnCableManeuverServer>(maneuver_server)->RegisterOnFailCallback(
             std::bind(
@@ -222,7 +273,35 @@ void ManeuverScheduler::RegisterManeuverServer(
 
     }
 
-    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::RegisterManeuverServer(): Finished registering maneuver type %d", maneuver_type);
+}
+
+void ManeuverScheduler::UnregisterManeuverServer(maneuver_type_t maneuver_type) {
+
+    if (!is_started_) {
+
+        std::string msg = "ManeuverScheduler::UnregisterManeuverServer(): maneuver scheduler is not started.";
+
+        RCLCPP_ERROR(node_->get_logger(), msg.c_str());
+
+        return;
+
+    }
+
+    auto registered_maneuver = registered_maneuvers_.find(maneuver_type);
+
+    if (registered_maneuver == registered_maneuvers_.end()) {
+
+        std::string msg = "ManeuverScheduler::UnregisterManeuverServer(): maneuver type " + std::to_string(maneuver_type) + " not registered.";
+
+        RCLCPP_ERROR(node_->get_logger(), msg.c_str());
+
+        return;
+
+    }
+
+    registered_maneuver->second->Stop();
+
+    registered_maneuvers_.erase(registered_maneuver);
 
 }
 
@@ -231,19 +310,19 @@ bool ManeuverScheduler::ProjectExpectedAwarenessFull(
     combined_drone_awareness_t & awareness
 ) const {
 
-    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::ProjectExpectedAwarenessFull(): projecting expected awareness");
+    if (!is_started_) {
+
+        std::string msg = "ManeuverScheduler::ProjectExpectedAwarenessFull(): maneuver scheduler is not started.";
+
+        RCLCPP_ERROR(node_->get_logger(), msg.c_str());
+
+        return false;
+
+    }
 
     std::vector<Maneuver> maneuver_queue = maneuver_queue_->vector();
 
     Maneuver current_maneuver = current_maneuver_.Load();
-
-    // RCLCPP_DEBUG(
-    //     node_->get_logger(), 
-    //     "ManeuverScheduler::ProjectExpectedAwarenessFull(): Current manuever: type = %d, terminated = %s, success = %s",
-    //     current_maneuver.maneuver_type(),
-    //     current_maneuver.terminated() ? "true" : "false",
-    //     current_maneuver.success() ? "true" : "false"
-    // );
 
     if (maneuver_queue.size() == 0 || maneuver_queue[0] != current_maneuver) {
 
@@ -270,8 +349,6 @@ bool ManeuverScheduler::ProjectExpectedAwarenessFull(
             )
         ) {
 
-            // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::ProjectExpectedAwarenessFull(): maneuver type %d cannot execute", maneuver_queue[i].maneuver_type());
-
             return false;
 
         }
@@ -279,8 +356,6 @@ bool ManeuverScheduler::ProjectExpectedAwarenessFull(
         awareness = next_awareness;
 
     }
-
-    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::ProjectExpectedAwarenessFull(): Successfully projected expected awareness");
 
     return true;
 
@@ -292,11 +367,17 @@ bool ManeuverScheduler::ProjectExpectedAwarenessSingle(
     combined_drone_awareness_t & awareness_after
 ) const {
 
-    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::ProjectExpectedAwarenessSingle(): projecting expected awareness for maneuver type %d", maneuver.maneuver_type());
+    if (!is_started_) {
+
+        std::string msg = "ManeuverScheduler::ProjectExpectedAwarenessSingle(): maneuver scheduler is not started.";
+
+        RCLCPP_ERROR(node_->get_logger(), msg.c_str());
+
+        return false;
+
+    }
 
     if (maneuver.maneuver_type() == MANEUVER_TYPE_NONE) {
-
-        // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::ProjectExpectedAwarenessSingle(): maneuver type is NONE, returning awareness unaltered awareness");
 
         awareness_after = awareness_before;
 
@@ -321,17 +402,21 @@ bool ManeuverScheduler::ProjectExpectedAwarenessSingle(
 
 bool ManeuverScheduler::CanExecute(const Maneuver & maneuver) const {
 
-    // // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::CanExecute(): checking if maneuver can execute");
+    if (!is_started_) {
 
-    if (maneuverIsExecutingOrPending()) {
+        std::string msg = "ManeuverScheduler::CanExecute(): maneuver scheduler is not started.";
 
-        // // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::CanExecute(): A maneuver is executing or pending");
+        RCLCPP_ERROR(node_->get_logger(), msg.c_str());
 
         return false;
 
     }
 
-    //// RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::CanExecute(): No maneuver is executing or pending");
+    if (maneuverIsExecutingOrPending()) {
+
+        return false;
+
+    }
 
     bool maneuver_can_execute = maneuverCanExecute(
         maneuver,
@@ -340,13 +425,9 @@ bool ManeuverScheduler::CanExecute(const Maneuver & maneuver) const {
 
     if (!maneuver_can_execute) {
 
-        //// RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::CanExecute(): maneuver cannot execute");
-
         return false;
 
     }
-
-    //// RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::CanExecute(): maneuver can execute");
 
     return true;
 
@@ -354,7 +435,15 @@ bool ManeuverScheduler::CanExecute(const Maneuver & maneuver) const {
 
 bool ManeuverScheduler::CanSchedule(const Maneuver & maneuver) const {
 
-    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::CanSchedule(): checking if maneuver can be scheduled");
+    if (!is_started_) {
+
+        std::string msg = "ManeuverScheduler::CanSchedule(): maneuver scheduler is not started.";
+
+        RCLCPP_ERROR(node_->get_logger(), msg.c_str());
+
+        return false;
+
+    }
 
     combined_drone_awareness_t awareness;
 
@@ -363,13 +452,9 @@ bool ManeuverScheduler::CanSchedule(const Maneuver & maneuver) const {
         awareness
     )) {
 
-        // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::CanSchedule(): maneuver can be scheduled");
-
         return true;
 
     }
-
-    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::CanSchedule(): maneuver cannot be scheduled");
 
     return false;
 
@@ -380,13 +465,19 @@ bool ManeuverScheduler::RegisterManeuver(
     bool & will_execute_immediately
 ) {
 
-    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::RegisterManeuver(): registering maneuver");
+    if (!is_started_) {
+
+        std::string msg = "ManeuverScheduler::RegisterManeuver(): maneuver scheduler is not started.";
+
+        RCLCPP_ERROR(node_->get_logger(), msg.c_str());
+
+        return false;
+
+    }
 
     std::shared_lock<std::shared_mutex> lck(maneuver_mutex_);
 
     if (!CanSchedule(maneuver)) {
-
-        // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::RegisterManeuver(): maneuver cannot be scheduled, returning false");
 
         return false;
 
@@ -396,25 +487,15 @@ bool ManeuverScheduler::RegisterManeuver(
 
     if (!maneuver_queue_->Push(maneuver)) {
 
-        // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::RegisterManeuver(): maneuver could not be pushed to queue, returning false");
-
         return false;
 
     }
 
     if (maneuver_execution_timer_->is_canceled()) {
 
-        // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::RegisterManeuver(): maneuver execution timer is canceled, starting timer");
-
         maneuver_execution_timer_->reset();
 
     }
-
-    // RCLCPP_DEBUG(
-    //     node_->get_logger(), 
-    //     "ManeuverScheduler::RegisterManeuver(): maneuver registered, returning true with will_execute_immediately = %s", 
-    //     will_execute_immediately ? "true" : "false"
-    // );
 
     return true;
 
@@ -422,7 +503,15 @@ bool ManeuverScheduler::RegisterManeuver(
 
 bool ManeuverScheduler::UpdateManeuver(Maneuver maneuver) {
 
-    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::UpdateManeuver(): Updating maneuver type %d", maneuver.maneuver_type());
+    if (!is_started_) {
+
+        std::string msg = "ManeuverScheduler::UpdateManeuver(): maneuver scheduler is not started.";
+
+        RCLCPP_ERROR(node_->get_logger(), msg.c_str());
+
+        return false;
+
+    }
 
     if (!&maneuver_mutex_) {
 
@@ -430,8 +519,6 @@ bool ManeuverScheduler::UpdateManeuver(Maneuver maneuver) {
         throw std::runtime_error("ManeuverScheduler::UpdateManeuver(): maneuver_mutex_ is null");
 
     } else {
-
-        // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::UpdateManeuver(): maneuver_mutex_ is not null");
 
     }
 
@@ -451,8 +538,6 @@ bool ManeuverScheduler::UpdateManeuver(Maneuver maneuver) {
 
         if (update_timeout_elapsed(maneuver)) {
 
-            // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::UpdateManeuver(): Manuever is current maneuver, but maneuver update timeout elapsed, terminating current maneuver and returning false");
-
             maneuver.Terminate(false);
 
             current_maneuver_ = maneuver;
@@ -460,8 +545,6 @@ bool ManeuverScheduler::UpdateManeuver(Maneuver maneuver) {
             return false;
 
         }
-
-        // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::UpdateManeuver(): Manuever is current maneuver, updating current maneuver, returning true");
 
         current_maneuver_ = maneuver;
 
@@ -473,15 +556,11 @@ bool ManeuverScheduler::UpdateManeuver(Maneuver maneuver) {
 
     if (old_maneuver == Maneuver()) {
 
-        // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::UpdateManeuver(): Old maneuver not found, returning false");
-
         return false;
 
     }
 
     if (update_timeout_elapsed(old_maneuver)) {
-
-        // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::UpdateManeuver(): Old maneuver found in queue, but update timeout elapsed, terminating old maneuver and returning false");
 
         old_maneuver.Terminate(false);
 
@@ -499,8 +578,6 @@ bool ManeuverScheduler::UpdateManeuver(Maneuver maneuver) {
 
     } else {
 
-        // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::UpdateManeuver(): Updated maneuver in queue, returning true");
-
         return true;
 
     }
@@ -508,6 +585,16 @@ bool ManeuverScheduler::UpdateManeuver(Maneuver maneuver) {
 }
 
 bool ManeuverScheduler::CancelManeuver(Maneuver maneuver) {
+
+    if (!is_started_) {
+
+        std::string msg = "ManeuverScheduler::CancelManeuver(): maneuver scheduler is not started.";
+
+        RCLCPP_ERROR(node_->get_logger(), msg.c_str());
+
+        return false;
+
+    }
 
     if (!maneuver.terminated()) {
 
@@ -564,8 +651,6 @@ bool ManeuverScheduler::maneuverCanExecute(
     const Maneuver & maneuver,
     const combined_drone_awareness_t & awareness
 ) const {
-
-    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::maneuverCanExecute(): checking if maneuver can execute with given awareness");
 
     // Find registered maneuver coresponding to the maneuver type
     auto registered_maneuver = registered_maneuvers_.find(maneuver.maneuver_type());
@@ -644,8 +729,6 @@ void ManeuverScheduler::onReferenceCallbackTokenReacquired() {
 
 Reference ManeuverScheduler::getPassthroughReference(const State & state) const {
 
-    //// RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::getPassthroughReference(): Getting passthrough reference");
-
     return Reference(state);
 
 }
@@ -663,22 +746,10 @@ void ManeuverScheduler::getReferenceServiceCallback(
     std::shared_ptr<iii_drone_interfaces::srv::GetReference::Response> response
 ) {
 
-    //// RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::getReferenceServiceCallback(): Received request");
-
     iii_drone_interfaces::msg::Reference ref_msg = fetchNextReferenceAndPublish();
 
     response->reference = ref_msg;
     bool is_valid = maneuverIsExecutingOrPending();
-
-    if (is_valid) {
-
-        //// RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::getReferenceServiceCallback(): Maneuver is executing or pending");
-
-    } else {
-
-        //// RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::getReferenceServiceCallback(): Maneuver is not executing or pending");
-
-    }
 
     response->is_valid = is_valid;
 
@@ -786,19 +857,11 @@ void ManeuverScheduler::progressScheduler() {
 
     auto on_failure = [this, &on_no_maneuver](Maneuver previous_maneuver) {
 
-        // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::progressScheduler()::on_failure(): maneuver failed");
-
         previous_maneuver.Terminate(false);
-
-        // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::progressScheduler()::on_failure(): maneuver terminated");
 
         cancelAllPendingManeuvers();
 
-        // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::progressScheduler()::on_failure(): all pending maneuvers canceled, denying all tokens");
-
         reference_callback_token_.DenyAll();
-
-        // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::progressScheduler()::on_failure(): all tokens denied, calling on_no_maneuver()");
 
         on_no_maneuver(previous_maneuver);
 
@@ -809,8 +872,6 @@ void ManeuverScheduler::progressScheduler() {
 
         // Check if the current maneuver is completed
         if(current_maneuver_->terminated()) {
-
-            // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::progressScheduler(): maneuver type %d is terminated", current_maneuver_->maneuver_type());
 
             if (!reference_callback_token_.master_has_token()) {
 
@@ -825,20 +886,14 @@ void ManeuverScheduler::progressScheduler() {
             // Check if the maneuver was successful
             if (current_maneuver_->success()) {
 
-                // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::progressScheduler(): maneuver was successful, checking maneuver queue");
-
                 // Check if there are more maneuvers in the queue
                 Maneuver maneuver;
                 if (maneuver_queue_->Pop(maneuver)) {
-
-                    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::progressScheduler(): maneuver type %d popped from queue, setting current maneuver", maneuver.maneuver_type());
 
                     // Progress to the next maneuver
                     current_maneuver_ = maneuver;
 
                 } else {
-
-                    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::progressScheduler(): maneuver queue is empty, calling on_no_maneuver()");
 
                     on_no_maneuver(current_maneuver_);
 
@@ -848,28 +903,21 @@ void ManeuverScheduler::progressScheduler() {
 
             } else {
 
-                // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::progressScheduler(): maneuver was not successful");
-
                 on_failure(current_maneuver_);
 
             }
 
         } else {
             // Current maneuver has not terminated.
-            // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::progressScheduler(): maneuver type %d is not terminated", current_maneuver_->maneuver_type());
 
             // Check that the maneuver has a goal handle:
             if (current_maneuver_->goal_handle() == nullptr) {
-
-                // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::progressScheduler(): Maneuver does not have a goal handle");
 
                 // Check that the update timeout has elapsed:
                 rclcpp::Time maneuver_creation_time = current_maneuver_->creation_time();
                 rclcpp::Time current_time = rclcpp::Clock().now();
 
                 if ((current_time - maneuver_creation_time).seconds() > parameters_->GetParameter("maneuver_register_update_timeout_s").as_double()) {
-
-                    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::progressScheduler(): Maneuver update timeout elapsed, calling on_failure()");
 
                     on_failure(current_maneuver_);
 
@@ -881,8 +929,6 @@ void ManeuverScheduler::progressScheduler() {
 
             if (!current_maneuver_->started()) {
 
-                // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::progressScheduler(): Starting maneuver");
-
                 // Start the maneuver execution:
                 current_maneuver_->Start();
 
@@ -891,8 +937,6 @@ void ManeuverScheduler::progressScheduler() {
 
                 // Get the action name:
                 waiting_for_maneuver_to_start_action_name = registered_maneuver->second->action_name();
-
-                // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::progressScheduler(): Waiting for maneuver server %s to start", waiting_for_maneuver_to_start_action_name.c_str());
 
                 // Set waiting for start:
                 waiting_for_maneuver_to_start = true;
@@ -904,11 +948,7 @@ void ManeuverScheduler::progressScheduler() {
 
             if (waiting_for_maneuver_to_start) {
 
-                // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::progressScheduler(): Waiting for maneuver server %s to start", waiting_for_maneuver_to_start_action_name.c_str());
-
                 if (reference_callback_token_.has_requested_token(waiting_for_maneuver_to_start_action_name)) {
-
-                    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::progressScheduler(): Giving token to maneuver server %s", waiting_for_maneuver_to_start_action_name.c_str());
 
                     // Give the token:
                     reference_callback_token_.Give(waiting_for_maneuver_to_start_action_name);
@@ -922,8 +962,6 @@ void ManeuverScheduler::progressScheduler() {
                     rclcpp::Time current_time = rclcpp::Clock().now();
 
                     if ((current_time - maneuver_start_time).seconds() > parameters_->GetParameter("maneuver_start_timeout_s").as_double()) {
-
-                        // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::progressScheduler(): Maneuver start timeout elapsed, calling on_failure()");
 
                         on_failure(current_maneuver_);
 
@@ -951,8 +989,6 @@ void ManeuverScheduler::progressScheduler() {
 
 iii_drone_interfaces::msg::Reference ManeuverScheduler::fetchNextReferenceAndPublish() {
 
-    //// RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::fetchNextReferenceAndPublish(): Calling stored reference callback");
-
     Reference ref = (**reference_callback_)(combined_drone_awareness_handler_->GetState());
 
     ReferenceAdapter ref_adapter(ref);
@@ -966,8 +1002,6 @@ iii_drone_interfaces::msg::Reference ManeuverScheduler::fetchNextReferenceAndPub
 }
 
 void ManeuverScheduler::cancelAllPendingManeuvers() {
-
-    // RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::cancelAllPendingManeuvers(): clearing maneuver queue and resetting current maneuver");
 
     maneuver_queue_->Clear();
 

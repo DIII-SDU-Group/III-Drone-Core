@@ -14,18 +14,119 @@ TrajectoryGeneratorNode::TrajectoryGeneratorNode(
     const std::string node_name,
     const std::string node_namespace,
     const rclcpp::NodeOptions & options
-) : Node(node_name, node_namespace, options),
-    configurator_(
-        this
-    ), 
-    trajectory_generator_(
-        configurator_.GetParameterBundle("position_MPC"),
-        configurator_.GetParameterBundle("cable_landing_MPC"),
-        configurator_.GetParameterBundle("cable_takeoff_MPC")
-    )
-{
+) : LifecycleNode(node_name, node_namespace, options) {
 
-    RCLCPP_INFO(this->get_logger(), "TrajectoryGeneratorNode::TrajectoryGeneratorNode(): Initializing.");
+	std::string log_level = std::getenv("TRAJECTORY_GENERATOR_LOG_LEVEL");
+
+	if (log_level != "") {
+
+		// Convert to upper case:
+		std::transform(
+			log_level.begin(), 
+			log_level.end(), 
+			log_level.begin(), 
+			[](unsigned char c){ return std::toupper(c); }
+		);
+
+		if (log_level == "DEBUG") {
+			rcutils_logging_set_logger_level(this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_DEBUG);
+		} else if (log_level == "INFO") {
+			rcutils_logging_set_logger_level(this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_INFO);
+		} else if (log_level == "WARN") {
+			rcutils_logging_set_logger_level(this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_WARN);
+		} else if (log_level == "ERROR") {
+			rcutils_logging_set_logger_level(this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_ERROR);
+		} else if (log_level == "FATAL") {
+			rcutils_logging_set_logger_level(this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_FATAL);
+		}
+
+	}
+
+    RCLCPP_INFO(this->get_logger(), "TrajectoryGeneratorNode::TrajectoryGeneratorNode(): Ready.");
+
+}
+
+TrajectoryGeneratorNode::~TrajectoryGeneratorNode() {
+
+    RCLCPP_INFO(this->get_logger(), "TrajectoryGeneratorNode::~TrajectoryGeneratorNode(): Terminating.");
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn TrajectoryGeneratorNode::on_configure(const rclcpp_lifecycle::State & state) {
+
+    RCLCPP_INFO(this->get_logger(), "TrajectoryGeneratorNode::on_configure(): Configuring.");
+
+    CallbackReturn parent_return = rclcpp_lifecycle::LifecycleNode::on_configure(state);
+
+    if (parent_return != CallbackReturn::SUCCESS) {
+        RCLCPP_ERROR(
+            this->get_logger(), 
+            "TrajectoryGeneratorNode::on_configure(): Failed to configure parent class."
+        );
+        return parent_return;
+    }
+
+    RCLCPP_DEBUG(
+        this->get_logger(), 
+        "TrajectoryGeneratorNode::on_configure(): Initializing configurator."
+    );
+
+    configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>>(
+        this
+    );
+
+    trajectory_generator_ = std::make_shared<TrajectoryGenerator> (
+        configurator_->GetParameterBundle("position_MPC"),
+        configurator_->GetParameterBundle("cable_landing_MPC"),
+        configurator_->GetParameterBundle("cable_takeoff_MPC")
+    );
+
+    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn TrajectoryGeneratorNode::on_cleanup(const rclcpp_lifecycle::State & state) {
+
+    RCLCPP_INFO(this->get_logger(), "TrajectoryGeneratorNode::on_cleanup(): Cleaning up.");
+
+    CallbackReturn parent_return = rclcpp_lifecycle::LifecycleNode::on_cleanup(state);
+
+    if (parent_return != CallbackReturn::SUCCESS) {
+        RCLCPP_ERROR(
+            this->get_logger(), 
+            "TrajectoryGeneratorNode::on_cleanup(): Failed to cleanup parent class."
+        );
+        return parent_return;
+    }
+
+    RCLCPP_DEBUG(
+        this->get_logger(), 
+        "TrajectoryGeneratorNode::on_cleanup(): Cleaning up configurator."
+    );
+
+    configurator_.reset();
+    configurator_ = nullptr;
+
+    trajectory_generator_.reset();
+    trajectory_generator_ = nullptr;
+
+    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn TrajectoryGeneratorNode::on_activate(const rclcpp_lifecycle::State & state) {
+
+    RCLCPP_INFO(this->get_logger(), "TrajectoryGeneratorNode::on_activate(): Activating.");
+
+    CallbackReturn parent_return = rclcpp_lifecycle::LifecycleNode::on_activate(state);
+
+    if (parent_return != CallbackReturn::SUCCESS) {
+        RCLCPP_ERROR(
+            this->get_logger(), 
+            "TrajectoryGeneratorNode::on_activate(): Failed to activate parent class."
+        );
+        return parent_return;
+    }
 
     compute_reference_trajectory_service_ = this->create_service<iii_drone_interfaces::srv::ComputeReferenceTrajectory>(
         "compute_reference_trajectory",
@@ -37,25 +138,85 @@ TrajectoryGeneratorNode::TrajectoryGeneratorNode(
         )
     );
 
+    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+
 }
 
-TrajectoryGeneratorNode::~TrajectoryGeneratorNode() {}
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn TrajectoryGeneratorNode::on_deactivate(const rclcpp_lifecycle::State & state) {
+
+    RCLCPP_INFO(this->get_logger(), "TrajectoryGeneratorNode::on_deactivate(): Deactivating.");
+
+    CallbackReturn parent_return = rclcpp_lifecycle::LifecycleNode::on_deactivate(state);
+
+    if (parent_return != CallbackReturn::SUCCESS) {
+        RCLCPP_ERROR(
+            this->get_logger(), 
+            "TrajectoryGeneratorNode::on_deactivate(): Failed to deactivate parent class."
+        );
+        return parent_return;
+    }
+
+    compute_reference_trajectory_service_->clear_on_new_request_callback();
+    compute_reference_trajectory_service_.reset();
+    compute_reference_trajectory_service_ = nullptr;
+
+    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn TrajectoryGeneratorNode::on_shutdown(const rclcpp_lifecycle::State & state) {
+
+    RCLCPP_INFO(this->get_logger(), "TrajectoryGeneratorNode::on_shutdown(): Shutting down.");
+
+    CallbackReturn parent_return = rclcpp_lifecycle::LifecycleNode::on_shutdown(state);
+
+    if (parent_return != CallbackReturn::SUCCESS) {
+        RCLCPP_ERROR(
+            this->get_logger(), 
+            "TrajectoryGeneratorNode::on_shutdown(): Failed to shutdown parent class."
+        );
+        return parent_return;
+    }
+
+    // Create and start thread detached which sleeps for 1 second, then shuts down rclcpp
+    std::thread shutdown_thread([this](){
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        rclcpp::shutdown();
+    });
+    shutdown_thread.detach();
+
+    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn TrajectoryGeneratorNode::on_error(const rclcpp_lifecycle::State & state) {
+
+    RCLCPP_INFO(this->get_logger(), "TrajectoryGeneratorNode::on_error(): Error.");
+
+    CallbackReturn parent_return = rclcpp_lifecycle::LifecycleNode::on_error(state);
+
+    if (parent_return != CallbackReturn::SUCCESS) {
+        RCLCPP_ERROR(
+            this->get_logger(), 
+            "TrajectoryGeneratorNode::on_error(): Failed to error parent class."
+        );
+        return parent_return;
+    }
+
+    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+
+}
 
 void TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(
     const std::shared_ptr<iii_drone_interfaces::srv::ComputeReferenceTrajectory::Request> request,
     std::shared_ptr<iii_drone_interfaces::srv::ComputeReferenceTrajectory::Response> response
 ) {
 
-    // RCLCPP_DEBUG(this->get_logger(), "TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(): Computing reference trajectory.");
-
     adapters::StateAdapter state_adapter(request->state);
     adapters::ReferenceAdapter reference_adapter(request->reference);
 
-    // RCLCPP_DEBUG(this->get_logger(), "TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(): State: [%f, %f, %f, %f, %f, %f, %f]", state_adapter.state().position().x(), state_adapter.state().position().y(), state_adapter.state().position().z(), state_adapter.state().velocity().x(), state_adapter.state().velocity().y(), state_adapter.state().velocity().z(), state_adapter.state().yaw());
-    // RCLCPP_DEBUG(this->get_logger(), "TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(): Reference: [%f, %f, %f, %f, %f, %f, %f]", reference_adapter.reference().position().x(), reference_adapter.reference().position().y(), reference_adapter.reference().position().z(), reference_adapter.reference().velocity().x(), reference_adapter.reference().velocity().y(), reference_adapter.reference().velocity().z(), reference_adapter.reference().yaw());
-
     // Compute the reference trajectory
-    ReferenceTrajectory ref_traj = trajectory_generator_.ComputeReferenceTrajectory(
+    ReferenceTrajectory ref_traj = trajectory_generator_->ComputeReferenceTrajectory(
         state_adapter.state(),
         reference_adapter.reference(),
         request->set_reference,
@@ -63,36 +224,38 @@ void TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(
         (MPC_mode_t)request->mpc_mode.mode
     );
 
-    // RCLCPP_DEBUG(this->get_logger(), "TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(): Reference trajectory computed:");
-
-    // for (size_t i = 0; i < ref_traj.references().size(); i++) {
-    //     // RCLCPP_DEBUG(this->get_logger(), "TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(): Reference %d: [%f, %f, %f, %f, %f, %f, %f]", i, ref_traj.references()[i].position().x(), ref_traj.references()[i].position().y(), ref_traj.references()[i].position().z(), ref_traj.references()[i].velocity().x(), ref_traj.references()[i].velocity().y(), ref_traj.references()[i].velocity().z(), ref_traj.references()[i].yaw());
-    // }
-
     // Set the response
     iii_drone_interfaces::msg::ReferenceTrajectory msg = adapters::ReferenceTrajectoryAdapter(ref_traj).ToMsg();
 
-    // RCLCPP_DEBUG(this->get_logger(), "TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(): Reference trajectory msg:");
-
-    // for (size_t i = 0; i < msg.references.size(); i++) {
-    //     // RCLCPP_DEBUG(this->get_logger(), "TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(): Reference %d: [%f, %f, %f, %f, %f, %f, %f]", i, msg.references[i].position.x, msg.references[i].position.y, msg.references[i].position.z, msg.references[i].velocity.x, msg.references[i].velocity.y, msg.references[i].velocity.z, msg.references[i].yaw);
-    // }
-
     response->reference_trajectory = msg;
-
-    // RCLCPP_DEBUG(this->get_logger(), "TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(): Reference trajectory computed.");
 
 }
 
 int main(int argc, char * argv[]) {
 
+    setvbuf(stdout, NULL, _IONBF, BUFSIZ);
     rclcpp::init(argc, argv);
+
+    rclcpp::executors::MultiThreadedExecutor executor;
 
     auto node = std::make_shared<TrajectoryGeneratorNode>();
 
-    rclcpp::spin(node);
+    executor.add_node(node->get_node_base_interface());
 
-    rclcpp::shutdown();
+    try {
+        
+        executor.spin();
+
+    } catch(const std::exception& e) {
+        
+        node.reset();
+
+    }
+    
+	if (rclcpp::ok()) {
+		node.reset();
+		rclcpp::shutdown();
+	}
 
     return 0;
 

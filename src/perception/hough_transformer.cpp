@@ -12,7 +12,11 @@ using namespace iii_drone::perception;
 
 HoughTransformer::HoughTransformer(iii_drone::configuration::ParameterBundle::SharedPtr parameters) : parameters_(parameters) { }
 
-HoughTransformer::~HoughTransformer() { }
+HoughTransformer::~HoughTransformer() {
+
+	parameters_.reset();
+
+ }
 
 const std::vector<cv::Vec2f> HoughTransformer::GetHoughLines(const cv::Mat img) const {
 
@@ -53,7 +57,7 @@ float HoughTransformer::ComputeAngle(
 ) const {
 
     if (lines.size() == 0) {
-        throw std::runtime_error("HoughTransformer::GetHoughLineAngle(): Empty lines vector.");
+        throw std::runtime_error("HoughTransformer::GetHoughLineAngle(): No lines in vector.");
     }
 
 	float theta = 0.0;

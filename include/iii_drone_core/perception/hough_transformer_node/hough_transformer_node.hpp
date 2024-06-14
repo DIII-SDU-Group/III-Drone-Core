@@ -10,6 +10,9 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/qos.hpp>
 
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
+#include <rclcpp_lifecycle/lifecycle_publisher.hpp>
+
 #include <sensor_msgs/msg/image.hpp>
 
 #include <std_msgs/msg/float32.hpp>
@@ -35,9 +38,14 @@
 /*****************************************************************************/
 // III-Drone-Core:
 
-// #include <iii_drone_core/perception/hough_transformer_node/hough_transformer_node_configurator.hpp>
-// #include <iii_drone_core/perception/hough_transformer_parameters.hpp>
 #include <iii_drone_core/perception/hough_transformer.hpp>
+
+#include <iii_drone_core/utils/atomic.hpp>
+
+/*****************************************************************************/
+// III-Drone-Interfaces:
+
+#include <iii_drone_interfaces/srv/system_command.hpp>
 
 /*****************************************************************************/
 // Std:
@@ -64,7 +72,7 @@ namespace hough_transformer_node {
 	/**
 	 * @brief Node for computing hough transform on images to detect powerline direction.
 	*/
-	class HoughTransformerNode : public rclcpp::Node {
+	class HoughTransformerNode : public rclcpp_lifecycle::LifecycleNode {
 	public:
 		/**
 		 *	@brief Constructor
@@ -84,16 +92,78 @@ namespace hough_transformer_node {
 		 */
 		~HoughTransformerNode();
 
+		// Lifecycle callbacks
+
+		/**
+		 * @brief Callback for configuration of the node
+		 * 
+		 * @param state State of the node
+		 * 
+		 * @return Callback return
+		 */
+		rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn 
+		on_configure(const rclcpp_lifecycle::State & state);
+
+		/**
+		 * @brief Callback for cleanup of the node
+		 * 
+		 * @param state State of the node
+		 * 
+		 * @return Callback return
+		 */
+		rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+		on_cleanup(const rclcpp_lifecycle::State & state);
+
+		/**
+		 * @brief Callback for activation of the node
+		 * 
+		 * @param state State of the node
+		 * 
+		 * @return Callback return
+		 */
+		rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+		on_activate(const rclcpp_lifecycle::State & state);
+
+		/**
+		 * @brief Callback for deactivation of the node
+		 * 
+		 * @param state State of the node
+		 * 
+		 * @return Callback return
+		 */
+		rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+		on_deactivate(const rclcpp_lifecycle::State & state);
+
+		/**
+		 * @brief Callback for shutdown of the node
+		 * 
+		 * @param state State of the node
+		 * 
+		 * @return Callback return
+		 */
+		rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+		on_shutdown(const rclcpp_lifecycle::State & state);
+
+		/**
+		 * @brief Callback for error of the node
+		 * 
+		 * @param state State of the node
+		 * 
+		 * @return Callback return
+		 */
+		rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
+		on_error(const rclcpp_lifecycle::State & state);
+
 	private:
 		/**
 		 * @brief Configurator object
 		 */
-		iii_drone::configuration::Configurator configurator_;
+		iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>::SharedPtr configurator_;
 
 		/**
 		 * @brief HoughTransformer object
 		 */
-		HoughTransformer hough_transformer_;
+		HoughTransformer::SharedPtr hough_transformer_;
 
 		/**
 		 *	@brief Subscription object for the image topic
@@ -101,16 +171,39 @@ namespace hough_transformer_node {
 		rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr camera_subscription_;
 
 		/**
+		 * @brief Command service
+		 */
+		rclcpp::Service<iii_drone_interfaces::srv::SystemCommand>::SharedPtr command_service_;
+
+		/**
+		 * @brief Callback function for the command service
+		 * 
+		 * @param request Request message
+		 * @param response Response message
+		 */
+		void commandCallback(
+			const std::shared_ptr<iii_drone_interfaces::srv::SystemCommand::Request> request,
+			std::shared_ptr<iii_drone_interfaces::srv::SystemCommand::Response> response
+		);
+
+		/**
+		 * @brief Running flag
+		 * 
+		 * @details Flag to indicate if the node is running
+		 */
+		utils::Atomic<bool> running_;
+
+		/**
 		 * @brief Callback function for the image topic
 		 *
 		 * @param _msg Message containing the image
 		 */
-		void OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg);
+		void onCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg);
 
 		/**
 		 * @brief Publisher object for the cable yaw angle
 		 */
-		rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr cable_yaw_publisher_;
+		rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::Float32>::SharedPtr cable_yaw_publisher_;
 
 	};
 

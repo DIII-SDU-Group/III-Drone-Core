@@ -5,6 +5,12 @@
 /*****************************************************************************/
 
 /*****************************************************************************/
+// ROS2:
+
+#include <rclcpp/rclcpp.hpp>
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
+
+/*****************************************************************************/
 // Std:
 
 #include <memory>
@@ -69,7 +75,7 @@ namespace maneuver {
          * @param parameters The hover on cable parameter bundle
          */
         HoverOnCableManeuverServer(
-            rclcpp::Node * node,
+            rclcpp_lifecycle::LifecycleNode * node,
             CombinedDroneAwarenessHandler::SharedPtr combined_drone_awareness_handler,
             const std::string & action_name,
             unsigned int wait_for_execute_poll_ms,

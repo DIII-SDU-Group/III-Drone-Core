@@ -22,6 +22,10 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/qos.hpp>
+#include <rclcpp/callback_group.hpp>
+
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
+#include <rclcpp_lifecycle/lifecycle_publisher.hpp>
 
 #include <sensor_msgs/msg/point_cloud2.hpp>
 
@@ -45,6 +49,7 @@
 #include <iii_drone_interfaces/msg/pl_mapper_command.hpp>
 
 #include <iii_drone_interfaces/srv/pl_mapper_command.hpp>
+#include <iii_drone_interfaces/srv/system_command.hpp>
 
 /*****************************************************************************/
 // III-Drone-Configuration:
@@ -77,7 +82,7 @@ namespace pl_mapper_node {
  * @brief Class for computing position of powerlines from mmWave data fused with powerline direction and odometry,
  * using Kalman filtering.
 */
-class PowerlineMapperNode : public rclcpp::Node {
+class PowerlineMapperNode : public rclcpp_lifecycle::LifecycleNode {
 public:
 explicit
     /**
@@ -93,11 +98,78 @@ explicit
         const rclcpp::NodeOptions & options = rclcpp::NodeOptions()
     );
 
+    /**
+     * @brief Destructor
+     */
+    ~PowerlineMapperNode();
+
+    // Lifecycle callbacks
+
+    /**
+     * @brief Callback function for the configure transition
+     * 
+     * @param state The lifecycle state
+     * @return CallbackReturn The return value
+     */
+    rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_configure(
+        const rclcpp_lifecycle::State & state
+    );
+
+    /**
+     * @brief Callback function for the cleanup transition
+     * 
+     * @param state The lifecycle state
+     * @return CallbackReturn The return value
+     */
+    rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_cleanup(
+        const rclcpp_lifecycle::State & state
+    );
+
+    /**
+     * @brief Callback function for the activate transition
+     * 
+     * @param state The lifecycle state
+     * @return CallbackReturn The return value
+     */
+    rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_activate(
+        const rclcpp_lifecycle::State & state
+    );
+
+    /**
+     * @brief Callback function for the deactivate transition
+     * 
+     * @param state The lifecycle state
+     * @return CallbackReturn The return value
+     */
+    rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_deactivate(
+        const rclcpp_lifecycle::State & state
+    );
+
+    /**
+     * @brief Callback function for the shutdown transition
+     * 
+     * @param state The lifecycle state
+     * @return CallbackReturn The return value
+     */
+    rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_shutdown(
+        const rclcpp_lifecycle::State & state
+    );
+
+    /**
+     * @brief Callback function for the error transition
+     * 
+     * @param state The lifecycle state
+     * @return CallbackReturn The return value
+     */
+    rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_error(
+        const rclcpp_lifecycle::State & state
+    );
+
 private:
     /**
      * @brief Configurator for the node
     */
-    iii_drone::configuration::Configurator configurator_;
+    iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>::SharedPtr configurator_;
 
     /**
      * @brief Subscriber for powerline direction
@@ -112,22 +184,22 @@ private:
     /**
      * @brief Publisher for powerline message
     */
-    rclcpp::Publisher<iii_drone_interfaces::msg::Powerline>::SharedPtr powerline_pub_;
+    rclcpp_lifecycle::LifecyclePublisher<iii_drone_interfaces::msg::Powerline>::SharedPtr powerline_pub_;
 
     /**
      * @brief Publisher for estimated powerline points
     */
-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr points_est_pub_;
+    rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr points_est_pub_;
 
     /**
      * @brief Publisher for transformed mmwave points
     */
-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr transformed_points_pub_;
+    rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr transformed_points_pub_;
 
     /**
      * @brief Publisher for mmwave points projected onto plane
     */
-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr projected_points_pub_;
+    rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr projected_points_pub_;
 
     /**
      * @brief PL-mapper state type.
@@ -148,6 +220,21 @@ private:
      * @brief PL-mapper command service.
      */
     rclcpp::Service<iii_drone_interfaces::srv::PLMapperCommand>::SharedPtr pl_mapper_command_srv_;
+
+    /**
+     * @brief Hough Transformer system command client.
+     */
+    rclcpp::Client<iii_drone_interfaces::srv::SystemCommand>::SharedPtr hough_transformer_command_client_;
+
+    /**
+     * @brief PL Dir Computer system command client.
+     */
+    rclcpp::Client<iii_drone_interfaces::srv::SystemCommand>::SharedPtr pl_dir_computer_command_client_;
+
+    /**
+     * @brief System command clients callback group
+     */
+    rclcpp::CallbackGroup::SharedPtr system_command_clients_callback_group_;
 
     /**
      * @brief PL-mapper command service callback.
@@ -235,7 +322,7 @@ private:
     */
     void publishPoints(
         std::vector<iii_drone::types::point_t> points, 
-        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub
+        rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub
     ) const;
 
 };

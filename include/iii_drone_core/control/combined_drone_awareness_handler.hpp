@@ -14,6 +14,9 @@
 
 #include <rclcpp/rclcpp.hpp>
 
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
+#include <rclcpp_lifecycle/lifecycle_publisher.hpp>
+
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2/convert.h>
@@ -157,9 +160,24 @@ namespace control {
         CombinedDroneAwarenessHandler(
             iii_drone::configuration::ParameterBundle::SharedPtr params,
             tf2_ros::Buffer::SharedPtr tf_buffer,
-            rclcpp::Node * node,
+            rclcpp_lifecycle::LifecycleNode * node,
             bool debug = false
         );
+
+        /**
+         * @brief Destructor
+         */
+        ~CombinedDroneAwarenessHandler();
+
+        /**
+         * @brief Starts the combined drone awareness handler.
+         */
+        void Start();
+
+        /**
+         * @brief Stops the combined drone awareness handler.
+         */
+        void Stop();
 
         /**
          * @brief Get the current drone state.
@@ -324,6 +342,11 @@ namespace control {
         bool debug_;
 
         /**
+         * @brief Is started flag
+         */
+        iii_drone::utils::Atomic<bool> is_started_ = false;
+
+        /**
          * @brief Parameters for the combined drone awareness handler.
          */
         iii_drone::configuration::ParameterBundle::SharedPtr params_;
@@ -341,7 +364,7 @@ namespace control {
         /**
          * @brief Simple pointer to the containing node.
          */
-        rclcpp::Node * node_;
+        rclcpp_lifecycle::LifecycleNode * node_;
 
         /**
          * @brief Atomic vector of navigation state ids which are considered to be offboard.
@@ -392,7 +415,7 @@ namespace control {
         /**
          * @brief Combined drone awareness publisher.
          */
-        rclcpp::Publisher<iii_drone_interfaces::msg::CombinedDroneAwareness>::SharedPtr combined_drone_awareness_pub_;
+        rclcpp_lifecycle::LifecyclePublisher<iii_drone_interfaces::msg::CombinedDroneAwareness>::SharedPtr combined_drone_awareness_pub_;
 
         /**
          * @brief Has found initial location flag.
@@ -519,7 +542,7 @@ namespace control {
         /**
          * @brief Target publisher.
          */
-        rclcpp::Publisher<iii_drone_interfaces::msg::Target>::SharedPtr target_pub_;
+        rclcpp_lifecycle::LifecyclePublisher<iii_drone_interfaces::msg::Target>::SharedPtr target_pub_;
 
         /**
          * @brief Updates the combined drone awareness from the target adapter.

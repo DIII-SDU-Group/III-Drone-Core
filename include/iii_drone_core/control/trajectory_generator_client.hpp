@@ -13,6 +13,7 @@
 // ROS2:
 
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
 
 /*****************************************************************************/
 // III-Drone-Interfaces:
@@ -62,11 +63,18 @@ namespace control {
          * 
          * @param node Node pointer
          * @param parameters Trajectory generator client parameter bundle
+         * @param callback_group Callback group
          */
         TrajectoryGeneratorClient(
-            rclcpp::Node * node,
-            iii_drone::configuration::ParameterBundle::SharedPtr parameters
+            rclcpp_lifecycle::LifecycleNode * node,
+            iii_drone::configuration::ParameterBundle::SharedPtr parameters,
+            rclcpp::CallbackGroup::SharedPtr callback_group
         );
+
+        /**
+         * @brief Destructor.
+         */
+        ~TrajectoryGeneratorClient();
 
         /**
          * @brief Resets the client with the current state.
@@ -173,7 +181,7 @@ namespace control {
         /**
          * @brief Node pointer
          */
-        rclcpp::Node * node_;
+        rclcpp_lifecycle::LifecycleNode * node_;
 
         /**
          * @brief Trajectory generator client parameters

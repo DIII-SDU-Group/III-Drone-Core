@@ -15,7 +15,7 @@ using namespace iii_drone::utils;
 #include <iostream>
 
 ManeuverServer::ManeuverServer(
-    rclcpp::Node * node,
+    rclcpp_lifecycle::LifecycleNode * node,
     CombinedDroneAwarenessHandler::SharedPtr awareness_handler,
     const std::string & action_name,
     unsigned int wait_for_execute_poll_ms,
@@ -89,7 +89,7 @@ std::map<iii_drone::control::maneuver::maneuver_type_t, std::shared_ptr<Maneuver
     return registered_maneuvers_;
 }
 
-rclcpp::Node * ManeuverServer::node() const {
+rclcpp_lifecycle::LifecycleNode * ManeuverServer::node() const {
     return node_;
 }
 
@@ -260,7 +260,7 @@ void ManeuverServer::asyncExecute(
 
     while(true) {
 
-        if (!verify_maneuver_active_(maneuver)) {
+        if (!verify_maneuver_active_(maneuver) || !running_) {
             RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::asyncExecute(): Goal was removed from active maneuvers, cancelling goal");
             publishResultAndFinalize(
                 maneuver,

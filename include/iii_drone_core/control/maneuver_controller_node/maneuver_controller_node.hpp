@@ -15,6 +15,9 @@
 
 #include <rclcpp/rclcpp.hpp>
 
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
+#include <rclcpp_lifecycle/lifecycle_publisher.hpp>
+
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
 #include <tf2/exceptions.h>
@@ -70,7 +73,7 @@ namespace maneuver_controller_node {
      * 5. Create a new maneuver server in the registerManeuverServers method of this class
      * and register it with the ManeuverScheduler.
      */
-    class ManeuverControllerNode : public rclcpp::Node {
+    class ManeuverControllerNode : public rclcpp_lifecycle::LifecycleNode {
 
     public:
         /**
@@ -93,12 +96,74 @@ namespace maneuver_controller_node {
          */
         ~ManeuverControllerNode();
 
+        // Lifecycle callbacks
+
+        /**
+         * @brief Callback function for the configure transition.
+         * 
+         * @param state The lifecycle state.
+         * @return The callback result.
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_configure(
+            const rclcpp_lifecycle::State & state
+        );
+
+        /**
+         * @brief Callback function for the cleanup transition.
+         * 
+         * @param state The lifecycle state.
+         * @return The callback result.
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_cleanup(
+            const rclcpp_lifecycle::State & state
+        );
+
+        /**
+         * @brief Callback function for the activate transition.
+         * 
+         * @param state The lifecycle state.
+         * @return The callback result.
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_activate(
+            const rclcpp_lifecycle::State & state
+        );
+
+        /**
+         * @brief Callback function for the deactivate transition.
+         * 
+         * @param state The lifecycle state.
+         * @return The callback result.
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_deactivate(
+            const rclcpp_lifecycle::State & state
+        );
+
+        /**
+         * @brief Callback function for the shutdown transition.
+         * 
+         * @param state The lifecycle state.
+         * @return The callback result.
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_shutdown(
+            const rclcpp_lifecycle::State & state
+        );
+
+        /**
+         * @brief Callback function for the error transition.
+         * 
+         * @param state The lifecycle state.
+         * @return The callback result.
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_error(
+            const rclcpp_lifecycle::State & state
+        );
+
     private:
         /**
          * @brief Configurator for handling configuration parameters of the node.
          * Exposes parameters for the maneuver scheduler and the maneuver servers.
          */
-        iii_drone::configuration::Configurator configurator_;
+        iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>::SharedPtr configurator_;
 
         /**
          * @brief The transform buffer. Shared with the CombinedDroneAwarenessHandler.
@@ -120,6 +185,11 @@ namespace maneuver_controller_node {
          * @brief The trajectory generator client shared pointer.
          */
         iii_drone::control::TrajectoryGeneratorClient::SharedPtr trajectory_generator_client_;
+
+        /**
+         * @brief Callback group for the trajectory generator client.
+         */
+        rclcpp::CallbackGroup::SharedPtr trajectory_generator_cb_group_;
 
         /**
          * @brief The maneuver execution callback group. 
@@ -183,6 +253,11 @@ namespace maneuver_controller_node {
          * @brief Creates and registers all maneuver servers with the maneuver scheduler.
          */
         void registerManeuverServers();
+
+        /**
+         * @brief Unregisters all maneuver servers from the maneuver scheduler.
+         */
+        void unregisterManeuverServers();
 
     };
 
