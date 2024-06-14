@@ -29,6 +29,11 @@
 #include <iii_drone_core/adapters/reference_adapter.hpp>
 
 /*****************************************************************************/
+// III-Drone-Configuration:
+
+#include <iii_drone_configuration/parameter_bundle.hpp>
+
+/*****************************************************************************/
 // III-Drone-Interfaces:
 
 #include <iii_drone_interfaces/msg/reference.hpp>
@@ -62,17 +67,13 @@ namespace maneuver {
          * 
          * @param node The node pointer.
          * @param vehicle_odometry_adapter_history Shared pointer to the vehicle odometry adapter history.
-         * @param use_nans_when_hovering Whether to use nans for velocities and accelerations when hovering.
-         * @param max_failed_attempts_during_maneuver The maximum number of failed attempts to acquire reference during a maneuver.
-         * @param get_reference_timeout_ms The timeout in milliseconds for obtaining a reference from the service.
+         * @param parameters Parameter bundle
          * @param on_fail_during_maneuver The callback to call when failing to acquire valid reference during a maneuver.
          */
         ManeuverReferenceClient(
             rclcpp::Node * node,
             iii_drone::utils::History<iii_drone::adapters::px4::VehicleOdometryAdapter>::SharedPtr vehicle_odometry_adapter_history,
-            bool use_nans_when_hovering,
-            int max_failed_attempts_during_maneuver,
-            int  get_reference_timeout_ms,
+            iii_drone::configuration::ParameterBundle::SharedPtr parameters,
             std::function<void()> on_fail_during_maneuver
         );
 
@@ -205,19 +206,9 @@ namespace maneuver {
         rclcpp::Client<iii_drone_interfaces::srv::GetReference>::SharedPtr get_reference_client_;
 
         /**
-         * @brief Whether to use nans for velocities and accelerations when hovering.
+         * @brief Parameter bundle
          */
-        const bool use_nans_when_hovering_;
-
-        /**
-         * @brief The maximum number of failed attempts to acquire reference during a maneuver.
-         */
-        const int max_failed_attempts_during_maneuver_;
-
-        /**
-         * @brief The timeout in milliseconds for obtaining a reference from the service.
-         */
-        const int get_reference_timeout_ms_;
+        iii_drone::configuration::ParameterBundle::SharedPtr parameters_;
 
         /**
          * @brief The callback to call when failing to acquire valid reference during a maneuver.

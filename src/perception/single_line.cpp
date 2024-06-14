@@ -171,7 +171,9 @@ bool SingleLine::IsInFOV(
     in_FOV &= dist >= min_point_dist;
 
     const char* simulation_env = std::getenv("SIMULATION");
-    bool simulation = (simulation_env != nullptr) ? (std::string(simulation_env) == "True") : false;
+    std::string simulation_env_str = (simulation_env != nullptr) ? std::string(simulation_env) : "";
+    std::transform(simulation_env_str.begin(), simulation_env_str.end(), simulation_env_str.begin(), ::tolower);
+    bool simulation = simulation_env_str == "true";
 
     if (simulation) {
 

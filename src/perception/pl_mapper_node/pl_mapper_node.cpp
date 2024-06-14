@@ -263,12 +263,16 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
     }
 
+    // RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::mmWaveCallback(): Processing %u points", msg->width);
+
     iii_drone::adapters::PointCloudAdapter pcl_adapter(msg);
 
     std::vector<point_t> transformed_points;
     std::vector<point_t> projected_points;
 
     std::vector<point_t> pcl_points = pcl_adapter.points();
+
+    int n_skipped = 0;
 
     for (size_t i = 0; i < pcl_points.size(); i++) {
 
@@ -282,6 +286,10 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
         );
 
         if(!line.IsInFOV()) {
+
+            // RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::mmWaveCallback(): Point not in FOV, skipping");
+
+            n_skipped++;
 
             continue;
 
@@ -298,12 +306,16 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
         point_t transformed_point = pointFromPointMsg(pt.point);
 
+        // RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::mmWaveCallback(): Point in FOV, updating powerline");
+
         point_t projected_point = powerline_->UpdateLine(transformed_point);
 
         transformed_points.push_back(transformed_point);
         projected_points.push_back(projected_point);
 
     }   
+
+    // RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::mmWaveCallback(): Skipped %d points", n_skipped);
 
     powerline_->CleanupLines();
 

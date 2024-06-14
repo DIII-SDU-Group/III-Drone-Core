@@ -10,6 +10,7 @@ using namespace iii_drone::types;
 using namespace iii_drone::adapters;
 using namespace iii_drone::adapters::px4;
 using namespace iii_drone::control;
+using namespace iii_drone::configuration;
 
 /*****************************************************************************/
 // Implementation
@@ -18,17 +19,13 @@ using namespace iii_drone::control;
 ManeuverReferenceClient::ManeuverReferenceClient(
     rclcpp::Node * node,
     History<adapters::px4::VehicleOdometryAdapter>::SharedPtr vehicle_odometry_adapter_history,
-    bool use_nans_when_hovering,
-    int max_failed_attempts_during_maneuver,
-    int get_reference_timeout_ms,
+    ParameterBundle::SharedPtr parameters,
     std::function<void()> on_fail_during_maneuver
 ) : node_(node),
     vehicle_odometry_adapter_history_(vehicle_odometry_adapter_history),
     reference_mode_(reference_mode_t::PASSTHROUGH),
     reference_(Reference()),
-    use_nans_when_hovering_(use_nans_when_hovering),
-    max_failed_attempts_during_maneuver_(max_failed_attempts_during_maneuver),
-    get_reference_timeout_ms_(get_reference_timeout_ms),
+    parameters_(parameters),
     on_fail_during_maneuver_(on_fail_during_maneuver) {
 
     get_reference_cb_group_ = node_->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -55,7 +52,7 @@ void ManeuverReferenceClient::UpdateReference() {
 
     std::lock_guard<std::mutex> lock(reference_mutex_);
     
-    if (use_nans_when_hovering_) {
+    if (parameters_->GetParameter("use_nans_when_hovering").as_bool()) {
 
         reference_ = Reference(
             state.position(),
@@ -291,12 +288,12 @@ Reference ManeuverReferenceClient::GetReference(double) {
 
                 failed_attempts++;
 
-                if (failed_attempts >= max_failed_attempts_during_maneuver_) {
+                if (failed_attempts >= parameters_->GetParameter("max_failed_attempts_during_maneuver").as_int()) {
 
                     RCLCPP_ERROR(
                         node_->get_logger(), 
                         "ManeuverReferenceClient::GetReference(): Failed to acquire valid reference after %d attempts. Calling on failed callback and returning passthrough reference.", 
-                        max_failed_attempts_during_maneuver_
+                        failed_attempts
                     );
                     on_fail_during_maneuver_();
 

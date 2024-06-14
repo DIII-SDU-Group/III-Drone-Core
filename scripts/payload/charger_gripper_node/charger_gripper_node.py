@@ -27,7 +27,7 @@ class ChargerGripperNode(Node):
 
         self.get_logger().info("Initializing Charger Gripper Node...")
 
-        self.simulation_ = bool(os.getenv("SIMULATION", False))
+        self.simulation_ = True if os.getenv("SIMULATION", "false").lower() == "true" else False 
 
         if self.simulation_:
             raise NotImplementedError("Simulation mode is not implemented yet.")

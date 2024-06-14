@@ -64,6 +64,9 @@ void ManeuverServer::Start(
 
 void ManeuverServer::Stop() {
     running_ = false;
+
+    reference_callback_token_.reset();
+    reference_callback_token_ = nullptr;
 }
 
 bool ManeuverServer::running() const {
