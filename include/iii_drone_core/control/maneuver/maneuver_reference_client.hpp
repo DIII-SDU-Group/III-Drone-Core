@@ -16,6 +16,7 @@
 // ROS2:
 
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
 
 /*****************************************************************************/
 // III-Drone-Core:
@@ -37,6 +38,8 @@
 // III-Drone-Interfaces:
 
 #include <iii_drone_interfaces/msg/reference.hpp>
+#include <iii_drone_interfaces/msg/string_stamped.hpp>
+
 #include <iii_drone_interfaces/srv/get_reference.hpp>
 
 /*****************************************************************************/
@@ -68,13 +71,11 @@ namespace maneuver {
          * @param node The node pointer.
          * @param vehicle_odometry_adapter_history Shared pointer to the vehicle odometry adapter history.
          * @param parameters Parameter bundle
-         * @param on_fail_during_maneuver The callback to call when failing to acquire valid reference during a maneuver.
          */
         ManeuverReferenceClient(
-            rclcpp::Node * node,
+            rclcpp_lifecycle::LifecycleNode * node,
             iii_drone::utils::History<iii_drone::adapters::px4::VehicleOdometryAdapter>::SharedPtr vehicle_odometry_adapter_history,
-            iii_drone::configuration::ParameterBundle::SharedPtr parameters,
-            std::function<void()> on_fail_during_maneuver
+            iii_drone::configuration::ParameterBundle::SharedPtr parameters
         );
 
         /**
@@ -97,12 +98,14 @@ namespace maneuver {
         /**
          * @brief Sets the reference mode to hover, only if the current reference mode is not maneuver.
          */
-        void SetReferenceModeHover();
+        void SetReferenceModeHover(bool force = false);
 
         /**
          * @brief Starts a maneuver. References will be consumed from the reference topic.
+         * 
+         * @return true If the maneuver is started.
          */
-        void StartManeuver();
+        bool StartManeuver();
 
         /**
          * @brief Stops a maneuver. The reference will be reset to the current state and the reference mode will be set to hover.
@@ -140,10 +143,14 @@ namespace maneuver {
          * @brief Get the reference.
          * 
          * @param dt The time step since the last update.
+         * @param on_fail_during_maneuver The callback to call when failing to acquire valid reference during a maneuver.
          * 
          * @return iii_drone::control::Reference The reference.
          */
-        iii_drone::control::Reference GetReference(double dt);
+        iii_drone::control::Reference GetReference(
+            double dt,
+            std::function<void()> on_fail_during_maneuver
+        );
 
         /**
          * @brief Shared pointer type.
@@ -154,7 +161,7 @@ namespace maneuver {
         /**
          * @brief The node pointer.
          */
-        rclcpp::Node * node_;
+        rclcpp_lifecycle::LifecycleNode * node_;
 
         /**
          * @brief Get reference callback group.
@@ -164,12 +171,22 @@ namespace maneuver {
         /**
          * @brief Stop maneuver timer.
          */
-        rclcpp::TimerBase::SharedPtr stop_maneuver_timer_;
+        utils::Atomic<rclcpp::TimerBase::SharedPtr> stop_maneuver_timer_;
 
         /**
-         * @brief Stop maneuver timer mutex.
+         * @brief Stop maneuver timer callback.
          */
-        std::mutex stop_maneuver_timer_mutex_;
+        utils::Atomic<std::function<void()>> stop_maneuver_timer_callback_;
+
+        /**
+         * @brief Stops the maneuver prematurely.
+         */
+        void stopManeuverPrematurely();
+
+        /**
+         * @brief Manuever start time.
+         */
+        utils::Atomic<rclcpp::Time> maneuver_start_time_;
 
         /**
          * @brief Shared pointer to the vehicle odometry adapter history.
@@ -182,13 +199,36 @@ namespace maneuver {
         enum reference_mode_t {
             PASSTHROUGH,
             HOVER,
-            MANEUVER
+            WAIT_FOR_MANEUVER_START,
+            MANEUVER,
+            WAIT_FOR_MANEUVER_STOP
         };
 
         /**
          * @brief The reference mode.
          */
         iii_drone::utils::Atomic<reference_mode_t> reference_mode_;
+
+        /**
+         * @brief Returns whether the reference mode is either of the maneuver modes.
+         * 
+         * @return true If the reference mode is either of the maneuver modes.
+         */
+        bool isManeuverMode();
+
+        /**
+         * @brief Returns whether the reference mode is either of the maneuver modes.
+         * 
+         * @param reference_mode The reference mode.
+         * 
+         * @return true If the reference mode is either of the maneuver modes.
+         */
+        bool isManeuverMode(reference_mode_t reference_mode);
+
+        /**
+         * @brief Reference mode publisher.
+         */
+        rclcpp::Publisher<iii_drone_interfaces::msg::StringStamped>::SharedPtr reference_mode_publisher_;
 
         /**
          * @brief The reference.
@@ -206,14 +246,18 @@ namespace maneuver {
         rclcpp::Client<iii_drone_interfaces::srv::GetReference>::SharedPtr get_reference_client_;
 
         /**
+         * @brief Sends a request to the get reference service.
+         * 
+         * @param reference The reference output.
+         * 
+         * @return true If the request was successful.
+         */
+        bool getReferenceFromServer(Reference & reference);
+
+        /**
          * @brief Parameter bundle
          */
         iii_drone::configuration::ParameterBundle::SharedPtr parameters_;
-
-        /**
-         * @brief The callback to call when failing to acquire valid reference during a maneuver.
-         */
-        std::function<void()> on_fail_during_maneuver_;
 
     };
 

@@ -42,6 +42,16 @@ TrajectoryGeneratorNode::TrajectoryGeneratorNode(
 
 	}
 
+    trajectory_path_publisher_ = this->create_publisher<nav_msgs::msg::Path>(
+        "trajectory_path",
+        10
+    );
+
+    target_pose_publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
+        "target_pose",
+        10
+    );
+
     RCLCPP_INFO(this->get_logger(), "TrajectoryGeneratorNode::TrajectoryGeneratorNode(): Ready.");
 
 }
@@ -78,7 +88,8 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Trajec
     trajectory_generator_ = std::make_shared<TrajectoryGenerator> (
         configurator_->GetParameterBundle("position_MPC"),
         configurator_->GetParameterBundle("cable_landing_MPC"),
-        configurator_->GetParameterBundle("cable_takeoff_MPC")
+        configurator_->GetParameterBundle("cable_takeoff_MPC"),
+        this
     );
 
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
@@ -225,38 +236,57 @@ void TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(
     );
 
     // Set the response
-    iii_drone_interfaces::msg::ReferenceTrajectory msg = adapters::ReferenceTrajectoryAdapter(ref_traj).ToMsg();
+    adapters::ReferenceTrajectoryAdapter ref_traj_adapter(ref_traj);
+    iii_drone_interfaces::msg::ReferenceTrajectory msg = ref_traj_adapter.ToMsg();
 
     response->reference_trajectory = msg;
 
+    publishTrajectoryPath(ref_traj_adapter);
+    publishTargetPose(reference_adapter);
+
 }
 
-int main(int argc, char * argv[]) {
+void TrajectoryGeneratorNode::publishTrajectoryPath(const adapters::ReferenceTrajectoryAdapter & reference_trajectory_adapter) {
 
-    setvbuf(stdout, NULL, _IONBF, BUFSIZ);
-    rclcpp::init(argc, argv);
+    nav_msgs::msg::Path path_msg = reference_trajectory_adapter.ToPathMsg(configurator_->GetParameter("world_frame_id").as_string());
 
-    rclcpp::executors::MultiThreadedExecutor executor;
+    trajectory_path_publisher_->publish(path_msg);
 
-    auto node = std::make_shared<TrajectoryGeneratorNode>();
+}
 
-    executor.add_node(node->get_node_base_interface());
+void TrajectoryGeneratorNode::publishTargetPose(const adapters::ReferenceAdapter & reference_adapter) {
 
-    try {
+    geometry_msgs::msg::PoseStamped pose_msg = reference_adapter.ToPoseStampedMsg(configurator_->GetParameter("world_frame_id").as_string());
+    target_pose_publisher_->publish(pose_msg);
+
+}
+
+// int main(int argc, char * argv[]) {
+
+//     setvbuf(stdout, NULL, _IONBF, BUFSIZ);
+//     rclcpp::init(argc, argv);
+
+//     rclcpp::executors::MultiThreadedExecutor executor;
+
+//     auto node = std::make_shared<TrajectoryGeneratorNode>();
+
+//     executor.add_node(node->get_node_base_interface());
+
+//     try {
         
-        executor.spin();
+//         executor.spin();
 
-    } catch(const std::exception& e) {
+//     } catch(const std::exception& e) {
         
-        node.reset();
+//         node.reset();
 
-    }
+//     }
     
-	if (rclcpp::ok()) {
-		node.reset();
-		rclcpp::shutdown();
-	}
+// 	if (rclcpp::ok()) {
+// 		node.reset();
+// 		rclcpp::shutdown();
+// 	}
 
-    return 0;
+//     return 0;
 
-}
+// }

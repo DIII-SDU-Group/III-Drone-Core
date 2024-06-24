@@ -15,10 +15,12 @@ using namespace iii_drone::types;
 TrajectoryGenerator::TrajectoryGenerator(
     iii_drone::configuration::ParameterBundle::SharedPtr positional_mpc_params,
     iii_drone::configuration::ParameterBundle::SharedPtr cable_landing_mpc_params,
-    iii_drone::configuration::ParameterBundle::SharedPtr cable_takeoff_mpc_params
+    iii_drone::configuration::ParameterBundle::SharedPtr cable_takeoff_mpc_params,
+    rclcpp_lifecycle::LifecycleNode * node
 ) : positional_mpc_params_(positional_mpc_params),
     cable_landing_mpc_params_(cable_landing_mpc_params),
-    cable_takeoff_mpc_params_(cable_takeoff_mpc_params) { }
+    cable_takeoff_mpc_params_(cable_takeoff_mpc_params),
+    node_(node) { }
 
 ReferenceTrajectory TrajectoryGenerator::ComputeReferenceTrajectory(
     State state, 
@@ -69,6 +71,16 @@ ReferenceTrajectory TrajectoryGenerator::ComputeReferenceTrajectory(
 
     rclcpp::Time t0 = state.stamp();
 
+    if (mpc_mode == MPC_mode_t::cable_landing) {
+
+        // RCLCPP_DEBUG(
+        //     node_->get_logger(),
+        //     "TrajectoryGenerator::ComputeReferenceTrajectory(): Reference yaw: %f",
+        //     reference.yaw()
+        // );
+
+    }
+
     setupMPC(
         mpc_params,
         set_target,
@@ -89,6 +101,17 @@ ReferenceTrajectory TrajectoryGenerator::ComputeReferenceTrajectory(
         target
     );
 
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(),
+    //     "Reference yaw: %f",
+    //     reference.yaw()
+    // );
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(),
+    //     "Ref yaw: %f",
+    //     ref.yaw()
+    // );
 
 	prev_state = state;
 
@@ -107,7 +130,7 @@ ReferenceTrajectory TrajectoryGenerator::ComputeReferenceTrajectory(
     );
 
 	// Output:
-    return postProcessMPC(
+    ReferenceTrajectory ref_traj = postProcessMPC(
         t0,
         MPC_N,
         dt,
@@ -116,6 +139,28 @@ ReferenceTrajectory TrajectoryGenerator::ComputeReferenceTrajectory(
         planned_u_traj,
         ref.yaw()
     );
+
+    Reference ref_out = ref_traj.references()[0];
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(), 
+    //     "TrajectoryGenerator::ComputeReferenceTrajectory(): Reference computed:\n%f, %f, %f\n%f\n%f, %f, %f\n%f\n%f, %f, %f",
+    //     ref_out.position()[0],
+    //     ref_out.position()[1],
+    //     ref_out.position()[2],
+    //     ref_out.yaw(),
+    //     ref_out.velocity()[0],
+    //     ref_out.velocity()[1],
+    //     ref_out.velocity()[2],
+    //     ref_out.yaw_rate(),
+    //     ref_out.acceleration()[0],
+    //     ref_out.acceleration()[1],
+    //     ref_out.acceleration()[2]
+    // );
+
+    first = false;
+
+    return ref_traj;
 
 }
 
@@ -190,6 +235,13 @@ void TrajectoryGenerator::setupMPC(
 
 	if (first || reset) {
 
+        RCLCPP_DEBUG(
+            node_->get_logger(), 
+            "TrajectoryGenerator::setupMPC(): First or reset, with first: %d, reset: %d.",
+            first,
+            reset
+        );
+
         point_t vehicle_position = state.position();
 
 		for (int i = 0; i < mpc_params->GetParameter("N").as_int(); i++) {
@@ -214,6 +266,11 @@ void TrajectoryGenerator::setupMPC(
 	// No state progression:
 	if (use_state_feedback || reset) {
 
+        RCLCPP_DEBUG(
+            node_->get_logger(), 
+            "TrajectoryGenerator::setupMPC(): Using state feedback."
+        );
+
         point_t vehicle_position = state.position();
         vector_t vehicle_velocity = state.velocity();
 
@@ -224,6 +281,160 @@ void TrajectoryGenerator::setupMPC(
 
         }
 	}
+
+    // // Print all info:
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(), 
+    //     "Set target: %d",
+    //     set_target
+    // );
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(), 
+    //     "First: %d",
+    //     first
+    // );
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(), 
+    //     "Reset: %d",
+    //     reset
+    // );
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(), 
+    //     "Reset target: %d",
+    //     reset_target
+    // );
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(), 
+    //     "Reset trajectory: %d",
+    //     reset_trajectory
+    // );
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(), 
+    //     "Reset bounds: %d",
+    //     reset_bounds
+    // );
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(), 
+    //     "Reset weights: %d",
+    //     reset_weights
+    // );
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(), 
+    //     "Use state feedback: %d",
+    //     use_state_feedback
+    // );
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(), 
+    //     "State: %f, %f, %f, %f, %f, %f, %f, %f",
+    //     state.position()[0],
+    //     state.position()[1],
+    //     state.position()[2],
+    //     state.yaw(),
+    //     state.velocity()[0],
+    //     state.velocity()[1],
+    //     state.velocity()[2],
+    //     state.angular_velocity()[2]
+    // );
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(), 
+    //     "Previous state: %f, %f, %f, %f, %f, %f, %f, %f",
+    //     prev_state.position()[0],
+    //     prev_state.position()[1],
+    //     prev_state.position()[2],
+    //     prev_state.yaw(),
+    //     prev_state.velocity()[0],
+    //     prev_state.velocity()[1],
+    //     prev_state.velocity()[2],
+    //     prev_state.angular_velocity()[2]
+    // );
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(), 
+    //     "Reference: %f, %f, %f, %f, %f, %f, %f, %f",
+    //     reference.position()[0],
+    //     reference.position()[1],
+    //     reference.position()[2],
+    //     reference.yaw(),
+    //     reference.velocity()[0],
+    //     reference.velocity()[1],
+    //     reference.velocity()[2],
+    //     reference.yaw_rate()
+    // );
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(), 
+    //     "Reference internal: %f, %f, %f, %f, %f, %f, %f, %f",
+    //     reference_internal.position()[0],
+    //     reference_internal.position()[1],
+    //     reference_internal.position()[2],
+    //     reference_internal.yaw(),
+    //     reference_internal.velocity()[0],
+    //     reference_internal.velocity()[1],
+    //     reference_internal.velocity()[2],
+    //     reference_internal.yaw_rate()
+    // );
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(), 
+    //     "Planned trajectory: %f, %f, %f, %f, %f, %f, %f, %f, %f, %f",
+    //     planned_traj[0],
+    //     planned_traj[1],
+    //     planned_traj[2],
+    //     planned_traj[3],
+    //     planned_traj[4],
+    //     planned_traj[5],
+    //     planned_traj[6],
+    //     planned_traj[7],
+    //     planned_traj[8],
+    //     planned_traj[9]
+    // );
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(), 
+    //     "Planned u trajectory: %f, %f, %f, %f, %f, %f, %f, %f, %f, %f",
+    //     planned_u_traj[0],
+    //     planned_u_traj[1],
+    //     planned_u_traj[2],
+    //     planned_u_traj[3],
+    //     planned_u_traj[4],
+    //     planned_u_traj[5],
+    //     planned_u_traj[6],
+    //     planned_u_traj[7],
+    //     planned_u_traj[8],
+    //     planned_u_traj[9]
+    // );
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(), 
+    //     "X: %f, %f, %f, %f, %f, %f",
+    //     x[0],
+    //     x[1],
+    //     x[2],
+    //     x[3],
+    //     x[4],
+    //     x[5]
+    // );
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(), 
+    //     "Target: %f, %f, %f, %f, %f, %f",
+    //     target[0],
+    //     target[1],
+    //     target[2],
+    //     target[3],
+    //     target[4],
+    //     target[5]
+    // );
+
 
 }
 

@@ -117,6 +117,8 @@ set(III_DRONE_LIBRARY_HEADERS
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/cable_landing_maneuver_server.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/cable_takeoff_maneuver_server.hpp"
 
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/reference_callback_token.hpp"
+
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_reference_client.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/single_line_adapter.hpp"
@@ -300,16 +302,19 @@ custom_cpp_target(pl_mapper
   "${PROJECT_SOURCE_DIR}/src/perception/pl_mapper_node/pl_mapper_node.cpp"
 )
 
-# Trajectory generator:
-custom_cpp_target(trajectory_generator
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator_node/trajectory_generator_node.hpp"
-  "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator_node/trajectory_generator_node.cpp"
-)
+# # Trajectory generator:
+# custom_cpp_target(trajectory_generator
+#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator_node/trajectory_generator_node.hpp"
+#   "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator_node/trajectory_generator_node.cpp"
+# )
 
 # Maneuver controller:
 custom_cpp_target(maneuver_controller
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver_controller_node/maneuver_controller_node.hpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver_controller_node/maneuver_controller_node.cpp"
+
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator_node/trajectory_generator_node.hpp"
+  "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator_node/trajectory_generator_node.cpp"
 )
 
 ############

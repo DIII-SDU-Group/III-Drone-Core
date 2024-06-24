@@ -38,7 +38,7 @@ bool HoverManeuverServer::CanExecuteManeuver(
 
     if (maneuver.maneuver_type() != MANEUVER_TYPE_HOVER) {
 
-        RCLCPP_DEBUG(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Maneuver is not of type hover, cannot execute");
+        RCLCPP_WARN(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Maneuver is not of type hover, cannot execute");
 
         return false;
 
@@ -46,7 +46,7 @@ bool HoverManeuverServer::CanExecuteManeuver(
 
     if (!drone_awareness.offboard) {
 
-        RCLCPP_DEBUG(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Drone is not in offboard mode, cannot execute");
+        RCLCPP_WARN(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Drone is not in offboard mode, cannot execute");
 
         return false;
 
@@ -54,7 +54,7 @@ bool HoverManeuverServer::CanExecuteManeuver(
 
     if (!drone_awareness.armed) {
 
-        RCLCPP_DEBUG(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Drone is not armed, cannot execute");
+        RCLCPP_WARN(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Drone is not armed, cannot execute");
 
         return false;
 
@@ -62,13 +62,31 @@ bool HoverManeuverServer::CanExecuteManeuver(
 
     if (!drone_awareness.in_flight()) {
 
-        RCLCPP_DEBUG(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Drone is not in flight, cannot execute");
+        RCLCPP_WARN(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Drone is not in flight, cannot execute");
 
         return false;
 
     }
 
-    //RCLCPP_DEBUG(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Hover maneuver can be executed");
+    hover_maneuver_params_t params(maneuver.maneuver_params());
+
+    if (params.duration_s <= 0.0) {
+
+        RCLCPP_WARN(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Duration is not positive, cannot execute");
+
+        return false;
+
+    }
+
+    if (params.duration_s < params.sustain_duration_s) {
+
+        RCLCPP_WARN(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Duration is less than sustain duration, cannot execute");
+
+        return false;
+
+    }
+
+    // RCLCPP_DEBUG(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Hover maneuver can be executed");
 
     return true;
 
@@ -187,11 +205,13 @@ void HoverManeuverServer::startExecution(Maneuver & maneuver) {
 
     hover_duration_s_ = params.duration_s;
 
+    sustain_duration_s_ = params.sustain_duration_s;
+
     sustain_action_ = params.sustain_action;
 
     hover_start_time_ = rclcpp::Clock().now();
 
-    RCLCPP_DEBUG(
+    RCLCPP_INFO(
         node()->get_logger(), 
         "HoverManeuverServer::startExecution(): Starting hover maneuver for %f seconds at time %f", 
         (float)hover_duration_s_,
@@ -212,23 +232,43 @@ iii_drone::control::Reference HoverManeuverServer::computeReference(const iii_dr
 
 bool HoverManeuverServer::hasSucceeded(Maneuver & ) {
 
-    if (!sustain_action_) {
+    if (!sustain_action_ && sustain_duration_s_ <= 0.0) {
 
-        RCLCPP_DEBUG(node()->get_logger(), "HoverManeuverServer::hasSucceeded(): Hover maneuver not sustained, succeeding immediately");
+        RCLCPP_INFO(node()->get_logger(), "HoverManeuverServer::hasSucceeded(): Hover maneuver not sustained, succeeding immediately");
 
         return true;
 
     }
 
     rclcpp::Duration elapsed_time = rclcpp::Clock().now() - (rclcpp::Time)hover_start_time_;
-    
-    if (elapsed_time.seconds() >= (float)hover_duration_s_) {
 
-        RCLCPP_DEBUG(node()->get_logger(), "HoverManeuverServer::hasSucceeded(): Hover maneuver has succeeded after %f seconds", (float)hover_duration_s_);
+    if (sustain_action_) {
 
-        return true;
+        if (elapsed_time.seconds() >= (float)hover_duration_s_) {
+
+            RCLCPP_INFO(node()->get_logger(), "HoverManeuverServer::hasSucceeded(): Hover maneuver has succeeded after %f seconds", (float)hover_duration_s_);
+
+            return true;
+        }
+
+        return false;
+
     }
 
+    if (sustain_duration_s_ > 0.0) {
+
+        if (elapsed_time.seconds() >= sustain_duration_s_) {
+
+            RCLCPP_INFO(node()->get_logger(), "HoverManeuverServer::hasSucceeded(): Hover maneuver has succeeded after %f seconds", (float)(hover_duration_s_ + sustain_duration_s_));
+
+            return true;
+
+        }
+
+        return false;
+
+    }
+    
     return false;
 
 }

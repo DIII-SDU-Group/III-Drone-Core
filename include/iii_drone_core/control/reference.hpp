@@ -59,8 +59,14 @@ namespace control {
          * @brief Constructor from state.
          *
          * @param state The state object.
+         * @param nans_velocity Whether to set the velocity to NaN, defaults to using the state velocity and zero yaw rate.
+         * @param nans_acceleration Whether to set the acceleration to NaN, defaults to zeros.
          */
-        Reference(const State& state);
+        Reference(
+            const State& state,
+            bool nans_velocity = false,
+            bool nans_acceleration = false
+        );
 
         /**
          * @brief Copies the object with a new timestamp.
@@ -70,6 +76,16 @@ namespace control {
          * @return The copied object with the new timestamp.
          */
         Reference CopyWithNewStamp(const rclcpp::Time stamp = rclcpp::Clock().now()) const;
+
+        /**
+         * @brief Copy with nans.
+         * 
+         * @param nan_velocity Whether to set the velocity to NaN.
+         * @param nan_acceleration Whether to set the acceleration to NaN.
+         * 
+         * @return The copied object with NaN values.
+         */
+        Reference CopyWithNans(bool nan_velocity = true, bool nan_acceleration = true) const;
 
         /**
          * Getter for the reference position.

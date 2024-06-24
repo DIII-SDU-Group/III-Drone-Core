@@ -53,6 +53,11 @@ TrajectoryGeneratorClient::~TrajectoryGeneratorClient() {
 
 void TrajectoryGeneratorClient::Reset(const State & state) {
 
+    RCLCPP_DEBUG(
+        node_->get_logger(), 
+        "TrajectoryGeneratorClient::Reset(): Resetting trajectory generator client."
+    );
+
     Cancel();
 
     Reference reference(
@@ -131,6 +136,15 @@ Reference TrajectoryGeneratorClient::ComputeReference(
         ref_out = GetReferenceTrajectory().references()[0];
 
     }
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(), 
+    //     "TrajectoryGeneratorClient::ComputeReference(): Reference computed: %f, %f, %f, %f.",
+    //     ref_out.position()[0],
+    //     ref_out.position()[1],
+    //     ref_out.position()[2],
+    //     ref_out.yaw()
+    // );
 
     return ref_out;
 

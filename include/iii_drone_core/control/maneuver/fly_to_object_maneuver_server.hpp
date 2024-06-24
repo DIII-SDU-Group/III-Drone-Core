@@ -32,6 +32,7 @@
 #include <iii_drone_core/control/maneuver/maneuver_types.hpp>
 
 #include <iii_drone_core/control/maneuver/hover_by_object_maneuver_server.hpp>
+#include <iii_drone_core/control/maneuver/hover_maneuver_server.hpp>
 
 #include <iii_drone_core/control/trajectory_generator_client.hpp>
 

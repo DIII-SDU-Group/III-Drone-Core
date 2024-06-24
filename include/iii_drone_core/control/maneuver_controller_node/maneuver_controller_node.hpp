@@ -45,6 +45,7 @@
 #include <iii_drone_core/control/maneuver/cable_takeoff_maneuver_server.hpp>
 
 #include <iii_drone_core/control/trajectory_generator_client.hpp>
+#include <iii_drone_core/control/trajectory_generator_node/trajectory_generator_node.hpp>
 
 /*****************************************************************************/
 // Class:

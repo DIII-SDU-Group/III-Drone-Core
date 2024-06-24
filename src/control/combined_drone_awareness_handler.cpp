@@ -46,6 +46,17 @@ CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(
         10
     );
 
+    target_pose_pub_ = node_->create_publisher<geometry_msgs::msg::PoseStamped>(
+        "target_pose",
+        10
+    );
+
+    target_drone_pose_pub_ = node_->create_publisher<geometry_msgs::msg::PoseStamped>(
+        "target_drone_pose",
+        10
+    );
+
+
 }
 
 CombinedDroneAwarenessHandler::~CombinedDroneAwarenessHandler() {
@@ -314,6 +325,60 @@ iii_drone::control::State CombinedDroneAwarenessHandler::ComputeTargetState(cons
 
     transform_matrix_t target_transform = ComputeTargetTransform(target_adapter);
 
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(),
+    //     "Target adapter id: %d",
+    //     target_adapter.target_id()
+    // );
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(),
+    //     "Target adapter type: %d",
+    //     target_adapter.target_type()
+    // );
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(),
+    //     "Target adapter transform:\n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f",
+    //     target_adapter.target_transform()(0, 0),
+    //     target_adapter.target_transform()(0, 1),
+    //     target_adapter.target_transform()(0, 2),
+    //     target_adapter.target_transform()(0, 3),
+    //     target_adapter.target_transform()(1, 0),
+    //     target_adapter.target_transform()(1, 1),
+    //     target_adapter.target_transform()(1, 2),
+    //     target_adapter.target_transform()(1, 3),
+    //     target_adapter.target_transform()(2, 0),
+    //     target_adapter.target_transform()(2, 1),
+    //     target_adapter.target_transform()(2, 2),
+    //     target_adapter.target_transform()(2, 3),
+    //     target_adapter.target_transform()(3, 0),
+    //     target_adapter.target_transform()(3, 1),
+    //     target_adapter.target_transform()(3, 2),
+    //     target_adapter.target_transform()(3, 3)
+    // );
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(),
+    //     "Target transform:\n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f",
+    //     target_transform(0, 0),
+    //     target_transform(0, 1),
+    //     target_transform(0, 2),
+    //     target_transform(0, 3),
+    //     target_transform(1, 0),
+    //     target_transform(1, 1),
+    //     target_transform(1, 2),
+    //     target_transform(1, 3),
+    //     target_transform(2, 0),
+    //     target_transform(2, 1),
+    //     target_transform(2, 2),
+    //     target_transform(2, 3),
+    //     target_transform(3, 0),
+    //     target_transform(3, 1),
+    //     target_transform(3, 2),
+    //     target_transform(3, 3)
+    // );
+
     return State(
         target_transform.block<3, 1>(0, 3),
         vector_t::Zero(),
@@ -343,7 +408,7 @@ iii_drone::types::transform_matrix_t CombinedDroneAwarenessHandler::ComputeTarge
 
             if (debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::ComputeTargetTransform: target line with id %d not found", target_adapter.target_id());
 
-            throw std::runtime_error("CombinedDroneAwarenessHandler::ComputeTargetReference: target line with id " + std::to_string(target_adapter.target_id()) + " not found");
+            throw std::runtime_error("CombinedDroneAwarenessHandler::ComputeTargetTransform(): target line with id " + std::to_string(target_adapter.target_id()) + " not found");
         }
 
         geometry_msgs::msg::PoseStamped target_object_pose_stamped = target_line.ToPoseStampedMsg();
@@ -369,20 +434,34 @@ iii_drone::types::transform_matrix_t CombinedDroneAwarenessHandler::ComputeTarge
                 e.what()
             );
 
-            throw std::runtime_error("CombinedDroneAwarenessHandler::ComputeTargetReference: could not transform target object pose to world frame: " + std::string(e.what()));
+            throw std::runtime_error("CombinedDroneAwarenessHandler::ComputeTargetTransform(): could not transform target object pose to world frame: " + std::string(e.what()));
 
         }
 
+        // RCLCPP_DEBUG(
+        //     node_->get_logger(),
+        //     "CombinedDroneAwarenessHandler::ComputeTargetTransform: target object pose in world frame: %f, %f, %f, %f, %f, %f, %f",
+        //     target_object_pose_stamped_world.pose.position.x,
+        //     target_object_pose_stamped_world.pose.position.y,
+        //     target_object_pose_stamped_world.pose.position.z,
+        //     target_object_pose_stamped_world.pose.orientation.w,
+        //     target_object_pose_stamped_world.pose.orientation.x,
+        //     target_object_pose_stamped_world.pose.orientation.y,
+        //     target_object_pose_stamped_world.pose.orientation.z
+        // );
+
         iii_drone::types::transform_matrix_t ref_T_c = target_adapter.target_transform();
         iii_drone::types::pose_t w_T_c_pose = poseFromPoseMsg(target_object_pose_stamped_world.pose);
+        // RCLCPP_DEBUG()
         iii_drone::types::transform_matrix_t w_T_c = createTransformMatrix(
             w_T_c_pose.position,
             w_T_c_pose.orientation
         );
         iii_drone::types::transform_matrix_t w_T_ref = w_T_c * ref_T_c.inverse();
+        std::string target_reference_frame_id = target_adapter.reference_frame_id();
         geometry_msgs::msg::TransformStamped ref_T_drone_msg = tf_buffer_->lookupTransform(
+            target_reference_frame_id,
             params_->GetParameter("drone_frame_id").as_string(),
-            target_adapter.reference_frame_id(),
             tf2::TimePointZero
         );
         iii_drone::types::transform_matrix_t ref_T_drone = transformMatrixFromTransformMsg(ref_T_drone_msg.transform);
@@ -392,7 +471,7 @@ iii_drone::types::transform_matrix_t CombinedDroneAwarenessHandler::ComputeTarge
 
     } else {
 
-        std::string msg = "CombinedDroneAwarenessHandler::ComputeTargetReference(): target type " + std::to_string(target_adapter.target_type()) + " not implemented";
+        std::string msg = "CombinedDroneAwarenessHandler::ComputeTargetTransform(): target type " + std::to_string(target_adapter.target_type()) + " not implemented";
 
         throw std::runtime_error(msg);
 
@@ -417,7 +496,7 @@ iii_drone::types::pose_t CombinedDroneAwarenessHandler::GetPoseOfTarget(const ii
 
         } catch (std::runtime_error & e) {
 
-            throw std::runtime_error("CombinedDroneAwarenessHandler::ComputeTargetReference: target line with id " + std::to_string(target_adapter.target_id()) + " not found");
+            throw std::runtime_error("CombinedDroneAwarenessHandler::GetPoseOfTarget(): target line with id " + std::to_string(target_adapter.target_id()) + " not found");
         }
 
         geometry_msgs::msg::PoseStamped target_object_pose_stamped = target_line.ToPoseStampedMsg();
@@ -431,7 +510,7 @@ iii_drone::types::pose_t CombinedDroneAwarenessHandler::GetPoseOfTarget(const ii
 
     } else {
 
-        throw std::runtime_error("CombinedDroneAwarenessHandler::ComputeTargetReference: target type not implemented");
+        throw std::runtime_error("CombinedDroneAwarenessHandler::GetPoseOfTarget(): target type not implemented");
 
     }
 
@@ -512,6 +591,10 @@ double CombinedDroneAwarenessHandler::ground_altitude_estimate() const {
 drone_location_t CombinedDroneAwarenessHandler::drone_location(int &on_cable_id) const {
     on_cable_id = ((combined_drone_awareness_t)*combined_drone_awareness_).on_cable_id;
     return ((combined_drone_awareness_t)*combined_drone_awareness_).drone_location;
+}
+
+bool CombinedDroneAwarenessHandler::gripper_open() const {
+    return ((combined_drone_awareness_t)*combined_drone_awareness_).gripper_open;
 }
 
 drone_location_t CombinedDroneAwarenessHandler::drone_location() const {
@@ -791,8 +874,8 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness
     if (!powerline_adapter_history_->empty()) {
 
         geometry_msgs::msg::TransformStamped transform_stamped = tf_buffer_->lookupTransform(
-            params_->GetParameter("cable_gripper_frame_id").as_string(),
             params_->GetParameter("drone_frame_id").as_string(),
+            params_->GetParameter("cable_gripper_frame_id").as_string(),
             tf2::TimePointZero
         );
 
@@ -809,15 +892,34 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness
         try {
             closest_line = powerline_adapter.GetClosestLine(gripper_position);
             found_closest_line = true;
-        } catch (std::runtime_error & e) {
+        } catch (std::exception & e) {
             found_closest_line = false;
+        }
+
+        if (params_->GetParameter("use_gripper_status_condition").as_bool() && !gripper_open()) {
+            combined_drone_awareness.drone_location = DRONE_LOCATION_ON_CABLE;
+            combined_drone_awareness.on_cable_id = -1;
+            has_found_initial_location_ = true;
         }
 
         if (found_closest_line) {
 
             point_t closest_line_position = closest_line.position();
 
-            if ((closest_line_position - gripper_position).norm() <= params_->GetParameter("on_cable_max_euc_distance").as_double()) {
+            geometry_msgs::msg::PointStamped closest_line_position_stamped;
+            closest_line_position_stamped.header.frame_id = closest_line.frame_id();
+            closest_line_position_stamped.point = pointMsgFromPoint(closest_line_position);
+
+            closest_line_position_stamped = tf_buffer_->transform(
+                closest_line_position_stamped,
+                params_->GetParameter("drone_frame_id").as_string()
+            );
+
+            closest_line_position = pointFromPointMsg(closest_line_position_stamped.point);
+
+            float closest_line_distance = (closest_line_position - v_drone_to_gripper).norm();
+
+            if (closest_line_distance <= params_->GetParameter("on_cable_max_euc_distance").as_double()) {
                 
                 combined_drone_awareness.drone_location = DRONE_LOCATION_ON_CABLE;
                 combined_drone_awareness.on_cable_id = closest_line.id();
@@ -846,17 +948,22 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness
 
     }
 
-    // Throw error if no location found
-    std::string error_message = "CombinedDroneAwarenessHandler::updateDroneLocation(): Could not determine drone location.";
+    // Assume drone is on ground:
+    combined_drone_awareness.drone_location = DRONE_LOCATION_ON_GROUND;
+    combined_drone_awareness.on_cable_id = -1;
+    has_found_initial_location_ = false;
 
-    if (params_->GetParameter("fail_on_unable_to_locate").as_bool()) {
-        RCLCPP_FATAL(node_->get_logger(), error_message.c_str());
-        throw std::runtime_error(error_message);
-    } else {
-        RCLCPP_ERROR(node_->get_logger(), error_message.c_str());
-        combined_drone_awareness.drone_location = DRONE_LOCATION_UNKNOWN;
-        combined_drone_awareness.on_cable_id = -1;
-    }
+    // // Throw error if no location found
+    // std::string error_message = "CombinedDroneAwarenessHandler::updateDroneLocation(): Could not determine drone location.";
+
+    // if (params_->GetParameter("fail_on_unable_to_locate").as_bool()) {
+    //     RCLCPP_FATAL(node_->get_logger(), error_message.c_str());
+    //     throw std::runtime_error(error_message);
+    // } else {
+    //     RCLCPP_ERROR(node_->get_logger(), error_message.c_str());
+    //     combined_drone_awareness.drone_location = DRONE_LOCATION_UNKNOWN;
+    //     combined_drone_awareness.on_cable_id = -1;
+    // }
 
 }
 
@@ -866,12 +973,42 @@ void CombinedDroneAwarenessHandler::publishMembers() {
 
     iii_drone::adapters::TargetAdapter target_adapter = target_adapter_->Load();
 
-    if (target_adapter.target_type() == iii_drone::adapters::TARGET_TYPE_NONE) {
+    if (target_adapter.target_type() != iii_drone::adapters::TARGET_TYPE_CABLE) {
         return;
     }
 
     iii_drone_interfaces::msg::Target target_msg = target_adapter.ToMsg();
 
     target_pub_->publish(target_msg);
+
+    try {
+        pose_t target_pose = GetPoseOfTarget(target_adapter);
+
+        geometry_msgs::msg::PoseStamped target_pose_stamped;
+        target_pose_stamped.header.stamp = node_->now();
+        target_pose_stamped.header.frame_id = params_->GetParameter("world_frame_id").as_string();
+        target_pose_stamped.pose = poseMsgFromPose(target_pose);
+
+        target_pose_pub_->publish(target_pose_stamped);
+
+    } catch (std::runtime_error & e) {
+        
+    }
+
+    try {
+        transform_matrix_t target_world_to_drone = ComputeTargetTransform(target_adapter);
+
+        pose_t target_pose_world_to_drone = poseFromTransformMatrix(target_world_to_drone);
+
+        geometry_msgs::msg::PoseStamped target_pose_world_to_drone_stamped;
+        target_pose_world_to_drone_stamped.header.stamp = node_->now();
+        target_pose_world_to_drone_stamped.header.frame_id = params_->GetParameter("world_frame_id").as_string();
+        target_pose_world_to_drone_stamped.pose = poseMsgFromPose(target_pose_world_to_drone);
+
+        target_drone_pose_pub_->publish(target_pose_world_to_drone_stamped);
+
+    } catch (std::runtime_error & e) {
+        
+    }
 
 }

@@ -43,12 +43,20 @@ bool HoverByObjectManeuverServer::CanExecuteManeuver(
 ) const {
 
     if (maneuver.maneuver_type() != MANEUVER_TYPE_HOVER_BY_OBJECT) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "HoverByObjectManeuverServer::CanExecuteManeuver(): Maneuver type is not HoverByObject"
+        );
         return false;
     }
 
     hover_by_object_maneuver_params_t params(maneuver.maneuver_params());
 
     if (params.target_adapter.target_type() != TARGET_TYPE_CABLE) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "HoverByObjectManeuverServer::CanExecuteManeuver(): Target type is not CABLE"
+        );
         return false;
     }
 
@@ -87,7 +95,17 @@ bool HoverByObjectManeuverServer::Update(const iii_drone::adapters::TargetAdapte
 
     transform_matrix_t target_transform;
     
-    if (!validateAwareness(awareness_handler()->combined_drone_awareness())) {
+    if (
+        !validateAwareness(
+            awareness_handler()->combined_drone_awareness(),
+            target_adapter
+        )
+    ) {
+
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "HoverByObjectManeuverServer::Update(): Failed to validate awareness"
+        );
 
         has_target_ = false;
 
@@ -111,11 +129,11 @@ iii_drone::control::Reference HoverByObjectManeuverServer::GetReference(const ii
 
     }
 
-    if (!has_target_) {
+    // if (!has_target_) {
 
-        throw std::runtime_error("No target set for HoverByObjectManeuverServer");
+    //     throw std::runtime_error("No target set for HoverByObjectManeuverServer");
 
-    }
+    // }
 
     transform_matrix_t target_transform;
     
@@ -192,6 +210,11 @@ maneuver_type_t HoverByObjectManeuverServer::maneuver_type() const {
 }
 
 void HoverByObjectManeuverServer::startExecution(Maneuver & maneuver) {
+
+    RCLCPP_INFO(
+        node()->get_logger(),
+        "HoverByObjectManeuverServer::startExecution(): Starting execution of HoverByObject maneuver"
+    );
 
     if (!has_on_fail_callback_) {
 
@@ -311,7 +334,10 @@ bool HoverByObjectManeuverServer::validateTargetTransform(
 
 }
 
-bool HoverByObjectManeuverServer::validateAwareness(combined_drone_awareness_t drone_awareness) const {
+bool HoverByObjectManeuverServer::validateAwareness(
+    combined_drone_awareness_t drone_awareness,
+    const iii_drone::adapters::TargetAdapter &target_adapter
+) const {
 
     if (!drone_awareness.offboard) {
         return false;
@@ -333,7 +359,16 @@ bool HoverByObjectManeuverServer::validateAwareness(combined_drone_awareness_t d
     
     try {
 
-        target_transform = awareness_handler()->ComputeTargetTransform(target_adapter_);
+        if (target_adapter.target_type() == iii_drone::adapters::target_type_t::TARGET_TYPE_NONE) {
+
+            target_transform = awareness_handler()->ComputeTargetTransform(target_adapter_);
+        
+        } else {
+
+            target_transform = awareness_handler()->ComputeTargetTransform(target_adapter);
+
+        }
+
 
     } catch (const std::runtime_error &e) {
 

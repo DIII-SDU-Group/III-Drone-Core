@@ -17,6 +17,12 @@ from time import sleep
 
 import serial
 import os
+import sys
+
+SIMULATION = os.environ.get('SIMULATION', 'false').lower() == 'true'
+
+if SIMULATION:
+    import debugpy
 
 #import pigpio
 
@@ -541,8 +547,21 @@ class ChargerGripperNode(Node):
         else:
             self.get_logger().error("Unknown gripper command interface. Not closing gripper.")
 
-def main(args=None):
-    rclpy.init(args=args)
+def main():
+    if SIMULATION:
+        DEBUG_PORT = int(os.environ.get('CHARGER_GRIPPER_DEBUG_PORT', 0))
+        
+        if DEBUG_PORT > 0:
+            debugpy.listen(
+                (
+                    'localhost',
+                    DEBUG_PORT
+                )
+            )
+            
+            print("Listening for debugger on port " + str(DEBUG_PORT))
+
+    rclpy.init(args=sys.argv)
 
     node = ChargerGripperNode()
 

@@ -39,18 +39,22 @@ Reference::Reference() {
     stamp_ = rclcpp::Clock().now();
 }
 
-Reference::Reference(const State& state) {
+Reference::Reference(
+    const State& state,
+    bool nans_velocity,
+    bool nans_acceleration
+) {
     position_ = state.position();
 
     euler_angles_t euler = iii_drone::math::quatToEul(state.quaternion());
 
     yaw_ = euler(2);
 
-    velocity_ = state.velocity();
-    yaw_rate_ = 0.0; //Maybe fix this later
+    velocity_ = nans_velocity ? vector_t::Constant(NAN) : state.velocity();
+    yaw_rate_ = nans_velocity ? NAN : 0.0;
 
-    // acceleration_ = state.acceleration();
-    // yaw_acceleration_ = 0.0; //Maybe fix this later
+    acceleration_ = nans_acceleration ? vector_t::Constant(NAN) : vector_t::Zero();
+    yaw_acceleration_ = nans_acceleration ? NAN : 0.0;
 
     stamp_ = state.stamp();
 
@@ -65,6 +69,18 @@ Reference Reference::CopyWithNewStamp(const rclcpp::Time stamp) const {
         acceleration_,
         yaw_acceleration_,
         stamp
+    );
+}
+
+Reference Reference::CopyWithNans(bool nan_velocity, bool nan_acceleration) const {
+    return Reference(
+        position_,
+        yaw_,
+        nan_velocity ? vector_t::Constant(NAN) : velocity_,
+        nan_velocity ? NAN : yaw_rate_,
+        nan_acceleration ? vector_t::Constant(NAN) : acceleration_,
+        nan_acceleration ? NAN : yaw_acceleration_,
+        stamp_
     );
 }
 

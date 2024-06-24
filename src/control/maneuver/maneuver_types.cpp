@@ -140,15 +140,18 @@ hover_maneuver_params_t::hover_maneuver_params_t() { }
 
 hover_maneuver_params_t::hover_maneuver_params_t(
     double duration_s,
+    double sustain_duration_s,
     bool sustain_action
 ) {
     this->duration_s = duration_s;
+    this->sustain_duration_s = sustain_duration_s;
     this->sustain_action = sustain_action;
  }
 
 hover_maneuver_params_t::hover_maneuver_params_t(std::shared_ptr<void> params) {
     hover_maneuver_params_t * params_ptr = static_cast<hover_maneuver_params_t *>(params.get());
     duration_s = params_ptr->duration_s;
+    sustain_duration_s = params_ptr->sustain_duration_s;
     sustain_action = params_ptr->sustain_action;
 }
 

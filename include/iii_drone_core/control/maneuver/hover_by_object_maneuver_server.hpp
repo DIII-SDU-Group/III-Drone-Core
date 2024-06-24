@@ -239,10 +239,14 @@ namespace maneuver {
          * @brief Validates the drone awareness.
          * 
          * @param drone_awareness The drone awareness.
+         * @param target_adapter The target adapter, defaults to check internally stored target_adapter_.
          * 
          * @return bool Whether the awareness is valid.
          */
-        bool validateAwareness(combined_drone_awareness_t drone_awareness) const;
+        bool validateAwareness(
+            combined_drone_awareness_t drone_awareness,
+            const iii_drone::adapters::TargetAdapter &target_adapter = iii_drone::adapters::TargetAdapter()
+        ) const;
 
         /**
          * @brief The hover duration.

@@ -7,6 +7,8 @@
 /*****************************************************************************/
 // Std:
 
+#include <thread>
+
 /*****************************************************************************/
 // ROS2:
 
@@ -14,6 +16,9 @@
 
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
 #include <rclcpp_lifecycle/lifecycle_publisher.hpp>
+
+#include <nav_msgs/msg/path.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 
 /*****************************************************************************/
 // III-Drone-Interfaces:
@@ -150,6 +155,16 @@ namespace trajectory_generator_node {
          */
 		rclcpp::Service<iii_drone_interfaces::srv::ComputeReferenceTrajectory>::SharedPtr compute_reference_trajectory_service_;
 
+        /**
+         * @brief Trajectory path publisher.
+         */
+        rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Path>::SharedPtr trajectory_path_publisher_;
+
+        /**
+         * @brief Target pose publisher.
+         */
+        rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::PoseStamped>::SharedPtr target_pose_publisher_;
+
 		/**
 		 * @brief The compute reference trajectory service callback
 		 * 
@@ -163,6 +178,9 @@ namespace trajectory_generator_node {
 			std::shared_ptr<iii_drone_interfaces::srv::ComputeReferenceTrajectory::Response> response
 		);
 
+        void publishTrajectoryPath(const iii_drone::adapters::ReferenceTrajectoryAdapter & reference_trajectory_adapter);
+        void publishTargetPose(const iii_drone::adapters::ReferenceAdapter & reference_adapter);
+
     };
 
 } // namespace trajectory_generator_node
@@ -173,4 +191,4 @@ namespace trajectory_generator_node {
 // Main
 /*****************************************************************************/
 
-int main(int argc, char * argv[]);
+// int main(int argc, char * argv[]);

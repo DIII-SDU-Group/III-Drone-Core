@@ -205,7 +205,7 @@ namespace control {
         iii_drone::types::transform_matrix_t ComputeTargetTransform(const iii_drone::adapters::TargetAdapter & target_adapter) const;
 
         /**
-         * @brief Gets the pose of the target.
+         * @brief Gets the pose of the target object in the world frame (not considering the target transform).
          * 
          * @param target_adapter The target adapter.
          * 
@@ -324,6 +324,13 @@ namespace control {
         drone_location_t drone_location() const;
 
         /**
+         * @brief Returns whether the gripper is open.
+         * 
+         * @return true if the gripper is open.
+         */
+        bool gripper_open() const;
+
+        /**
          * @brief Returns the tf buffer shared ptr.
          * 
          * @return The tf buffer shared ptr.
@@ -416,6 +423,16 @@ namespace control {
          * @brief Combined drone awareness publisher.
          */
         rclcpp_lifecycle::LifecyclePublisher<iii_drone_interfaces::msg::CombinedDroneAwareness>::SharedPtr combined_drone_awareness_pub_;
+
+        /**
+         * @brief Target pose publisher.
+         */
+        rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::PoseStamped>::SharedPtr target_pose_pub_;
+
+        /**
+         * @brief Target drone pose publisher.
+         */
+        rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::PoseStamped>::SharedPtr target_drone_pose_pub_;
 
         /**
          * @brief Has found initial location flag.

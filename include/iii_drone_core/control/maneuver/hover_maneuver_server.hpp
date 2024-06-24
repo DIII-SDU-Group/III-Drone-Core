@@ -202,6 +202,11 @@ namespace maneuver {
         iii_drone::utils::Atomic<float> hover_duration_s_;
 
         /**
+         * @brief Sustain for duration in seconds.
+         */
+        iii_drone::utils::Atomic<float> sustain_duration_s_;
+
+        /**
          * @brief Sustain action flag.
          */
         iii_drone::utils::Atomic<bool> sustain_action_;

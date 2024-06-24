@@ -154,7 +154,7 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughT
 		return parent_return;
 	}
 
-	rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(10));
+	rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(1));
 	qos.best_effort();
 	qos.durability_volatile();
 

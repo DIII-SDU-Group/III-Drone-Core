@@ -21,13 +21,13 @@
 
 #include <tf2_ros/buffer.h>
 
-
 /*****************************************************************************/
 // III-Drone-Interfaces:
 
 #include <iii_drone_interfaces/msg/reference.hpp>
 #include <iii_drone_interfaces/msg/maneuver.hpp>
 #include <iii_drone_interfaces/msg/maneuver_queue.hpp>
+#include <iii_drone_interfaces/msg/string_stamped.hpp>
 
 #include <iii_drone_interfaces/srv/get_reference.hpp>
 
@@ -53,11 +53,13 @@
 #include <iii_drone_core/adapters/maneuver_adapter.hpp>
 
 #include <iii_drone_core/control/state.hpp>
+#include <iii_drone_core/control/reference.hpp>
 #include <iii_drone_core/control/combined_drone_awareness_handler.hpp>
 
 #include <iii_drone_core/control/maneuver/maneuver_types.hpp>
 #include <iii_drone_core/control/maneuver/maneuver.hpp>
 #include <iii_drone_core/control/maneuver/maneuver_queue.hpp>
+#include <iii_drone_core/control/maneuver/reference_callback_token.hpp>
 
 #include <iii_drone_core/control/maneuver/maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/hover_maneuver_server.hpp>
@@ -87,7 +89,6 @@ namespace maneuver {
      * which underlyingly is fetched from the executing maneuver server.
      */
     class ManeuverScheduler {
-        using ReferenceCallbackToken = iii_drone::utils::Token<iii_drone::utils::Atomic<std::function<Reference(const State &)>>>;
     public:
         /**
          * @brief Constructor
@@ -327,9 +328,9 @@ namespace maneuver {
         rclcpp::TimerBase::SharedPtr maneuver_execution_timer_;
 
         /**
-         * @brief The reference callback function atomic.
+         * @brief The reference callback struct.
          */
-        iii_drone::utils::Atomic<std::function<Reference(const State &)>>::SharedPtr reference_callback_;
+        ReferenceCallbackStruct::SharedPtr reference_callback_struct_;
 
         /**
          * @brief The master token for the reference callback function access.
@@ -337,9 +338,25 @@ namespace maneuver {
         ReferenceCallbackToken reference_callback_token_;
 
         /**
+         * @brief Reference callback provider publisher.
+         */
+        rclcpp_lifecycle::LifecyclePublisher<iii_drone_interfaces::msg::StringStamped>::SharedPtr reference_callback_provider_publisher_;
+
+        /**
+         * @brief Reference callback provider publish timer.
+         */
+        rclcpp::TimerBase::SharedPtr reference_callback_provider_publish_timer_;
+
+        /**
          * @brief The counter for the number of iterations without a maneuver before the scheduler goes from hovering to idle.
          */
         iii_drone::utils::Atomic<int> no_maneuver_idle_cnt_ = -1;
+
+        /**
+         * @brief Flag indicating that a maneuver server get reference callback is still registered
+         * even though the maneuver has terminated, as can be the case for hover maneuvers that are not sustained.
+         */
+        iii_drone::utils::Atomic<bool> maneuver_server_get_reference_callback_still_registered_ = false;
 
         /**
          * @brief Callback for when hovering fails (hover by object or hover on cable).

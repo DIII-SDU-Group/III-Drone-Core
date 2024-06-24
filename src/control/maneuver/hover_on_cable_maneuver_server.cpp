@@ -47,26 +47,50 @@ bool HoverOnCableManeuverServer::CanExecuteManeuver(
     hover_on_cable_maneuver_params_t params(maneuver.maneuver_params());
 
     if (params.target_z_velocity < 0.0) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "HoverOnCableManeuverServer::CanExecuteManeuver(): target_z_velocity must be non-negative."
+        );
         return false;
     }
 
     if (drone_awareness.target_adapter.target_type() != TARGET_TYPE_CABLE) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "HoverOnCableManeuverServer::CanExecuteManeuver(): target_type must be TARGET_TYPE_CABLE."
+        );
         return false;
     }
 
     if (drone_awareness.target_adapter.reference_frame_id() != parameters_->GetParameter("gripper_frame_id").as_string()) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "HoverOnCableManeuverServer::CanExecuteManeuver(): reference_frame_id must be gripper_frame_id."
+        );
         return false;
     }
 
-    if (drone_awareness.target_adapter.target_transform().isApprox(transform_matrix_t::Identity())) {
+    if (!drone_awareness.target_adapter.target_transform().isApprox(transform_matrix_t::Identity())) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "HoverOnCableManeuverServer::CanExecuteManeuver(): target_transform gripper to cable must be identity."
+        );
         return false;
     }
 
     if (drone_awareness.target_adapter.target_id() != params.target_cable_id) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "HoverOnCableManeuverServer::CanExecuteManeuver(): target_cable_id must be target id of target adapter."
+        );
         return false;
     }
 
     if (!validateAwareness(drone_awareness)) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "HoverOnCableManeuverServer::CanExecuteManeuver(): validateAwareness failed."
+        );
         return false;
     }
 

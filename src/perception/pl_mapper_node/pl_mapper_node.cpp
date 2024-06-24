@@ -504,12 +504,12 @@ void PowerlineMapperNode::plMapperCommandCallback(
         RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Pausing PL mapper");
 
         send_system_command(
-            false,
+            true,
             hough_transformer_command_client_
         );
         
         send_system_command(
-            false,
+            true,
             pl_dir_computer_command_client_
         );
 
@@ -697,7 +697,7 @@ void PowerlineMapperNode::plDirectionCallback(const geometry_msgs::msg::Quaterni
 
     RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::plDirectionCallback(): Received powerline direction, updating powerline");
 
-    if (pl_mapper_state_ != pl_mapper_state_running) {
+    if (pl_mapper_state_ != pl_mapper_state_running && pl_mapper_state_ != pl_mapper_state_paused) {
 
         return;
 
