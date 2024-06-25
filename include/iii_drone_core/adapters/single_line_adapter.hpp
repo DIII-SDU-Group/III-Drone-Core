@@ -14,6 +14,9 @@
 
 #include <geometry_msgs/msg/pose.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/point_stamped.hpp>
+
+#include <tf2_ros/buffer.h>
 
 /*****************************************************************************/
 // III-Drone-Core:
@@ -117,6 +120,8 @@ namespace adapters {
          * @param frame_id The frame id of the PoseStamped.
          */
         const geometry_msgs::msg::PoseStamped ToPoseStampedMsg() const;
+
+        void Transform(const std::string & target_frame_id, std::shared_ptr<tf2_ros::Buffer> tf_buffer);
 
         /**
          * @brief Timestamp getter.

@@ -14,6 +14,11 @@
 
 #include <rclcpp/rclcpp.hpp>
 
+#include <geometry_msgs/msg/vector3_stamped.hpp>
+#include <geometry_msgs/msg/point_stamped.hpp>
+
+#include <tf2_ros/buffer.h>
+
 /*****************************************************************************/
 // III-Drone-Core:
 
@@ -113,6 +118,11 @@ namespace adapters {
          * @return True if the line is contained in the powerline.
          */
         bool HasLine(int id) const;
+
+        bool Transform(
+            std::string target_frame_id,
+            std::shared_ptr<tf2_ros::Buffer> tf_buffer
+        );
 
         /**
          * @brief Stamp getter.

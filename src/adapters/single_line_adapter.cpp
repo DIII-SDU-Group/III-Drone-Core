@@ -127,6 +127,30 @@ const geometry_msgs::msg::PoseStamped SingleLineAdapter::ToPoseStampedMsg() cons
 
 }
 
+void SingleLineAdapter::Transform(
+    const std::string & target_frame_id,
+    std::shared_ptr<tf2_ros::Buffer> tf_buffer
+) {
+
+    geometry_msgs::msg::PoseStamped pose_stamped_msg = ToPoseStampedMsg();
+
+    position_ = iii_drone::types::pointFromPoseMsg(pose_stamped_msg.pose);
+    quaternion_ = iii_drone::types::quaternionFromPoseMsg(pose_stamped_msg.pose);
+
+    geometry_msgs::msg::PointStamped point_stamped_msg;
+    point_stamped_msg.header.stamp = stamp_;
+    point_stamped_msg.header.frame_id = frame_id_;
+    point_stamped_msg.point = iii_drone::types::pointMsgFromPoint(projected_position_);
+
+    point_stamped_msg = tf_buffer->transform(point_stamped_msg, target_frame_id);
+
+    projected_position_ = iii_drone::types::pointFromPointMsg(point_stamped_msg.point);
+
+    frame_id_ = target_frame_id;
+
+
+}
+
 const rclcpp::Time & SingleLineAdapter::stamp() const {
 
     return stamp_;

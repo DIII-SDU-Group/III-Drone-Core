@@ -170,6 +170,43 @@ bool PowerlineAdapter::HasLine(int id) const {
 
 }
 
+bool PowerlineAdapter::Transform(
+    std::string target_frame_id,
+    std::shared_ptr<tf2_ros::Buffer> tf_buffer
+) {
+
+    if (single_line_adapters_.size() == 0) {
+            
+        return false;
+
+    }
+
+    for (unsigned int i = 0; i < single_line_adapters_.size(); i++) {
+
+        single_line_adapters_[i].Transform(target_frame_id, tf_buffer);
+
+    }
+
+    geometry_msgs::msg::Vector3Stamped plane_normal_msg;
+    plane_normal_msg.header.frame_id = single_line_adapters_[0].frame_id();
+    plane_normal_msg.header.stamp = stamp_;
+    plane_normal_msg.vector = vectorMsgFromVector(projection_plane_.normal);
+    plane_normal_msg = tf_buffer->transform(plane_normal_msg, target_frame_id);
+
+    projection_plane_.normal = vectorFromVectorMsg(plane_normal_msg.vector);
+
+    geometry_msgs::msg::PointStamped plane_origin_msg;
+    plane_origin_msg.header.frame_id = single_line_adapters_[0].frame_id();
+    plane_origin_msg.header.stamp = stamp_;
+    plane_origin_msg.point = pointMsgFromPoint(projection_plane_.p);
+    plane_origin_msg = tf_buffer->transform(plane_origin_msg, target_frame_id);
+
+    projection_plane_.p = pointFromPointMsg(plane_origin_msg.point);
+
+    return true;
+
+}
+
 const rclcpp::Time & PowerlineAdapter::stamp() const {
     return stamp_;
 }
