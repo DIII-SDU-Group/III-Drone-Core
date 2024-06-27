@@ -92,6 +92,11 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Trajec
         this
     );
 
+    trajectory_interpolator_ = std::make_shared<TrajectoryInterpolator> (
+        configurator_->GetParameterBundle("trajectory_interpolator"),
+        this
+    );
+
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 
 }
@@ -120,6 +125,9 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Trajec
 
     trajectory_generator_.reset();
     trajectory_generator_ = nullptr;
+
+    trajectory_interpolator_.reset();
+    trajectory_interpolator_ = nullptr;
 
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 
@@ -226,14 +234,41 @@ void TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(
     adapters::StateAdapter state_adapter(request->state);
     adapters::ReferenceAdapter reference_adapter(request->reference);
 
+    bool use_mpc = request->use_mpc;
+
     // Compute the reference trajectory
-    ReferenceTrajectory ref_traj = trajectory_generator_->ComputeReferenceTrajectory(
-        state_adapter.state(),
-        reference_adapter.reference(),
-        request->set_reference,
-        request->reset,
-        (MPC_mode_t)request->mpc_mode.mode
-    );
+    ReferenceTrajectory ref_traj;
+    
+    if (use_mpc) {
+
+        RCLCPP_DEBUG(
+            this->get_logger(), 
+            "TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(): Using MPC."
+        );
+
+        ref_traj = trajectory_generator_->ComputeReferenceTrajectory(
+            state_adapter.state(),
+            reference_adapter.reference(),
+            request->set_reference,
+            request->reset,
+            (trajectory_mode_t)request->trajectory_mode.mode
+        );
+
+    } else {
+
+        RCLCPP_DEBUG(
+            this->get_logger(), 
+            "TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(): Using interpolation."
+        );
+
+        ref_traj = trajectory_interpolator_->ComputeReferenceTrajectory(
+            state_adapter.state(),
+            reference_adapter.reference(),
+            request->set_reference,
+            request->reset
+        );
+
+    }
 
     // Set the response
     adapters::ReferenceTrajectoryAdapter ref_traj_adapter(ref_traj);
@@ -261,32 +296,32 @@ void TrajectoryGeneratorNode::publishTargetPose(const adapters::ReferenceAdapter
 
 }
 
-// int main(int argc, char * argv[]) {
+int main(int argc, char * argv[]) {
 
-//     setvbuf(stdout, NULL, _IONBF, BUFSIZ);
-//     rclcpp::init(argc, argv);
+    setvbuf(stdout, NULL, _IONBF, BUFSIZ);
+    rclcpp::init(argc, argv);
 
-//     rclcpp::executors::MultiThreadedExecutor executor;
+    rclcpp::executors::MultiThreadedExecutor executor;
 
-//     auto node = std::make_shared<TrajectoryGeneratorNode>();
+    auto node = std::make_shared<TrajectoryGeneratorNode>();
 
-//     executor.add_node(node->get_node_base_interface());
+    executor.add_node(node->get_node_base_interface());
 
-//     try {
+    try {
         
-//         executor.spin();
+        executor.spin();
 
-//     } catch(const std::exception& e) {
+    } catch(const std::exception& e) {
         
-//         node.reset();
+        node.reset();
 
-//     }
+    }
     
-// 	if (rclcpp::ok()) {
-// 		node.reset();
-// 		rclcpp::shutdown();
-// 	}
+	if (rclcpp::ok()) {
+		node.reset();
+		rclcpp::shutdown();
+	}
 
-//     return 0;
+    return 0;
 
-// }
+}

@@ -487,10 +487,10 @@ int main(int argc, char * argv[]) {
     rclcpp::executors::MultiThreadedExecutor executor;
 
     auto node = std::make_shared<ManeuverControllerNode>();
-    auto trajectory_generator_node = std::make_shared<iii_drone::control::trajectory_generator_node::TrajectoryGeneratorNode>();
+    // auto trajectory_generator_node = std::make_shared<iii_drone::control::trajectory_generator_node::TrajectoryGeneratorNode>();
 
     executor.add_node(node->get_node_base_interface());
-    executor.add_node(trajectory_generator_node->get_node_base_interface());
+    // executor.add_node(trajectory_generator_node->get_node_base_interface());
 
     try {
         

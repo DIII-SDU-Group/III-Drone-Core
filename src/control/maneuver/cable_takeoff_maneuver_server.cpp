@@ -181,12 +181,15 @@ Reference CableTakeoffManeuverServer::computeReference(const State & state) {
     bool reset = first_iteration_;
     bool set_reference = true;
 
+    first_iteration_ = false;
+
     Reference ref = trajectory_generator_client_->ComputeReference(
         state,
         target_reference,
-        reset,
         set_reference,
-        MPC_mode_t::cable_takeoff
+        reset,
+        trajectory_mode_t::cable_takeoff,
+        parameters_->GetParameter("use_mpc").as_bool()
     );
 
     return ref;

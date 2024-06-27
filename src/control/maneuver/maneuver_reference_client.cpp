@@ -41,9 +41,9 @@ ManeuverReferenceClient::ManeuverReferenceClient(
 
 }
 
-void ManeuverReferenceClient::UpdateReference() {
+void ManeuverReferenceClient::UpdateReference(bool force) {
 
-    if (isManeuverMode()) {
+    if (!force && isManeuverMode()) {
         RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::UpdateReference(): Cannot update reference while in MANEUVER mode, returning.");
         return;
     }
@@ -138,6 +138,8 @@ void ManeuverReferenceClient::SetReferenceModeHover(bool force) {
         return;
     }
 
+    UpdateReference(true);
+
     if (reference_mode == reference_mode_t::HOVER) {
         return;
     }
@@ -148,8 +150,6 @@ void ManeuverReferenceClient::SetReferenceModeHover(bool force) {
     );
 
     reference_mode_.Store(reference_mode_t::HOVER);
-
-    UpdateReference();
 
 }
 

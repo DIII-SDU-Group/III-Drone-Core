@@ -288,7 +288,8 @@ Reference CableLandingManeuverServer::computeReference(const State & state) {
         target_reference,
         set_reference,
         reset,
-        MPC_mode_t::cable_landing
+        trajectory_mode_t::cable_landing,
+        parameters_->GetParameter("use_mpc").as_bool()
     );
 
     Reference truncated_ref = truncateReferenceWithinSafetyZone(
@@ -367,11 +368,19 @@ bool CableLandingManeuverServer::hasFailed(Maneuver &) {
     //     );
 
     if (!cda_handler->in_flight()) {
-        RCLCPP_WARN(
-            node()->get_logger(),
-            "CableLandingManeuverServer::hasFailed(): Drone is not in flight."
-        );
-        return true;
+        if (!cda_handler->on_cable()) {
+            RCLCPP_WARN(
+                node()->get_logger(),
+                "CableLandingManeuverServer::hasFailed(): Drone is not in flight and not on cable."
+            );
+            return true;
+        } else if (cda_handler->on_cable_id() != target_adapter_->target_id()) {
+            RCLCPP_WARN(
+                node()->get_logger(),
+                "CableLandingManeuverServer::hasFailed(): Drone is on cable but the on cable id is wrong."
+            );
+            return true;
+        }
     }
 
     if (!cda_handler->offboard()) {

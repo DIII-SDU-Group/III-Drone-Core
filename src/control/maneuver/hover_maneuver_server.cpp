@@ -259,7 +259,7 @@ bool HoverManeuverServer::hasSucceeded(Maneuver & ) {
 
         if (elapsed_time.seconds() >= sustain_duration_s_) {
 
-            RCLCPP_INFO(node()->get_logger(), "HoverManeuverServer::hasSucceeded(): Hover maneuver has succeeded after %f seconds", (float)(hover_duration_s_ + sustain_duration_s_));
+            RCLCPP_INFO(node()->get_logger(), "HoverManeuverServer::hasSucceeded(): Hover maneuver has succeeded after %f seconds", (float)(sustain_duration_s_));
 
             return true;
 

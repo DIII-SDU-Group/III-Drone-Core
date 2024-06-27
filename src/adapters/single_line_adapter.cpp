@@ -133,6 +133,7 @@ void SingleLineAdapter::Transform(
 ) {
 
     geometry_msgs::msg::PoseStamped pose_stamped_msg = ToPoseStampedMsg();
+    pose_stamped_msg = tf_buffer->transform(pose_stamped_msg, target_frame_id);
 
     position_ = iii_drone::types::pointFromPoseMsg(pose_stamped_msg.pose);
     quaternion_ = iii_drone::types::quaternionFromPoseMsg(pose_stamped_msg.pose);

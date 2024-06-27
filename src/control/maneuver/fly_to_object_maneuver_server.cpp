@@ -146,7 +146,8 @@ Reference FlyToObjectManeuverServer::computeReference(const State & state) {
         target_reference,
         set_reference,
         reset,
-        MPC_mode_t::positional
+        trajectory_mode_t::positional,
+        parameters_->GetParameter("use_mpc").as_bool()
     );
 
     if (first_iteration_) {

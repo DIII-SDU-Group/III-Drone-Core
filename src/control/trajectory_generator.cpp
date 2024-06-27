@@ -27,21 +27,21 @@ ReferenceTrajectory TrajectoryGenerator::ComputeReferenceTrajectory(
     Reference reference, 
     bool set_target, 
     bool reset, 
-    MPC_mode_t mpc_mode
+    trajectory_mode_t trajectory_mode
 ) {
 
 	// Variables:
 
     iii_drone::configuration::ParameterBundle::SharedPtr mpc_params;
 
-    switch(mpc_mode) {
-        case MPC_mode_t::positional:
+    switch(trajectory_mode) {
+        case trajectory_mode_t::positional:
             mpc_params = positional_mpc_params_;
             break;
-        case MPC_mode_t::cable_landing:
+        case trajectory_mode_t::cable_landing:
             mpc_params = cable_landing_mpc_params_;
             break;
-        case MPC_mode_t::cable_takeoff:
+        case trajectory_mode_t::cable_takeoff:
             mpc_params = cable_takeoff_mpc_params_;
             break;
     }
@@ -71,7 +71,7 @@ ReferenceTrajectory TrajectoryGenerator::ComputeReferenceTrajectory(
 
     rclcpp::Time t0 = state.stamp();
 
-    if (mpc_mode == MPC_mode_t::cable_landing) {
+    if (trajectory_mode == trajectory_mode_t::cable_landing) {
 
         // RCLCPP_DEBUG(
         //     node_->get_logger(),

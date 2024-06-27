@@ -181,12 +181,6 @@ bool PowerlineAdapter::Transform(
 
     }
 
-    for (unsigned int i = 0; i < single_line_adapters_.size(); i++) {
-
-        single_line_adapters_[i].Transform(target_frame_id, tf_buffer);
-
-    }
-
     geometry_msgs::msg::Vector3Stamped plane_normal_msg;
     plane_normal_msg.header.frame_id = single_line_adapters_[0].frame_id();
     plane_normal_msg.header.stamp = stamp_;
@@ -203,7 +197,27 @@ bool PowerlineAdapter::Transform(
 
     projection_plane_.p = pointFromPointMsg(plane_origin_msg.point);
 
+    for (unsigned int i = 0; i < single_line_adapters_.size(); i++) {
+
+        single_line_adapters_[i].Transform(target_frame_id, tf_buffer);
+
+    }
+
     return true;
+
+}
+
+const std::vector<iii_drone::types::point_t> PowerlineAdapter::GetPoints() const {
+
+    std::vector<iii_drone::types::point_t> points;
+
+    for (unsigned int i = 0; i < single_line_adapters_.size(); i++) {
+
+        points.push_back(single_line_adapters_[i].position());
+
+    }
+
+    return points;
 
 }
 

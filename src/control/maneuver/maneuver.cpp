@@ -124,7 +124,7 @@ void Maneuver::SetFromGoal(const std::shared_ptr<const typename ActionT::Goal> g
 
         *p = cable_landing_maneuver_params_t(goal->target_cable_id);
 
-    } else if constexpr (std::is_same<ActionT, iii_drone_interfaces::action::CableLanding>::value) {
+    } else if constexpr (std::is_same<ActionT, iii_drone_interfaces::action::CableTakeoff>::value) {
 
         maneuver_type_ = MANEUVER_TYPE_CABLE_TAKEOFF;
         maneuver_params_ = std::make_shared<cable_takeoff_maneuver_params_t>();
@@ -137,7 +137,10 @@ void Maneuver::SetFromGoal(const std::shared_ptr<const typename ActionT::Goal> g
             throw std::runtime_error(msg);
         }
 
-        *p = cable_takeoff_maneuver_params_t(goal->target_cable_distance);
+        *p = cable_takeoff_maneuver_params_t(
+            goal->target_cable_id,
+            goal->target_cable_distance
+        );
 
     } else if constexpr (std::is_same<ActionT, iii_drone_interfaces::action::Hover>::value) {
 

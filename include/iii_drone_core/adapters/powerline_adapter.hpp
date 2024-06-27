@@ -125,6 +125,13 @@ namespace adapters {
         );
 
         /**
+         * @brief Gets the points.
+         * 
+         * @return The points.
+         */
+        const std::vector<iii_drone::types::point_t> GetPoints() const;
+
+        /**
          * @brief Stamp getter.
          */
         const rclcpp::Time & stamp() const;

@@ -18,7 +18,7 @@
 #include <iii_drone_core/control/state.hpp>
 #include <iii_drone_core/control/reference.hpp>
 #include <iii_drone_core/control/reference_trajectory.hpp>
-#include <iii_drone_core/control/mpc_mode.hpp>
+#include <iii_drone_core/control/trajectory_mode.hpp>
 
 /*****************************************************************************/
 // ROS2:
@@ -71,7 +71,7 @@ namespace control {
 		 * @param reference The reference state
 		 * @param set_target Whether to update the target state
 		 * @param reset Whether to reset the MPC
-		 * @param mpc_mode The MPC mode
+		 * @param trajectory_mode The trajectory mode
 		 * 
 		 * @return The MPC reference trajectory
 		*/
@@ -80,7 +80,7 @@ namespace control {
 			Reference reference, 
 			bool set_target, 
 			bool reset, 
-			MPC_mode_t mpc_mode
+			trajectory_mode_t trajectory_mode
 		);
 
         /**

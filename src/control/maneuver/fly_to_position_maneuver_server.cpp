@@ -192,12 +192,25 @@ Reference FlyToPositionManeuverServer::computeReference(const State & state) {
     bool reset, set_reference;
     reset = set_reference = first_iteration_;
 
+    if (parameters_->GetParameter("use_mpc").as_bool()) {
+        RCLCPP_DEBUG(
+            node()->get_logger(),
+            "FlyToPositionManeuverServer::computeReference(): Using MPC"
+        );
+    } else {
+        RCLCPP_DEBUG(
+            node()->get_logger(),
+            "FlyToPositionManeuverServer::computeReference(): Using interpolation"
+        );
+    }
+
     Reference ref = trajectory_generator_client_->ComputeReference(
         state,
         target_reference_,
         set_reference,
         reset,
-        MPC_mode_t::positional
+        trajectory_mode_t::positional,
+        parameters_->GetParameter("use_mpc").as_bool()
     );
 
     if (first_iteration_) {

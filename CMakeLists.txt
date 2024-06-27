@@ -99,6 +99,7 @@ set(III_DRONE_LIBRARY_HEADERS
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/reference_trajectory.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator_client.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_interpolator.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/combined_drone_awareness_handler.hpp"
 
@@ -153,6 +154,7 @@ set(III_DRONE_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/control/reference_trajectory.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator_client.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/trajectory_interpolator.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/control/combined_drone_awareness_handler.cpp"
 
@@ -302,19 +304,19 @@ custom_cpp_target(pl_mapper
   "${PROJECT_SOURCE_DIR}/src/perception/pl_mapper_node/pl_mapper_node.cpp"
 )
 
-# # Trajectory generator:
-# custom_cpp_target(trajectory_generator
-#   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator_node/trajectory_generator_node.hpp"
-#   "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator_node/trajectory_generator_node.cpp"
-# )
+# Trajectory generator:
+custom_cpp_target(trajectory_generator
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator_node/trajectory_generator_node.hpp"
+  "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator_node/trajectory_generator_node.cpp"
+)
 
 # Maneuver controller:
 custom_cpp_target(maneuver_controller
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver_controller_node/maneuver_controller_node.hpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver_controller_node/maneuver_controller_node.cpp"
 
-  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator_node/trajectory_generator_node.hpp"
-  "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator_node/trajectory_generator_node.cpp"
+  # "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator_node/trajectory_generator_node.hpp"
+  # "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator_node/trajectory_generator_node.cpp"
 )
 
 ############

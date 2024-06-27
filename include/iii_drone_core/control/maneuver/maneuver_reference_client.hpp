@@ -80,8 +80,10 @@ namespace maneuver {
 
         /**
          * @brief Update the reference to the current state if the reference mode is hover or passthrough, otherwise do nothing.
+         * 
+         * @param force If true, the reference will be updated regardless of the reference mode.
          */
-        void UpdateReference();
+        void UpdateReference(bool force = false);
 
         /**
          * @brief Sets the reference if the reference mode is hover or passthrough, otherwise do nothing.

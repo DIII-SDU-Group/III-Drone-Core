@@ -38,6 +38,7 @@
 // III-Drone-Core:
 
 #include <iii_drone_core/control/trajectory_generator.hpp>
+#include <iii_drone_core/control/trajectory_interpolator.hpp>
 
 #include <iii_drone_core/adapters/state_adapter.hpp>
 #include <iii_drone_core/adapters/reference_adapter.hpp>
@@ -150,6 +151,8 @@ namespace trajectory_generator_node {
          */
         TrajectoryGenerator::SharedPtr trajectory_generator_;
 
+        TrajectoryInterpolator::SharedPtr trajectory_interpolator_;
+
 		/**
 		 * @brief The compute reference trajectory service
          */
@@ -191,4 +194,4 @@ namespace trajectory_generator_node {
 // Main
 /*****************************************************************************/
 
-// int main(int argc, char * argv[]);
+int main(int argc, char * argv[]);

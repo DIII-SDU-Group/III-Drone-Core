@@ -218,13 +218,13 @@ void HoverOnCableManeuverServer::startExecution(Maneuver &maneuver) {
 
     sustain_action_ = params.sustain_action;
 
-    hover_start_time_ = node()->now();
+    hover_start_time_ = rclcpp::Clock().now();
 
 }
 
 bool HoverOnCableManeuverServer::canCancel() {
 
-    return false;
+    return true;
 
 }
 
@@ -240,7 +240,7 @@ bool HoverOnCableManeuverServer::hasSucceeded(Maneuver &) {
         return true;
     }
 
-    if (node()->now() - hover_start_time_ >= rclcpp::Duration::from_seconds(hover_duration_s_)) {
+    if (rclcpp::Clock().now() - hover_start_time_ >= rclcpp::Duration::from_seconds(hover_duration_s_)) {
         return true;
     }
 
