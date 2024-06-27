@@ -194,7 +194,7 @@ void CombinedDroneAwarenessHandler::Start() {
     );
 
     gripper_status_sub_ = node_->create_subscription<iii_drone_interfaces::msg::GripperStatus>(
-        "/gripper/status",
+        "/payload/charger_gripper/gripper_status",
         10,
         [this](const iii_drone_interfaces::msg::GripperStatus::SharedPtr msg) {
             if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::gripper_status_sub_: Gripper status received");
