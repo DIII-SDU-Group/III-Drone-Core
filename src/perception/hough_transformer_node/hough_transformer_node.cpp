@@ -52,6 +52,21 @@ HoughTransformerNode::HoughTransformerNode(
 		10
 	);
 
+	status_pub_ = this->create_publisher<iii_drone_interfaces::msg::StringStamped>(
+		"status", 
+		10
+	);
+
+	status_timer_ = this->create_wall_timer(
+		std::chrono::seconds(1), 
+		[this](){
+			auto msg = iii_drone_interfaces::msg::StringStamped();
+			msg.stamp = this->now();
+			msg.data = running_ ? "Running" : "Stopped";
+			status_pub_->publish(msg);
+		}
+	);
+
 }
 
 HoughTransformerNode::~HoughTransformerNode() {

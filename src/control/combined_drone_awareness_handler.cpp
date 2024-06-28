@@ -143,6 +143,7 @@ void CombinedDroneAwarenessHandler::Start() {
             msg.state = StateAdapter(cda.state).ToMsg();
             msg.armed = cda.armed;
             msg.offboard = cda.offboard;
+            msg.has_target = cda.has_target();
             msg.target = cda.target_adapter.ToMsg();
             msg.target_position_known = cda.target_position_known;
             msg.drone_location = (uint8_t)cda.drone_location;
@@ -944,6 +945,7 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness
 
         combined_drone_awareness.drone_location = DRONE_LOCATION_ON_GROUND;
         combined_drone_awareness.on_cable_id = -1;
+        has_found_initial_location_ = true;
         return;
 
     }

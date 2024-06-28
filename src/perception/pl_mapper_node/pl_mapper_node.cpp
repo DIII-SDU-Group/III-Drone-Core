@@ -81,6 +81,37 @@ PowerlineMapperNode::PowerlineMapperNode(
         system_command_clients_callback_group_
     );
 
+    state_pub_ = this->create_publisher<iii_drone_interfaces::msg::StringStamped>(
+        "state", 
+        10
+    );
+
+    state_pub_timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(1000), 
+        [this]() {
+            auto msg = std::make_unique<iii_drone_interfaces::msg::StringStamped>();
+            msg->stamp = this->now();
+            
+            switch(pl_mapper_state_) {
+                case pl_mapper_state_running:
+                    msg->data = "Running";
+                    break;
+                case pl_mapper_state_paused:
+                    msg->data = "Paused";
+                    break;
+                case pl_mapper_state_frozen:
+                    msg->data = "Frozen";
+                    break;
+                default:
+                case pl_mapper_state_idle:
+                    msg->data = "Idle";
+                    break;
+            }
+
+            state_pub_->publish(std::move(msg));
+        }
+    );
+
     RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::PowerlineMapperNode(): PL mapper ready");
 
 }

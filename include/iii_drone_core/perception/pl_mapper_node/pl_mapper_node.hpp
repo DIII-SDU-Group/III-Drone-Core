@@ -47,6 +47,7 @@
 
 #include <iii_drone_interfaces/msg/powerline.hpp>
 #include <iii_drone_interfaces/msg/pl_mapper_command.hpp>
+#include <iii_drone_interfaces/msg/string_stamped.hpp>
 
 #include <iii_drone_interfaces/srv/pl_mapper_command.hpp>
 #include <iii_drone_interfaces/srv/system_command.hpp>
@@ -215,6 +216,10 @@ private:
      * @brief Current state of the PL-mapper.
      */
     iii_drone::utils::Atomic<pl_mapper_state_t> pl_mapper_state_;
+
+    rclcpp_lifecycle::LifecyclePublisher<iii_drone_interfaces::msg::StringStamped>::SharedPtr state_pub_;
+
+    rclcpp::TimerBase::SharedPtr state_pub_timer_;
 
     /**
      * @brief PL-mapper command service.
