@@ -205,9 +205,10 @@ class ChargerGripperNode(Node):
                 self.get_logger().error("ChargerGripperNode.on_activate(): Base class activation failed.")
                 return ret
 
-            if self.configurator.get_parameter("gripper_command_interface") == "serial" or not self.configurator.get_parameter("gripper_command_only").value:
+            if self.configurator.get_parameter("gripper_command_interface").value == "serial":
+                self.get_logger().info("ChargerGripperNode.on_activate(): Using serial interface.")
                 if not self.simulation_:
-                    self.get_logger().debug("ChargerGripperNode.on_activate(): Opening serial port.")
+                    self.get_logger().info("ChargerGripperNode.on_activate(): Opening serial port.")
 
                     self.ser_ = serial.Serial(
                         port=self.configurator.get_parameter("charger_gripper_serial_port").value,
@@ -215,12 +216,19 @@ class ChargerGripperNode(Node):
                         timeout=self.configurator.get_parameter("charger_gripper_serial_timeout").value
                     )
 
-                self.get_logger().debug("ChargerGripperNode.on_activate(): Starting serial gripper command timer.")
+                    self.get_logger().info("ChargerGripperNode.on_activate(): Starting serial gripper command timer.")
+                    
+                    self.serial_gripper_cmd_timer_ = self.create_timer(
+                        timer_period_sec=self.configurator.get_parameter("gripper_command_serial_period_ms").value / 1000.0,
+                        callback=self.send_serial_gripper_cmd_callback
+                    )
                 
-                self.serial_gripper_cmd_timer_ = self.create_timer(
-                    timer_period_sec=self.configurator.get_parameter("gripper_command_serial_period_ms").value / 1000.0,
-                    callback=self.send_serial_gripper_cmd_callback
-                )
+                    
+                else:
+                    self.get_logger().info("ChargerGripperNode.on_activate(): Simulation mode. Not opening serial port.")
+
+            else:
+                self.get_logger().info("ChargerGripperNode.on_activate(): Not using serial.")
 
 
             if self.configurator.get_parameter("gripper_command_interface").value == "gpio" and not self.simulation_:
@@ -496,25 +504,25 @@ class ChargerGripperNode(Node):
             response.gripper_command_response = GripperCommand.Response.GRIPPER_COMMAND_RESPONSE_INVALID_COMMAND
             return response
 
-        if not self.gripper_command_only_ and not self.simulation_:
-            start_time = self.get_clock().now()
+        # if not self.gripper_command_only_ and not self.simulation_:
+        #     start_time = self.get_clock().now()
 
-            while (self.get_clock().now() - start_time).nanoseconds / 1e6 < self.gripper_command_complete_timeout_ms_:
-                if (self.last_gripper_command_ == "open" and self.gripper_status_msg_.gripper_status == GripperStatus.GRIPPER_STATUS_OPEN) or (self.last_gripper_command_ == "close" and self.gripper_status_msg_.gripper_status == GripperStatus.GRIPPER_STATUS_CLOSED):
-                    response.gripper_command_response = GripperCommand.Response.GRIPPER_COMMAND_RESPONSE_SUCCESS
-                    return response
+        #     while (self.get_clock().now() - start_time).nanoseconds / 1e6 < self.gripper_command_complete_timeout_ms_:
+        #         if (self.last_gripper_command_ == "open" and self.gripper_status_msg_.gripper_status == GripperStatus.GRIPPER_STATUS_OPEN) or (self.last_gripper_command_ == "close" and self.gripper_status_msg_.gripper_status == GripperStatus.GRIPPER_STATUS_CLOSED):
+        #             response.gripper_command_response = GripperCommand.Response.GRIPPER_COMMAND_RESPONSE_SUCCESS
+        #             return response
 
-            # Timeout
-            response.gripper_command_response = GripperCommand.Response.GRIPPER_COMMAND_RESPONSE_TIMEOUT
-            self.last_gripper_command_ = previous_gripper_command
-            if (previous_gripper_command == "open"):
-                self.open_gripper()
+        #     # Timeout
+        #     response.gripper_command_response = GripperCommand.Response.GRIPPER_COMMAND_RESPONSE_TIMEOUT
+        #     self.last_gripper_command_ = previous_gripper_command
+        #     if (previous_gripper_command == "open"):
+        #         self.open_gripper()
 
-            elif (previous_gripper_command == "close"):
-                self.close_gripper()
+        #     elif (previous_gripper_command == "close"):
+        #         self.close_gripper()
 
-            else:
-                self.get_logger().error("Invalid previous gripper command: {}".format(previous_gripper_command))
+        #     else:
+        #         self.get_logger().error("Invalid previous gripper command: {}".format(previous_gripper_command))
 
         return response
 
