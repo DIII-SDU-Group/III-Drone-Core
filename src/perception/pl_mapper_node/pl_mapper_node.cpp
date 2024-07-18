@@ -708,7 +708,8 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
     powerline_->ComputeInterLinePositions();
 
-    powerline_->UpdateNonFOVLines();
+    if (configurator_->GetParameter("use_inter_line_positions").as_bool())
+        powerline_->UpdateNonFOVLines();
 
     publishPoints(
         transformed_points, 
