@@ -82,7 +82,8 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Trajec
     );
 
     configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>>(
-        this
+        this,
+        "trajectory_generator"
     );
 
     trajectory_generator_ = std::make_shared<TrajectoryGenerator> (

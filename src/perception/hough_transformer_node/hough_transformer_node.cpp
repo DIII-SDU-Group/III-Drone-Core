@@ -95,7 +95,7 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughT
 	}
 
 	// Configurator object
-	configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>>(this);
+	configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>>(this, "hough_transformer");
 
 	// HoughTransformer object
 	hough_transformer_ = std::make_shared<HoughTransformer>(

@@ -361,7 +361,7 @@ int main(int argc, char **argv) {
 
     rclcpp::Node *nodePtr = node.get();
 
-    std::shared_ptr<Configurator> configurator = std::make_shared<Configurator>(nodePtr);
+    std::shared_ptr<Configurator> configurator = std::make_shared<Configurator>(nodePtr,"maneuver_controller");
 
     auto tfBuffer = std::make_shared<tf2_ros::Buffer>(node->get_clock());
     auto tfListener = std::make_shared<tf2_ros::TransformListener>(*tfBuffer);

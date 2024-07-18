@@ -143,7 +143,8 @@ PowerlineMapperNode::on_configure(const rclcpp_lifecycle::State & state) {
     );
 
     configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>>(
-        this
+        this,
+        "pl_mapper"
     );
 
     RCLCPP_DEBUG(

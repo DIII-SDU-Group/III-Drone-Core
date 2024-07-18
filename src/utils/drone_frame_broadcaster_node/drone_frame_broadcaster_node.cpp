@@ -25,7 +25,7 @@ DroneFrameBroadcasterNode::DroneFrameBroadcasterNode(
 
     RCLCPP_DEBUG(this->get_logger(), "DroneFrameBroadcasterNode::DroneFrameBroadcasterNode(): Constructor");
 
-    configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp::Node>>(this);
+    configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp::Node>>(this, "drone_frame_broadcaster");
 
     // Initialize the transform broadcaster
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
