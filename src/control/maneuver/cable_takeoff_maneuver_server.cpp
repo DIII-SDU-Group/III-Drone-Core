@@ -160,6 +160,7 @@ void CableTakeoffManeuverServer::startExecution(Maneuver & maneuver) {
     }
 
     first_iteration_ = true;
+    has_failed_ = false;
 
     cda_handler->SetTarget(target_adapter_);
 
@@ -183,14 +184,32 @@ Reference CableTakeoffManeuverServer::computeReference(const State & state) {
 
     first_iteration_ = false;
 
-    Reference ref = trajectory_generator_client_->ComputeReference(
-        state,
-        target_reference,
-        set_reference,
-        reset,
-        trajectory_mode_t::cable_takeoff,
-        parameters_->GetParameter("use_mpc").as_bool()
-    );
+    Reference ref;
+    
+    try {
+
+        ref = trajectory_generator_client_->ComputeReference(
+            state,
+            target_reference,
+            set_reference,
+            reset,
+            trajectory_mode_t::cable_takeoff,
+            parameters_->GetParameter("use_mpc").as_bool()
+        );
+
+    } catch (const std::runtime_error &e) {
+
+        RCLCPP_ERROR(node()->get_logger(), "CableTakeoffManeuverServer::computeReference(): %s", e.what());
+
+        has_failed_ = true;
+
+        ref = Reference(
+            state,
+            true,
+            true
+        );
+
+    }
 
     return ref;
 

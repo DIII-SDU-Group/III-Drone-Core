@@ -205,6 +205,11 @@ namespace maneuver {
         iii_drone::utils::Atomic<bool> first_iteration_ = true;
 
         /**
+         * @brief has failed flag
+         */
+        iii_drone::utils::Atomic<bool> has_failed_ = false;
+
+        /**
          * @brief Validates the maneuver parameters.
          * 
          * @param maneuver_params The maneuver parameters.
