@@ -194,9 +194,12 @@ void CombinedDroneAwarenessHandler::Start() {
         }
     );
 
+	rclcpp::QoS gripper_sub_qos(rclcpp::KeepLast(1));
+	gripper_sub_qos.best_effort();
+
     gripper_status_sub_ = node_->create_subscription<iii_drone_interfaces::msg::GripperStatus>(
         "/payload/charger_gripper/gripper_status",
-        10,
+        gripper_sub_qos,
         [this](const iii_drone_interfaces::msg::GripperStatus::SharedPtr msg) {
             if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::gripper_status_sub_: Gripper status received");
             iii_drone::adapters::GripperStatusAdapter adapter(*msg);
