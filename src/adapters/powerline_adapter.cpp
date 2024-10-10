@@ -181,27 +181,49 @@ bool PowerlineAdapter::Transform(
 
     }
 
+    plane_t new_projection_plane;
+
     geometry_msgs::msg::Vector3Stamped plane_normal_msg;
     plane_normal_msg.header.frame_id = single_line_adapters_[0].frame_id();
     plane_normal_msg.header.stamp = stamp_;
     plane_normal_msg.vector = vectorMsgFromVector(projection_plane_.normal);
-    plane_normal_msg = tf_buffer->transform(plane_normal_msg, target_frame_id);
+    try {
+        plane_normal_msg = tf_buffer->transform(plane_normal_msg, target_frame_id);
+    } catch (tf2::TransformException & ex) {
+        return false;
+    }
 
-    projection_plane_.normal = vectorFromVectorMsg(plane_normal_msg.vector);
+    new_projection_plane.normal = vectorFromVectorMsg(plane_normal_msg.vector);
 
     geometry_msgs::msg::PointStamped plane_origin_msg;
     plane_origin_msg.header.frame_id = single_line_adapters_[0].frame_id();
     plane_origin_msg.header.stamp = stamp_;
     plane_origin_msg.point = pointMsgFromPoint(projection_plane_.p);
-    plane_origin_msg = tf_buffer->transform(plane_origin_msg, target_frame_id);
+    try {
+        plane_origin_msg = tf_buffer->transform(plane_origin_msg, target_frame_id);
+    } catch (tf2::TransformException & ex) {
+        return false;
+    }
 
-    projection_plane_.p = pointFromPointMsg(plane_origin_msg.point);
+    new_projection_plane.p = pointFromPointMsg(plane_origin_msg.point);
+
+    std::vector<SingleLineAdapter> new_single_line_adapters;
 
     for (unsigned int i = 0; i < single_line_adapters_.size(); i++) {
 
-        single_line_adapters_[i].Transform(target_frame_id, tf_buffer);
+        SingleLineAdapter new_line_adapter = single_line_adapters_[i];
+        try {
+            new_line_adapter.Transform(target_frame_id, tf_buffer);
+        } catch (tf2::TransformException & ex) {
+            return false;
+        }
+        
+        new_single_line_adapters.push_back(new_line_adapter);
 
     }
+
+    projection_plane_ = new_projection_plane;
+    single_line_adapters_ = new_single_line_adapters;
 
     return true;
 

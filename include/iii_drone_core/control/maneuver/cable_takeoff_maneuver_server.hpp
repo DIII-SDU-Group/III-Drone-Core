@@ -214,6 +214,11 @@ namespace maneuver {
         iii_drone::utils::Atomic<bool> first_iteration_ = true;
 
         /**
+         * @brief Has failed flag.
+         */
+        iii_drone::utils::Atomic<bool> has_failed_ = false;
+
+        /**
          * @brief Get updated target reference. 
          * Sets the has_failed flag if the target is not visible.
          * 

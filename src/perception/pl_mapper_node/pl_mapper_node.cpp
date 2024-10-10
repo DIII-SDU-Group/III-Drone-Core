@@ -143,7 +143,8 @@ PowerlineMapperNode::on_configure(const rclcpp_lifecycle::State & state) {
     );
 
     configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>>(
-        this
+        this,
+        "pl_mapper"
     );
 
     RCLCPP_DEBUG(
@@ -686,10 +687,15 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
         pt.header.frame_id = msg->header.frame_id;
         pt.point = pointMsgFromPoint(pcl_points[i]);
 
-        pt = tf_buffer_->transform(
-            pt, 
-            configurator_->GetParameter("drone_frame_id").as_string()
-        );
+        try {
+            pt = tf_buffer_->transform(
+                pt, 
+                configurator_->GetParameter("drone_frame_id").as_string()
+            );
+        } catch (tf2::TransformException & ex) {
+            n_skipped++;
+            continue;
+        }
 
         point_t transformed_point = pointFromPointMsg(pt.point);
 

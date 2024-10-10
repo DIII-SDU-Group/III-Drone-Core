@@ -178,6 +178,7 @@ void FlyToPositionManeuverServer::startExecution(Maneuver & maneuver) {
     }
 
     first_iteration_ = true;
+    has_failed_ = false;
 
     cda_handler->ClearTarget();
 
@@ -204,14 +205,28 @@ Reference FlyToPositionManeuverServer::computeReference(const State & state) {
         );
     }
 
-    Reference ref = trajectory_generator_client_->ComputeReference(
-        state,
-        target_reference_,
-        set_reference,
-        reset,
-        trajectory_mode_t::positional,
-        parameters_->GetParameter("use_mpc").as_bool()
-    );
+    Reference ref;
+    
+    try {
+        ref = trajectory_generator_client_->ComputeReference(
+            state,
+            target_reference_,
+            set_reference,
+            reset,
+            trajectory_mode_t::positional,
+            parameters_->GetParameter("use_mpc").as_bool()
+        );
+    } catch (std::runtime_error & e) {
+        RCLCPP_ERROR(
+            node()->get_logger(),
+            "FlyToPositionManeuverServer::computeReference(): %s",
+            e.what()
+        );
+
+        has_failed_ = true;
+        
+        ref = Reference(state,true,true);
+    }
 
     if (first_iteration_) {
 
@@ -276,6 +291,14 @@ bool FlyToPositionManeuverServer::hasFailed(Maneuver &) {
         RCLCPP_WARN(
             node()->get_logger(),
             "FlyToPositionManeuverServer::hasFailed(): Drone is not armed"
+        );
+        return true;
+    }
+
+    if (has_failed_) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "FlyToPositionManeuverServer::hasFailed(): Maneuver failed flag is set"
         );
         return true;
     }

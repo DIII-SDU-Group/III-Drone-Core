@@ -877,61 +877,86 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness
     // Check if on cable:
     if (!powerline_adapter_history_->empty()) {
 
-        geometry_msgs::msg::TransformStamped transform_stamped = tf_buffer_->lookupTransform(
-            params_->GetParameter("drone_frame_id").as_string(),
-            params_->GetParameter("cable_gripper_frame_id").as_string(),
-            tf2::TimePointZero
-        );
+        bool could_transform = false;
 
-        vector_t v_drone_to_gripper = vectorFromTransformMsg(transform_stamped.transform);
-
-        point_t gripper_position = drone_position + v_drone_to_gripper;
-
-        iii_drone::adapters::PowerlineAdapter powerline_adapter = (*powerline_adapter_history_)[0];
-
-        iii_drone::adapters::SingleLineAdapter closest_line;
-
-        bool found_closest_line = false;
-
-        try {
-            closest_line = powerline_adapter.GetClosestLine(gripper_position);
-            found_closest_line = true;
-        } catch (std::exception & e) {
-            found_closest_line = false;
-        }
-
-        if (params_->GetParameter("use_gripper_status_condition").as_bool() && !gripper_open()) {
-            combined_drone_awareness.drone_location = DRONE_LOCATION_ON_CABLE;
-            combined_drone_awareness.on_cable_id = -1;
-            has_found_initial_location_ = true;
-        }
-
-        if (found_closest_line) {
-
-            point_t closest_line_position = closest_line.position();
-
-            geometry_msgs::msg::PointStamped closest_line_position_stamped;
-            closest_line_position_stamped.header.frame_id = closest_line.frame_id();
-            closest_line_position_stamped.point = pointMsgFromPoint(closest_line_position);
-
-            closest_line_position_stamped = tf_buffer_->transform(
-                closest_line_position_stamped,
-                params_->GetParameter("drone_frame_id").as_string()
+        geometry_msgs::msg::TransformStamped transform_stamped;
+        try{
+            transform_stamped = tf_buffer_->lookupTransform(
+                params_->GetParameter("drone_frame_id").as_string(),
+                params_->GetParameter("cable_gripper_frame_id").as_string(),
+                tf2::TimePointZero
             );
 
-            closest_line_position = pointFromPointMsg(closest_line_position_stamped.point);
+            could_transform = true;
 
-            float closest_line_distance = (closest_line_position - v_drone_to_gripper).norm();
+        } catch (tf2::TransformException & e) {
+            RCLCPP_WARN(node_->get_logger(), "CombinedDroneAwarenessHandler::updateDroneLocation(): Could not transform drone to gripper frame: %s", e.what());
+            could_transform = false;
+        }
 
-            if (closest_line_distance <= params_->GetParameter("on_cable_max_euc_distance").as_double()) {
-                
+        if(could_transform) {
+
+            vector_t v_drone_to_gripper = vectorFromTransformMsg(transform_stamped.transform);
+
+            point_t gripper_position = drone_position + v_drone_to_gripper;
+
+            iii_drone::adapters::PowerlineAdapter powerline_adapter = (*powerline_adapter_history_)[0];
+
+            iii_drone::adapters::SingleLineAdapter closest_line;
+
+            bool found_closest_line = false;
+
+            try {
+                closest_line = powerline_adapter.GetClosestLine(gripper_position);
+                found_closest_line = true;
+            } catch (std::exception & e) {
+                found_closest_line = false;
+            }
+
+            if (params_->GetParameter("use_gripper_status_condition").as_bool() && !gripper_open()) {
                 combined_drone_awareness.drone_location = DRONE_LOCATION_ON_CABLE;
-                combined_drone_awareness.on_cable_id = closest_line.id();
-
+                combined_drone_awareness.on_cable_id = -1;
                 has_found_initial_location_ = true;
+            }
 
-                return;
+            if (found_closest_line) {
 
+                point_t closest_line_position = closest_line.position();
+
+                geometry_msgs::msg::PointStamped closest_line_position_stamped;
+                closest_line_position_stamped.header.frame_id = closest_line.frame_id();
+                closest_line_position_stamped.point = pointMsgFromPoint(closest_line_position);
+
+                could_transform = false;
+
+                try {
+                    closest_line_position_stamped = tf_buffer_->transform(
+                        closest_line_position_stamped,
+                        params_->GetParameter("drone_frame_id").as_string()
+                    );
+                    could_transform = true;
+                } catch (tf2::TransformException & e) {
+                    RCLCPP_WARN(node_->get_logger(), "CombinedDroneAwarenessHandler::updateDroneLocation(): Could not transform closest line position to drone frame: %s", e.what());
+                    could_transform = false;
+                }
+
+                if (could_transform) {
+
+                    closest_line_position = pointFromPointMsg(closest_line_position_stamped.point);
+
+                    float closest_line_distance = (closest_line_position - v_drone_to_gripper).norm();
+
+                    if (closest_line_distance <= params_->GetParameter("on_cable_max_euc_distance").as_double()) {
+                        
+                        combined_drone_awareness.drone_location = DRONE_LOCATION_ON_CABLE;
+                        combined_drone_awareness.on_cable_id = closest_line.id();
+
+                        has_found_initial_location_ = true;
+
+                        return;
+
+                    }
+                }
             }
         }
     }

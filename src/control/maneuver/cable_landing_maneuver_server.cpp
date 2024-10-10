@@ -95,10 +95,15 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
     current_target_translation_drone_to_cable.vector = vectorMsgFromVector(current_target_translation);
     current_target_translation_drone_to_cable.header.frame_id = drone_awareness.target_adapter.reference_frame_id();
 
-    current_target_translation_drone_to_cable = cda_handler->tf_buffer()->transform(
-        current_target_translation_drone_to_cable,
-        parameters_->GetParameter("drone_frame_id").as_string()
-    );
+    try {
+        current_target_translation_drone_to_cable = cda_handler->tf_buffer()->transform(
+            current_target_translation_drone_to_cable,
+            parameters_->GetParameter("drone_frame_id").as_string()
+        );
+    } catch (const tf2::TransformException &e) {
+        RCLCPP_WARN(node()->get_logger(), "CableLandingManeuverServer::CanExecuteManeuver(): Could not transform translation.");
+        return false;
+    }
 
     current_target_translation = vectorFromVectorMsg(current_target_translation_drone_to_cable.vector);
 
@@ -123,10 +128,15 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
     current_target_quat_gripper_to_cable_msg.quaternion = quaternionMsgFromQuaternion(current_target_quat);
     current_target_quat_gripper_to_cable_msg.header.frame_id = drone_awareness.target_adapter.reference_frame_id();
 
-    current_target_quat_gripper_to_cable_msg = cda_handler->tf_buffer()->transform(
-        current_target_quat_gripper_to_cable_msg,
-        parameters_->GetParameter("gripper_frame_id").as_string()
-    );
+    try {
+        current_target_quat_gripper_to_cable_msg = cda_handler->tf_buffer()->transform(
+            current_target_quat_gripper_to_cable_msg,
+            parameters_->GetParameter("gripper_frame_id").as_string()
+        );
+    } catch (const tf2::TransformException &e) {
+        RCLCPP_WARN(node()->get_logger(), "CableLandingManeuverServer::CanExecuteManeuver(): Could not transform quaternion.");
+        return false;
+    }
 
     // quaternion_t current_target_quat_drone_to_cable = quaternionFromQuaternionMsg(current_target_quat_drone_to_cable_msg.quaternion);
 
@@ -148,7 +158,13 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
 
     vector_t pos_world_to_drone = drone_awareness.state.position();
 
-    transform_matrix_t current_target_transform_world_to_drone = cda_handler->ComputeTargetTransform(drone_awareness.target_adapter);
+    transform_matrix_t current_target_transform_world_to_drone;
+    try {
+        current_target_transform_world_to_drone = cda_handler->ComputeTargetTransform(drone_awareness.target_adapter);
+    } catch (const std::runtime_error &e) {
+        RCLCPP_WARN(node()->get_logger(), "CableLandingManeuverServer::CanExecuteManeuver(): Could not compute target transform.");
+        return false;
+    }
 
     vector_t current_target_pos_world_to_drone = current_target_transform_world_to_drone.block<3, 1>(0, 3);
 
@@ -283,23 +299,44 @@ Reference CableLandingManeuverServer::computeReference(const State & state) {
 
     first_iteration_ = false;
 
-    Reference ref = trajectory_generator_client_->ComputeReference(
-        state,
-        target_reference,
-        set_reference,
-        reset,
-        trajectory_mode_t::cable_landing,
-        parameters_->GetParameter("use_mpc").as_bool()
-    );
+    Reference ref;
 
-    Reference truncated_ref = truncateReferenceWithinSafetyZone(
-        ref,
-        state,
-        target_reference
-    );
+    try {
 
-    return truncated_ref;
+        ref = trajectory_generator_client_->ComputeReference(
+            state,
+            target_reference,
+            set_reference,
+            reset,
+            trajectory_mode_t::cable_landing,
+            parameters_->GetParameter("use_mpc").as_bool()
+        );
 
+        Reference truncated_ref = truncateReferenceWithinSafetyZone(
+            ref,
+            state,
+            target_reference
+        );
+
+        return truncated_ref;
+
+    } catch (const std::runtime_error &e) {
+
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "CableLandingManeuverServer::computeReference(): Could not compute reference."
+        );
+
+        has_failed_ = true;
+
+        return Reference(
+            state,
+            true,
+            true
+        );
+
+    }
+    
 }
 
 bool CableLandingManeuverServer::hasSucceeded(Maneuver &) {

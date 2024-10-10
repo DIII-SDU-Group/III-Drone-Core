@@ -107,7 +107,7 @@ PowerlineDirectionComputerNode::on_configure(const rclcpp_lifecycle::State & sta
         "PowerlineDirectionComputerNode::on_configure(): Initializing configurator object."
     );
 
-    configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>>(this);
+    configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>>(this, "pl_dir_computer");
 
     // Powerline direction object:
     RCLCPP_DEBUG(

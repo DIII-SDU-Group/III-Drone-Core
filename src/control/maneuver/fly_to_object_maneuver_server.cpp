@@ -141,14 +141,26 @@ Reference FlyToObjectManeuverServer::computeReference(const State & state) {
     bool reset = first_iteration_;
     bool set_reference = true;
 
-    Reference ref = trajectory_generator_client_->ComputeReference(
-        state,
-        target_reference,
-        set_reference,
-        reset,
-        trajectory_mode_t::positional,
-        parameters_->GetParameter("use_mpc").as_bool()
-    );
+    Reference ref;
+    
+    try {
+
+        ref = trajectory_generator_client_->ComputeReference(
+            state,
+            target_reference,
+            set_reference,
+            reset,
+            trajectory_mode_t::positional,
+            parameters_->GetParameter("use_mpc").as_bool()
+        );
+
+    } catch (const std::runtime_error &e) {
+
+        RCLCPP_ERROR(node()->get_logger(), "FlyToObjectManeuverServer::computeReference(): Failed to compute reference, exception: %s", e.what());
+        has_failed_ = true;
+        ref = Reference(state,true,true);
+
+    }
 
     if (first_iteration_) {
 
