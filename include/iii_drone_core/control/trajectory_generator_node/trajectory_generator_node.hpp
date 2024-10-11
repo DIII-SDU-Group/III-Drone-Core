@@ -26,6 +26,7 @@
 #include <iii_drone_interfaces/msg/state.hpp>
 #include <iii_drone_interfaces/msg/reference.hpp>
 #include <iii_drone_interfaces/msg/reference_trajectory.hpp>
+#include <iii_drone_interfaces/msg/trajectory_compute_time.hpp>
               
 #include <iii_drone_interfaces/srv/compute_reference_trajectory.hpp>
 
@@ -183,6 +184,8 @@ namespace trajectory_generator_node {
 
         void publishTrajectoryPath(const iii_drone::adapters::ReferenceTrajectoryAdapter & reference_trajectory_adapter);
         void publishTargetPose(const iii_drone::adapters::ReferenceAdapter & reference_adapter);
+
+        rclcpp_lifecycle::LifecyclePublisher<iii_drone_interfaces::msg::TrajectoryComputeTime>::SharedPtr trajectory_compute_time_publisher_;
 
     };
 

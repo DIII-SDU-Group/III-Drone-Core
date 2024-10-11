@@ -52,6 +52,11 @@ TrajectoryGeneratorNode::TrajectoryGeneratorNode(
         10
     );
 
+    trajectory_compute_time_publisher_ = this->create_publisher<iii_drone_interfaces::msg::TrajectoryComputeTime>(
+        "trajectory_compute_time",
+        10
+    );
+
     RCLCPP_INFO(this->get_logger(), "TrajectoryGeneratorNode::TrajectoryGeneratorNode(): Ready.");
 
 }
@@ -239,13 +244,21 @@ void TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(
 
     // Compute the reference trajectory
     ReferenceTrajectory ref_traj;
+
+    // Measure time
+    uint64_t nanoseconds;
+    std::string type;
     
     if (use_mpc) {
+
+        type = "MPC";
 
         RCLCPP_DEBUG(
             this->get_logger(), 
             "TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(): Using MPC."
         );
+
+        auto start = std::chrono::high_resolution_clock::now();
 
         ref_traj = trajectory_generator_->ComputeReferenceTrajectory(
             state_adapter.state(),
@@ -255,12 +268,20 @@ void TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(
             (trajectory_mode_t)request->trajectory_mode.mode
         );
 
+        auto end = std::chrono::high_resolution_clock::now();
+
+        nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+
     } else {
+
+        type = "Interpolation";
 
         RCLCPP_DEBUG(
             this->get_logger(), 
             "TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(): Using interpolation."
         );
+
+        auto start = std::chrono::high_resolution_clock::now();
 
         ref_traj = trajectory_interpolator_->ComputeReferenceTrajectory(
             state_adapter.state(),
@@ -268,6 +289,10 @@ void TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(
             request->set_reference,
             request->reset
         );
+
+        auto end = std::chrono::high_resolution_clock::now();
+
+        nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 
     }
 
@@ -279,6 +304,12 @@ void TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(
 
     publishTrajectoryPath(ref_traj_adapter);
     publishTargetPose(reference_adapter);
+
+    iii_drone_interfaces::msg::TrajectoryComputeTime compute_time_msg;
+    compute_time_msg.nanoseconds = nanoseconds;
+    compute_time_msg.trajectory_type = type;
+
+    trajectory_compute_time_publisher_->publish(compute_time_msg);
 
 }
 
