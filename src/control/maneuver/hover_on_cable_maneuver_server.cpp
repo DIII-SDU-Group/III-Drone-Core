@@ -302,26 +302,32 @@ bool HoverOnCableManeuverServer::validateAwareness(combined_drone_awareness_t dr
     }
 
     if (!drone_awareness.on_cable()) {
+        RCLCPP_WARN(node()->get_logger(), "HoverByObjectManeuverServer::validateAwareness(): Drone is not on cable.");
         return false;
     }
 
     if (!drone_awareness.has_target()) {
+        RCLCPP_WARN(node()->get_logger(), "HoverByObjectManeuverServer::validateAwareness(): Drone does not have target.");
         return false;
     }
 
     if (drone_awareness.target_adapter.target_type() != TARGET_TYPE_CABLE) {
+        RCLCPP_WARN(node()->get_logger(), "HoverByObjectManeuverServer::validateAwareness(): Target type is not cable.");
         return false;
     }
 
     if (drone_awareness.target_adapter.target_id() != target_cable_id_) {
+        RCLCPP_WARN(node()->get_logger(), "HoverByObjectManeuverServer::validateAwareness(): Target id is not stored target id.");
         return false;
     }
 
     if (drone_awareness.target_adapter.reference_frame_id() != parameters_->GetParameter("gripper_frame_id").as_string()) {
+        RCLCPP_WARN(node()->get_logger(), "HoverByObjectManeuverServer::validateAwareness(): Reference frame id is not gripper.");
         return false;
     }
 
     if (!drone_awareness.target_position_known) {
+        RCLCPP_WARN(node()->get_logger(), "HoverByObjectManeuverServer::validateAwareness(): Target position is not known.");
         return false;
     }
 
