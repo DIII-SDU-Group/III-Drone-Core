@@ -92,7 +92,7 @@ combined_drone_awareness_t CableTakeoffManeuverServer::ExpectedAwarenessAfterExe
     TargetAdapter target_adapter = TargetAdapter(
         TARGET_TYPE_CABLE,
         cable_takeoff_maneuver_params.target_cable_id,
-        parameters_->GetParameter("drone_frame_id").as_string(),
+        parameters_->GetParameter("gripper_frame_id").as_string(),
         target_transform
     );
 
@@ -143,8 +143,10 @@ void CableTakeoffManeuverServer::startExecution(Maneuver & maneuver) {
     target_adapter_ = TargetAdapter(
         TARGET_TYPE_CABLE,
         cable_takeoff_maneuver_params.target_cable_id,
-        parameters_->GetParameter("drone_frame_id").as_string(),
+        // parameters_->GetParameter("drone_frame_id").as_string(),
+        parameters_->GetParameter("gripper_frame_id").as_string(),
         target_transform
+        // transform_matrix_t::Identity()
     );
 
     start_state_ = cda_handler->GetState();
