@@ -946,7 +946,7 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness
 
                     float closest_line_distance = (closest_line_position - v_drone_to_gripper).norm();
 
-                    if (closest_line_distance <= params_->GetParameter("on_cable_max_euc_distance").as_double()) {
+                    if (closest_line_distance <= params_->GetParameter("on_cable_max_euc_distance").as_double() || (params_->GetParameter("use_gripper_status_condition").as_bool()  && !gripper_open())) {
                         
                         combined_drone_awareness.drone_location = DRONE_LOCATION_ON_CABLE;
                         combined_drone_awareness.on_cable_id = closest_line.id();
