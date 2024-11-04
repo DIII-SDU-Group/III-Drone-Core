@@ -132,9 +132,11 @@ set(III_DRONE_LIBRARY_HEADERS
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/gripper_status_adapter.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/target_adapter.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/maneuver_adapter.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/combined_drone_awareness_adapter.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/trajectory_setpoint_adapter.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/vehicle_odometry_adapter.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/vehicle_global_position_adapter.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/adapters/px4/vehicle_status_adapter.hpp"
 
 )
@@ -185,9 +187,11 @@ set(III_DRONE_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/adapters/gripper_status_adapter.cpp"
   "${PROJECT_SOURCE_DIR}/src/adapters/target_adapter.cpp"
   "${PROJECT_SOURCE_DIR}/src/adapters/maneuver_adapter.cpp"
+  "${PROJECT_SOURCE_DIR}/src/adapters/combined_drone_awareness_adapter.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/adapters/px4/trajectory_setpoint_adapter.cpp"
   "${PROJECT_SOURCE_DIR}/src/adapters/px4/vehicle_odometry_adapter.cpp"
+  "${PROJECT_SOURCE_DIR}/src/adapters/px4/vehicle_global_position_adapter.cpp"
   "${PROJECT_SOURCE_DIR}/src/adapters/px4/vehicle_status_adapter.cpp"
 
 )

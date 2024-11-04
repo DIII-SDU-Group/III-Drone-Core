@@ -51,6 +51,7 @@
 #include <iii_drone_core/adapters/gripper_status_adapter.hpp>
 #include <iii_drone_core/adapters/reference_adapter.hpp>
 #include <iii_drone_core/adapters/maneuver_adapter.hpp>
+#include <iii_drone_core/adapters/combined_drone_awareness_adapter.hpp>
 
 #include <iii_drone_core/control/state.hpp>
 #include <iii_drone_core/control/reference.hpp>
@@ -148,7 +149,7 @@ namespace maneuver {
          */
         bool ProjectExpectedAwarenessFull(
             const iii_drone::control::maneuver::Maneuver & maneuver,
-            combined_drone_awareness_t & awareness_after
+            iii_drone::adapters::CombinedDroneAwarenessAdapter & awareness_after
         ) const;
 
         /**
@@ -162,8 +163,8 @@ namespace maneuver {
          */
         bool ProjectExpectedAwarenessSingle(
             const iii_drone::control::maneuver::Maneuver & maneuver, 
-            const combined_drone_awareness_t & awareness_before,
-            combined_drone_awareness_t & awareness_after
+            const iii_drone::adapters::CombinedDroneAwarenessAdapter & awareness_before,
+            iii_drone::adapters::CombinedDroneAwarenessAdapter & awareness_after
         ) const;
 
         /**
@@ -260,7 +261,7 @@ namespace maneuver {
          */
         bool maneuverCanExecute(
             const iii_drone::control::maneuver::Maneuver & maneuver, 
-            const iii_drone::control::combined_drone_awareness_t & awareness
+            const iii_drone::adapters::CombinedDroneAwarenessAdapter & awareness
         ) const;
 
         /**

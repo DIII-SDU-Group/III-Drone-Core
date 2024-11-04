@@ -38,7 +38,7 @@ CableLandingManeuverServer::CableLandingManeuverServer(
 
 bool CableLandingManeuverServer::CanExecuteManeuver(
     const Maneuver & maneuver,
-    const combined_drone_awareness_t & drone_awareness
+    const iii_drone::adapters::CombinedDroneAwarenessAdapter & drone_awareness
 ) const {
 
     RCLCPP_DEBUG(node()->get_logger(), "CableLandingManeuverServer::CanExecuteManeuver()");
@@ -50,12 +50,12 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
         return false;
     }
 
-    if (!drone_awareness.armed) {
+    if (!drone_awareness.armed()) {
         RCLCPP_WARN(node()->get_logger(), "CableLandingManeuverServer::CanExecuteManeuver(): Drone is not armed.");
         return false;
     }
 
-    if (!drone_awareness.offboard) {
+    if (!drone_awareness.offboard()) {
         RCLCPP_WARN(node()->get_logger(), "CableLandingManeuverServer::CanExecuteManeuver(): Drone is not offboard.");
         return false;
     }
@@ -70,30 +70,30 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
         return false;
     }
 
-    if (drone_awareness.target_adapter.target_type() != TARGET_TYPE_CABLE) {
+    if (drone_awareness.target_adapter().target_type() != TARGET_TYPE_CABLE) {
         RCLCPP_WARN(node()->get_logger(), "CableLandingManeuverServer::CanExecuteManeuver(): Target type is not TARGET_TYPE_CABLE.");
         return false;
     }
 
-    if (drone_awareness.target_adapter.target_id() != cable_landing_maneuver_params.target_cable_id) {
+    if (drone_awareness.target_adapter().target_id() != cable_landing_maneuver_params.target_cable_id) {
         RCLCPP_WARN(node()->get_logger(), "CableLandingManeuverServer::CanExecuteManeuver(): Target ID does not match.");
         return false;
     }
 
-    if (!drone_awareness.target_position_known) {
+    if (!drone_awareness.target_position_known()) {
         RCLCPP_WARN(node()->get_logger(), "CableLandingManeuverServer::CanExecuteManeuver(): Target position is not known.");
         return false;
     }
 
     CombinedDroneAwarenessHandler::SharedPtr cda_handler = awareness_handler();
 
-    transform_matrix_t current_target_transform = drone_awareness.target_adapter.target_transform();
+    transform_matrix_t current_target_transform = drone_awareness.target_adapter().target_transform();
 
     vector_t current_target_translation = current_target_transform.block<3, 1>(0, 3);
 
     geometry_msgs::msg::Vector3Stamped current_target_translation_drone_to_cable;
     current_target_translation_drone_to_cable.vector = vectorMsgFromVector(current_target_translation);
-    current_target_translation_drone_to_cable.header.frame_id = drone_awareness.target_adapter.reference_frame_id();
+    current_target_translation_drone_to_cable.header.frame_id = drone_awareness.target_adapter().reference_frame_id();
 
     try {
         current_target_translation_drone_to_cable = cda_handler->tf_buffer()->transform(
@@ -126,7 +126,7 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
 
     geometry_msgs::msg::QuaternionStamped current_target_quat_gripper_to_cable_msg;
     current_target_quat_gripper_to_cable_msg.quaternion = quaternionMsgFromQuaternion(current_target_quat);
-    current_target_quat_gripper_to_cable_msg.header.frame_id = drone_awareness.target_adapter.reference_frame_id();
+    current_target_quat_gripper_to_cable_msg.header.frame_id = drone_awareness.target_adapter().reference_frame_id();
 
     try {
         current_target_quat_gripper_to_cable_msg = cda_handler->tf_buffer()->transform(
@@ -156,11 +156,11 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
         return false;
     }
 
-    vector_t pos_world_to_drone = drone_awareness.state.position();
+    vector_t pos_world_to_drone = drone_awareness.state().position();
 
     transform_matrix_t current_target_transform_world_to_drone;
     try {
-        current_target_transform_world_to_drone = cda_handler->ComputeTargetTransform(drone_awareness.target_adapter);
+        current_target_transform_world_to_drone = cda_handler->ComputeTargetTransform(drone_awareness.target_adapter());
     } catch (const std::runtime_error &e) {
         RCLCPP_WARN(node()->get_logger(), "CableLandingManeuverServer::CanExecuteManeuver(): Could not compute target transform.");
         return false;
@@ -185,7 +185,7 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
     // );
 
     quaternion_t current_target_quat_world_to_drone = matToQuat(current_target_transform_world_to_drone.block<3, 3>(0, 0));
-    quaternion_t quat_world_to_drone = drone_awareness.state.quaternion();
+    quaternion_t quat_world_to_drone = drone_awareness.state().quaternion();
 
     quaternion_t quat_drone_to_target = quatMultiply(
         quatInv(quat_world_to_drone),
@@ -205,7 +205,7 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
 
 }
 
-combined_drone_awareness_t CableLandingManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver & maneuver) {
+iii_drone::adapters::CombinedDroneAwarenessAdapter CableLandingManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver & maneuver) {
 
     cable_landing_maneuver_params_t cable_landing_maneuver_params(maneuver.maneuver_params());
 
@@ -225,14 +225,14 @@ combined_drone_awareness_t CableLandingManeuverServer::ExpectedAwarenessAfterExe
         vector_t::Zero()
     );
 
-    combined_drone_awareness_t awareness_after;
+    iii_drone::adapters::CombinedDroneAwarenessAdapter awareness_after;
 
-    awareness_after.armed = true;
-    awareness_after.offboard = true;
-    awareness_after.target_position_known = true;
-    awareness_after.drone_location = DRONE_LOCATION_ON_CABLE;
-    awareness_after.target_adapter = target_adapter;
-    awareness_after.state = state;
+    awareness_after.armed() = true;
+    awareness_after.offboard() = true;
+    awareness_after.target_position_known() = true;
+    awareness_after.drone_location() = DRONE_LOCATION_ON_CABLE;
+    awareness_after.target_adapter() = target_adapter;
+    awareness_after.state() = state;
 
     return awareness_after;
 

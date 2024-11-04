@@ -88,11 +88,12 @@ void CombinedDroneAwarenessHandler::Start() {
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Start(): Creating history and atomic member objects");
     vehicle_status_adapter_history_ = std::make_shared<VehicleStatusAdapterHistory>(1);
     vehicle_odometry_adapter_history_ = std::make_shared<VehicleOdometryAdapterHistory>(2);
+    vehicle_global_position_adapter_history_ = std::make_shared<VehicleGlobalPositionAdapterHistory>(1);
     powerline_adapter_history_ = std::make_shared<PowerlineAdapterHistory>(1);
     gripper_status_adapter_history_ = std::make_shared<GripperStatusAdapterHistory>(1);
     ground_altitude_estimate_ = std::make_shared<iii_drone::utils::Atomic<double>>(0.0);
+    ground_altitude_estimate_amsl_ = std::make_shared<iii_drone::utils::Atomic<double>>(0.0);
     target_adapter_ = std::make_shared<iii_drone::utils::Atomic<TargetAdapter>>();
-
     
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Start(): Creating Register Offboard Mode service");
 
@@ -125,7 +126,7 @@ void CombinedDroneAwarenessHandler::Start() {
     ground_altitude_update_timer_->cancel();
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Start(): Creating combined_drone_awareness_");
-    combined_drone_awareness_ = std::make_shared<Atomic<combined_drone_awareness_t>>();
+    combined_drone_awareness_adapter_ = std::make_shared<Atomic<CombinedDroneAwarenessAdapter>>();
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Start(): Updating combined drone awareness");
     updateCombinedDroneAwareness();
@@ -136,22 +137,23 @@ void CombinedDroneAwarenessHandler::Start() {
         [this]() {
             if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::combined_drone_awareness_pub_timer_: Publishing combined drone awareness");
 
-            combined_drone_awareness_t cda = combined_drone_awareness();
+            // CombinedDroneAwarenessAdapter adapter = combined_drone_awareness();
             
-            iii_drone_interfaces::msg::CombinedDroneAwareness msg;
+            // iii_drone_interfaces::msg::CombinedDroneAwareness msg;
 
-            msg.state = StateAdapter(cda.state).ToMsg();
-            msg.armed = cda.armed;
-            msg.offboard = cda.offboard;
-            msg.has_target = cda.has_target();
-            msg.target = cda.target_adapter.ToMsg();
-            msg.target_position_known = cda.target_position_known;
-            msg.drone_location = (uint8_t)cda.drone_location;
-            msg.on_cable_id = cda.on_cable_id;
-            msg.ground_altitude_estimate = cda.ground_altitude_estimate;
-            msg.gripper_open = cda.gripper_open;
+            // msg.state = StateAdapter(cda.state).ToMsg();
+            // msg.armed = cda.armed;
+            // msg.offboard = cda.offboard;
+            // msg.has_target = cda.has_target();
+            // msg.target = cda.target_adapter.ToMsg();
+            // msg.target_position_known = cda.target_position_known;
+            // msg.drone_location = (uint8_t)cda.drone_location;
+            // msg.on_cable_id = cda.on_cable_id;
+            // msg.ground_altitude_estimate = cda.ground_altitude_estimate;
+            // msg.ground_altitude_estimate_amsl = cda.ground_altitude_estimate_amsl;
+            // msg.gripper_open = cda.gripper_open;
 
-            combined_drone_awareness_pub_->publish(msg);
+            combined_drone_awareness_pub_->publish((*combined_drone_awareness_adapter_)->ToMsg());
 
         }
     );
@@ -180,6 +182,16 @@ void CombinedDroneAwarenessHandler::Start() {
             iii_drone::adapters::px4::VehicleOdometryAdapter adapter(*msg);
             vehicle_odometry_adapter_history_->Store(adapter);
             updateCombinedDroneAwarenessFromVehicleOdometry();
+        }
+    );
+
+    vehicle_global_position_sub_ = node_->create_subscription<px4_msgs::msg::VehicleGlobalPosition>(
+        "/fmu/out/vehicle_global_position",
+        px4_sub_qos,
+        [this](const px4_msgs::msg::VehicleGlobalPosition::SharedPtr msg) {
+            if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::vehicle_global_position_sub_: Vehicle global position received");
+            iii_drone::adapters::px4::VehicleGlobalPositionAdapter adapter(*msg);
+            vehicle_global_position_adapter_history_->Store(adapter);
         }
     );
 
@@ -264,9 +276,9 @@ void CombinedDroneAwarenessHandler::Stop() {
     combined_drone_awareness_pub_timer_.reset();
     combined_drone_awareness_pub_timer_ = nullptr;
 
-    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Stop(): Resetting combined_drone_awareness_");
-    combined_drone_awareness_.reset();
-    combined_drone_awareness_ = nullptr;
+    if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Stop(): Resetting combined_drone_awareness_adapter_");
+    combined_drone_awareness_adapter_.reset();
+    combined_drone_awareness_adapter_ = nullptr;
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Stop(): Stopping ground altitude estimate");
     ground_altitude_update_timer_->cancel();
@@ -301,6 +313,9 @@ void CombinedDroneAwarenessHandler::Stop() {
 
     ground_altitude_estimate_.reset();
     ground_altitude_estimate_ = nullptr;
+
+    ground_altitude_estimate_amsl_.reset();
+    ground_altitude_estimate_amsl_ = nullptr;
 
     target_adapter_.reset();
     target_adapter_ = nullptr;
@@ -548,61 +563,61 @@ void CombinedDroneAwarenessHandler::ClearTarget() {
 
 }
 
-const combined_drone_awareness_t CombinedDroneAwarenessHandler::combined_drone_awareness() const {
-    return *combined_drone_awareness_;
+const CombinedDroneAwarenessAdapter CombinedDroneAwarenessHandler::adapter() const {
+    return *combined_drone_awareness_adapter_;
 }
 
 bool CombinedDroneAwarenessHandler::armed() const {
-    return ((combined_drone_awareness_t)*combined_drone_awareness_).armed;
+    return (*combined_drone_awareness_adapter_)->armed();
 }
 
 bool CombinedDroneAwarenessHandler::offboard() const {
-    return ((combined_drone_awareness_t)*combined_drone_awareness_).offboard;
+    return (*combined_drone_awareness_adapter_)->offboard();
 }
 
 bool CombinedDroneAwarenessHandler::has_target() const {
-    return ((combined_drone_awareness_t)*combined_drone_awareness_).has_target();
+    return (*combined_drone_awareness_adapter_)->has_target();
 }
 
 bool CombinedDroneAwarenessHandler::target_position_known() const {
-    return ((combined_drone_awareness_t)*combined_drone_awareness_).target_position_known;
+    return (*combined_drone_awareness_adapter_)->target_position_known();
 }
 
 TargetAdapter CombinedDroneAwarenessHandler::target_adapter() const {
-    return ((combined_drone_awareness_t)*combined_drone_awareness_).target_adapter;
+    return (*combined_drone_awareness_adapter_)->target_adapter();
 }
 
 bool CombinedDroneAwarenessHandler::on_ground() const {
-    return ((combined_drone_awareness_t)*combined_drone_awareness_).on_ground();
+    return (*combined_drone_awareness_adapter_)->on_ground();
 }
 
 bool CombinedDroneAwarenessHandler::on_cable() const {
-    return ((combined_drone_awareness_t)*combined_drone_awareness_).on_cable();
+    return (*combined_drone_awareness_adapter_)->on_cable();
 }
 
 bool CombinedDroneAwarenessHandler::in_flight() const {
-    return ((combined_drone_awareness_t)*combined_drone_awareness_).in_flight();
+    return (*combined_drone_awareness_adapter_)->in_flight();
 }
 
 int CombinedDroneAwarenessHandler::on_cable_id() const {
-    return ((combined_drone_awareness_t)*combined_drone_awareness_).on_cable_id;
+    return (*combined_drone_awareness_adapter_)->on_cable_id();
 }
 
 double CombinedDroneAwarenessHandler::ground_altitude_estimate() const {
-    return ((combined_drone_awareness_t)*combined_drone_awareness_).ground_altitude_estimate;
+    return (*combined_drone_awareness_adapter_)->ground_altitude_estimate();
 }
 
 drone_location_t CombinedDroneAwarenessHandler::drone_location(int &on_cable_id) const {
-    on_cable_id = ((combined_drone_awareness_t)*combined_drone_awareness_).on_cable_id;
-    return ((combined_drone_awareness_t)*combined_drone_awareness_).drone_location;
+    on_cable_id = this->on_cable_id();
+    return (*combined_drone_awareness_adapter_)->drone_location();
 }
 
 bool CombinedDroneAwarenessHandler::gripper_open() const {
-    return ((combined_drone_awareness_t)*combined_drone_awareness_).gripper_open;
+    return (*combined_drone_awareness_adapter_)->gripper_open();
 }
 
 drone_location_t CombinedDroneAwarenessHandler::drone_location() const {
-    return ((combined_drone_awareness_t)*combined_drone_awareness_).drone_location;
+    return (*combined_drone_awareness_adapter_)->drone_location();
 }
 
 tf2_ros::Buffer::SharedPtr CombinedDroneAwarenessHandler::tf_buffer() const {
@@ -639,161 +654,162 @@ void CombinedDroneAwarenessHandler::updateCombinedDroneAwareness() {
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::updateCombinedDroneAwareness(): Updating combined drone awareness");
 
     // Update the combined drone awareness
-    combined_drone_awareness_t combined_drone_awareness = *combined_drone_awareness_;
+    CombinedDroneAwarenessAdapter adapter = *combined_drone_awareness_adapter_;
 
-    updateCombinedDroneAwarenessFromVehicleStatus(combined_drone_awareness);
-    updateCombinedDroneAwarenessFromVehicleOdometry(combined_drone_awareness);
-    updateCombinedDroneAwarenessFromPowerline(combined_drone_awareness);
-    updateCombinedDroneAwarenessFromGripperStatus(combined_drone_awareness);
-    updateCombinedDroneAwarenessFromTarget(combined_drone_awareness);
+    updateCombinedDroneAwarenessFromVehicleStatus(adapter);
+    updateCombinedDroneAwarenessFromVehicleOdometry(adapter);
+    updateCombinedDroneAwarenessFromPowerline(adapter);
+    updateCombinedDroneAwarenessFromGripperStatus(adapter);
+    updateCombinedDroneAwarenessFromTarget(adapter);
 
     // Update the combined drone awareness
-    *combined_drone_awareness_ = combined_drone_awareness;
+    *combined_drone_awareness_adapter_ = adapter;
 
 }
 
 void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromVehicleStatus() {
 
-    combined_drone_awareness_t combined_drone_awareness = *combined_drone_awareness_;
+    CombinedDroneAwarenessAdapter adapter = *combined_drone_awareness_adapter_;
 
-    updateCombinedDroneAwarenessFromVehicleStatus(combined_drone_awareness);
+    updateCombinedDroneAwarenessFromVehicleStatus(adapter);
 
-    *combined_drone_awareness_ = combined_drone_awareness;
+    *combined_drone_awareness_adapter_ = adapter;
 
 }
 
-void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromVehicleStatus(combined_drone_awareness_t & combined_drone_awareness) {
+void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromVehicleStatus(CombinedDroneAwarenessAdapter & adapter) {
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromVehicleStatus(): Updating combined drone awareness from vehicle status");
 
     // Update the armed and offboard states
     if (vehicle_status_adapter_history_->empty()) {
-        combined_drone_awareness.armed = false;
-        combined_drone_awareness.offboard = false;
+        adapter.armed() = false;
+        adapter.offboard() = false;
     } else {
-        combined_drone_awareness.armed = (*vehicle_status_adapter_history_)[0].arming_state() == iii_drone::adapters::px4::ARMING_STATE_ARMED;
+        adapter.armed() = (*vehicle_status_adapter_history_)[0].arming_state() == iii_drone::adapters::px4::ARMING_STATE_ARMED;
 
         int navigation_state_id = (*vehicle_status_adapter_history_)[0].nav_state();
 
         std::vector<int> offboard_states = offboard_nav_state_ids_.Load();
 
-        combined_drone_awareness.offboard = (std::find(offboard_states.begin(), offboard_states.end(), navigation_state_id) != offboard_states.end());
+        adapter.offboard() = (std::find(offboard_states.begin(), offboard_states.end(), navigation_state_id) != offboard_states.end());
 
     }
 
     // Update the drone location:
-    updateDroneLocation(combined_drone_awareness);
+    updateDroneLocation(adapter);
 
 }
 
 void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromVehicleOdometry() {
 
-    combined_drone_awareness_t combined_drone_awareness = *combined_drone_awareness_;
+    CombinedDroneAwarenessAdapter adapter = *combined_drone_awareness_adapter_;
 
-    updateCombinedDroneAwarenessFromVehicleOdometry(combined_drone_awareness);
+    updateCombinedDroneAwarenessFromVehicleOdometry(adapter);
 
-    *combined_drone_awareness_ = combined_drone_awareness;
+    *combined_drone_awareness_adapter_ = adapter;
 
 }
 
-void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromVehicleOdometry(combined_drone_awareness_t & combined_drone_awareness) {
+void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromVehicleOdometry(CombinedDroneAwarenessAdapter & adapter) {
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromVehicleOdometry(): Updating combined drone awareness from vehicle odometry");
 
     // Update the ground altitude estimate
     updateGroundAltitudeEstimate(
-        combined_drone_awareness.armed,
-        combined_drone_awareness.offboard,
-        combined_drone_awareness.has_target()
+        adapter.armed(),
+        adapter.offboard(),
+        adapter.has_target()
     );
 
-    combined_drone_awareness.ground_altitude_estimate = ground_altitude_estimate_->Load();
+    adapter.ground_altitude_estimate() = ground_altitude_estimate_->Load();
+    adapter.ground_altitude_estimate_amsl() = ground_altitude_estimate_amsl_->Load();
 
     // Update the drone location
-    updateDroneLocation(combined_drone_awareness);
+    updateDroneLocation(adapter);
 
     // Update state
-    combined_drone_awareness.state = GetState();
+    adapter.state() = GetState();
 
 }
 
 void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromPowerline() {
 
-    combined_drone_awareness_t combined_drone_awareness = *combined_drone_awareness_;
+    CombinedDroneAwarenessAdapter adapter = *combined_drone_awareness_adapter_;
 
-    updateCombinedDroneAwarenessFromPowerline(combined_drone_awareness);
+    updateCombinedDroneAwarenessFromPowerline(adapter);
 
-    *combined_drone_awareness_ = combined_drone_awareness;
+    *combined_drone_awareness_adapter_ = adapter;
 
 }
 
-void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromPowerline(combined_drone_awareness_t & combined_drone_awareness) {
+void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromPowerline(CombinedDroneAwarenessAdapter & adapter) {
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromPowerline(): Updating combined drone awareness from powerline");
 
     // Update the target cable position known
-    if (powerline_adapter_history_->empty() || !combined_drone_awareness.has_target()) {
+    if (powerline_adapter_history_->empty() || !adapter.has_target()) {
         return;
-    } else if (combined_drone_awareness.target_adapter.target_type() == TARGET_TYPE_CABLE) {
-        int target_cable_id = combined_drone_awareness.target_adapter.target_id();
-        combined_drone_awareness.target_position_known = (*powerline_adapter_history_)[0].HasLine(target_cable_id);
+    } else if (adapter.target_adapter().target_type() == TARGET_TYPE_CABLE) {
+        int target_cable_id = adapter.target_adapter().target_id();
+        adapter.target_position_known() = (*powerline_adapter_history_)[0].HasLine(target_cable_id);
     }
 
     // Update the drone location
-    updateDroneLocation(combined_drone_awareness);
+    updateDroneLocation(adapter);
 
 }
 
 void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromGripperStatus() {
 
-    combined_drone_awareness_t combined_drone_awareness = *combined_drone_awareness_;
+    CombinedDroneAwarenessAdapter adapter = *combined_drone_awareness_adapter_;
 
-    updateCombinedDroneAwarenessFromGripperStatus(combined_drone_awareness);
+    updateCombinedDroneAwarenessFromGripperStatus(adapter);
 
-    *combined_drone_awareness_ = combined_drone_awareness;
+    *combined_drone_awareness_adapter_ = adapter;
 
 }
 
-void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromGripperStatus(combined_drone_awareness_t & combined_drone_awareness) {
+void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromGripperStatus(CombinedDroneAwarenessAdapter & adapter) {
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromGripperStatus(): Updating combined drone awareness from gripper status");
 
     // Update the gripper open flag
     if (gripper_status_adapter_history_->empty()) {
-        combined_drone_awareness.gripper_open = true;
+        adapter.gripper_open() = true;
     } else {
-        combined_drone_awareness.gripper_open = (*gripper_status_adapter_history_)[0].open();
+        adapter.gripper_open() = (*gripper_status_adapter_history_)[0].open();
     }
 
 }
 
 void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromTarget() {
 
-    combined_drone_awareness_t combined_drone_awareness = *combined_drone_awareness_;
+    CombinedDroneAwarenessAdapter adapter = *combined_drone_awareness_adapter_;
 
-    updateCombinedDroneAwarenessFromTarget(combined_drone_awareness);
+    updateCombinedDroneAwarenessFromTarget(adapter);
 
-    *combined_drone_awareness_ = combined_drone_awareness;
+    *combined_drone_awareness_adapter_ = adapter;
 
 }
 
-void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromTarget(combined_drone_awareness_t & combined_drone_awareness) {
+void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromTarget(CombinedDroneAwarenessAdapter & adapter) {
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromTarget(): Updating combined drone awareness from target");
 
     // Update the target cable id
-    combined_drone_awareness.target_adapter = target_adapter_->Load();
+    adapter.target_adapter() = target_adapter_->Load();
 
     // Update the target cable position known
-    if (combined_drone_awareness.target_adapter.target_type() == TARGET_TYPE_CABLE) {
+    if (adapter.target_adapter().target_type() == TARGET_TYPE_CABLE) {
         if (powerline_adapter_history_->empty()) {
-            combined_drone_awareness.target_position_known = false;
+            adapter.target_position_known() = false;
         } else {
-            int target_cable_id = combined_drone_awareness.target_adapter.target_id();
-            combined_drone_awareness.target_position_known = (*powerline_adapter_history_)[0].HasLine(target_cable_id);
+            int target_cable_id = adapter.target_adapter().target_id();
+            adapter.target_position_known() = (*powerline_adapter_history_)[0].HasLine(target_cable_id);
         }
     } else {
-        combined_drone_awareness.target_position_known = false;
+        adapter.target_position_known() = false;
     }
 
 }
@@ -835,6 +851,30 @@ void CombinedDroneAwarenessHandler::updateGroundAltitudeEstimate(
 
     ground_altitude_estimate_->Store(ground_altitude_estimate);
 
+    if (!vehicle_global_position_adapter_history_->empty()) {
+
+        float altitude_amsl = (*vehicle_global_position_adapter_history_)[0].altitude();
+
+        if (altitude_amsl != 0 && altitude_amsl != NAN) {
+
+            float altitude_local = (*vehicle_odometry_adapter_history_)[0].position()[2];
+
+            float diff = altitude_amsl - altitude_local;
+
+            ground_altitude_estimate_amsl_->Store(ground_altitude_estimate + diff);
+
+        } else {
+
+            ground_altitude_estimate_amsl_->Store(NAN);
+
+        }
+
+    } else {
+
+        ground_altitude_estimate_amsl_->Store(NAN);
+
+    }
+
     ground_altitude_update_timer_->reset();
 
     geometry_msgs::msg::TransformStamped ground_tf;
@@ -852,13 +892,13 @@ void CombinedDroneAwarenessHandler::updateGroundAltitudeEstimate(
 
 }
 
-void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness_t & combined_drone_awareness) {
+void CombinedDroneAwarenessHandler::updateDroneLocation(CombinedDroneAwarenessAdapter & adapter) {
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::updateDroneLocation(): Updating drone location");
 
     if (vehicle_odometry_adapter_history_->empty() || vehicle_status_adapter_history_->empty()) {
-        combined_drone_awareness.drone_location = DRONE_LOCATION_UNKNOWN;
-        combined_drone_awareness.on_cable_id = -1;
+        adapter.drone_location() = DRONE_LOCATION_UNKNOWN;
+        adapter.on_cable_id() = -1;
         return;
     }
 
@@ -868,8 +908,8 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness
 
     // Check if on ground:
     if (drone_position[2] - ground_altitude_estimate_->Load() < params_->GetParameter("landed_altitude_threshold").as_double()) {
-        combined_drone_awareness.drone_location = DRONE_LOCATION_ON_GROUND;
-        combined_drone_awareness.on_cable_id = -1;
+        adapter.drone_location() = DRONE_LOCATION_ON_GROUND;
+        adapter.on_cable_id() = -1;
         has_found_initial_location_ = true;
         return;
     }
@@ -914,8 +954,8 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness
             }
 
             if (params_->GetParameter("use_gripper_status_condition").as_bool() && !gripper_open()) {
-                combined_drone_awareness.drone_location = DRONE_LOCATION_ON_CABLE;
-                combined_drone_awareness.on_cable_id = -1;
+                adapter.drone_location() = DRONE_LOCATION_ON_CABLE;
+                adapter.on_cable_id() = -1;
                 has_found_initial_location_ = true;
             }
 
@@ -948,8 +988,8 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness
 
                     if (closest_line_distance <= params_->GetParameter("on_cable_max_euc_distance").as_double() || (params_->GetParameter("use_gripper_status_condition").as_bool()  && !gripper_open())) {
                         
-                        combined_drone_awareness.drone_location = DRONE_LOCATION_ON_CABLE;
-                        combined_drone_awareness.on_cable_id = closest_line.id();
+                        adapter.drone_location() = DRONE_LOCATION_ON_CABLE;
+                        adapter.on_cable_id() = closest_line.id();
 
                         has_found_initial_location_ = true;
 
@@ -962,8 +1002,8 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness
     }
 
     // Check if in flight:
-    if (combined_drone_awareness.armed) {
-        combined_drone_awareness.drone_location = DRONE_LOCATION_IN_FLIGHT;
+    if (adapter.armed()) {
+        adapter.drone_location() = DRONE_LOCATION_IN_FLIGHT;
         has_found_initial_location_ = true;
         return;
 
@@ -971,16 +1011,16 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness
         // Drone is unarmed and initial location has not been found and drone is not on cable,
         // assume drone is on ground
 
-        combined_drone_awareness.drone_location = DRONE_LOCATION_ON_GROUND;
-        combined_drone_awareness.on_cable_id = -1;
+        adapter.drone_location() = DRONE_LOCATION_ON_GROUND;
+        adapter.on_cable_id() = -1;
         has_found_initial_location_ = true;
         return;
 
     }
 
     // Assume drone is on ground:
-    combined_drone_awareness.drone_location = DRONE_LOCATION_ON_GROUND;
-    combined_drone_awareness.on_cable_id = -1;
+    adapter.drone_location() = DRONE_LOCATION_ON_GROUND;
+    adapter.on_cable_id() = -1;
     has_found_initial_location_ = false;
 
     // // Throw error if no location found
@@ -991,8 +1031,8 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(combined_drone_awareness
     //     throw std::runtime_error(error_message);
     // } else {
     //     RCLCPP_ERROR(node_->get_logger(), error_message.c_str());
-    //     combined_drone_awareness.drone_location = DRONE_LOCATION_UNKNOWN;
-    //     combined_drone_awareness.on_cable_id = -1;
+    //     adapter.drone_location() = DRONE_LOCATION_UNKNOWN;
+    //     adapter.on_cable_id() = -1;
     // }
 
 }

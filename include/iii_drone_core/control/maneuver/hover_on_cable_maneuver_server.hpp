@@ -33,6 +33,7 @@
 #include <iii_drone_core/utils/atomic.hpp>
 
 #include <iii_drone_core/adapters/target_adapter.hpp>
+#include <iii_drone_core/adapters/combined_drone_awareness_adapter.hpp>
 
 #include <iii_drone_core/control/maneuver/maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/maneuver.hpp>
@@ -93,7 +94,7 @@ namespace maneuver {
          */
         bool CanExecuteManeuver(
             const Maneuver & maneuver,
-            const combined_drone_awareness_t & drone_awareness
+            const iii_drone::adapters::CombinedDroneAwarenessAdapter & drone_awareness
         ) const override;
 
         /**
@@ -101,9 +102,9 @@ namespace maneuver {
          * 
          * @param maneuver Maneuver
          * 
-         * @return combined_drone_awareness_t The expected combined drone awareness
+         * @return iii_drone::adapters::CombinedDroneAwarenessAdapter The expected combined drone awareness
          */
-        combined_drone_awareness_t ExpectedAwarenessAfterExecution(const Maneuver & maneuver);
+        iii_drone::adapters::CombinedDroneAwarenessAdapter ExpectedAwarenessAfterExecution(const Maneuver & maneuver);
 
         /**
          * @brief Register a callback for when the target is not visible or the drone has drifted too far away from the target relative pose.
@@ -246,7 +247,7 @@ namespace maneuver {
          * 
          * @return bool Whether the state is valid.
          */
-        bool validateAwareness(combined_drone_awareness_t drone_awareness) const;
+        bool validateAwareness(iii_drone::adapters::CombinedDroneAwarenessAdapter drone_awareness) const;
 
         /**
          * @brief The hover duration.

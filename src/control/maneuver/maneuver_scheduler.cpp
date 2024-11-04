@@ -332,7 +332,7 @@ void ManeuverScheduler::UnregisterManeuverServer(maneuver_type_t maneuver_type) 
 
 bool ManeuverScheduler::ProjectExpectedAwarenessFull(
     const Maneuver & maneuver,
-    combined_drone_awareness_t & awareness
+    CombinedDroneAwarenessAdapter & awareness
 ) const {
 
     if (!is_started_) {
@@ -360,11 +360,11 @@ bool ManeuverScheduler::ProjectExpectedAwarenessFull(
 
     maneuver_queue.push_back(maneuver);
 
-    awareness = combined_drone_awareness_handler_->combined_drone_awareness();
+    awareness = combined_drone_awareness_handler_->adapter();
 
     for (unsigned int i = 0; i < maneuver_queue.size(); i++) {
 
-        combined_drone_awareness_t next_awareness;
+        CombinedDroneAwarenessAdapter next_awareness;
 
         if (
             !ProjectExpectedAwarenessSingle(
@@ -388,8 +388,8 @@ bool ManeuverScheduler::ProjectExpectedAwarenessFull(
 
 bool ManeuverScheduler::ProjectExpectedAwarenessSingle(
     const Maneuver & maneuver,
-    const combined_drone_awareness_t & awareness_before,
-    combined_drone_awareness_t & awareness_after
+    const CombinedDroneAwarenessAdapter & awareness_before,
+    CombinedDroneAwarenessAdapter & awareness_after
 ) const {
 
     if (!is_started_) {
@@ -463,7 +463,7 @@ bool ManeuverScheduler::CanExecute(const Maneuver & maneuver) const {
 
     bool maneuver_can_execute = maneuverCanExecute(
         maneuver,
-        combined_drone_awareness_handler_->combined_drone_awareness()
+        combined_drone_awareness_handler_->adapter()
     );
 
     if (!maneuver_can_execute) {
@@ -494,7 +494,7 @@ bool ManeuverScheduler::CanSchedule(const Maneuver & maneuver) const {
 
     }
 
-    combined_drone_awareness_t awareness;
+    CombinedDroneAwarenessAdapter awareness;
 
     if(ProjectExpectedAwarenessFull(
         maneuver,
@@ -714,7 +714,7 @@ bool ManeuverScheduler::maneuverIsExecutingOrPending() const {
 
 bool ManeuverScheduler::maneuverCanExecute(
     const Maneuver & maneuver,
-    const combined_drone_awareness_t & awareness
+    const CombinedDroneAwarenessAdapter & awareness
 ) const {
 
     // Find registered maneuver coresponding to the maneuver type

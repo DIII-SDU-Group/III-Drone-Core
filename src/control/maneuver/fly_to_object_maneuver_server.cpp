@@ -37,7 +37,7 @@ FlyToObjectManeuverServer::FlyToObjectManeuverServer(
 
 bool FlyToObjectManeuverServer::CanExecuteManeuver(
     const Maneuver & maneuver,
-    const combined_drone_awareness_t & drone_awareness
+    const iii_drone::adapters::CombinedDroneAwarenessAdapter & drone_awareness
 ) const {
 
     if (maneuver.maneuver_type() != MANEUVER_TYPE_FLY_TO_OBJECT) {
@@ -59,7 +59,7 @@ bool FlyToObjectManeuverServer::CanExecuteManeuver(
 
 }
 
-combined_drone_awareness_t FlyToObjectManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver & maneuver) {
+iii_drone::adapters::CombinedDroneAwarenessAdapter FlyToObjectManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver & maneuver) {
 
     fly_to_object_maneuver_params_t params(maneuver.maneuver_params());
 
@@ -67,14 +67,14 @@ combined_drone_awareness_t FlyToObjectManeuverServer::ExpectedAwarenessAfterExec
 
     State target_state = awareness_handler()->ComputeTargetState(target_adapter);
 
-    combined_drone_awareness_t awareness_after;
+    iii_drone::adapters::CombinedDroneAwarenessAdapter awareness_after;
 
-    awareness_after.armed = true;
-    awareness_after.offboard = true;
-    awareness_after.target_adapter = target_adapter;
-    awareness_after.target_position_known = true;
-    awareness_after.drone_location = DRONE_LOCATION_IN_FLIGHT;
-    awareness_after.state = target_state;
+    awareness_after.armed() = true;
+    awareness_after.offboard() = true;
+    awareness_after.target_adapter() = target_adapter;
+    awareness_after.target_position_known() = true;
+    awareness_after.drone_location() = DRONE_LOCATION_IN_FLIGHT;
+    awareness_after.state() = target_state;
 
     return awareness_after;
 
@@ -375,7 +375,7 @@ Reference FlyToObjectManeuverServer::getUpdatedTargetReference(const iii_drone::
 }
 
 bool FlyToObjectManeuverServer::validateAwarenessAndParameters(
-    const combined_drone_awareness_t & drone_awareness,
+    const iii_drone::adapters::CombinedDroneAwarenessAdapter & drone_awareness,
     const fly_to_object_maneuver_params_t & params
 ) const {
 
@@ -388,19 +388,19 @@ bool FlyToObjectManeuverServer::validateAwarenessAndParameters(
         return false;
     }
 
-    if (!drone_awareness.offboard) {
+    if (!drone_awareness.offboard()) {
         RCLCPP_WARN(node()->get_logger(), "FlyToObjectManeuverServer::validateAwarenessAndParameters(): Drone is not in offboard mode, returning false.");
         return false;
     }
 
-    if (!drone_awareness.armed) {
+    if (!drone_awareness.armed()) {
         RCLCPP_WARN(node()->get_logger(), "FlyToObjectManeuverServer::validateAwarenessAndParameters(): Drone is not armed, returning false.");
         return false;
     }
 
     bool is_in_flight_or_on_current_cable = drone_awareness.in_flight() || (
         drone_awareness.on_cable() && 
-        drone_awareness.on_cable_id == params.target_adapter.target_id() &&
+        drone_awareness.on_cable_id() == params.target_adapter.target_id() &&
         params.target_adapter.target_type() == TARGET_TYPE_CABLE
     );
 

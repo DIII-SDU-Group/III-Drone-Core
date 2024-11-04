@@ -42,6 +42,8 @@
 #include <iii_drone_core/control/maneuver/maneuver_types.hpp>
 #include <iii_drone_core/control/maneuver/reference_callback_token.hpp>
 
+#include <iii_drone_core/adapters/combined_drone_awareness_adapter.hpp>
+
 /*****************************************************************************/
 // Class
 /*****************************************************************************/
@@ -157,7 +159,7 @@ namespace maneuver {
          */
         virtual bool CanExecuteManeuver(
             const Maneuver & maneuver,
-            const combined_drone_awareness_t & awareness
+            const iii_drone::adapters::CombinedDroneAwarenessAdapter & awareness
         ) const = 0;
 
         /**
@@ -166,9 +168,9 @@ namespace maneuver {
          * 
          * @param maneuver Maneuver
          * 
-         * @return combined_drone_awareness_t The expected combined drone awareness
+         * @return iii_drone::adapters::CombinedDroneAwarenessAdapter The expected combined drone awareness
          */
-        virtual combined_drone_awareness_t ExpectedAwarenessAfterExecution(const Maneuver & maneuver) = 0;
+        virtual iii_drone::adapters::CombinedDroneAwarenessAdapter ExpectedAwarenessAfterExecution(const Maneuver & maneuver) = 0;
 
         /**
          * @brief Action name getter.

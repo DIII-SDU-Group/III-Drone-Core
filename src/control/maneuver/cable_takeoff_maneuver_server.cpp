@@ -38,7 +38,7 @@ CableTakeoffManeuverServer::CableTakeoffManeuverServer(
 
 bool CableTakeoffManeuverServer::CanExecuteManeuver(
     const Maneuver & maneuver,
-    const combined_drone_awareness_t & drone_awareness
+    const iii_drone::adapters::CombinedDroneAwarenessAdapter & drone_awareness
 ) const {
 
     cable_takeoff_maneuver_params_t cable_takeoff_maneuver_params(maneuver.maneuver_params());
@@ -47,11 +47,11 @@ bool CableTakeoffManeuverServer::CanExecuteManeuver(
         return false;
     }
 
-    if (!drone_awareness.armed) {
+    if (!drone_awareness.armed()) {
         return false;
     }
 
-    if (!drone_awareness.offboard) {
+    if (!drone_awareness.offboard()) {
         return false;
     }
 
@@ -63,11 +63,11 @@ bool CableTakeoffManeuverServer::CanExecuteManeuver(
         return false;
     }
 
-    if (drone_awareness.target_adapter.target_type() != TARGET_TYPE_CABLE) {
+    if (drone_awareness.target_adapter().target_type() != TARGET_TYPE_CABLE) {
         return false;
     }
 
-    if (drone_awareness.target_adapter.target_id() != cable_takeoff_maneuver_params.target_cable_id) {
+    if (drone_awareness.target_adapter().target_id() != cable_takeoff_maneuver_params.target_cable_id) {
         return false;
     }
 
@@ -83,7 +83,7 @@ bool CableTakeoffManeuverServer::CanExecuteManeuver(
 
 }
 
-combined_drone_awareness_t CableTakeoffManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver & maneuver) {
+iii_drone::adapters::CombinedDroneAwarenessAdapter CableTakeoffManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver & maneuver) {
 
     cable_takeoff_maneuver_params_t cable_takeoff_maneuver_params(maneuver.maneuver_params());
 
@@ -115,14 +115,14 @@ combined_drone_awareness_t CableTakeoffManeuverServer::ExpectedAwarenessAfterExe
 
     }
 
-    combined_drone_awareness_t awareness_after;
+    iii_drone::adapters::CombinedDroneAwarenessAdapter awareness_after;
 
-    awareness_after.armed = true;
-    awareness_after.offboard = true;
-    awareness_after.target_position_known = true;
-    awareness_after.drone_location = DRONE_LOCATION_ON_CABLE;
-    awareness_after.target_adapter = target_adapter;
-    awareness_after.state = target_state;
+    awareness_after.armed() = true;
+    awareness_after.offboard() = true;
+    awareness_after.target_position_known() = true;
+    awareness_after.drone_location() = DRONE_LOCATION_ON_CABLE;
+    awareness_after.target_adapter() = target_adapter;
+    awareness_after.state() = target_state;
 
     return awareness_after;
 

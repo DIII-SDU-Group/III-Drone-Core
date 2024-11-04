@@ -33,7 +33,7 @@ HoverManeuverServer::HoverManeuverServer(
 
 bool HoverManeuverServer::CanExecuteManeuver(
     const Maneuver & maneuver,
-    const combined_drone_awareness_t & drone_awareness
+    const iii_drone::adapters::CombinedDroneAwarenessAdapter & drone_awareness
 ) const {
 
     if (maneuver.maneuver_type() != MANEUVER_TYPE_HOVER) {
@@ -44,7 +44,7 @@ bool HoverManeuverServer::CanExecuteManeuver(
 
     }
 
-    if (!drone_awareness.offboard) {
+    if (!drone_awareness.offboard()) {
 
         RCLCPP_WARN(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Drone is not in offboard mode, cannot execute");
 
@@ -52,7 +52,7 @@ bool HoverManeuverServer::CanExecuteManeuver(
 
     }
 
-    if (!drone_awareness.armed) {
+    if (!drone_awareness.armed()) {
 
         RCLCPP_WARN(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Drone is not armed, cannot execute");
 
@@ -92,7 +92,7 @@ bool HoverManeuverServer::CanExecuteManeuver(
 
 }
 
-combined_drone_awareness_t HoverManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver & ) {
+iii_drone::adapters::CombinedDroneAwarenessAdapter HoverManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver & ) {
 
     State state = awareness_handler()->GetState();
 
@@ -103,13 +103,13 @@ combined_drone_awareness_t HoverManeuverServer::ExpectedAwarenessAfterExecution(
         vector_t::Zero()
     );
 
-    combined_drone_awareness_t awareness_after;
-    awareness_after.armed = true;
-    awareness_after.offboard = true;
-    awareness_after.target_adapter = iii_drone::adapters::TargetAdapter();
-    awareness_after.target_position_known = false;
-    awareness_after.drone_location = DRONE_LOCATION_IN_FLIGHT;
-    awareness_after.state = expected_state;
+    iii_drone::adapters::CombinedDroneAwarenessAdapter awareness_after = awareness_handler()->adapter();
+    awareness_after.armed() = true;
+    awareness_after.offboard() = true;
+    awareness_after.target_adapter() = iii_drone::adapters::TargetAdapter();
+    awareness_after.target_position_known() = false;
+    awareness_after.drone_location() = iii_drone::adapters::DRONE_LOCATION_IN_FLIGHT;
+    awareness_after.state() = expected_state;
 
     return awareness_after;
 

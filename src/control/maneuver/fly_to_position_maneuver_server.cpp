@@ -37,7 +37,7 @@ FlyToPositionManeuverServer::FlyToPositionManeuverServer(
 
 bool FlyToPositionManeuverServer::CanExecuteManeuver(
     const Maneuver & maneuver,
-    const combined_drone_awareness_t & drone_awareness
+    const iii_drone::adapters::CombinedDroneAwarenessAdapter & drone_awareness
 ) const {
 
     if (maneuver.maneuver_type() != MANEUVER_TYPE_FLY_TO_POSITION) {
@@ -56,7 +56,7 @@ bool FlyToPositionManeuverServer::CanExecuteManeuver(
         return false;
     }
 
-    if (!drone_awareness.offboard) {
+    if (!drone_awareness.offboard()) {
         RCLCPP_WARN(
             node()->get_logger(),
             "FlyToPositionManeuverServer::CanExecuteManeuver(): Drone is not in offboard mode"
@@ -80,15 +80,15 @@ bool FlyToPositionManeuverServer::CanExecuteManeuver(
 
 }
 
-combined_drone_awareness_t FlyToPositionManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver &maneuver) {
+iii_drone::adapters::CombinedDroneAwarenessAdapter FlyToPositionManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver &maneuver) {
 
-    combined_drone_awareness_t awareness_after;
+    iii_drone::adapters::CombinedDroneAwarenessAdapter awareness_after;
 
-    awareness_after.armed = true;
-    awareness_after.offboard = true;
-    awareness_after.target_adapter = TargetAdapter();
-    awareness_after.target_position_known = false;
-    awareness_after.drone_location = DRONE_LOCATION_IN_FLIGHT;
+    awareness_after.armed() = true;
+    awareness_after.offboard() = true;
+    awareness_after.target_adapter() = TargetAdapter();
+    awareness_after.target_position_known() = false;
+    awareness_after.drone_location() = DRONE_LOCATION_IN_FLIGHT;
 
     fly_to_position_maneuver_params_t maneuver_params(maneuver.maneuver_params());
 
@@ -110,7 +110,7 @@ combined_drone_awareness_t FlyToPositionManeuverServer::ExpectedAwarenessAfterEx
         )
     );
 
-    awareness_after.state = State(
+    awareness_after.state() = State(
         target_position_in_world_frame,
         vector_t(0,0,0),
         target_orientation,
