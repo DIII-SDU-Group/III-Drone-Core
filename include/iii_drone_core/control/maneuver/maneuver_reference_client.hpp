@@ -75,7 +75,8 @@ namespace maneuver {
         ManeuverReferenceClient(
             rclcpp_lifecycle::LifecycleNode * node,
             iii_drone::utils::History<iii_drone::adapters::px4::VehicleOdometryAdapter>::SharedPtr vehicle_odometry_adapter_history,
-            iii_drone::configuration::ParameterBundle::SharedPtr parameters
+            iii_drone::configuration::ParameterBundle::SharedPtr parameters,
+            rclcpp::CallbackGroup::SharedPtr get_reference_cb_group
         );
 
         /**
