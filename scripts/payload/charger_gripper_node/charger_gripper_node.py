@@ -189,6 +189,8 @@ class ChargerGripperNode(Node):
             self.get_logger().error("ChargerGripperNode.on_cleanup(): Base class cleanup failed.")
             return ret
 
+        # del self.configurator
+        self.configurator.cleanup()
         del self.configurator
         self.configurator = None
         gc.collect()
