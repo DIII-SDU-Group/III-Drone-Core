@@ -32,6 +32,13 @@ DroneFrameBroadcasterNode::DroneFrameBroadcasterNode(
 
     std::ostringstream stream;
 
+    is_alive_publisher_ = this->create_publisher<std_msgs::msg::Header>(
+        "is_alive", 
+        rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().best_effort()
+    );
+
+    last_alive_pub_time_ = this->now();
+
     rclcpp::QoS sub_qos(rclcpp::KeepLast(1));
     sub_qos.transient_local();
     sub_qos.best_effort();
@@ -60,6 +67,14 @@ void DroneFrameBroadcasterNode::odometryCallback(const std::shared_ptr<px4_msgs:
 
     // Send the transformation
     tf_broadcaster_->sendTransform(t);
+
+    // Publish is_alive message
+    if (this->now() - last_alive_pub_time_ > rclcpp::Duration(1, 0)) {
+        std_msgs::msg::Header header;
+        header.stamp = this->now();
+        is_alive_publisher_->publish(header);
+        last_alive_pub_time_ = header.stamp;
+    }
 
     // RCLCPP debug published transform
     RCLCPP_DEBUG(this->get_logger(), "Published transform: %s -> %s", t.header.frame_id.c_str(), t.child_frame_id.c_str());
