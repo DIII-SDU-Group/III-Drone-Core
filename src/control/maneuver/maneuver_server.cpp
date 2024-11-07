@@ -67,8 +67,18 @@ void ManeuverServer::Start(
 void ManeuverServer::Stop() {
     running_ = false;
 
+    registered_maneuvers_.clear();
+
     reference_callback_token_.reset();
     reference_callback_token_ = nullptr;
+
+    done_callback_ = nullptr;
+    verify_maneuver_active_ = nullptr;
+    verify_maneuver_in_queue_ = nullptr;
+    cancel_maneuver_ = nullptr;
+    update_maneuver_ = nullptr;
+    register_maneuver_ = nullptr;
+
 }
 
 bool ManeuverServer::running() const {
