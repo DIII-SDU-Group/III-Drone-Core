@@ -91,18 +91,6 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Trajec
         "trajectory_generator"
     );
 
-    trajectory_generator_ = std::make_shared<TrajectoryGenerator> (
-        configurator_->GetParameterBundle("position_MPC"),
-        configurator_->GetParameterBundle("cable_landing_MPC"),
-        configurator_->GetParameterBundle("cable_takeoff_MPC"),
-        this
-    );
-
-    trajectory_interpolator_ = std::make_shared<TrajectoryInterpolator> (
-        configurator_->GetParameterBundle("trajectory_interpolator"),
-        this
-    );
-
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 
 }
@@ -129,12 +117,6 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Trajec
     configurator_.reset();
     configurator_ = nullptr;
 
-    trajectory_generator_.reset();
-    trajectory_generator_ = nullptr;
-
-    trajectory_interpolator_.reset();
-    trajectory_interpolator_ = nullptr;
-
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 
 }
@@ -152,6 +134,18 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Trajec
         );
         return parent_return;
     }
+
+    trajectory_generator_ = std::make_shared<TrajectoryGenerator> (
+        configurator_->GetParameterBundle("position_MPC"),
+        configurator_->GetParameterBundle("cable_landing_MPC"),
+        configurator_->GetParameterBundle("cable_takeoff_MPC"),
+        this
+    );
+
+    trajectory_interpolator_ = std::make_shared<TrajectoryInterpolator> (
+        configurator_->GetParameterBundle("trajectory_interpolator"),
+        this
+    );
 
     compute_reference_trajectory_service_ = this->create_service<iii_drone_interfaces::srv::ComputeReferenceTrajectory>(
         "compute_reference_trajectory",
@@ -184,6 +178,12 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Trajec
     compute_reference_trajectory_service_->clear_on_new_request_callback();
     compute_reference_trajectory_service_.reset();
     compute_reference_trajectory_service_ = nullptr;
+
+    trajectory_interpolator_.reset();
+    trajectory_interpolator_ = nullptr;
+
+    trajectory_generator_.reset();
+    trajectory_generator_ = nullptr;
 
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 
