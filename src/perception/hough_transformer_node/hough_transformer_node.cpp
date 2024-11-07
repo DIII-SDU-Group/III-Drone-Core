@@ -60,10 +60,14 @@ HoughTransformerNode::HoughTransformerNode(
 	status_timer_ = this->create_wall_timer(
 		std::chrono::seconds(1), 
 		[this](){
-			auto msg = iii_drone_interfaces::msg::StringStamped();
-			msg.stamp = this->now();
-			msg.data = running_ ? "Running" : "Stopped";
-			status_pub_->publish(msg);
+			if (running_) {
+
+				auto msg = iii_drone_interfaces::msg::StringStamped();
+				msg.stamp = this->now();
+				msg.data = running_ ? "Running" : "Stopped";
+				status_pub_->publish(msg);
+
+			}
 		}
 	);
 
