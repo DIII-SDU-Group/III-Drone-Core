@@ -18,6 +18,7 @@ from time import sleep
 import serial
 import os
 import sys
+import gc
 
 SIMULATION = os.environ.get('SIMULATION', 'false').lower() == 'true'
 
@@ -189,6 +190,8 @@ class ChargerGripperNode(Node):
             return ret
 
         del self.configurator
+        self.configurator = None
+        gc.collect()
 
         return TransitionCallbackReturn.SUCCESS
     
@@ -583,17 +586,18 @@ def main():
 
     node.get_logger().info("Charger gripper node started.")
     
-    executor = rclpy.executors.MultiThreadedExecutor()
+    # executor = rclpy.executors.MultiThreadedExecutor()
     
-    executor.add_node(node)
+    # executor.add_node(node)
 
     try:
-        executor.spin()
+        # executor.spin()
+        rclpy.spin(node)
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()
     except KeyboardInterrupt:
-        del node.configurator
+        del node
 
 if __name__ == '__main__':
     main()
