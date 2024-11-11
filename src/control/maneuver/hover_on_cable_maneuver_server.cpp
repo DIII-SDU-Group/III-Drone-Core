@@ -176,7 +176,7 @@ Reference HoverOnCableManeuverServer::GetReference(const State &) {
     return Reference(
         {NAN,NAN,NAN},
         NAN,
-        vector_t(NAN,NAN,target_z_velocity_),
+        vector_t(0,0,target_z_velocity_),
         target_yaw_rate_,
         {NAN,NAN,NAN},
         NAN
