@@ -587,7 +587,8 @@ Reference CableLandingManeuverServer::getUpdatedTargetReference(
 
         target_reference = Reference(
             target_transform.block<3, 1>(0, 3),
-            quatToEul(matToQuat(target_transform.block<3, 3>(0, 0)))[2]
+            quatToEul(matToQuat(target_transform.block<3, 3>(0, 0)))[2],
+            vector_t(0,0,parameters_->GetParameter("cable_landing_target_upwards_velocity").as_double())
         );
 
     }
