@@ -1,0 +1,24 @@
+<map id="iii_drone::control::TrajectoryGeneratorClient" name="iii_drone::control::TrajectoryGeneratorClient">
+<area shape="rect" id="Node000001" title="Trajectory generator client class. Exposes API to generate reference trajectories by invoking the tra..." alt="" coords="186,1675,403,1964"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,1403,155,1468"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="99,1467,169,1596,204,1658,200,1661,164,1599,94,1469"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="69,1131,91,1196"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="83,1196,83,1386,77,1386,77,1196"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1utils_1_1History.html" title=" " alt="" coords="179,1273,411,1597"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="297,1598,297,1658,292,1658,292,1598"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="186,1116,403,1211"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="297,1211,297,1257,292,1257,292,1211"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1adapters_1_1ReferenceTrajectoryAdapter.html" title="Class for adapting the III&#45;Drone&#45;Core::ReferenceTrajectory to the III&#45;Drone&#45;Interfaces::ReferenceTraj..." alt="" coords="185,833,405,1053"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="297,1054,297,1100,292,1100,292,1054"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1ReferenceTrajectory.html" title=" " alt="" coords="210,591,379,771"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="297,771,297,817,292,817,292,771"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="217,448,373,528"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="297,528,297,574,292,574,292,528"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1control_1_1Reference.html" title=" " alt="" coords="218,5,371,385"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="297,386,297,431,292,431,292,386"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="437,1131,571,1196"/>
+<area shape="poly" id="edge9_Node000004_Node000010" title=" " alt="" coords="477,1198,445,1236,423,1264,419,1260,441,1233,473,1195"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1utils_1_1Atomic.html" title=" " alt="" coords="435,1275,595,1595"/>
+<area shape="poly" id="edge11_Node000011_Node000010" title=" " alt="" coords="508,1196,510,1258,505,1259,503,1196"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="470,1597,444,1652,416,1694,411,1691,439,1649,466,1595"/>
+</map>

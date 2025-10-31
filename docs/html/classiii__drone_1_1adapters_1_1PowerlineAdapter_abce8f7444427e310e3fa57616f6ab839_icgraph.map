@@ -1,0 +1,9 @@
+<map id="iii_drone::adapters::PowerlineAdapter::GetVisibleLineAdapters" name="iii_drone::adapters::PowerlineAdapter::GetVisibleLineAdapters">
+<area shape="rect" id="Node000001" title="Returns the line adapters that are currently in the sensor FOV." alt="" coords="709,13,884,67"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a6c0d3f6de6be448f8d02e044c1739f1a" title="Checks if any cable is in the field of view." alt="" coords="507,13,661,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="696,43,661,43,661,37,696,37"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a15ab1216adf0aff5c7be05e851c70040" title="Runs the Kalman Filter update step from an observed yaw angle." alt="" coords="304,13,459,67"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="493,43,459,43,459,37,493,37"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerNode.html#a7d69d952785cf09e8cd381bd624480f2" title="Construct a new Powerline Direction Computer Node object." alt="" coords="5,5,256,75"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="291,43,256,43,256,37,291,37"/>
+</map>

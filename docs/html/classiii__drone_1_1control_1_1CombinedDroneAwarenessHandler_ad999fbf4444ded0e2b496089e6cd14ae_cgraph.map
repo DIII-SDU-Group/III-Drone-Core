@@ -1,0 +1,6 @@
+<map id="iii_drone::control::CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromVehicleStatus" name="iii_drone::control::CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromVehicleStatus">
+<area shape="rect" id="Node000001" title="Updates the combined drone awareness from the vehicle status. Triggers updates of armed,..." alt="" coords="5,29,377,84"/>
+<area shape="poly" id="edge2_Node000001_Node000001" title=" " alt="" coords="122,29,122,19,135,10,158,5,191,3,232,6,255,14,253,19,231,11,191,8,158,10,137,15,127,21,127,29"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a7489deb4a1885f6b4985a3f6de205b64" title="Getter for the combined drone awareness simple type by copy." alt="" coords="425,29,683,84"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="377,54,411,54,411,59,377,59"/>
+</map>

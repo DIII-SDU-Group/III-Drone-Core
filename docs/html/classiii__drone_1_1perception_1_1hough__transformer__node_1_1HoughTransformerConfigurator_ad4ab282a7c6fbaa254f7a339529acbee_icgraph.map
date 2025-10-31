@@ -1,0 +1,9 @@
+<map id="iii_drone::perception::hough_transformer_node::HoughTransformerConfigurator::canny_ratio" name="iii_drone::perception::hough_transformer_node::HoughTransformerConfigurator::canny_ratio">
+<area shape="rect" id="Node000001" title="Get the Canny ratio." alt="" coords="577,52,808,121"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1hough__transformer__node_1_1HoughTransformerConfigurator.html#adde4ce8998f667282def3f9611ea819e" title="Initialises the HoughTransformer parameters." alt="" coords="284,52,529,121"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="564,89,530,89,530,84,564,84"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1hough__transformer__node_1_1HoughTransformerConfigurator.html#a3e58a88efa1b9f468ccccbcba2c7c6b0" title="Constructor." alt="" coords="5,5,236,75"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="270,67,236,61,237,56,271,62"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1hough__transformer__node_1_1HoughTransformerConfigurator.html#acaaebc90c58dcb3a460fdbb199f0c6bb" title="Constructor." alt="" coords="5,99,236,168"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="271,111,237,117,236,112,270,106"/>
+</map>

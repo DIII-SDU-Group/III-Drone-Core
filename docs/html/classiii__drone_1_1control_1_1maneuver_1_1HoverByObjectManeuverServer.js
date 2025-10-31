@@ -1,0 +1,26 @@
+var classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer =
+[
+    [ "HoverByObject", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#af0d0caecf156dcf29992bcbf63ca276e", null ],
+    [ "HoverByObjectManeuverServer", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a6eddf31c805a131f1b63e883b0e0b0a6", null ],
+    [ "canCancel", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a29fe33d9117ae873cafe97852a4d28e0", null ],
+    [ "CanExecuteManeuver", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a43a1bd4911d8cb93397ab2eeabd61ee4", null ],
+    [ "computeReference", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a8651f18cdc5c9b85ff145c7decac4ddc", null ],
+    [ "ExpectedAwarenessAfterExecution", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#ad9583d05c33e9ef6a2c34c34eea8baef", null ],
+    [ "GetReference", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a4eb2e2eafbed623aeb6b16536465f896", null ],
+    [ "hasFailed", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#af8528504b83c4c9b405f496ccc269e10", null ],
+    [ "hasSucceeded", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a7e09c4b73237e76701d9e83785e05077", null ],
+    [ "maneuver_type", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#aed5b5b4a93b470cb3cfc7516da45687b", null ],
+    [ "publishFeedback", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a9af554b1694bd3e324ce8d544ac8584a", null ],
+    [ "publishResultAndFinalize", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a80336b2dc5cac8ed93bfe98b420c8e4d", null ],
+    [ "RegisterOnFailCallback", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a35c98ea133996e0a6e2cc97efeb9dcbc", null ],
+    [ "registerReferenceCallbackOnSuccess", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a42d65b247ee89440e63ed7c992c4772e", null ],
+    [ "startExecution", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a80454ac07639ecc305fea321dee42e53", null ],
+    [ "Update", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#ac08b547da2cbfe0165a2ccca6b639c02", null ],
+    [ "validateTargetTransform", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a0fbdbb7505bd07854fe3db49bfe8b8b8", null ],
+    [ "has_on_fail_callback_", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a378cdb31fd04f43edb38bd717c609755", null ],
+    [ "has_target_", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#aa302fc1814c17816db6aca03e6cb0c9f", null ],
+    [ "max_euc_dist_", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#ab5a612e0d727964b611fe752bc873807", null ],
+    [ "on_fail_callback_", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a47b1a9e98c4b4df937aada11268a90df", null ],
+    [ "target_adapter_", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a8605ecb207f94fdeedc53f98a74897b9", null ],
+    [ "use_nans_", "classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#aab7def0893cbd63c4ba012ca3f38881e", null ]
+];

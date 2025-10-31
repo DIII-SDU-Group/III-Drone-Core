@@ -1,0 +1,19 @@
+<map id="iii_drone::adapters::ReferenceTrajectoryAdapter::ToPathMsg" name="iii_drone::adapters::ReferenceTrajectoryAdapter::ToPathMsg">
+<area shape="rect" id="Node000001" title="Converts to Path msg." alt="" coords="5,105,216,160"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1ReferenceTrajectory.html#a4dcc8536500adff0778457882d598f21" title="References getter." alt="" coords="264,65,424,120"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="216,112,250,106,251,111,217,117"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1adapters_1_1ReferenceAdapter.html#aa8e55f2f2d08f81b59bb9e0b452dc0f7" title="Converts to pose stamped msg." alt="" coords="267,144,421,199"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="217,148,254,154,253,159,216,153"/>
+<area shape="rect" id="Node000004" href="$namespaceiii__drone_1_1math.html#a531ed4bd8183770d77ec20b37a8709c2" title=" " alt="" coords="475,5,669,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="407,142,422,130,438,107,444,85,452,63,470,41,481,34,484,39,474,45,456,66,449,87,442,109,426,133,410,146"/>
+<area shape="rect" id="Node000005" href="$namespaceiii__drone_1_1types.html#adf49c0d0a898eea29ad3e752a6712734" title=" " alt="" coords="477,55,667,95"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="398,142,471,105,490,97,492,102,473,110,400,146"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1Reference.html#a2ba5647e5161e35e0588394dcae0663b" title=" " alt="" coords="494,119,650,159"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="421,158,480,150,481,155,422,163"/>
+<area shape="rect" id="Node000007" href="$namespaceiii__drone_1_1types.html#a345601fdf3366d6af6d7c2003d74275b" title=" " alt="" coords="472,183,672,223"/>
+<area shape="poly" id="edge6_Node000003_Node000007" title=" " alt="" coords="422,180,459,185,458,190,421,185"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1Reference.html#a2ef1baafb09875a2af495e006f98c7c5" title=" " alt="" coords="499,247,645,287"/>
+<area shape="poly" id="edge7_Node000003_Node000008" title=" " alt="" coords="396,196,473,233,492,240,490,245,471,238,394,201"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1control_1_1Reference.html#a784277cbb64476953132a8e239f9ae9e" title=" " alt="" coords="507,311,637,351"/>
+<area shape="poly" id="edge8_Node000003_Node000009" title=" " alt="" coords="368,197,413,248,442,274,473,297,495,308,493,313,471,302,439,279,410,252,364,201"/>
+</map>

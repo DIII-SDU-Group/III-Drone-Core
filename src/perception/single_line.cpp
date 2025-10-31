@@ -2,7 +2,7 @@
 // Includes
 /*****************************************************************************/
 
-#include "iii_drone_core/perception/single_line.hpp"
+#include <iii_drone_core/perception/single_line.hpp>
 
 using namespace iii_drone::perception;
 using namespace iii_drone::types;
@@ -12,107 +12,132 @@ using namespace iii_drone::math;
 // Implementation
 /*****************************************************************************/
 
-SingleLine::SingleLine(
-    int id, 
-    point_t initial_point, 
-    float r, 
-    float q,
-    rclcpp::Logger logger,
-    int alive_cnt_low_thresh, 
-    int alive_cnt_high_thresh, 
-    int alive_cnt_ceiling,
-    std::string drone_frame_id,
-    std::string mmwave_frame_id, 
-    bool simulation
-) : logger_(logger) {
+SingleLine::SingleLine(const SingleLine & other) : mutex_() {
 
-    simulation_ = simulation;
-
-    id_ = id;
-
-    projected_point_ = initial_point;
-
-    pl_point_ = point_t(
-        initial_point(0),
-        initial_point(1),
-        initial_point(2)
-    );
+    id_ = other.id();
+    position_ = other.position();
+    projected_position_ = other.projected_position();
+    quaternion_ = other.quaternion();
+    frame_id_ = other.frame_id();
+    alive_cnt_ = other.alive_cnt();
+    stamp_ = other.stamp();
+    tf_buffer_ = other.tf_buffer();
+    parameters_ = other.parameters();
 
     for (int i = 0; i < 3; i++) {
 
-        estimates[i] = { .state_est = initial_point[i], .var_est = 0};
+        estimates[i].state_est = other.state_est(i);
+        estimates[i].var_est = other.var_est(i);
 
     }
+}
 
-    r_ = r;
-    q_ = q;
+SingleLine::SingleLine(
+    const int & id, 
+    const geometry_msgs::msg::Pose & pose,
+    const std::shared_ptr<tf2_ros::Buffer> & tf_buffer,
+    iii_drone::configuration::ParameterBundle::SharedPtr parameters
+) : tf_buffer_(tf_buffer), parameters_(parameters), mutex_() {
 
-    alive_cnt_low_thresh_ = alive_cnt_low_thresh;
-    alive_cnt_high_thresh_ = alive_cnt_high_thresh;
-    alive_cnt_ceiling_ = alive_cnt_ceiling;
+    id_ = id;
+    position_ = pointFromPointMsg(pose.position);
+    projected_position_ = position_;
+    quaternion_ = quaternionFromQuaternionMsg(pose.orientation);
+    frame_id_ = parameters_->GetParameter("drone_frame_id").as_string();
 
-    alive_cnt_ = (alive_cnt_low_thresh_ + alive_cnt_high_thresh_) / 2;
+    alive_cnt_ = (parameters_->GetParameter("alive_cnt_low_thresh").as_int() + parameters_->GetParameter("alive_cnt_high_thresh").as_int()) / 2;
 
-    drone_frame_id_ = drone_frame_id;
-    mmwave_frame_id_ = mmwave_frame_id;
+    resetKalmanFilter();
 
 }
 
-int SingleLine::GetId() {
+SingleLine::SingleLine(
+    const int & id, 
+    const point_t & position,
+    const quaternion_t & quaternion,
+    const std::shared_ptr<tf2_ros::Buffer> & tf_buffer,
+    iii_drone::configuration::ParameterBundle::SharedPtr parameters
+) : tf_buffer_(tf_buffer), parameters_(parameters), mutex_() {
 
-    return id_;
+    id_ = id;
+    position_ = position;
+    projected_position_ = position_;
+    quaternion_ = quaternion;
+    frame_id_ = parameters_->GetParameter("drone_frame_id").as_string();
+
+    alive_cnt_ = (parameters_->GetParameter("alive_cnt_low_thresh").as_int() + parameters_->GetParameter("alive_cnt_high_thresh").as_int()) / 2;
+
+    resetKalmanFilter();
 
 }
 
-SingleLine SingleLine::GetCopy() {
+SingleLine::SingleLine(
+    const int & id, 
+    const point_t & position,
+    const quaternion_t & quaternion,
+    const std::string & frame_id,
+    const std::shared_ptr<tf2_ros::Buffer> & tf_buffer,
+    iii_drone::configuration::ParameterBundle::SharedPtr parameters
+) : tf_buffer_(tf_buffer), parameters_(parameters), mutex_() {
 
-    SingleLine sl(
+    id_ = id;
+    position_ = position;
+    projected_position_ = position_;
+    quaternion_ = quaternion;
+    frame_id_ = frame_id;
+
+    alive_cnt_ = (parameters_->GetParameter("alive_cnt_low_thresh").as_int() + parameters_->GetParameter("alive_cnt_high_thresh").as_int()) / 2;
+
+    resetKalmanFilter();
+
+}
+
+SingleLine::SingleLine(
+    const iii_drone::adapters::SingleLineAdapter & adapter,
+    const std::shared_ptr<tf2_ros::Buffer> & tf_buffer,
+    iii_drone::configuration::ParameterBundle::SharedPtr parameters
+) : tf_buffer_(tf_buffer), parameters_(parameters), mutex_() {
+
+    id_ = adapter.id();
+    position_ = adapter.position();
+    projected_position_ = adapter.projected_position();
+    quaternion_ = adapter.quaternion();
+
+    alive_cnt_ = (parameters_->GetParameter("alive_cnt_low_thresh").as_int() + parameters_->GetParameter("alive_cnt_high_thresh").as_int()) / 2;
+
+    resetKalmanFilter();
+
+}
+
+const iii_drone::adapters::SingleLineAdapter SingleLine::ToAdapter() const {
+
+    std::shared_lock<std::shared_mutex> lock(mutex_);
+
+    iii_drone::adapters::SingleLineAdapter adapter(
+        stamp_,
+        frame_id_,
         id_, 
-        pl_point_, 
-        r_, 
-        q_, 
-        logger_, 
-        alive_cnt_low_thresh_, 
-        alive_cnt_high_thresh_, 
-        alive_cnt_ceiling_, 
-        drone_frame_id_, 
-        mmwave_frame_id_, 
-        simulation_
+        position_, 
+        projected_position_, 
+        quaternion_, 
+        IsInFOV()
     );
 
-    return sl;
+    return adapter;
 
 }
 
-point_t SingleLine::GetPoint() {
+void SingleLine::OverwriteStamp(const rclcpp::Time & stamp) {
 
-    return pl_point_;
-
-}
-
-void SingleLine::SetPoint(point_t point) {
-
-    pl_point_ = point;
-    estimates[0].state_est = point(0);
-    estimates[1].state_est = point(1);
-    estimates[2].state_est = point(2);
+    stamp_ = stamp;
 
 }
 
-bool SingleLine::IsAlive(
-    std::unique_ptr<tf2_ros::Buffer> &tf_buffer, 
-    float min_point_dist, 
-    float max_point_dist, 
-    float view_cone_slope
-) {
+bool SingleLine::IsAlive() {
 
-    if (IsInFOV(
-            tf_buffer, 
-            min_point_dist, 
-            max_point_dist, 
-            view_cone_slope
-        ) && --alive_cnt_ <= alive_cnt_low_thresh_
-    ) {
+    std::shared_lock<std::shared_mutex> lock(mutex_);
+
+    if (IsInFOVStrict() && --alive_cnt_ <= parameters_->GetParameter("alive_cnt_low_thresh").as_int()) {
 
         return false;
 
@@ -123,35 +148,42 @@ bool SingleLine::IsAlive(
     }
 }
 
-bool SingleLine::IsVisible() {
+bool SingleLine::IsVisible() const {
 
-    return alive_cnt_ >= alive_cnt_high_thresh_;
+    std::shared_lock<std::shared_mutex> lock(mutex_);
+
+    return alive_cnt_ >= parameters_->GetParameter("alive_cnt_high_thresh").as_int();
 
 }
 
 bool SingleLine::IsInFOV(
-    point_t point,
-    float min_point_dist,
-    float max_point_dist,
-    float view_cone_slope
-) {
+    const point_t & position,
+    const float min_point_dist,
+    const float max_point_dist,
+    const float view_cone_slope
+) const {
 
     bool in_FOV = true;
 
-    float dist = point.norm();
+    float dist = position.norm();
 
     in_FOV &= dist <= max_point_dist;
     in_FOV &= dist >= min_point_dist;
 
-    if (simulation_) {
+    const char* simulation_env = std::getenv("SIMULATION");
+    std::string simulation_env_str = (simulation_env != nullptr) ? std::string(simulation_env) : "";
+    std::transform(simulation_env_str.begin(), simulation_env_str.end(), simulation_env_str.begin(), ::tolower);
+    bool simulation = simulation_env_str == "true";
 
-        float yz_dist = sqrt(point(1)*point(1)+point(2)*point(2));
-        in_FOV &= point(0) > view_cone_slope*yz_dist;
+    if (simulation) {
+
+        float yz_dist = sqrt(position(1)*position(1)+position(2)*position(2));
+        in_FOV &= position(0) > view_cone_slope*yz_dist;
 
     } else {
 
-        float xz_dist = sqrt(point(0)*point(0)+point(2)*point(2));
-        in_FOV &= point(1) > view_cone_slope*xz_dist;
+        float xz_dist = sqrt(position(0)*position(0)+position(2)*position(2));
+        in_FOV &= position(1) > view_cone_slope*xz_dist;
 
     }
 
@@ -159,113 +191,275 @@ bool SingleLine::IsInFOV(
 
 }
 
-bool SingleLine::IsInFOV(
-    std::unique_ptr<tf2_ros::Buffer> &tf_buffer, 
-    float min_point_dist, 
-    float max_point_dist, 
-    float view_cone_slope
-) {
+bool SingleLine::IsInFOV() const {
 
-    // //RCLCPP_INFO(logger_, "b1");
+    std::shared_lock<std::shared_mutex> lock(mutex_);
 
     geometry_msgs::msg::PointStamped point_stamped;
-    point_stamped.header.frame_id = drone_frame_id_;
-    point_stamped.point.x = pl_point_(0);
-    point_stamped.point.y = pl_point_(1);
-    point_stamped.point.z = pl_point_(2);
+    point_stamped.header.frame_id = frame_id_;
+    point_stamped.point = pointMsgFromPoint(position_);
 
-    // //RCLCPP_INFO(logger_, "b2");
+    geometry_msgs::msg::PointStamped mmwave_point_stamped;
 
-    geometry_msgs::msg::PointStamped mmwave_point_stamped = tf_buffer->transform(point_stamped, mmwave_frame_id_);
+    try {
+        mmwave_point_stamped = tf_buffer_->transform(
+            point_stamped, 
+            parameters_->GetParameter("mmwave_frame_id").as_string()
+        );
+    } catch (tf2::TransformException & ex) {
+        return false;
+    }
 
-    // //RCLCPP_INFO(logger_, "b3");
+    point_t mmwave_point = pointFromPointMsg(mmwave_point_stamped.point);
 
-    point_t mmwave_point(
-        mmwave_point_stamped.point.x,
-        mmwave_point_stamped.point.y,
-        mmwave_point_stamped.point.z
-    );
-
-    // //RCLCPP_INFO(logger_, "b4");
-
-    // return IsInFOV(pl_point_, min_point_dist, max_point_dist, view_cone_slope);
     return IsInFOV(
         mmwave_point, 
-        min_point_dist, 
-        max_point_dist, 
-        view_cone_slope
+        parameters_->GetParameter("min_point_dist").as_double(), 
+        parameters_->GetParameter("max_point_dist").as_double(), 
+        parameters_->GetParameter("view_cone_slope").as_double()
     );
 
 }
 
-void SingleLine::Update(point_t point) {
+#include <iostream>
 
-    projected_point_ = point;
+bool SingleLine::IsInFOVStrict() const {
+
+    std::shared_lock<std::shared_mutex> lock(mutex_);
+
+    geometry_msgs::msg::PointStamped point_stamped;
+    point_stamped.header.frame_id = frame_id_;
+    point_stamped.point = pointMsgFromPoint(position_);
+
+    geometry_msgs::msg::PointStamped mmwave_point_stamped;
+
+    try {
+        mmwave_point_stamped = tf_buffer_->transform(
+            point_stamped, 
+            parameters_->GetParameter("mmwave_frame_id").as_string()
+        );
+    } catch (tf2::TransformException & ex) {
+        return false;
+    }
+
+    point_t mmwave_point = pointFromPointMsg(mmwave_point_stamped.point);
+
+    return IsInFOV(
+        mmwave_point, 
+        parameters_->GetParameter("strict_min_point_dist").as_double(), 
+        parameters_->GetParameter("strict_max_point_dist").as_double(), 
+        parameters_->GetParameter("strict_view_cone_slope").as_double()
+    );
+
+}
+
+void SingleLine::Update(const point_t & projected_position) {
+
+    std::unique_lock<std::shared_mutex> lock(mutex_);
+
+    projected_position_ = projected_position;
 
     for (int i = 0; i < 3; i++) {
 
-        float y_bar = point(i) - estimates[i].state_est;
-        float s = estimates[i].var_est + r_;
+        float y_bar = projected_position(i) - estimates[i].state_est;
+        float s = estimates[i].var_est + parameters_->GetParameter("kf_r").as_double();
 
         float k = estimates[i].var_est / s;
 
         estimates[i].state_est += k*y_bar;
         estimates[i].var_est *= 1-k;
 
-        pl_point_(i) = estimates[i].state_est;
+        position_(i) = estimates[i].state_est;
 
     }
 
     alive_cnt_ += 2;
 
-    if (alive_cnt_ > alive_cnt_ceiling_) {
+    if (alive_cnt_ > parameters_->GetParameter("alive_cnt_ceiling").as_int()) {
 
-        alive_cnt_ = alive_cnt_ceiling_;
+        alive_cnt_ = parameters_->GetParameter("alive_cnt_ceiling").as_int();
+
+    }
+
+    lock.unlock();
+
+    stamp_.Update();
+
+}
+
+void SingleLine::Predict(
+    const vector_t & delta_drone_position, 
+    const quaternion_t & delta_drone_quat, 
+    const plane_t & projection_plane
+) {
+
+    std::unique_lock<std::shared_mutex> lock(mutex_);
+
+    rotation_matrix_t R = quatToMat(delta_drone_quat);
+
+    vector_t projected_delta_drone_position = projectPointOnPlane(
+        delta_drone_position, 
+        projection_plane
+    );
+
+    position_ = (R * position_) - projected_delta_drone_position;
+
+    for (int i = 0; i < 3; i++) {
+
+        estimates[i].state_est = position_(i);
+        estimates[i].var_est += parameters_->GetParameter("kf_q").as_double();
+    }
+
+    lock.unlock();
+
+    stamp_.Update();
+
+}
+
+void SingleLine::SetPosition(const point_t & position) {
+
+    std::unique_lock<std::shared_mutex> lock(mutex_);
+
+    position_ = position;
+
+    for (int i = 0; i < 3; i++) {
+
+        estimates[i].state_est = position_(i);
+        estimates[i].var_est += parameters_->GetParameter("kf_q").as_double();
+
+    }
+
+    lock.unlock();
+
+    stamp_.Update();
+
+}
+
+void SingleLine::SetDirection(const quaternion_t & quaternion) {
+
+    std::unique_lock<std::shared_mutex> lock(mutex_);
+
+    quaternion_ = quaternion;
+
+    lock.unlock();
+
+    stamp_.Update();
+
+}
+
+const point_t SingleLine::position() const {
+
+    std::shared_lock<std::shared_mutex> lock(mutex_);
+
+    return position_;
+
+}
+
+int SingleLine::id() const {
+
+    std::shared_lock<std::shared_mutex> lock(mutex_);
+
+    return id_;
+
+}
+
+rclcpp::Time SingleLine::stamp() const {
+
+    return stamp_;
+
+}
+
+std::string SingleLine::frame_id() const {
+
+    return frame_id_;
+
+}
+
+quaternion_t SingleLine::quaternion() const {
+
+    std::shared_lock<std::shared_mutex> lock(mutex_);
+
+    return quaternion_;
+
+}
+
+point_t SingleLine::projected_position() const {
+
+    std::shared_lock<std::shared_mutex> lock(mutex_);
+
+    return projected_position_;
+
+}
+
+std::shared_ptr<tf2_ros::Buffer> SingleLine::tf_buffer() const {
+
+    return tf_buffer_;
+
+}
+
+iii_drone::configuration::ParameterBundle::SharedPtr SingleLine::parameters() const {
+
+    return parameters_;
+
+}
+
+int SingleLine::alive_cnt() const {
+
+    std::shared_lock<std::shared_mutex> lock(mutex_);
+
+    return alive_cnt_;
+
+}
+
+float SingleLine::state_est(const int & i) const {
+
+    std::shared_lock<std::shared_mutex> lock(mutex_);
+
+    return estimates[i].state_est;
+
+}
+
+float SingleLine::var_est(const int & i) const {
+
+    std::shared_lock<std::shared_mutex> lock(mutex_);
+
+    return estimates[i].var_est;
+
+}
+
+void SingleLine::resetKalmanFilter() {
+
+    for (int i = 0; i < 3; i++) {
+
+        estimates[i].state_est = position_(i);
+        estimates[i].var_est = 0.01;
 
     }
 
 }
 
-void SingleLine::Predict(
-    vector_t delta_position, 
-    quat_t delta_quat, 
-    plane_t projection_plane, 
-    std::unique_ptr<tf2_ros::Buffer> &tf_buffer
-) {
+SingleLine & SingleLine::operator=(const SingleLine & other) {
 
-    //RCLCPP_INFO(logger_, "Predicting line");
+    if (this != &other) {
 
-    orientation_t eul = quatToEul(delta_quat);
+        id_ = other.id();
+        position_ = other.position();
+        projected_position_ = other.projected_position();
+        quaternion_ = other.quaternion();
+        frame_id_ = other.frame_id();
+        alive_cnt_ = other.alive_cnt();
+        stamp_ = other.stamp();
+        tf_buffer_ = other.tf_buffer();
+        parameters_ = other.parameters();
 
-    // eul(0) = 0;
-    // eul(1) = 0;
-    // eul(2) = 0;
+        for (int i = 0; i < 3; i++) {
 
-    rotation_matrix_t R = eulToR(eul);
-    // rotation_matrix_t R = quatToMat(delta_quat);
+            estimates[i].state_est = other.state_est(i);
+            estimates[i].var_est = other.var_est(i);
 
-    //RCLCPP_INFO(logger_, "Point before: (%f, %f, %f)", pl_point_(0), pl_point_(1), pl_point_(2));
-
-    delta_position = projectPointOnPlane(
-        delta_position, 
-        projection_plane
-    );
-    // delta_position(0) = 0;
-    // delta_position(1) = 0;
-
-    pl_point_ = (R * pl_point_) - delta_position;
-    // pl_point_ = (R.transpose() * pl_point_) + delta_position;
-
-    // pl_point_ = projectPointOnPlane(pl_point_, projection_plane);
-
-    // //RCLCPP_INFO(logger_, "Delta position: (%f, %f, %f)", delta_position(0), delta_position(1), delta_position(2));
-
-    //RCLCPP_INFO(logger_, "Point after: (%f, %f, %f)", pl_point_(0), pl_point_(1), pl_point_(2));
-
-    for (int i = 0; i < 3; i++) {
-
-        estimates[i].state_est = pl_point_(i);
-        estimates[i].var_est += q_;
+        }
     }
+
+    return *this;
 
 }

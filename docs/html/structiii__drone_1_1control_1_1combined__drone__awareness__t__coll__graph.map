@@ -1,0 +1,11 @@
+<map id="iii_drone::control::combined_drone_awareness_t" name="iii_drone::control::combined_drone_awareness_t">
+<area shape="rect" id="Node000001" title="Represents a combination of drone awareness information, on which behavior execution depends." alt="" coords="33,665,252,925"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1State.html" title=" " alt="" coords="5,263,152,603"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="111,602,119,648,114,649,106,603"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1adapters_1_1TargetAdapter.html" title="Target adapter class." alt="" coords="176,273,341,593"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="210,594,192,650,187,649,205,592"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="219,135,298,200"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="261,200,261,256,256,256,256,200"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="193,5,324,85"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="261,99,261,134,256,134,256,99"/>
+</map>

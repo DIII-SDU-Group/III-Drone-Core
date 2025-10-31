@@ -1,0 +1,9 @@
+<map id="iii_drone::perception::PowerlineDirection::resetKalmanFilter" name="iii_drone::perception::PowerlineDirection::resetKalmanFilter">
+<area shape="rect" id="Node000001" title="Resets the Kalman filter estimates." alt="" coords="507,45,661,100"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a896518120e987d3be288e56dd34410b9" title="Default constructor." alt="" coords="304,5,459,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="493,57,459,51,460,45,494,52"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a15ab1216adf0aff5c7be05e851c70040" title="Runs the Kalman Filter update step from an observed yaw angle." alt="" coords="304,84,459,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="494,93,460,99,459,94,493,87"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerNode.html#a7d69d952785cf09e8cd381bd624480f2" title="Construct a new Powerline Direction Computer Node object." alt="" coords="5,77,256,146"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="291,114,256,114,256,109,291,109"/>
+</map>

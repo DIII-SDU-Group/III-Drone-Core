@@ -1,0 +1,9 @@
+<map id="iii_drone::mission::continuous_mission_orchestrator_node::ContinuousMissionOrchestrator::chargerStatusCharging" name="iii_drone::mission::continuous_mission_orchestrator_node::ContinuousMissionOrchestrator::chargerStatusCharging">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1056,5,1307,89"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1mission_1_1continuous__mission__orchestrator__node_1_1ContinuousMissionOrchestrator.html#ab7049a8b96c0099fe5f67fd9c5c95644" title=" " alt="" coords="691,13,1008,82"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1042,50,1009,50,1009,45,1042,45"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1mission_1_1continuous__mission__orchestrator__node_1_1ContinuousMissionOrchestrator.html#a03d16a0b3a80d3d63fd1ac37c08829c7" title=" " alt="" coords="337,13,643,82"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="677,50,643,50,643,45,677,45"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1mission_1_1continuous__mission__orchestrator__node_1_1ContinuousMissionOrchestrator.html#a7d652b0b72969090c91c494f5c032eba" title=" " alt="" coords="5,5,289,89"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="324,50,290,50,290,45,324,45"/>
+</map>

@@ -1,0 +1,11 @@
+<map id="iii_drone::control::BehaviorStateParameters::cable_gripper_frame_id" name="iii_drone::control::BehaviorStateParameters::cable_gripper_frame_id">
+<area shape="rect" id="Node000001" title="Get the cable gripper frame id." alt="" coords="627,41,823,96"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1BehaviorState.html#a950f5d0c9562cdfa1f03a2409ce9f682" title="Return the id of the cable that the drone is on if it is on a cable, &#45;1 otherwise." alt="" coords="432,41,579,96"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="613,71,579,71,579,66,613,66"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1BehaviorState.html#a1b5262b99d96767ebdc0be10fb29bdf5" title="Returns the drone location, checks the drone location and sets the on_cable_id if the drone is on a c..." alt="" coords="207,5,373,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="418,57,373,49,374,44,419,51"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1BehaviorState.html#a90c3fb2cdaf884b43aed4d8b15306ff9" title="Whether the drone is on a cable." alt="" coords="196,85,384,125"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="418,86,385,92,384,86,418,81"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1BehaviorState.html#a2a8726ede2d3f2dab883e9c4f0d63fb5" title="Whether the drone is in flight." alt="" coords="5,77,148,132"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="182,107,148,107,148,102,182,102"/>
+</map>

@@ -1,0 +1,13 @@
+<map id="iii_drone::control::maneuver::ManeuverScheduler::ProjectExpectedAwarenessFull" name="iii_drone::control::maneuver::ManeuverScheduler::ProjectExpectedAwarenessFull">
+<area shape="rect" id="Node000001" title="Returns the expected combined drone awareness upon completion or failure of given maneuver type,..." alt="" coords="1409,13,1643,67"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a6b694f0329c16fecaf0395fc4ef3f597" title="Returns whether a given maneuver can execute later." alt="" coords="1128,13,1361,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1396,43,1362,43,1362,37,1396,37"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#acaa8f0628522b25bdd0c63dde8ee24f0" title="Registers a maneuver with the maneuver scheduler. To be called from a maneuver server...." alt="" coords="847,13,1080,67"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1115,43,1080,43,1080,37,1115,37"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#ab393b4204a5c4368ee503e9af8b27a22" title="Registers a maneuver type with a maneuver server." alt="" coords="565,13,799,67"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="833,43,799,43,799,37,833,37"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNode.html#a1c587895df3c61bd6b748e97942cd619" title="Creates and registers all maneuver servers with the maneuver scheduler." alt="" coords="285,5,517,75"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="552,43,517,43,517,37,552,37"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNode.html#a291f0abf320443ed6ad4a248ba028b8c" title="Constructor. Creates the node, initializes the configurator, the transform buffer and listener,..." alt="" coords="5,5,237,75"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="272,43,237,43,237,37,272,37"/>
+</map>

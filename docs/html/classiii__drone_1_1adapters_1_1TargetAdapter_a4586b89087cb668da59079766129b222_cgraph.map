@@ -1,0 +1,15 @@
+<map id="iii_drone::adapters::TargetAdapter::TargetAdapter" name="iii_drone::adapters::TargetAdapter::TargetAdapter">
+<area shape="rect" id="Node000001" title="Constructor from msg." alt="" coords="5,63,225,103"/>
+<area shape="rect" id="Node000002" href="$namespaceiii__drone_1_1types.html#a482ee774598db4f38a8b02aa1b956ac3" title=" " alt="" coords="273,63,468,103"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="226,80,259,80,259,85,226,85"/>
+<area shape="rect" id="Node000003" href="$namespaceiii__drone_1_1types.html#ab684c4851f41301e938970679086de49" title=" " alt="" coords="516,5,716,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="456,60,516,46,517,51,457,65"/>
+<area shape="rect" id="Node000004" href="$namespaceiii__drone_1_1math.html#af8c96a0fa3940e1034c8db8425586ba8" title=" " alt="" coords="518,70,714,95"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="468,80,504,80,504,85,468,85"/>
+<area shape="rect" id="Node000007" href="$namespaceiii__drone_1_1types.html#a42473d6c26ea6e0c7c0eeda54448907c" title=" " alt="" coords="531,120,701,160"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="457,100,518,114,517,120,456,105"/>
+<area shape="rect" id="Node000005" href="$namespaceiii__drone_1_1math.html#a7f61d7905e9118b077f713da7e65e8df" title=" " alt="" coords="766,46,953,71"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="714,70,752,67,752,72,714,76"/>
+<area shape="rect" id="Node000006" href="$namespaceiii__drone_1_1math.html#a8e7d7e25d07b368363d6da9939a9abed" title=" " alt="" coords="764,95,955,121"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="714,90,751,94,750,99,714,96"/>
+</map>

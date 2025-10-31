@@ -1,0 +1,6 @@
+<map id="iii_drone::control::CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromTargetCableId" name="iii_drone::control::CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromTargetCableId">
+<area shape="rect" id="Node000001" title="Updates the combined drone awareness from the target cable id. Triggers updates of target_cable_id,..." alt="" coords="5,29,329,99"/>
+<area shape="poly" id="edge2_Node000001_Node000001" title=" " alt="" coords="101,28,105,18,117,10,138,5,167,3,204,6,226,14,224,19,203,11,167,8,139,10,119,15,109,21,107,30"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a7489deb4a1885f6b4985a3f6de205b64" title="Getter for the combined drone awareness simple type by copy." alt="" coords="377,37,635,91"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="330,61,363,61,363,67,330,67"/>
+</map>

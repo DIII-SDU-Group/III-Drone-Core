@@ -1,0 +1,9 @@
+<map id="iii_drone::adapters::PowerlineAdapter::PowerlineAdapter" name="iii_drone::adapters::PowerlineAdapter::PowerlineAdapter">
+<area shape="rect" id="Node000001" title="Constructor from members." alt="" coords="5,84,159,139"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1PowerlineAdapter.html#a898ed09e991a420b229da96580577a9a" title="Projection plane getter." alt="" coords="227,5,381,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="158,82,214,62,215,67,160,87"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1adapters_1_1PowerlineAdapter.html#a27112b78bb81e521784c6fc4c4794c0b" title="Line adapters getter." alt="" coords="226,84,382,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="159,109,212,109,212,114,159,114"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1adapters_1_1PowerlineAdapter.html#a2cc31803edd82e7f5c00d70ad51f3c59" title="Stamp getter." alt="" coords="207,163,401,203"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="160,134,229,156,228,162,158,139"/>
+</map>

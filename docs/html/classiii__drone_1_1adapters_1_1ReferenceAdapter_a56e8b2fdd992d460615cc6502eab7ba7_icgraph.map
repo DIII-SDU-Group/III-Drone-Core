@@ -1,0 +1,19 @@
+<map id="iii_drone::adapters::ReferenceAdapter::ToMsg" name="iii_drone::adapters::ReferenceAdapter::ToMsg">
+<area shape="rect" id="Node000001" title="Converts to msg." alt="" coords="937,138,1133,178"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1TrajectoryGeneratorClient.html#a2b3ee03aed559d8c1ea8d052336d25ff" title="Starts generating a trajectory." alt="" coords="631,76,889,131"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="923,139,889,132,890,126,924,133"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1adapters_1_1ReferenceTrajectoryAdapter.html#a1a7886f7329ea52f8d9eed2e17f5066f" title="Converts to msg." alt="" coords="655,169,865,224"/>
+<area shape="poly" id="edge7_Node000001_Node000006" title=" " alt="" coords="924,176,866,184,865,179,923,171"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a2ace3412e0d42d07a39c553c89ab0c6a" title="Compute the reference." alt="" coords="10,5,255,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="672,74,582,51,498,40,412,34,256,31,256,26,412,28,498,35,583,46,674,69"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServer.html#ac13004e478653d73361c3569e11870dc" title="Compute the reference." alt="" coords="5,93,260,148"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="617,127,583,130,415,135,260,131,260,125,415,129,583,125,617,122"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1TrajectoryGeneratorClient.html#a0e32180d729e74d24edeef891d1ac843" title="Generates a trajectory and blocks until it is done." alt="" coords="308,61,583,116"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="617,99,583,98,583,92,617,94"/>
+<area shape="poly" id="edge5_Node000005_Node000003" title=" " alt="" coords="294,64,255,57,256,52,295,59"/>
+<area shape="poly" id="edge6_Node000005_Node000004" title=" " alt="" coords="295,107,260,110,260,105,294,101"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNode.html#aefc447399b185fef5b912770b5059936" title="The compute reference trajectory service callback." alt="" coords="309,191,582,261"/>
+<area shape="poly" id="edge8_Node000006_Node000007" title=" " alt="" coords="641,210,583,216,582,211,640,205"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNode.html#ac58d9ceab1e2ecc71cb971a5f360bc00" title=" " alt="" coords="17,191,249,261"/>
+<area shape="poly" id="edge9_Node000007_Node000008" title=" " alt="" coords="295,229,249,229,249,223,295,223"/>
+</map>

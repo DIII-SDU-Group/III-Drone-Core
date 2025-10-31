@@ -1,0 +1,5 @@
+<map id="iii_drone::control::maneuver::ManeuverScheduler::cancelAllPendingManeuvers" name="iii_drone::control::maneuver::ManeuverScheduler::cancelAllPendingManeuvers">
+<area shape="rect" id="Node000001" title="Cancels all pending maneuvers." alt="" coords="5,5,239,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#afc039e2eeb8e4587c1bdb1a61f664739" title="Clears the queue." alt="" coords="287,5,497,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="239,30,273,30,273,35,239,35"/>
+</map>

@@ -1,0 +1,23 @@
+<map id="iii_drone::perception::hough_transformer_node::HoughTransformerNode" name="iii_drone::perception::hough_transformer_node::HoughTransformerNode">
+<area shape="rect" id="Node000001" title="Node for computing hough transform on images to detect powerline direction." alt="" coords="163,1244,367,1399"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="19,957,113,1022"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="76,1035,95,1106,110,1144,128,1180,151,1212,178,1242,174,1246,147,1216,124,1183,105,1146,90,1107,71,1036"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1hough__transformer__node_1_1HoughTransformerConfigurator.html" title="Class for handling parameters for HoughTransformer." alt="" coords="138,797,391,1181"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="267,1182,267,1228,262,1228,262,1182"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1configuration_1_1Configurator.html" title="Class for handling parameters of a node. The class works in conjunction with the ConfigurationServer ..." alt="" coords="126,148,366,563"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="255,576,262,797,256,797,250,576"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="5,5,143,85"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="98,84,125,132,120,135,93,87"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="167,5,333,85"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="252,86,252,132,246,131,247,86"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="391,13,525,78"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="392,71,361,88,335,111,316,135,312,132,331,108,358,84,389,67"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1perception_1_1HoughTransformerParameters.html" title="Class storing the parameters for the hough transformer." alt="" coords="391,225,635,485"/>
+<area shape="poly" id="edge9_Node000009_Node000007" title=" " alt="" coords="473,77,482,109,500,208,495,209,477,110,468,79"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="369,625,632,720"/>
+<area shape="poly" id="edge7_Node000003_Node000008" title=" " alt="" coords="392,722,364,746,335,785,331,781,360,742,388,718"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1perception_1_1HoughTransformer.html" title="Class for performing the hough transform on images to detect powerline direction." alt="" coords="416,899,585,1079"/>
+<area shape="poly" id="edge11_Node000010_Node000008" title=" " alt="" coords="503,720,503,883,498,883,498,720"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="510,486,506,609,500,608,505,485"/>
+<area shape="poly" id="edge10_Node000001_Node000010" title=" " alt="" coords="465,1081,438,1132,405,1183,362,1234,358,1231,401,1180,433,1130,460,1078"/>
+</map>

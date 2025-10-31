@@ -1,0 +1,29 @@
+<map id="iii_drone::control::State::stamp" name="iii_drone::control::State::stamp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1231,188,1361,228"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1TrajectoryGenerator.html#a78eab9ed7ef8b604e5753192fbf8561b" title="Computes the reference trajectory for the MPC." alt="" coords="958,13,1177,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1272,178,1233,129,1209,104,1181,82,1159,70,1162,65,1184,78,1212,100,1237,126,1276,175"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1Reference.html#a6c02bfc4464392a48b88dbd302e1a3f6" title=" " alt="" coords="982,92,1153,132"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="1252,183,1182,146,1149,135,1151,130,1184,142,1254,178"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1State.html#ab56f9d033f57c3815174bf4106b31ac5" title=" " alt="" coords="1002,156,1133,196"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="1217,200,1133,188,1133,182,1217,194"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1State.html#af1d4e966cfd9ac0912c8823e627c4b07" title=" " alt="" coords="1002,220,1133,260"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="1217,222,1133,234,1133,228,1217,216"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1adapters_1_1StateAdapter.html#aa660f72a3e258818e71a888cfa6cd766" title="Converts to msg." alt="" coords="985,284,1149,324"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="1254,238,1184,274,1151,286,1149,281,1182,270,1252,233"/>
+<area shape="rect" id="Node000013" href="$classiii__drone_1_1adapters_1_1px4_1_1TrajectorySetpointAdapter.html#a40190ec04a78561669213dc2ceba176a" title="Constructor from iii_drone::control::State." alt="" coords="952,349,1183,403"/>
+<area shape="poly" id="edge14_Node000001_Node000013" title=" " alt="" coords="1276,241,1237,290,1212,316,1184,338,1162,351,1159,346,1181,334,1209,312,1233,287,1272,238"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNode.html#aefc447399b185fef5b912770b5059936" title="The compute reference trajectory service callback." alt="" coords="631,5,904,75"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="944,43,904,43,904,37,944,37"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNode.html#ac58d9ceab1e2ecc71cb971a5f360bc00" title=" " alt="" coords="329,5,561,75"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="617,43,562,43,562,37,617,37"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1control_1_1TrajectoryGeneratorClient.html#a2b3ee03aed559d8c1ea8d052336d25ff" title="Starts generating a trajectory." alt="" coords="638,277,897,331"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="971,307,897,307,897,301,971,301"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a2ace3412e0d42d07a39c553c89ab0c6a" title="Compute the reference." alt="" coords="10,225,255,279"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="643,277,582,267,412,254,255,252,255,246,412,249,583,261,644,271"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServer.html#ac13004e478653d73361c3569e11870dc" title="Compute the reference." alt="" coords="5,317,260,371"/>
+<area shape="poly" id="edge10_Node000009_Node000011" title=" " alt="" coords="646,337,583,347,499,353,415,356,260,354,260,349,414,351,499,348,582,341,645,332"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1control_1_1TrajectoryGeneratorClient.html#a0e32180d729e74d24edeef891d1ac843" title="Generates a trajectory and blocks until it is done." alt="" coords="308,277,583,331"/>
+<area shape="poly" id="edge11_Node000009_Node000012" title=" " alt="" coords="624,307,583,307,583,301,624,301"/>
+<area shape="poly" id="edge12_Node000012_Node000010" title=" " alt="" coords="294,281,255,275,256,270,295,276"/>
+<area shape="poly" id="edge13_Node000012_Node000011" title=" " alt="" coords="295,326,261,330,260,325,294,321"/>
+</map>

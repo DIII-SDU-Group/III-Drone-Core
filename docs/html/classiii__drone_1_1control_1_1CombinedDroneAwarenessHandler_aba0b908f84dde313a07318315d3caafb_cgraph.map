@@ -1,0 +1,9 @@
+<map id="iii_drone::control::CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromTargetCableId" name="iii_drone::control::CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromTargetCableId">
+<area shape="rect" id="Node000001" title="Updates the given combined drone awareness from the target cable id. Triggers updates of target_cable..." alt="" coords="5,70,329,139"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a7489deb4a1885f6b4985a3f6de205b64" title="Getter for the combined drone awareness simple type by copy." alt="" coords="377,5,635,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="329,68,363,60,364,65,330,73"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1Atomic.html#a9f8422d86cdbb429f29c6e16c61631ee" title="Get the value." alt="" coords="422,85,590,125"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="330,102,408,102,408,107,330,107"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#ae6da497b6ea256c120d3e2962bf91c43" title="Returns the current target cable id, &#45;1 if no target cable is set." alt="" coords="377,149,635,204"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="330,137,364,144,363,149,329,142"/>
+</map>

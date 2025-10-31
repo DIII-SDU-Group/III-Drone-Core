@@ -1,0 +1,14 @@
+<map id="iii_drone::control::maneuver::FlyToObjectManeuverServer::publishResultAndFinalize" name="iii_drone::control::maneuver::FlyToObjectManeuverServer::publishResultAndFinalize">
+<area shape="rect" id="Node000001" title="Publishes the result and finalizes the maneuver according to the maneuver result type." alt="" coords="5,84,251,139"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#aa25571ba492acf43cd9af009c02cf72e" title="Combined drone awareness handler, accessible to derived classes through the protected method." alt="" coords="322,5,533,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="232,81,309,61,310,66,233,87"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#afa1110206b605274871d3a74bbfe253f" title="Clears the current target." alt="" coords="299,84,556,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="251,109,285,109,285,114,251,114"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a0b7b01d9ab27db008c54f7ef0099fcd0" title="Goal handle getter." alt="" coords="343,163,512,217"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="233,136,330,162,329,167,232,141"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#ad188c61fd53e863b42cbd21c67d9bbf3" title="Updates the combined drone awareness from the target adapter. Triggers updates of target_adapter,..." alt="" coords="604,84,928,139"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="556,109,590,109,590,114,556,114"/>
+<area shape="poly" id="edge5_Node000004_Node000004" title=" " alt="" coords="701,84,701,74,713,65,735,59,766,57,804,60,825,68,823,73,803,66,766,63,735,65,715,70,706,76,706,84"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a7489deb4a1885f6b4985a3f6de205b64" title="Getter for the combined drone awareness simple type by copy." alt="" coords="976,84,1233,139"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="928,109,962,109,962,114,928,114"/>
+</map>

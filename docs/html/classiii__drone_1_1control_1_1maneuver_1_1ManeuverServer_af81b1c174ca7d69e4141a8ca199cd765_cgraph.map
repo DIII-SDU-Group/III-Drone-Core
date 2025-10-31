@@ -1,0 +1,5 @@
+<map id="iii_drone::control::maneuver::ManeuverServer::handleCancel" name="iii_drone::control::maneuver::ManeuverServer::handleCancel">
+<area shape="rect" id="Node000001" title="Handle cancel callback." alt="" coords="5,5,216,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#a90a27d9ca4c8c0be099017c246f02cc3" title="Can cancel virtual condition function. Must be implemented specific to the maneuver type...." alt="" coords="264,5,475,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="216,30,251,30,251,35,216,35"/>
+</map>

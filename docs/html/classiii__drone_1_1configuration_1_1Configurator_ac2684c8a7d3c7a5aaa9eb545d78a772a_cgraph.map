@@ -1,0 +1,8 @@
+<map id="iii_drone::configuration::Configurator::Configurator" name="iii_drone::configuration::Configurator::Configurator">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,204,77"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#adab08d9566c74de2229d9d0ed5f5d62c" title=" " alt="" coords="252,29,475,84"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="204,54,238,54,238,59,204,59"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="523,29,761,84"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="475,54,509,54,509,59,475,59"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="588,29,589,19,598,10,616,5,642,3,673,6,691,14,689,18,672,11,642,8,617,10,601,15,594,21,594,29"/>
+</map>

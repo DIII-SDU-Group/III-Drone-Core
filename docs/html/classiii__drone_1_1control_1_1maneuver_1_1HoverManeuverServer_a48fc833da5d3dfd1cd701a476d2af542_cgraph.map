@@ -1,0 +1,7 @@
+<map id="iii_drone::control::maneuver::HoverManeuverServer::CanExecuteManeuver" name="iii_drone::control::maneuver::HoverManeuverServer::CanExecuteManeuver">
+<area shape="rect" id="Node000001" title="Whether the maneuver can be executed, will return true if the drone is armed and offboard." alt="" coords="5,45,256,100"/>
+<area shape="rect" id="Node000002" href="$structiii__drone_1_1control_1_1combined__drone__awareness__t.html#a4cc121ad1d969d1ca28be3222202c1f1" title=" " alt="" coords="304,5,519,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="256,52,290,47,290,53,257,57"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a2a1dd737450465c565f5eba36e71ffad" title="Maneuver type getter." alt="" coords="327,84,496,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="257,87,313,95,312,100,256,93"/>
+</map>

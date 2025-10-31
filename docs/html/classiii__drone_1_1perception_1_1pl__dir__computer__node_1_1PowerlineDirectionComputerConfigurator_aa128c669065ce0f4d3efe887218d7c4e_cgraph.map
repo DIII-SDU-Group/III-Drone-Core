@@ -1,0 +1,8 @@
+<map id="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerConfigurator::declareNodeParameters" name="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerConfigurator::declareNodeParameters">
+<area shape="rect" id="Node000001" title="Declares the node specific parameters." alt="" coords="5,39,303,108"/>
+<area shape="rect" id="Node000002" href="$configurator_8cpp.html#a4249c2018a72e5ed93ef4d0ef6b9d25f" title=" " alt="" coords="383,5,557,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="302,48,369,38,369,43,303,53"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="351,94,589,149"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="303,93,338,99,337,104,302,99"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="410,94,410,84,421,75,441,69,470,67,505,70,525,78,523,83,504,76,470,73,442,75,423,80,415,86,415,94"/>
+</map>

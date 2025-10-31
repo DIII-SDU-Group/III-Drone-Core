@@ -1,0 +1,26 @@
+<map id="iii_drone::control::maneuver::ManeuverQueue::empty" name="iii_drone::control::maneuver::ManeuverQueue::empty">
+<area shape="rect" id="Node000001" title="Whether the queue is empty." alt="" coords="1728,85,1939,139"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#ab46a10b4f9d526b6e3c2df89c33f78be" title="Get whether a maneuver is being executed or pending." alt="" coords="1436,13,1673,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1714,84,1660,70,1662,65,1715,79"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#ae544f70a4708dc72c2bcc03d8407d972" title="Peeks an item from the queue." alt="" coords="1429,92,1680,132"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="1714,115,1680,115,1680,109,1714,109"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#aace2908f0d1cd5365227ef5ac313d95d" title="Pops an item from the queue." alt="" coords="1433,156,1676,196"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="1715,142,1643,159,1642,153,1714,137"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#afff4234827a52c39b91b94ddda380a92" title="Returns whether a given maneuver can immediately execute." alt="" coords="1148,13,1381,67"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1422,43,1382,43,1382,37,1422,37"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a99d218271b8aa908b0e179076f2ca733" title="Progresses the scheduler. If a maneuver is executing, evaluates whether it has terminated...." alt="" coords="1148,119,1381,174"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="1454,74,1430,82,1331,122,1329,117,1428,78,1452,69"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#acaa8f0628522b25bdd0c63dde8ee24f0" title="Registers a maneuver with the maneuver scheduler. To be called from a maneuver server...." alt="" coords="857,13,1090,67"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="1134,43,1090,43,1090,37,1134,37"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#ab393b4204a5c4368ee503e9af8b27a22" title="Registers a maneuver type with a maneuver server." alt="" coords="565,13,799,67"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="842,43,799,43,799,37,842,37"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNode.html#a1c587895df3c61bd6b748e97942cd619" title="Creates and registers all maneuver servers with the maneuver scheduler." alt="" coords="285,5,517,75"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="552,43,517,43,517,37,552,37"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNode.html#a291f0abf320443ed6ad4a248ba028b8c" title="Constructor. Creates the node, initializes the configurator, the transform buffer and listener,..." alt="" coords="5,5,237,75"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="272,43,237,43,237,37,272,37"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a3f6d63fc07809f25313347856ffdcd78" title="The maneuver execution timer callback." alt="" coords="847,119,1100,174"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="1134,149,1100,149,1100,144,1134,144"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#ab930f227bbd30171806a49ab06c4e3b8" title="Constructor." alt="" coords="565,119,799,174"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="833,149,799,149,799,144,833,144"/>
+<area shape="poly" id="edge12_Node000012_Node000008" title=" " alt="" coords="1420,165,1381,161,1382,156,1420,160"/>
+</map>

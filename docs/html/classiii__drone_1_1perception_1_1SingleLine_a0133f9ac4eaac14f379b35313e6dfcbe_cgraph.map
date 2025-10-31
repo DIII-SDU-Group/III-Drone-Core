@@ -1,0 +1,25 @@
+<map id="iii_drone::perception::SingleLine::operator=" name="iii_drone::perception::SingleLine::operator=">
+<area shape="rect" id="Node000001" title="Assignment operator overload." alt="" coords="5,333,176,373"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1SingleLine.html#a37b9c9397df0291cb6ca18a0bed970ce" title="Alive counter getter." alt="" coords="232,5,396,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="93,333,105,278,129,204,146,164,167,125,192,88,222,55,228,51,231,55,226,59,197,91,172,128,151,167,134,206,110,280,98,334"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1SingleLine.html#a2ba94b175012e7633ed166ab8c7dd4ec" title="frame_id getter." alt="" coords="233,69,395,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="96,332,111,289,138,232,174,172,197,144,222,119,229,114,232,119,226,123,201,148,179,175,142,234,116,291,101,334"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1SingleLine.html#abfb685964e0af6f5d46fc2c70e6c9412" title="Id getter." alt="" coords="237,133,391,173"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="100,332,147,260,182,219,222,183,231,178,234,182,226,187,186,223,152,263,105,335"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1perception_1_1SingleLine.html#a87447cb65366cad80636c7700de33a14" title="parameters getter." alt="" coords="224,197,404,237"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="112,331,160,289,223,247,235,241,238,245,225,252,164,294,115,335"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1perception_1_1SingleLine.html#aeb05d9d3ca876e323a7e46b228d63e0c" title="position getter." alt="" coords="235,261,393,301"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="153,331,237,303,239,308,154,336"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1perception_1_1SingleLine.html#af2502bc0e92367c2345da34d912b9edf" title="projected_position getter." alt="" coords="231,326,397,381"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="176,351,217,351,217,356,176,356"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1perception_1_1SingleLine.html#a49650269a9ab4cdd4fa225534700a21e" title="quaternion getter." alt="" coords="227,405,401,445"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="154,371,239,399,237,404,153,376"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1perception_1_1SingleLine.html#affa629468056b5ad8c8ac57dd6d93425" title="Stamp getter." alt="" coords="237,469,391,509"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="115,372,164,413,225,455,238,461,235,466,223,460,160,417,112,376"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1perception_1_1SingleLine.html#aa3c33dcce2fe0dd81a383569d85362ba" title="State estimate getter." alt="" coords="231,533,397,573"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="105,372,152,443,186,484,226,519,234,525,231,529,222,523,182,488,147,447,100,375"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1perception_1_1SingleLine.html#a2ae6b6360293f666c8a10ca00fc118cc" title="tf_buffer getter." alt="" coords="234,597,394,637"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="101,373,116,416,142,473,179,532,201,559,226,583,232,588,229,592,222,587,197,563,174,535,138,475,111,418,96,374"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1perception_1_1SingleLine.html#a5b9b25d0f29f7de3873bb01435850ea2" title="Variance estimate getter." alt="" coords="237,661,391,701"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="98,373,110,427,134,501,151,540,172,579,197,615,226,647,231,652,228,656,222,651,192,619,167,582,146,542,129,502,105,428,93,374"/>
+</map>

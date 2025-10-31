@@ -1,0 +1,7 @@
+<map id="iii_drone::utils::drone_frame_broadcaster_node::DroneFrameBroadcasterConfigurator::declareNodeParameters" name="iii_drone::utils::drone_frame_broadcaster_node::DroneFrameBroadcasterConfigurator::declareNodeParameters">
+<area shape="rect" id="Node000001" title="Declares the node specific parameters." alt="" coords="321,52,589,121"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1drone__frame__broadcaster__node_1_1DroneFrameBroadcasterConfigurator.html#a5b87e7b0ce446eb6930ae56194ca086b" title="Constructor." alt="" coords="5,5,273,75"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="307,68,273,62,274,57,308,62"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1drone__frame__broadcaster__node_1_1DroneFrameBroadcasterConfigurator.html#a9e3c14a6d024e05933ac7fa3ef3145c7" title="Constructor." alt="" coords="5,99,273,168"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="308,111,274,116,273,111,307,106"/>
+</map>

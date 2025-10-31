@@ -1,0 +1,7 @@
+<map id="iii_drone::perception::hough_transformer_node::HoughTransformerNode::OnCameraMsg" name="iii_drone::perception::hough_transformer_node::HoughTransformerNode::OnCameraMsg">
+<area shape="rect" id="Node000001" title="Callback function for the image topic." alt="" coords="5,5,199,75"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1HoughTransformer.html#ae2985861ff2375cf65841827824dcd7c" title="Computes the hough lines direction angle from hough lines." alt="" coords="247,13,464,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="199,37,233,37,233,43,199,43"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1HoughTransformer.html#ae8669233258083e9dee368a036531577" title="Finds the index of the best hough line match." alt="" coords="512,13,720,67"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="464,37,498,37,498,43,464,43"/>
+</map>

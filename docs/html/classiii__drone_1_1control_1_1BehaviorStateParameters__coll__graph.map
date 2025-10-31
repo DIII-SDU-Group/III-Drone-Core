@@ -1,0 +1,9 @@
+<map id="iii_drone::control::BehaviorStateParameters" name="iii_drone::control::BehaviorStateParameters">
+<area shape="rect" id="Node000001" title="Class for handling parameters for the behavior state object." alt="" coords="45,321,271,621"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,135,140,200"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="72,200,71,246,77,297,79,305,74,307,71,298,65,247,67,200"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="205,135,284,200"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="241,201,218,298,216,306,210,305,213,297,236,199"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="179,5,310,85"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="247,99,247,134,242,134,242,99"/>
+</map>

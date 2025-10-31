@@ -1,0 +1,12 @@
+<map id="iii_drone::perception::SingleLine::IsInFOVStrict" name="iii_drone::perception::SingleLine::IsInFOVStrict">
+<area shape="rect" id="Node000001" title="Returns whether the line is in FOV, using the strict parameters." alt="" coords="5,63,195,103"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1SingleLine.html#aa63a08c0e3ed8294ea894bba24314324" title="Returns whether the line is in FOV, non strict." alt="" coords="243,63,397,103"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="195,80,229,80,229,85,195,85"/>
+<area shape="rect" id="Node000003" href="$namespaceiii__drone_1_1types.html#a8215048242190c57b9ff2de3f1daba73" title=" " alt="" coords="445,5,641,45"/>
+<area shape="poly" id="edge5_Node000001_Node000003" title=" " alt="" coords="139,60,188,40,242,24,339,13,432,13,432,19,339,19,243,29,189,45,141,65"/>
+<area shape="rect" id="Node000004" href="$namespaceiii__drone_1_1types.html#adf49c0d0a898eea29ad3e752a6712734" title=" " alt="" coords="448,92,639,132"/>
+<area shape="poly" id="edge6_Node000001_Node000004" title=" " alt="" coords="176,100,243,112,341,118,434,117,434,122,341,123,242,117,175,105"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="279,63,277,53,283,44,298,38,320,36,346,39,360,46,357,51,344,44,320,41,299,43,286,48,282,54,284,62"/>
+<area shape="poly" id="edge3_Node000002_Node000003" title=" " alt="" coords="397,60,451,46,452,51,399,65"/>
+<area shape="poly" id="edge4_Node000002_Node000004" title=" " alt="" coords="398,90,435,95,434,100,398,95"/>
+</map>

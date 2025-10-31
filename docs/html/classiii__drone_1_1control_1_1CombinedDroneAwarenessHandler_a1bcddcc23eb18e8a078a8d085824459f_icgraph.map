@@ -1,0 +1,7 @@
+<map id="iii_drone::control::CombinedDroneAwarenessHandler::armed" name="iii_drone::control::CombinedDroneAwarenessHandler::armed">
+<area shape="rect" id="Node000001" title="Whether the drone is armed." alt="" coords="689,13,947,67"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a074d271a237bc7fc08e75ba137478b30" title="Updates the ground altitude estimate based on given information. Will either start or stop the timer ..." alt="" coords="384,13,641,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="676,43,641,43,641,37,676,37"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a197c146061816403499a4e652a8fe646" title="Updates the given combined drone awareness from the vehicle odometry. Triggers updates of ground alti..." alt="" coords="5,5,336,75"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="370,43,336,43,336,37,370,37"/>
+</map>

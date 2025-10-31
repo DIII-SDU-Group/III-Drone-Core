@@ -1,0 +1,5 @@
+<map id="iii_drone::adapters::ProjectionPlaneAdapter::UpdateFromMsg" name="iii_drone::adapters::ProjectionPlaneAdapter::UpdateFromMsg">
+<area shape="rect" id="Node000001" title="Updates the projection plane adapter object from a message." alt="" coords="236,5,419,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1adapters_1_1ProjectionPlaneAdapter.html#acd2b13b08b78c63a487ecd17c2288e84" title="Constructor from msg." alt="" coords="5,5,188,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="223,35,188,35,188,30,223,30"/>
+</map>

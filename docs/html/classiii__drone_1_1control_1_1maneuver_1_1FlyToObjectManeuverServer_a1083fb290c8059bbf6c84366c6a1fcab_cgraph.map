@@ -1,0 +1,11 @@
+<map id="iii_drone::control::maneuver::FlyToObjectManeuverServer::startExecution" name="iii_drone::control::maneuver::FlyToObjectManeuverServer::startExecution">
+<area shape="rect" id="Node000001" title="Starts the execution of the maneuver." alt="" coords="5,113,251,168"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#aa25571ba492acf43cd9af009c02cf72e" title="Combined drone awareness handler, accessible to derived classes through the protected method." alt="" coords="319,5,529,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="193,111,298,70,321,62,323,67,300,75,195,116"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1TrajectoryGeneratorClient.html#ab49b11db8d1f87a89444d9603de1ba32" title="Returns true if the trajectory generator is busy." alt="" coords="306,85,542,125"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="250,123,292,118,292,123,251,128"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#ad2bda3296f5382b9e566b6c3de3dd2e4" title="Maneuver parameters getter." alt="" coords="339,149,509,204"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="251,153,326,162,325,167,250,158"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#ad3824a84701282cf8303a64c9fce15d2" title="Node pointer getter." alt="" coords="299,229,549,269"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="187,166,300,213,329,222,327,227,298,218,185,171"/>
+</map>

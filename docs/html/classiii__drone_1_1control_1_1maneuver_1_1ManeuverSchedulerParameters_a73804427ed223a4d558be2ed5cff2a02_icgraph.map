@@ -1,0 +1,10 @@
+<map id="iii_drone::control::maneuver::ManeuverSchedulerParameters::maneuver_execution_period_ms" name="iii_drone::control::maneuver::ManeuverSchedulerParameters::maneuver_execution_period_ms">
+<area shape="rect" id="Node000001" title="Get the period for executing maneuvers." alt="" coords="869,5,1109,75"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#ab930f227bbd30171806a49ab06c4e3b8" title="Constructor." alt="" coords="5,13,239,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="856,37,821,36,554,32,287,36,239,37,239,32,287,31,554,27,821,31,856,32"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a99d218271b8aa908b0e179076f2ca733" title="Progresses the scheduler. If a maneuver is executing, evaluates whether it has terminated...." alt="" coords="588,45,821,99"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="856,58,822,62,821,56,856,52"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a3f6d63fc07809f25313347856ffdcd78" title="The maneuver execution timer callback." alt="" coords="287,45,540,99"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="574,75,540,75,540,69,574,69"/>
+<area shape="poly" id="edge4_Node000004_Node000002" title=" " alt="" coords="273,59,239,55,239,50,274,54"/>
+</map>

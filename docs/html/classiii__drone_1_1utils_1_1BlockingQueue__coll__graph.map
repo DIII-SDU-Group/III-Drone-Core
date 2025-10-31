@@ -1,0 +1,9 @@
+<map id="iii_drone::utils::BlockingQueue&lt; T &gt;" name="iii_drone::utils::BlockingQueue&lt; T &gt;">
+<area shape="rect" id="Node000001" title="Generic blocking queue class." alt="" coords="43,276,213,556"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,133,125,199"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="79,212,95,275,90,277,74,213"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="54,5,77,71"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="68,71,68,117,63,117,63,71"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="150,133,234,199"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="186,200,171,261,165,259,181,198"/>
+</map>

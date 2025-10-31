@@ -1,19 +1,14 @@
 #!/bin/sh
 
 set -x
+set -e
+
+CWD=$(pwd)
 
 SCRIPT_DIR=$(dirname $0)
 
-ROS_VERSION=$(cat $SCRIPT_DIR/../.ROS_VERSION)
-
-dependencies="
-    ros-$ROS_VERSION-pcl-ros
-    libopencv-dev
-    python3-opencv
-    ros-$ROS_VERSION-cv-bridge
-    ros-$ROS_VERSION-image-transport
-"
-
 sudo apt update
 
-sudo apt install -y $dependencies
+sudo apt install -y $(eval echo $(cat $SCRIPT_DIR/apt_dependencies.txt))
+
+cd $CWD

@@ -1,0 +1,42 @@
+<map id="iii_drone::control::BehaviorState::maneuverCanExecute" name="iii_drone::control::BehaviorState::maneuverCanExecute">
+<area shape="rect" id="Node000001" title="Evaluates whether a maneuver can be executed given a behavior state." alt="" coords="5,397,227,451"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1BehaviorState.html#ae413bc1424de620b59ad39f17550cd59" title="Get the behavior state of the drone." alt="" coords="275,253,501,293"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="145,394,202,348,237,324,273,303,289,296,292,301,276,308,240,328,205,352,149,398"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1utils_1_1Atomic.html#a9f8422d86cdbb429f29c6e16c61631ee" title="Get the value." alt="" coords="1017,357,1185,397"/>
+<area shape="poly" id="edge20_Node000001_Node000006" title=" " alt="" coords="132,395,189,310,229,261,273,215,341,152,398,105,462,70,549,39,613,21,671,9,724,3,773,5,822,15,869,34,919,63,971,103,998,130,1021,160,1057,226,1081,290,1096,343,1091,344,1076,292,1052,228,1016,163,994,133,968,107,916,68,867,39,820,20,773,10,724,9,672,14,614,26,550,44,464,75,401,110,345,156,277,219,233,265,194,314,136,398"/>
+<area shape="rect" id="Node000012" href="$structiii__drone_1_1control_1_1behavior__state__t.html#ad942340ec060900ad85e23b718d3b8b9" title=" " alt="" coords="315,318,461,373"/>
+<area shape="poly" id="edge19_Node000001_Node000012" title=" " alt="" coords="210,394,301,368,302,373,212,399"/>
+<area shape="rect" id="Node000013" href="$classiii__drone_1_1control_1_1BehaviorStateParameters.html#ab22f6b38527eedaf81b1a1f28f0f4824" title="Get the minimum target altitude upon takeoff." alt="" coords="290,397,486,451"/>
+<area shape="poly" id="edge21_Node000001_Node000013" title=" " alt="" coords="227,421,276,421,276,427,227,427"/>
+<area shape="rect" id="Node000014" href="$structiii__drone_1_1control_1_1behavior__state__t.html#a285f0663d0a637802b3219c516fcb943" title=" " alt="" coords="315,475,461,530"/>
+<area shape="poly" id="edge22_Node000001_Node000014" title=" " alt="" coords="212,449,302,475,301,480,210,454"/>
+<area shape="rect" id="Node000015" href="$structiii__drone_1_1control_1_1behavior__state__t.html#a105219389a1640d9633a1883391b3f16" title=" " alt="" coords="315,554,461,609"/>
+<area shape="poly" id="edge23_Node000001_Node000015" title=" " alt="" coords="150,450,206,495,276,540,303,553,300,557,273,545,203,500,146,454"/>
+<area shape="rect" id="Node000016" href="$classiii__drone_1_1control_1_1BehaviorStateParameters.html#a0139f2e9eb124eeb5342ba478f9c376d" title="Get the world frame id." alt="" coords="290,633,486,687"/>
+<area shape="poly" id="edge24_Node000001_Node000016" title=" " alt="" coords="135,450,158,488,190,533,230,579,276,619,283,624,280,628,273,623,226,583,186,536,153,491,130,453"/>
+<area shape="poly" id="edge4_Node000002_Node000002" title=" " alt="" coords="340,254,337,243,345,234,362,229,388,227,418,229,434,237,432,242,417,235,388,232,363,234,348,239,342,245,345,252"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1BehaviorState.html#a5b7ccc5e1cca00e37141b2656ba181af" title="Whether the drone is armed." alt="" coords="561,117,733,157"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="414,251,474,209,548,167,564,160,566,165,551,172,477,214,417,255"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1BehaviorState.html#a74a7c96bc968843d24044aa448d57055" title="Get the current maneuver." alt="" coords="793,350,969,405"/>
+<area shape="poly" id="edge5_Node000002_Node000005" title=" " alt="" coords="477,291,503,303,518,315,527,327,536,339,551,348,607,367,667,378,725,383,780,383,780,389,725,389,666,384,606,373,548,353,532,342,523,330,514,319,500,307,475,296"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1BehaviorState.html#a931d080bb6475138d2ae74a1aa92fc08" title="Returns the drone location." alt="" coords="564,206,731,261"/>
+<area shape="poly" id="edge7_Node000002_Node000007" title=" " alt="" coords="501,253,550,245,551,251,502,258"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1BehaviorState.html#af9764ecd11994dfb3b36480689b2c7e3" title="Whether the drone has a target cable." alt="" coords="805,481,958,535"/>
+<area shape="poly" id="edge9_Node000002_Node000008" title=" " alt="" coords="488,291,503,303,520,326,527,350,526,396,524,419,526,440,534,461,551,481,577,498,606,512,668,526,732,529,791,524,792,529,732,535,667,532,604,517,575,503,548,485,529,464,521,442,519,419,521,396,522,351,515,329,499,307,484,295"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1control_1_1BehaviorState.html#a631f3ff6ee982738366e0e730485a0c4" title="Get whether a maneuver is being executed." alt="" coords="549,415,745,470"/>
+<area shape="poly" id="edge11_Node000002_Node000009" title=" " alt="" coords="484,291,503,303,522,326,529,349,535,371,551,394,565,406,562,410,547,398,531,374,524,350,517,328,500,307,481,296"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1control_1_1BehaviorState.html#a05d3680d45d50cf295663ed8de768b8c" title="Whether the drone is in offboard mode." alt="" coords="555,53,739,93"/>
+<area shape="poly" id="edge14_Node000002_Node000010" title=" " alt="" coords="401,251,460,180,501,139,548,103,559,97,562,101,551,107,505,143,464,183,405,255"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1control_1_1BehaviorState.html#a2c4d98de7af0a2a0a461d90fa2f794af" title="Whether the position of the target cable is known." alt="" coords="561,285,734,339"/>
+<area shape="poly" id="edge16_Node000002_Node000011" title=" " alt="" coords="502,287,548,294,547,300,501,293"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1utils_1_1History.html#a4b015ee2da0e8a06ec7ac24e9fff5da3" title="Returns true if the history is empty." alt="" coords="797,117,966,157"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="733,135,783,135,783,140,733,140"/>
+<area shape="poly" id="edge6_Node000005_Node000006" title=" " alt="" coords="970,375,1004,375,1004,380,970,380"/>
+<area shape="poly" id="edge8_Node000007_Node000007" title=" " alt="" coords="602,206,602,196,610,187,625,181,647,179,674,182,689,190,686,195,672,187,647,185,627,186,613,191,607,198,607,206"/>
+<area shape="poly" id="edge10_Node000008_Node000006" title=" " alt="" coords="934,478,968,459,1057,403,1060,407,971,464,937,483"/>
+<area shape="poly" id="edge12_Node000009_Node000005" title=" " alt="" coords="745,413,780,403,781,408,746,418"/>
+<area shape="poly" id="edge13_Node000009_Node000006" title=" " alt="" coords="745,437,853,429,969,413,1028,399,1029,404,970,419,854,434,746,442"/>
+<area shape="poly" id="edge15_Node000010_Node000004" title=" " alt="" coords="722,91,795,111,794,116,721,96"/>
+<area shape="poly" id="edge17_Node000011_Node000004" title=" " alt="" coords="722,282,744,270,776,246,805,218,853,166,857,170,809,222,779,250,747,274,725,287"/>
+<area shape="poly" id="edge18_Node000011_Node000006" title=" " alt="" coords="734,311,847,318,970,335,1031,350,1030,356,969,340,846,323,734,316"/>
+</map>

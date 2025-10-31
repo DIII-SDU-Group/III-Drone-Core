@@ -1,0 +1,7 @@
+<map id="iii_drone::control::CombinedDroneAwarenessHandler::RegisterOffboardState" name="iii_drone::control::CombinedDroneAwarenessHandler::RegisterOffboardState">
+<area shape="rect" id="Node000001" title="Register a new navigation state id which should be considered offboard." alt="" coords="5,30,263,85"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1Atomic.html#a9f8422d86cdbb429f29c6e16c61631ee" title="Get the value." alt="" coords="311,5,479,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="262,39,297,35,297,40,263,44"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1Atomic.html#a9043ab811e9b5f5ceaf326534fc27060" title="Set the value." alt="" coords="311,69,479,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="263,70,297,75,297,80,262,76"/>
+</map>

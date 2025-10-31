@@ -1,0 +1,11 @@
+<map id="iii_drone::perception::PowerlineDirection::ToPoseStampedMsg" name="iii_drone::perception::PowerlineDirection::ToPoseStampedMsg">
+<area shape="rect" id="Node000001" title="Converts to pose stamped message." alt="" coords="5,30,165,85"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1History.html#a4b015ee2da0e8a06ec7ac24e9fff5da3" title="Returns true if the history is empty." alt="" coords="223,5,392,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="165,43,209,37,210,42,166,48"/>
+<area shape="rect" id="Node000003" href="$namespaceiii__drone_1_1types.html#a2b1316cd0e6d4f226b2e11e7f9dd03c9" title=" " alt="" coords="213,69,401,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="166,66,200,71,199,76,165,72"/>
+<area shape="rect" id="Node000004" href="$namespaceiii__drone_1_1types.html#adf49c0d0a898eea29ad3e752a6712734" title=" " alt="" coords="454,37,645,77"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="401,74,440,69,441,74,402,80"/>
+<area shape="rect" id="Node000005" href="$namespaceiii__drone_1_1types.html#a345601fdf3366d6af6d7c2003d74275b" title=" " alt="" coords="449,101,649,141"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="402,99,436,104,435,109,401,104"/>
+</map>

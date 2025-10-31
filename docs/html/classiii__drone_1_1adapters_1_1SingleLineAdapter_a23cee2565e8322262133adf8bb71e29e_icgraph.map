@@ -1,0 +1,7 @@
+<map id="iii_drone::adapters::SingleLineAdapter::projected_position" name="iii_drone::adapters::SingleLineAdapter::projected_position">
+<area shape="rect" id="Node000001" title="Projected position getter." alt="" coords="225,34,376,89"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1SingleLine.html#ad17dc959fe4f359c46b226c98e616e4b" title="Constructor from SingleLineAdapter." alt="" coords="5,5,177,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="212,49,177,43,178,37,212,43"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a04f02d018320742a79f473e1dd502b31" title="Constructor from members." alt="" coords="17,70,165,125"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="212,79,166,87,165,82,211,74"/>
+</map>

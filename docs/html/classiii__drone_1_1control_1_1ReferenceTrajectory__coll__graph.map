@@ -1,0 +1,7 @@
+<map id="iii_drone::control::ReferenceTrajectory" name="iii_drone::control::ReferenceTrajectory">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,591,175,771"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="12,448,168,528"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="93,528,93,574,87,574,87,528"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1Reference.html" title=" " alt="" coords="13,5,167,385"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="93,386,93,431,87,431,87,386"/>
+</map>

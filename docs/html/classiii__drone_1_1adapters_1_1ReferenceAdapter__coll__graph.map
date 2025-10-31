@@ -1,0 +1,5 @@
+<map id="iii_drone::adapters::ReferenceAdapter" name="iii_drone::adapters::ReferenceAdapter">
+<area shape="rect" id="Node000001" title="Class for adapting the III&#45;Drone&#45;Core::Reference to the III&#45;Drone&#45;Interfaces::Reference." alt="" coords="5,448,175,648"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1Reference.html" title=" " alt="" coords="13,5,167,385"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="93,385,93,431,87,431,87,385"/>
+</map>

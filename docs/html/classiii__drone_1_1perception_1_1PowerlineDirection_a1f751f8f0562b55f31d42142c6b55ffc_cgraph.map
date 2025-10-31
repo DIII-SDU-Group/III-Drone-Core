@@ -1,0 +1,9 @@
+<map id="iii_drone::perception::PowerlineDirection::Predict" name="iii_drone::perception::PowerlineDirection::Predict">
+<area shape="rect" id="Node000001" title="Runs the Kalman Filter predict step from a drone quaternion." alt="" coords="5,77,160,132"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1PowerlineDirection.html#a6792ff220aae8a0084425d379f227c5c" title="Maps the angle back into the correct range after having performed the Kalman filter." alt="" coords="229,5,383,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="160,77,215,59,216,64,161,82"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1History.html#ad80957391e0cd45d17f023760daf0350" title="Returns true if the history is full." alt="" coords="221,85,391,125"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="161,102,207,102,207,107,161,107"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1utils_1_1Timestamp.html#a373bc0de94c27153e2372c30f0eedbb1" title="Updates the timestamp to now." alt="" coords="208,149,404,189"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="161,124,223,142,222,147,160,129"/>
+</map>

@@ -1,0 +1,61 @@
+<map id="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator::initializeParameters" name="iii_drone::perception::pl_mapper_node::PowerlineMapperConfigurator::initializeParameters">
+<area shape="rect" id="Node000001" title="Initialize the parameters." alt="" coords="5,725,295,779"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#aeb3745d888a927762f35608ec9d7ca8a" title="Get the alive counter ceiling." alt="" coords="367,5,577,75"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="148,724,153,609,162,529,177,439,201,345,235,252,281,163,309,123,341,85,353,74,357,78,345,89,313,126,286,166,240,254,206,347,183,440,167,529,158,610,154,724"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a1c02c0be22405661c3e3b0f5a88a5b34" title="Get the alive counter high threshold." alt="" coords="367,99,577,168"/>
+<area shape="poly" id="edge7_Node000001_Node000006" title=" " alt="" coords="150,724,160,623,171,554,188,478,212,398,245,319,288,244,341,178,353,167,357,171,345,182,292,247,250,321,217,400,193,479,176,555,165,624,155,725"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#ae17529e6bce80471c98cd79a1be4ceaf" title="Get the alive counter low threshold." alt="" coords="367,192,577,261"/>
+<area shape="poly" id="edge9_Node000001_Node000007" title=" " alt="" coords="152,724,167,638,181,580,199,517,224,451,255,386,294,325,341,271,353,261,357,265,345,275,298,329,260,389,229,453,204,519,186,581,172,639,157,725"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a9194f1052a84687ba3d387ea76ef2ac1" title="Get the drone frame ID." alt="" coords="367,285,577,355"/>
+<area shape="poly" id="edge11_Node000001_Node000008" title=" " alt="" coords="155,724,175,652,211,557,236,505,266,454,301,407,341,365,353,355,356,359,344,369,305,410,270,457,241,508,216,559,180,654,160,725"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#ac784ab50ef089da165eff690cedcfe6b" title="Get the inter line position window size." alt="" coords="367,379,577,448"/>
+<area shape="poly" id="edge13_Node000001_Node000009" title=" " alt="" coords="160,723,185,668,224,597,276,523,307,488,341,458,353,449,356,454,344,462,311,492,280,526,229,600,190,671,165,726"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a8881e2cf7e139fb043b889c19e205b0d" title="Get the Powerline Kalman filter q coefficient." alt="" coords="367,473,577,527"/>
+<area shape="poly" id="edge15_Node000001_Node000010" title=" " alt="" coords="166,723,195,682,236,631,285,580,341,536,353,530,356,534,344,541,288,584,240,635,200,685,171,726"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a3ba4330740a6e2f8f07c3075bd37be91" title="Get the Powerline Kalman filter r coefficient." alt="" coords="367,551,577,606"/>
+<area shape="poly" id="edge17_Node000001_Node000011" title=" " alt="" coords="182,722,253,669,296,641,341,616,358,609,360,614,344,621,299,646,256,674,186,727"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#ae1d3ad8c7387933b68da2e423609711e" title="Get the maximum distance between two points in the point cloud (for line matching)" alt="" coords="362,631,582,700"/>
+<area shape="poly" id="edge19_Node000001_Node000012" title=" " alt="" coords="252,722,348,696,350,701,253,727"/>
+<area shape="rect" id="Node000013" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a5815cd33ac77357349236368faef7eb9" title="Get the maximum number of lines." alt="" coords="359,725,585,779"/>
+<area shape="poly" id="edge21_Node000001_Node000013" title=" " alt="" coords="295,749,345,749,345,755,295,755"/>
+<area shape="rect" id="Node000014" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#adcccf3a1bb10b01b15cf43a0580dedd7" title="Get the maximum distance between two points in the point cloud." alt="" coords="343,803,601,858"/>
+<area shape="poly" id="edge23_Node000001_Node000014" title=" " alt="" coords="263,777,347,797,346,803,262,782"/>
+<area shape="rect" id="Node000015" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#af4e3fca7bd16ea5769f724cd6716d5ec" title="Get the minimum distance between two points in the point cloud." alt="" coords="345,882,599,937"/>
+<area shape="poly" id="edge25_Node000001_Node000015" title=" " alt="" coords="191,777,261,822,344,867,362,875,360,880,342,872,258,827,188,782"/>
+<area shape="rect" id="Node000016" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#af4cab9cef3c74407e65605f40d0f85bb" title="Get the mmWave frame ID." alt="" coords="362,961,582,1031"/>
+<area shape="poly" id="edge27_Node000001_Node000016" title=" " alt="" coords="174,778,244,860,292,905,344,946,355,953,353,957,341,950,288,910,240,863,170,781"/>
+<area shape="rect" id="Node000017" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a126a28c72a1c44a0496fc2654c3d778e" title="Get simulation mode flag." alt="" coords="358,1055,586,1110"/>
+<area shape="poly" id="edge29_Node000001_Node000017" title=" " alt="" coords="164,778,189,833,228,904,280,978,310,1011,344,1041,352,1046,349,1050,341,1045,307,1015,275,981,223,907,184,836,159,780"/>
+<area shape="rect" id="Node000018" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a02ce2b913e96a8ae3cdb913e938da49f" title="Get the maximum distance between two points in the point cloud (strict)" alt="" coords="367,1135,577,1204"/>
+<area shape="poly" id="edge31_Node000001_Node000018" title=" " alt="" coords="161,779,182,847,218,938,243,987,272,1035,306,1080,344,1119,356,1129,353,1133,341,1123,302,1083,268,1038,238,989,214,940,177,849,156,780"/>
+<area shape="rect" id="Node000019" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#ac6dc20d9bcaf58c65a06c03d6dc35829" title="Get the minimum distance between two points in the point cloud (strict)" alt="" coords="367,1228,577,1297"/>
+<area shape="poly" id="edge33_Node000001_Node000019" title=" " alt="" coords="158,779,173,863,206,979,231,1042,262,1104,299,1163,345,1214,357,1224,353,1228,341,1218,295,1166,257,1107,226,1045,201,981,168,864,152,780"/>
+<area shape="rect" id="Node000020" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a15396ca5ea33bd5f4000701d03a962f3" title="Get the slope of the view cone (strict)" alt="" coords="367,1321,577,1391"/>
+<area shape="poly" id="edge35_Node000001_Node000020" title=" " alt="" coords="155,779,166,878,178,945,195,1019,219,1096,252,1172,293,1244,345,1307,357,1318,353,1322,341,1311,289,1247,247,1174,214,1097,190,1020,172,946,161,878,150,780"/>
+<area shape="rect" id="Node000021" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#adfa652ed3d57dae6b26c884e4a4edf22" title="Get the slope of the view cone." alt="" coords="367,1415,577,1484"/>
+<area shape="poly" id="edge37_Node000001_Node000021" title=" " alt="" coords="154,779,159,892,169,970,184,1057,208,1149,241,1239,286,1325,314,1364,345,1401,357,1412,353,1416,341,1405,310,1368,282,1328,237,1241,203,1150,179,1058,163,971,154,892,148,780"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="649,732,857,772"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="579,65,603,85,619,107,634,136,661,208,685,296,705,393,735,581,751,718,746,719,730,582,699,394,679,298,656,210,629,138,615,110,599,88,576,69"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="905,703,1120,743"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="857,738,891,734,892,739,858,743"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="1168,725,1407,779"/>
+<area shape="poly" id="edge6_Node000003_Node000005" title=" " alt="" coords="858,751,905,752,1120,752,1154,752,1154,757,1120,757,905,757,858,757"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="1121,731,1155,735,1154,740,1120,737"/>
+<area shape="poly" id="edge5_Node000005_Node000005" title=" " alt="" coords="1234,725,1234,714,1244,706,1262,700,1287,698,1318,701,1336,709,1333,714,1317,706,1287,703,1263,705,1247,710,1239,717,1240,725"/>
+<area shape="poly" id="edge8_Node000006_Node000003" title=" " alt="" coords="579,159,603,178,631,221,656,282,678,356,699,438,731,598,750,718,745,718,725,599,693,439,673,358,651,284,626,223,599,182,576,163"/>
+<area shape="poly" id="edge10_Node000007_Node000003" title=" " alt="" coords="579,253,603,271,645,325,679,384,704,447,724,511,737,573,746,630,754,718,748,718,741,631,732,574,718,513,699,449,674,386,641,327,599,275,576,257"/>
+<area shape="poly" id="edge12_Node000008_Node000003" title=" " alt="" coords="579,347,603,365,639,406,668,452,693,501,712,551,738,646,751,718,746,719,733,647,707,553,688,503,664,455,634,409,600,369,576,351"/>
+<area shape="poly" id="edge14_Node000009_Node000003" title=" " alt="" coords="579,441,603,458,632,488,658,521,699,593,728,662,746,718,741,720,723,664,694,595,653,524,628,491,600,462,576,446"/>
+<area shape="poly" id="edge16_Node000010_Node000003" title=" " alt="" coords="579,523,603,537,649,579,688,628,718,677,740,718,735,721,714,679,684,631,645,582,600,541,576,527"/>
+<area shape="poly" id="edge18_Node000011_Node000003" title=" " alt="" coords="576,604,603,616,639,640,673,667,727,720,724,724,669,671,636,644,600,621,574,609"/>
+<area shape="poly" id="edge20_Node000012_Node000003" title=" " alt="" coords="583,697,675,725,674,730,581,702"/>
+<area shape="poly" id="edge22_Node000013_Node000003" title=" " alt="" coords="585,749,635,749,635,755,585,755"/>
+<area shape="poly" id="edge24_Node000014_Node000003" title=" " alt="" coords="570,801,667,773,669,778,571,806"/>
+<area shape="poly" id="edge26_Node000015_Node000003" title=" " alt="" coords="572,880,600,867,666,824,720,779,723,783,669,828,603,872,574,884"/>
+<area shape="poly" id="edge28_Node000016_Node000003" title=" " alt="" coords="579,959,600,946,643,908,680,864,733,782,737,785,684,867,646,911,603,950,582,963"/>
+<area shape="poly" id="edge30_Node000017_Node000003" title=" " alt="" coords="582,1053,600,1041,629,1012,654,980,695,909,724,840,741,785,746,786,729,842,700,912,659,983,633,1016,603,1045,585,1057"/>
+<area shape="poly" id="edge32_Node000018_Node000003" title=" " alt="" coords="576,1137,600,1119,633,1081,662,1037,685,991,704,944,731,854,745,785,750,786,736,856,709,945,690,993,666,1040,637,1084,603,1123,579,1141"/>
+<area shape="poly" id="edge34_Node000019_Node000003" title=" " alt="" coords="576,1232,599,1214,640,1164,672,1107,698,1047,717,985,740,871,748,786,753,786,745,872,722,987,703,1048,677,1109,644,1167,603,1218,579,1236"/>
+<area shape="poly" id="edge36_Node000020_Node000003" title=" " alt="" coords="576,1326,599,1307,646,1245,682,1175,709,1100,728,1025,740,953,747,886,750,786,756,786,752,887,745,953,733,1026,714,1102,687,1177,651,1248,603,1311,579,1330"/>
+<area shape="poly" id="edge38_Node000021_Node000003" title=" " alt="" coords="576,1420,599,1401,614,1380,629,1353,655,1282,679,1197,699,1103,729,919,746,785,751,786,734,919,704,1104,684,1198,660,1284,634,1355,619,1383,603,1404,579,1424"/>
+</map>

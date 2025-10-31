@@ -1,0 +1,37 @@
+<map id="iii_drone::perception::PowerlineParameters::PowerlineParameters" name="iii_drone::perception::PowerlineParameters::PowerlineParameters">
+<area shape="rect" id="Node000001" title="Constructor." alt="" coords="5,607,173,661"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1PowerlineParameters.html#a57ac94738e6b6e9359536c18d63d0f29" title="Ceiling for the alive counter getter." alt="" coords="239,5,407,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="91,606,106,492,132,332,150,250,170,175,193,113,219,70,226,63,230,67,223,73,198,115,175,176,155,251,137,333,111,492,96,607"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1PowerlineParameters.html#ab528b4f47355c8095fc953fe87910cd7" title="High threshold for the alive counter getter." alt="" coords="237,84,409,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="87,606,90,520,96,462,107,398,123,332,147,266,178,204,219,148,224,143,228,147,223,152,183,207,151,268,128,334,112,399,102,463,96,520,93,607"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1PowerlineParameters.html#abce77a52f6f6f1e25d6e3188d9c7c44d" title="Low threshold for the alive counter getter." alt="" coords="239,163,407,217"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="89,606,96,532,116,431,133,377,155,323,184,272,219,227,226,220,230,224,223,230,188,275,160,325,138,379,121,433,102,533,94,607"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1perception_1_1PowerlineParameters.html#a4a6e48e7b6af8878f20ce86a7054ea18" title="Frame id of the drone getter." alt="" coords="239,241,407,296"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="92,606,103,545,126,465,143,422,164,380,189,341,219,305,226,299,230,303,223,309,193,344,168,383,148,424,131,467,108,546,97,607"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1perception_1_1PowerlineParameters.html#a86a1c314249bf34256434d252be3bc72" title="Size of the window for computing the inter line positions getter." alt="" coords="233,320,413,375"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="96,605,112,559,137,500,173,439,195,411,220,385,225,381,229,385,223,389,199,414,177,442,142,502,117,561,101,607"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1perception_1_1PowerlineParameters.html#a90587b53868215940c583e2cbf51a769" title="Kalman Filter q parameter getter." alt="" coords="221,399,425,439"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="101,605,120,570,146,528,180,485,220,449,228,444,231,448,223,453,184,489,151,531,124,572,106,607"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1perception_1_1PowerlineParameters.html#a7acf610d147ba4262704ec3eea01747e" title="Kalman Filter r parameter getter." alt="" coords="223,463,424,503"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="113,604,159,558,189,534,220,513,233,506,235,511,223,518,192,538,163,562,116,608"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1perception_1_1PowerlineParameters.html#a4d3b6c8e2437645e9da6e14af46ee476" title="Maximum distance between a line and a point for a match getter." alt="" coords="229,528,418,583"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="171,604,228,585,229,590,172,609"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1perception_1_1PowerlineParameters.html#a041a2923e25d99ab9c38546733c03758" title="Maximum number of lines to be stored getter." alt="" coords="239,607,407,661"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="174,631,226,631,226,637,174,637"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1perception_1_1PowerlineParameters.html#a85c9978f14f6d56c72e8bc459247cf3e" title="Maximum distance to a point for a line to be considered getter." alt="" coords="239,685,407,740"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="172,659,229,678,228,683,171,664"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1perception_1_1PowerlineParameters.html#ade7fe87ddbc4cb80db3cc3179e128ec5" title="Minimum distance to a point for a line to be considered getter." alt="" coords="239,764,407,819"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="118,660,164,705,223,749,234,756,231,760,220,754,161,709,114,664"/>
+<area shape="rect" id="Node000013" href="$classiii__drone_1_1perception_1_1PowerlineParameters.html#a80e37e311b8da72f88257de453a07d7f" title="Frame id of the mmWave sensor getter." alt="" coords="239,843,407,897"/>
+<area shape="poly" id="edge12_Node000001_Node000013" title=" " alt="" coords="105,660,123,698,150,742,183,788,223,828,230,833,227,838,220,832,179,791,145,745,119,700,100,663"/>
+<area shape="rect" id="Node000014" href="$classiii__drone_1_1perception_1_1PowerlineParameters.html#a668db3f40fe91b246b9f1e650586c245" title="Whether in simulation or not getter." alt="" coords="239,921,407,976"/>
+<area shape="poly" id="edge13_Node000001_Node000014" title=" " alt="" coords="99,661,114,712,138,778,174,847,197,878,223,907,229,912,226,916,219,911,193,882,170,849,133,780,109,714,94,662"/>
+<area shape="rect" id="Node000015" href="$classiii__drone_1_1perception_1_1PowerlineParameters.html#a70a7b91324a4167aad788b5124236f5e" title="Strict maximum distance to a point for a line to be considered getter." alt="" coords="238,1000,409,1055"/>
+<area shape="poly" id="edge14_Node000001_Node000015" title=" " alt="" coords="96,661,106,726,128,813,145,859,166,904,192,947,223,986,228,990,225,994,219,989,187,950,161,907,140,861,123,814,101,727,91,662"/>
+<area shape="rect" id="Node000016" href="$classiii__drone_1_1perception_1_1PowerlineParameters.html#a7883037c5f392452a43d3f851adaa3a6" title="Strict minimum distance to a point for a line to be considered getter." alt="" coords="239,1079,407,1133"/>
+<area shape="poly" id="edge15_Node000001_Node000016" title=" " alt="" coords="94,662,100,739,119,847,135,904,157,962,187,1016,223,1064,230,1071,226,1074,219,1068,182,1019,153,964,130,906,113,848,94,740,88,662"/>
+<area shape="rect" id="Node000017" href="$classiii__drone_1_1perception_1_1PowerlineParameters.html#a3d2241c0d16531c73b046bff0de109b5" title="Strict slope of the view cone for FOV calculation getter." alt="" coords="233,1157,414,1212"/>
+<area shape="poly" id="edge16_Node000001_Node000017" title=" " alt="" coords="97,661,113,766,141,910,158,983,178,1050,200,1105,223,1143,227,1147,223,1150,219,1146,195,1108,173,1052,153,985,136,911,108,767,92,662"/>
+<area shape="rect" id="Node000018" href="$classiii__drone_1_1perception_1_1PowerlineParameters.html#a3e9d2053e6cf9a956a6e134a9f17a51c" title="Slope of the view cone for FOV calculation getter." alt="" coords="239,1236,407,1291"/>
+<area shape="poly" id="edge17_Node000001_Node000018" title=" " alt="" coords="96,661,110,781,136,948,154,1034,174,1113,197,1177,223,1222,231,1229,227,1233,219,1225,192,1179,169,1114,148,1035,131,949,105,781,91,662"/>
+</map>

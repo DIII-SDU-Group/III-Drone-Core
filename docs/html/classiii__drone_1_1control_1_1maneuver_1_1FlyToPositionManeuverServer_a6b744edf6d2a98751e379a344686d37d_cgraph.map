@@ -1,0 +1,15 @@
+<map id="iii_drone::control::maneuver::FlyToPositionManeuverServer::CanExecuteManeuver" name="iii_drone::control::maneuver::FlyToPositionManeuverServer::CanExecuteManeuver">
+<area shape="rect" id="Node000001" title="Whether the maneuver can be executed." alt="" coords="5,203,260,257"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#aa25571ba492acf43cd9af009c02cf72e" title="Combined drone awareness handler, accessible to derived classes through the protected method." alt="" coords="330,5,541,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="155,201,219,135,261,100,307,69,317,63,320,68,309,74,264,104,223,139,159,204"/>
+<area shape="rect" id="Node000003" href="$structiii__drone_1_1control_1_1combined__drone__awareness__t.html#a4cc121ad1d969d1ca28be3222202c1f1" title=" " alt="" coords="328,84,543,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="188,200,307,148,326,140,328,145,309,152,190,205"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#ad2bda3296f5382b9e566b6c3de3dd2e4" title="Maneuver parameters getter." alt="" coords="351,163,520,217"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="260,211,337,200,337,206,261,216"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a2a1dd737450465c565f5eba36e71ffad" title="Maneuver type getter." alt="" coords="351,241,520,296"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="261,244,337,254,337,259,260,249"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServerParameters.html#addf9287ebd341eeb5a0520e9b97a3652" title="Get the minimum target altitude." alt="" coords="308,321,563,390"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="195,255,309,305,330,313,328,318,307,310,193,260"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServerParameters.html#a8e086c34804204d7744d0b67979e4c48" title="Get the world frame id." alt="" coords="308,415,563,469"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="157,256,221,328,263,366,309,400,322,406,319,411,307,404,260,370,217,331,153,260"/>
+</map>

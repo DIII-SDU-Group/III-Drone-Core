@@ -1,0 +1,25 @@
+<map id="iii_drone::control::CombinedDroneAwarenessHandler::updateCombinedDroneAwareness" name="iii_drone::control::CombinedDroneAwarenessHandler::updateCombinedDroneAwareness">
+<area shape="rect" id="Node000001" title="Updates the combined drone awareness based on current information. To be called after updating the an..." alt="" coords="5,251,263,305"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a7489deb4a1885f6b4985a3f6de205b64" title="Getter for the combined drone awareness simple type by copy." alt="" coords="732,251,989,305"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="145,249,169,204,204,150,251,97,279,75,309,57,363,33,410,16,455,6,497,3,540,6,584,16,632,33,685,57,713,73,739,93,784,141,819,192,844,237,839,239,814,195,780,145,736,97,710,78,683,62,630,38,583,21,539,11,497,8,455,11,412,21,365,38,312,62,282,79,255,101,208,153,173,207,150,252"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#ad6d5cbd2b74f81deecc3d6b935018800" title="Updates the combined drone awareness from the gripper status. Triggers updates of gripper_open." alt="" coords="311,96,684,151"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="167,248,231,202,269,179,310,159,328,152,330,157,312,164,272,184,234,207,170,252"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a6c9bf5862bcb8d6240db1eb7bb2aa221" title="Updates the combined drone awareness from the powerline. Triggers updates of target_cable_position_kn..." alt="" coords="323,199,671,253"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="263,257,309,250,310,255,263,262"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#ad188c61fd53e863b42cbd21c67d9bbf3" title="Updates the combined drone awareness from the target adapter. Triggers updates of target_adapter,..." alt="" coords="335,301,659,356"/>
+<area shape="poly" id="edge8_Node000001_Node000005" title=" " alt="" coords="263,293,322,301,321,307,263,298"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a4e034376edf0fa35dfb08d24220826ab" title="Updates the combined drone awareness from the vehicle odometry. Triggers updates of ground altitude e..." alt="" coords="332,405,663,474"/>
+<area shape="poly" id="edge11_Node000001_Node000006" title=" " alt="" coords="187,303,312,365,390,397,387,402,310,370,185,308"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#ad999fbf4444ded0e2b496089e6cd14ae" title="Updates the combined drone awareness from the vehicle status. Triggers updates of armed,..." alt="" coords="311,523,683,577"/>
+<area shape="poly" id="edge14_Node000001_Node000007" title=" " alt="" coords="154,304,180,344,216,392,261,441,312,484,342,501,373,515,371,520,339,506,309,488,257,445,212,395,176,347,149,307"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="654,148,685,159,756,197,817,239,814,244,753,202,683,164,652,153"/>
+<area shape="poly" id="edge4_Node000003_Node000003" title=" " alt="" coords="428,96,428,85,441,77,464,71,497,69,538,72,561,80,559,85,537,77,497,75,464,76,443,81,433,88,433,96"/>
+<area shape="poly" id="edge6_Node000004_Node000002" title=" " alt="" coords="672,248,719,255,718,260,671,253"/>
+<area shape="poly" id="edge7_Node000004_Node000004" title=" " alt="" coords="428,198,428,188,441,179,464,174,497,172,538,175,561,183,559,188,537,180,497,177,464,179,443,184,433,191,433,198"/>
+<area shape="poly" id="edge9_Node000005_Node000002" title=" " alt="" coords="659,303,718,295,719,300,660,309"/>
+<area shape="poly" id="edge10_Node000005_Node000005" title=" " alt="" coords="428,301,428,291,441,282,464,276,497,275,538,278,561,285,559,290,537,283,497,280,464,282,443,287,433,293,433,301"/>
+<area shape="poly" id="edge12_Node000006_Node000002" title=" " alt="" coords="593,402,683,365,796,309,798,314,685,370,595,407"/>
+<area shape="poly" id="edge13_Node000006_Node000006" title=" " alt="" coords="427,403,430,393,444,385,466,380,497,378,537,381,560,390,558,395,536,386,497,383,467,385,446,390,435,397,432,405"/>
+<area shape="poly" id="edge15_Node000007_Node000002" title=" " alt="" coords="609,520,647,504,682,484,730,445,772,400,807,355,834,315,838,318,811,358,776,403,733,449,686,488,649,509,611,525"/>
+<area shape="poly" id="edge16_Node000007_Node000007" title=" " alt="" coords="428,522,428,512,441,503,464,498,497,496,538,499,561,507,559,512,537,504,497,501,464,503,443,508,433,515,433,522"/>
+</map>

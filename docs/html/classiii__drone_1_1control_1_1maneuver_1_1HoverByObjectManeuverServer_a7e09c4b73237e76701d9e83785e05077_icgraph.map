@@ -1,0 +1,5 @@
+<map id="iii_drone::control::maneuver::HoverByObjectManeuverServer::hasSucceeded" name="iii_drone::control::maneuver::HoverByObjectManeuverServer::hasSucceeded">
+<area shape="rect" id="Node000001" title="Returns true if the maneuver has succeeded. Has succeeded if the target is visible and the drone is w..." alt="" coords="320,5,587,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#af8528504b83c4c9b405f496ccc269e10" title="Returns true if the maneuver has failed. Has failed if the target is not visible or the drone has dri..." alt="" coords="5,5,272,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="306,35,272,35,272,30,306,30"/>
+</map>

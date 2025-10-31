@@ -1,0 +1,19 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="Node000000" title=" " alt="" coords="5,308,108,333"/>
+<area shape="rect" id="Node000001" href="$classiii__drone_1_1control_1_1flight__controller__node_1_1FlightController.html" title="The trajectory controller node." alt="" coords="196,5,367,60"/>
+<area shape="poly" id="edge14_Node000000_Node000001" title=" " alt="" coords="58,293,67,246,84,186,112,123,131,95,154,69,173,55,195,45,197,50,176,60,158,73,135,98,117,126,89,187,72,247,64,294"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNode.html" title="The ManeuverControllerNode class. Responsible for execution of maneuvers. Uses the CombinedDroneAware..." alt="" coords="165,84,397,139"/>
+<area shape="poly" id="edge15_Node000000_Node000002" title=" " alt="" coords="64,294,76,261,96,221,121,182,154,148,171,137,174,141,158,152,126,185,100,224,81,263,69,296"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNode.html" title=" " alt="" coords="165,163,397,217"/>
+<area shape="poly" id="edge16_Node000000_Node000003" title=" " alt="" coords="76,295,111,261,155,228,180,215,183,220,157,232,114,265,80,299"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1mission_1_1continuous__mission__orchestrator__node_1_1ContinuousMissionOrchestrator.html" title=" " alt="" coords="167,242,395,311"/>
+<area shape="poly" id="edge17_Node000000_Node000004" title=" " alt="" coords="121,305,167,296,168,302,122,311"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1perception_1_1hough__transformer__node_1_1HoughTransformerNode.html" title="Node for computing hough transform on images to detect powerline direction." alt="" coords="185,336,378,391"/>
+<area shape="poly" id="edge18_Node000000_Node000005" title=" " alt="" coords="122,330,185,342,184,348,121,335"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerNode.html" title="Node for kalman filtering the powerline direction based on hough transform output." alt="" coords="156,415,407,469"/>
+<area shape="poly" id="edge19_Node000000_Node000006" title=" " alt="" coords="82,341,116,371,157,400,184,412,181,417,155,404,113,376,78,345"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html" title="Class for computing position of powerlines from mmWave data fused with powerline direction and odomet..." alt="" coords="176,493,387,548"/>
+<area shape="poly" id="edge20_Node000000_Node000007" title=" " alt="" coords="70,345,102,412,127,448,158,479,177,491,174,496,154,483,123,451,97,415,65,348"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1utils_1_1drone__frame__broadcaster__node_1_1DroneFrameBroadcasterNode.html" title=" " alt="" coords="170,572,393,627"/>
+<area shape="poly" id="edge21_Node000000_Node000008" title=" " alt="" coords="64,346,73,392,90,449,118,507,136,534,158,557,175,570,171,574,154,561,132,537,113,510,85,450,68,393,59,347"/>
+</map>

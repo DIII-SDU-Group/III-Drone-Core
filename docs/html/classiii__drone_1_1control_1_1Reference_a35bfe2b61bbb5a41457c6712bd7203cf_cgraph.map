@@ -1,0 +1,17 @@
+<map id="iii_drone::control::Reference::Reference" name="iii_drone::control::Reference::Reference">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,197,176,237"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1Reference.html#af6cf6c27339aab63f6b029e976caa4b7" title=" " alt="" coords="241,5,425,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="101,195,148,127,182,88,222,55,233,49,235,54,226,60,186,92,152,130,106,198"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1Reference.html#a2ba5647e5161e35e0588394dcae0663b" title=" " alt="" coords="255,69,411,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="113,195,162,157,223,119,241,111,243,116,225,124,165,161,116,199"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1Reference.html#a2ef1baafb09875a2af495e006f98c7c5" title=" " alt="" coords="261,133,406,173"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="167,195,247,173,248,179,168,200"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1Reference.html#a5d85fddf537e6663badb5654a23a4bce" title=" " alt="" coords="255,197,411,237"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="176,215,241,215,241,220,176,220"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1Reference.html#a784277cbb64476953132a8e239f9ae9e" title=" " alt="" coords="268,261,399,301"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="168,235,256,258,254,263,167,240"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1Reference.html#a94ddbc48fd727336b1896eb1c666170a" title=" " alt="" coords="224,325,443,365"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="116,236,165,274,225,311,242,318,239,323,223,316,162,278,113,240"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1Reference.html#abbbec5f6fe1f64fd6c4984349ac87840" title=" " alt="" coords="251,389,415,429"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="106,236,152,305,186,343,226,375,240,383,238,388,222,380,182,347,148,308,101,239"/>
+</map>

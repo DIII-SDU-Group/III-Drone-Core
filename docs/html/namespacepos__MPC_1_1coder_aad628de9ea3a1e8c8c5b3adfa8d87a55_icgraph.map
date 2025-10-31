@@ -1,0 +1,17 @@
+<map id="pos_MPC::coder::KWIKfactor" name="pos_MPC::coder::KWIKfactor">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1831,27,2036,53"/>
+<area shape="rect" id="Node000002" href="$namespacepos__MPC_1_1coder.html#aaae2248b840070902e3c18dc1a472eab" title=" " alt="" coords="1603,27,1783,53"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1817,43,1783,43,1783,37,1817,37"/>
+<area shape="rect" id="Node000003" href="$namespacepos__MPC_1_1coder.html#a14d17fba9d633d51a17df5bf681af25d" title=" " alt="" coords="1359,20,1555,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1589,43,1555,43,1555,37,1589,37"/>
+<area shape="rect" id="Node000004" href="$namespacepos__MPC_1_1coder.html#a059aff34e8d0e64dfc4f6e40bdb298af" title=" " alt="" coords="1080,20,1311,60"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="1345,43,1311,43,1311,37,1345,37"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1TrajectoryGenerator.html#a921e7f325aa43cacaa43341da8e34926" title="Runs the actual MPC one step." alt="" coords="873,13,1032,67"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="1066,43,1032,43,1032,37,1066,37"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1TrajectoryGenerator.html#a78eab9ed7ef8b604e5753192fbf8561b" title="Computes the reference trajectory for the MPC." alt="" coords="607,13,825,67"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="859,43,826,43,826,37,859,37"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNode.html#aefc447399b185fef5b912770b5059936" title="The compute reference trajectory service callback." alt="" coords="285,5,559,75"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="593,43,559,43,559,37,593,37"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNode.html#ac58d9ceab1e2ecc71cb971a5f360bc00" title=" " alt="" coords="5,5,237,75"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="272,43,238,43,238,37,272,37"/>
+</map>

@@ -14,119 +14,379 @@ HoughTransformerNode::HoughTransformerNode(
 	const std::string & node_name, 
 	const std::string & node_namespace,
 	const rclcpp::NodeOptions & options
-) : Node(
+) : LifecycleNode(
 	node_name, 
 	node_namespace,
 	options
 ) {
 
-	// Params
-	this->declare_parameter<int>("canny_low_threshold", 50);
-	this->declare_parameter<int>("canny_ratio", 4);
-	this->declare_parameter<int>("canny_kernel_size", 3);
+	std::string log_level = std::getenv("HOUGH_TRANSFORMER_LOG_LEVEL");
 
-	cable_yaw_publisher_ = this->create_publisher<iii_drone_interfaces::msg::PowerlineDirection>(
+	if (log_level != "") {
+
+		// Convert to upper case:
+		std::transform(
+			log_level.begin(), 
+			log_level.end(), 
+			log_level.begin(), 
+			[](unsigned char c){ return std::toupper(c); }
+		);
+
+		if (log_level == "DEBUG") {
+			rcutils_logging_set_logger_level(this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_DEBUG);
+		} else if (log_level == "INFO") {
+			rcutils_logging_set_logger_level(this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_INFO);
+		} else if (log_level == "WARN") {
+			rcutils_logging_set_logger_level(this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_WARN);
+		} else if (log_level == "ERROR") {
+			rcutils_logging_set_logger_level(this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_ERROR);
+		} else if (log_level == "FATAL") {
+			rcutils_logging_set_logger_level(this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_FATAL);
+		}
+
+	}
+
+	// Topics:
+	cable_yaw_publisher_ = this->create_publisher<std_msgs::msg::Float32>(
 		"cable_yaw_angle", 
 		10
 	);
 
-	rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(10));
-	qos.best_effort();
-	qos.durability_volatile();
+	status_pub_ = this->create_publisher<iii_drone_interfaces::msg::StringStamped>(
+		"status", 
+		10
+	);
 
-	camera_subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
-		"/cable_camera/image_raw",	
-		qos,
-		std::bind(
-			&HoughTransformerNode::OnCameraMsg, 
-			this, 
-			std::placeholders::_1
-		)
+	status_timer_ = this->create_wall_timer(
+		std::chrono::seconds(1), 
+		[this](){
+			if (running_) {
+
+				auto msg = iii_drone_interfaces::msg::StringStamped();
+				msg.stamp = this->now();
+				msg.data = running_ ? "Running" : "Stopped";
+				status_pub_->publish(msg);
+
+			}
+		}
 	);
 
 }
 
 HoughTransformerNode::~HoughTransformerNode() {
 
-	RCLCPP_INFO(this->get_logger(),  "Shutting down hough_tf_pub..");
+	RCLCPP_INFO(this->get_logger(),  "Shutting down hough transformer node..");
 
 }
 
-int HoughTransformerNode::getBestLineIndex(
-	std::vector<cv::Vec2f> lines, 
-	int img_height, 
-	int img_width
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughTransformerNode::on_configure(
+	const rclcpp_lifecycle::State & state
 ) {
 
-	int best_idx = -1;
-	float best_dist = 100000.;
+	RCLCPP_INFO(
+		this->get_logger(), 
+		"HoughTransformerNode::on_configure()"
+	);
 
-	float x0 = img_width/2;
-	float y0 = img_height/2;
+	CallbackReturn parent_return = rclcpp_lifecycle::LifecycleNode::on_configure(state);
 
-    for( size_t i = 0; i < lines.size(); i++ ) {
-		
-		float a = -cos(lines[i][1])/sin(lines[i][1]);
-		float b = lines[i][0]/sin(lines[i][1]);
+	if (parent_return != CallbackReturn::SUCCESS) {
+		RCLCPP_ERROR(
+			this->get_logger(), 
+			"Failed to configure parent class."
+		);
+		return parent_return;
+	}
 
-		float dist = abs(a*x0 - y0 + b) / sqrt(a*a+1);
+	// Configurator object
+	configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>>(this, "hough_transformer");
 
-		if (dist < best_dist) {
-			best_idx = i;
-		}
+	// HoughTransformer object
+	hough_transformer_ = std::make_shared<HoughTransformer>(
+		configurator_->GetParameterBundle("hough_transformer")
+	);
+
+	return CallbackReturn::SUCCESS;
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughTransformerNode::on_cleanup(
+	const rclcpp_lifecycle::State & state
+) {
+
+	RCLCPP_INFO(
+		this->get_logger(), 
+		"HoughTransformerNode::on_cleanup()"
+	);
+
+	CallbackReturn parent_return = rclcpp_lifecycle::LifecycleNode::on_cleanup(state);
+
+	if (parent_return != CallbackReturn::SUCCESS) {
+		RCLCPP_ERROR(
+			this->get_logger(), 
+			"Failed to cleanup parent class."
+		);
+		return parent_return;
+	}
+
+	RCLCPP_DEBUG(
+		this->get_logger(), 
+		"Cleaning up hough transformer object..."
+	);
+
+	hough_transformer_.reset();
+	hough_transformer_ = nullptr;
+
+	RCLCPP_DEBUG(
+		this->get_logger(),
+		"Cleaning up configurator object..."
+	);
+
+	configurator_.reset();
+	configurator_ = nullptr;
+
+	RCLCPP_DEBUG(
+		this->get_logger(),
+		"Finished cleaning up."
+	);
+
+	return CallbackReturn::SUCCESS;
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughTransformerNode::on_activate(
+	const rclcpp_lifecycle::State & state
+) {
+
+	RCLCPP_INFO(
+		this->get_logger(), 
+		"HoughTransformerNode::on_activate()"
+	);
+
+	CallbackReturn parent_return = rclcpp_lifecycle::LifecycleNode::on_activate(state);
+
+	if (parent_return != CallbackReturn::SUCCESS) {
+		RCLCPP_ERROR(
+			this->get_logger(), 
+			"Failed to activate parent class."
+		);
+		return parent_return;
+	}
+
+	rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(1));
+	qos.best_effort();
+	qos.durability_volatile();
+
+	camera_subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
+		"/sensor/cable_camera/image_raw",	
+		qos,
+		std::bind(
+			&HoughTransformerNode::onCameraMsg, 
+			this, 
+			std::placeholders::_1
+		)
+	);
+
+	command_service_ = this->create_service<iii_drone_interfaces::srv::SystemCommand>(
+		"command",
+		std::bind(
+			&HoughTransformerNode::commandCallback, 
+			this, 
+			std::placeholders::_1, 
+			std::placeholders::_2
+		)
+	);
+
+	running_ = configurator_->GetParameter("begin_running").as_bool();
+
+	return CallbackReturn::SUCCESS;
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughTransformerNode::on_deactivate(
+	const rclcpp_lifecycle::State & state
+) {
+
+	RCLCPP_INFO(
+		this->get_logger(), 
+		"HoughTransformerNode::on_deactivate()"
+	);
+
+	CallbackReturn parent_return = rclcpp_lifecycle::LifecycleNode::on_deactivate(state);
+
+	if (parent_return != CallbackReturn::SUCCESS) {
+		RCLCPP_ERROR(
+			this->get_logger(), 
+			"Failed to deactivate parent class."
+		);
+		return parent_return;
+	}
+
+	camera_subscription_->clear_on_new_message_callback();
+	camera_subscription_.reset();
+	camera_subscription_ = nullptr;
+
+	command_service_->clear_on_new_request_callback();
+	command_service_.reset();
+	command_service_ = nullptr;
+
+	return CallbackReturn::SUCCESS;
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughTransformerNode::on_shutdown(
+	const rclcpp_lifecycle::State & state
+) {
+
+	RCLCPP_INFO(
+		this->get_logger(), 
+		"HoughTransformerNode::on_shutdown()"
+	);
+
+	CallbackReturn parent_return = rclcpp_lifecycle::LifecycleNode::on_shutdown(state);
+
+	if (parent_return != CallbackReturn::SUCCESS) {
+		RCLCPP_ERROR(
+			this->get_logger(), 
+			"Failed to shutdown parent class."
+		);
+		return parent_return;
+	}
+
+	// Create and start thread detached which sleeps for 1 second, then shuts down rclcpp
+	std::thread shutdown_thread([this](){
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+		rclcpp::shutdown();
+	});
+	shutdown_thread.detach();
+
+	return CallbackReturn::SUCCESS;
+
+}
+
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughTransformerNode::on_error(
+	const rclcpp_lifecycle::State & state
+) {
+
+	RCLCPP_FATAL(
+		this->get_logger(), 
+		"HoughTransformerNode::on_error(): An error occured"
+	);
+
+	throw std::runtime_error("An error occured");
+
+	return CallbackReturn::ERROR;
+
+}
+
+void HoughTransformerNode::commandCallback(
+	const std::shared_ptr<iii_drone_interfaces::srv::SystemCommand::Request> request,
+	std::shared_ptr<iii_drone_interfaces::srv::SystemCommand::Response> response
+) {
+
+	uint8_t cmd = request->command;
+
+	if (cmd == iii_drone_interfaces::srv::SystemCommand::Request::SYSTEM_COMMAND_START) {
+
+		RCLCPP_INFO(
+			this->get_logger(), 
+			"HoughTransformerNode::commandCallback(): Starting hough transformer node"
+		);
+
+		running_ = true;
+
+		response->ack = response->SYSTEM_ACK_OK;
+
+	} else if (cmd == iii_drone_interfaces::srv::SystemCommand::Request::SYSTEM_COMMAND_STOP) {
+
+		RCLCPP_INFO(
+			this->get_logger(), 
+			"HoughTransformerNode::commandCallback(): Stopping hough transformer node"
+		);
+
+		running_ = false;
+
+		response->ack = response->SYSTEM_ACK_OK;
+
+	} else {
+
+		RCLCPP_WARN(
+			this->get_logger(), 
+			"HoughTransformerNode::commandCallback(): Unknown command"
+		);
+
+		response->ack = response->SYSTEM_ACK_INVALID_CMD;
+
 	}
 }
 
-
 // mmwave message callback function
-void HoughTransformerNode::OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg){
+void HoughTransformerNode::onCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg){
 
-	cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(_msg, _msg->encoding);
+	if (!running_) {
+		return;
+	}
+
+	RCLCPP_DEBUG(this->get_logger(), "Received image message, running hough transform...");
+
+	int a = 0;
+
+	cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(
+		_msg, 
+		_msg->encoding
+	);
+
 	cv::Mat img = cv_ptr->image;
 
-	cv::Mat edge;
-	this->get_parameter("canny_low_threshold", canny_low_threshold_);
-	this->get_parameter("canny_ratio", canny_ratio_);
-	this->get_parameter("canny_kernel_size", canny_kernel_size_);
-	cv::Canny(img, edge, canny_low_threshold_, canny_low_threshold_*canny_ratio_, canny_kernel_size_); // edge detection
+	float angle;
+	bool success = hough_transformer_->ComputeAngle(
+		img, 
+		angle
+	);
 
-	// Standard Hough Line Transform
-    std::vector<cv::Vec2f> lines; // will hold the results of the detection
-    cv::HoughLines(edge, lines, 1, M_PI/180, 150, 0, 0 ); // runs the actual detection
+	if (success){
 
-	float avg_theta_tmp = 0.0;
-
-	if (lines.size() > 0){
-
-		int idx = getBestLineIndex(lines, img.rows, img.cols);
-
-		avg_theta_tmp = lines[idx][1];
-
-		avg_theta_ = -avg_theta_tmp;
-
-		iii_drone_interfaces::msg::PowerlineDirection pl_msg;
-
-		pl_msg.angle = avg_theta_;
-		cable_yaw_publisher_->publish(pl_msg);
+		std_msgs::msg::Float32 pl_direction;
+		pl_direction.data = angle;
+		cable_yaw_publisher_->publish(pl_direction);
 
 		// RCLCPP debug published hough angle
-		RCLCPP_DEBUG(this->get_logger(), "Hough angle: %f", avg_theta_);
+		RCLCPP_DEBUG(this->get_logger(), "Hough angle: %f", angle);
 
 	} else {
 
 		// RCLCPP debug no lines detected
 		RCLCPP_DEBUG(this->get_logger(), "No lines detected");
+
 	}
 }
 
-			
 int main(int argc, char *argv[])
 {
 	std::cout << "Starting hough_tf_pub node..." << std::endl;
 	setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 	rclcpp::init(argc, argv);
-	rclcpp::spin(std::make_shared<HoughTransformerNode>());
 
-	rclcpp::shutdown();
+	rclcpp::executors::MultiThreadedExecutor exec;
+
+	auto node = std::make_shared<HoughTransformerNode>();
+
+	exec.add_node(node->get_node_base_interface());
+
+	try {
+
+		exec.spin();
+
+	} catch (const std::exception & e) {
+
+		// std::cerr << e.what() << std::endl;
+		node.reset();
+	}
+	
+	if (rclcpp::ok()) {
+		node.reset();
+		rclcpp::shutdown();
+	}
+
 	return 0;
 }

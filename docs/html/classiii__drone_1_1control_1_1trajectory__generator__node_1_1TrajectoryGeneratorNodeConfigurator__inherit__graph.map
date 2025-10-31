@@ -1,0 +1,5 @@
+<map id="iii_drone::control::trajectory_generator_node::TrajectoryGeneratorNodeConfigurator" name="iii_drone::control::trajectory_generator_node::TrajectoryGeneratorNodeConfigurator">
+<area shape="rect" id="Node000001" title="Class for handling parameters for a positional MPC." alt="" coords="5,528,287,1051"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html" title="Class for handling parameters of a node. The class works in conjunction with the ConfigurationServer ..." alt="" coords="26,5,266,480"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="149,494,149,528,143,528,143,494"/>
+</map>

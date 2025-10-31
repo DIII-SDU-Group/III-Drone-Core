@@ -1,0 +1,17 @@
+<map id="iii_drone::perception::Powerline::UpdateDirection" name="iii_drone::perception::Powerline::UpdateDirection">
+<area shape="rect" id="Node000001" title="Updates the powerline direction and updates the projection plane." alt="" coords="5,69,213,109"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1History.html#ad80957391e0cd45d17f023760daf0350" title="Returns true if the history is full." alt="" coords="283,5,452,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="190,67,272,46,274,51,191,72"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1Timestamp.html#a373bc0de94c27153e2372c30f0eedbb1" title="Updates the timestamp to now." alt="" coords="269,69,465,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="213,87,256,87,256,92,213,92"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1perception_1_1Powerline.html#a9ee99783c43e6e60f3c8974b40342fcb" title="Updates the projection plane." alt="" coords="261,134,473,189"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="183,107,257,128,255,133,181,112"/>
+<area shape="rect" id="Node000005" href="$namespaceiii__drone_1_1types.html#a3c643a86317f9f8c192979766cdfbc51" title=" " alt="" coords="540,59,711,99"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="449,131,521,108,545,100,547,105,522,113,451,137"/>
+<area shape="rect" id="Node000006" href="$namespaceiii__drone_1_1math.html#a7f61d7905e9118b077f713da7e65e8df" title=" " alt="" coords="532,123,719,149"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="473,148,518,144,519,149,474,154"/>
+<area shape="rect" id="Node000007" href="$namespaceiii__drone_1_1math.html#a8e7d7e25d07b368363d6da9939a9abed" title=" " alt="" coords="530,173,721,198"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="474,169,517,173,516,178,473,174"/>
+<area shape="rect" id="Node000008" href="$namespaceiii__drone_1_1math.html#a7263544e2fcd6c68d67d54f5a87a4dee" title=" " alt="" coords="521,222,729,247"/>
+<area shape="poly" id="edge7_Node000004_Node000008" title=" " alt="" coords="453,186,522,207,557,216,556,221,521,212,452,191"/>
+</map>

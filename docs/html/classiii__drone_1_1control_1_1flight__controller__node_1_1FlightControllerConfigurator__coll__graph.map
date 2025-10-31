@@ -1,0 +1,13 @@
+<map id="iii_drone::control::flight_controller_node::FlightControllerConfigurator" name="iii_drone::control::flight_controller_node::FlightControllerConfigurator">
+<area shape="rect" id="Node000001" title="Class for handling parameters for FlightController." alt="" coords="251,625,494,1117"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html" title="Class for handling parameters of a node. The class works in conjunction with the ConfigurationServer ..." alt="" coords="130,148,370,563"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="305,575,317,625,312,626,300,577"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,5,143,85"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="99,84,126,132,121,135,94,87"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="167,5,333,85"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="253,86,253,132,247,132,247,86"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="357,13,492,78"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="409,80,378,135,373,132,404,77"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="394,315,597,395"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="489,396,437,610,432,609,483,395"/>
+</map>

@@ -1,0 +1,120 @@
+<map id="iii_drone::control::maneuver_controller_node::ManeuverControllerNode::ManeuverControllerNode" name="iii_drone::control::maneuver_controller_node::ManeuverControllerNode::ManeuverControllerNode">
+<area shape="rect" id="Node000001" title="Constructor. Creates the node, initializes the configurator, the transform buffer and listener,..." alt="" coords="5,848,237,917"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNodeConfigurator.html#a6639da745aea7975c38fc257538c21d2" title="Get the combined drone awareness handler parameters object." alt="" coords="295,631,533,715"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="150,846,209,785,245,753,284,724,291,720,294,725,287,729,248,757,212,789,154,850"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNodeConfigurator.html#a4b430ee217180f875360c91a21c3c25a" title="Get the maneuver scheduler parameters object." alt="" coords="291,739,537,823"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="221,845,279,825,281,830,223,850"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNodeConfigurator.html#adea832b13b54475090af522ef3f56db4" title="Get the PX4 mode ids considered as offboard." alt="" coords="298,1071,530,1155"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="168,916,351,1061,347,1065,165,920"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNode.html#a1c587895df3c61bd6b748e97942cd619" title="Creates and registers all maneuver servers with the maneuver scheduler." alt="" coords="298,848,530,917"/>
+<area shape="poly" id="edge9_Node000001_Node000008" title=" " alt="" coords="238,880,284,880,284,885,238,885"/>
+<area shape="rect" id="Node000049" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a20e4ba77e16373e88ac6ae3830fda660" title="Register a new navigation state id which should be considered offboard." alt="" coords="285,1310,543,1365"/>
+<area shape="poly" id="edge66_Node000001_Node000049" title=" " alt="" coords="143,916,205,1029,288,1167,337,1237,384,1298,380,1301,333,1240,283,1169,200,1032,138,919"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="891,971,1099,1011"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="451,1154,479,1182,512,1212,550,1239,592,1259,658,1282,714,1292,740,1291,767,1286,797,1275,829,1259,861,1237,889,1209,913,1178,933,1145,964,1078,983,1023,988,1025,969,1080,938,1147,917,1181,893,1213,865,1241,832,1264,799,1280,769,1291,741,1297,713,1297,657,1287,590,1264,548,1243,509,1216,475,1186,448,1157"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="1178,945,1393,985"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="1099,979,1164,973,1165,979,1100,984"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="1461,967,1699,1022"/>
+<area shape="poly" id="edge8_Node000005_Node000007" title=" " alt="" coords="1100,993,1160,995,1447,995,1447,1000,1160,1000,1099,998"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="1393,973,1447,979,1447,984,1393,979"/>
+<area shape="poly" id="edge7_Node000007_Node000007" title=" " alt="" coords="1523,967,1524,957,1534,948,1553,943,1580,941,1613,944,1632,952,1629,957,1612,949,1580,946,1554,948,1536,953,1529,959,1529,967"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNodeConfigurator.html#a7b4bb00bc9d7e489835998262a963755" title="Get the fly to object maneuver server parameters object." alt="" coords="595,733,827,817"/>
+<area shape="poly" id="edge10_Node000008_Node000009" title=" " alt="" coords="509,845,581,819,583,824,511,850"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNodeConfigurator.html#a07b74a2a69b0863ca935f1b83c27a74a" title="Get the fly to position maneuver server parameters object." alt="" coords="595,841,827,925"/>
+<area shape="poly" id="edge11_Node000008_Node000010" title=" " alt="" coords="530,880,581,880,581,885,530,885"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNodeConfigurator.html#a7dd713fd4d12afa0520e41e4cec9295d" title="Get the maximum euclidean distance to the object before the fail callback is called." alt="" coords="595,409,827,493"/>
+<area shape="poly" id="edge12_Node000008_Node000011" title=" " alt="" coords="528,846,541,833,555,812,565,791,574,751,573,711,565,671,558,631,556,589,564,547,588,503,589,501,594,505,593,505,569,548,561,590,563,630,571,670,578,710,580,751,570,793,560,815,545,836,532,850"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNodeConfigurator.html#ab2e49104f1de28fd80f34818ed5f9556" title="Get the default yaw rate for hovering on a cable." alt="" coords="595,517,827,601"/>
+<area shape="poly" id="edge14_Node000008_Node000012" title=" " alt="" coords="527,846,541,833,559,805,566,778,567,751,565,724,562,697,563,669,571,640,588,610,590,609,594,612,593,614,575,642,568,670,568,697,570,724,573,751,572,779,564,807,545,836,531,850"/>
+<area shape="rect" id="Node000013" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNodeConfigurator.html#aee36b768d51942acd60d8999f24a2313" title="Get the default z velocity for hovering on a cable." alt="" coords="595,625,827,709"/>
+<area shape="poly" id="edge16_Node000008_Node000013" title=" " alt="" coords="524,846,541,833,552,819,559,805,565,777,570,748,577,733,589,718,591,715,595,719,593,722,581,736,575,750,570,778,564,807,557,822,545,837,528,850"/>
+<area shape="rect" id="Node000014" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNodeConfigurator.html#ac07f0d089fc77d458b5e429300c337d3" title="Get the poll period in ms for evaluating if a maneuver is done." alt="" coords="591,949,831,1033"/>
+<area shape="poly" id="edge18_Node000008_Node000014" title=" " alt="" coords="511,915,583,941,581,946,509,920"/>
+<area shape="rect" id="Node000015" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNodeConfigurator.html#aa9c4ddd0d5708d6342cfb8a13c48d0a7" title="Get the poll period in ms for waiting for execution of maneuver." alt="" coords="595,1057,827,1141"/>
+<area shape="poly" id="edge20_Node000008_Node000015" title=" " alt="" coords="449,916,512,979,551,1013,592,1043,599,1047,596,1052,589,1048,548,1017,508,983,445,920"/>
+<area shape="rect" id="Node000016" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#ab393b4204a5c4368ee503e9af8b27a22" title="Registers a maneuver type with a maneuver server." alt="" coords="594,330,827,385"/>
+<area shape="poly" id="edge22_Node000008_Node000016" title=" " alt="" coords="528,846,541,833,559,805,572,777,578,749,581,722,575,668,563,615,550,561,545,507,548,479,556,451,569,423,589,394,590,392,594,396,593,398,573,426,561,453,553,480,551,507,555,560,568,614,581,667,586,722,584,750,577,778,564,807,545,836,532,850"/>
+<area shape="rect" id="Node000048" href="$classiii__drone_1_1control_1_1maneuver__controller__node_1_1ManeuverControllerNodeConfigurator.html#ae3f416b02284556c7ac6484d73e86500" title="Get whether to use NaNs for velocity and acceleration when hovering, otherwise uses zeros." alt="" coords="595,1165,827,1249"/>
+<area shape="poly" id="edge64_Node000008_Node000048" title=" " alt="" coords="445,916,493,981,545,1059,558,1086,566,1109,575,1129,593,1152,596,1154,592,1158,589,1155,570,1132,561,1110,553,1088,540,1061,489,984,441,919"/>
+<area shape="poly" id="edge13_Node000011_Node000005" title=" " alt="" coords="821,491,833,502,849,523,859,543,867,581,871,621,881,670,937,832,984,957,979,959,932,833,876,671,866,622,862,582,854,545,844,526,829,506,818,495"/>
+<area shape="poly" id="edge15_Node000012_Node000005" title=" " alt="" coords="820,599,833,610,868,651,898,697,923,745,944,794,974,886,991,956,985,958,969,888,939,796,918,748,893,700,863,655,829,614,816,603"/>
+<area shape="poly" id="edge17_Node000013_Node000005" title=" " alt="" coords="818,707,832,718,860,746,886,777,929,842,962,906,984,957,979,959,957,908,925,845,882,780,856,749,829,722,815,711"/>
+<area shape="poly" id="edge19_Node000014_Node000005" title=" " alt="" coords="831,988,878,988,878,993,831,993"/>
+<area shape="poly" id="edge21_Node000015_Node000005" title=" " alt="" coords="821,1054,928,1013,930,1018,823,1059"/>
+<area shape="rect" id="Node000017" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#ae6b24f5665082c8552cdbc5da76069e1" title="Cancels a maneuver entry which has been registered before execution starts." alt="" coords="879,474,1112,529"/>
+<area shape="poly" id="edge23_Node000016_Node000017" title=" " alt="" coords="813,382,832,394,849,411,857,427,865,444,880,459,889,465,886,469,877,463,861,447,852,430,844,414,829,398,811,387"/>
+<area shape="rect" id="Node000021" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a0490fe188e37c65b3e33ea5d82875c92" title="UUID getter." alt="" coords="1775,547,1981,587"/>
+<area shape="poly" id="edge63_Node000016_Node000021" title=" " alt="" coords="827,346,949,342,1096,344,1254,355,1334,365,1411,380,1497,403,1562,429,1703,503,1726,518,1750,532,1771,540,1769,545,1748,537,1724,523,1700,508,1559,434,1495,408,1410,385,1333,371,1254,360,1096,349,949,347,827,352"/>
+<area shape="rect" id="Node000022" href="$classiii__drone_1_1utils_1_1Token.html#ac539066ca29ed45c61aa8b9104d45004" title="Creates a slave handle." alt="" coords="916,27,1075,67"/>
+<area shape="poly" id="edge29_Node000016_Node000022" title=" " alt="" coords="721,329,744,280,778,219,823,155,877,98,920,70,923,75,880,102,827,159,783,222,749,283,726,331"/>
+<area shape="rect" id="Node000024" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#a76acc1a7540ee1b506f7b72607b4081f" title="Finds a maneuver from UUID." alt="" coords="1162,553,1409,593"/>
+<area shape="poly" id="edge31_Node000016_Node000024" title=" " alt="" coords="819,383,833,394,847,413,854,432,855,470,858,506,866,522,880,538,899,548,924,557,991,568,1069,574,1148,575,1148,580,1069,579,990,574,923,562,897,553,877,542,861,525,853,507,850,470,848,433,842,415,829,398,815,387"/>
+<area shape="rect" id="Node000025" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a1e11c239a743295aaf2fcd973a7a85a2" title="Callback for when hovering fails (hover by object or hover on cable)." alt="" coords="879,113,1112,167"/>
+<area shape="poly" id="edge33_Node000016_Node000025" title=" " alt="" coords="742,328,877,218,939,173,943,178,880,222,746,332"/>
+<area shape="rect" id="Node000028" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a94386d16e3784a2eff8faf59d6bb6b82" title="OnManeuverCompleted callback. Called every time a maneuver is completed." alt="" coords="879,395,1112,450"/>
+<area shape="poly" id="edge36_Node000016_Node000028" title=" " alt="" coords="828,381,866,390,865,395,827,387"/>
+<area shape="rect" id="Node000029" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#acaa8f0628522b25bdd0c63dde8ee24f0" title="Registers a maneuver with the maneuver scheduler. To be called from a maneuver server...." alt="" coords="879,233,1112,287"/>
+<area shape="poly" id="edge38_Node000016_Node000029" title=" " alt="" coords="790,327,901,289,903,294,792,332"/>
+<area shape="rect" id="Node000043" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a0c01b257aa516fb896fdc59e91304540" title="Updates a maneuver entry which has been registered with the correct goal handle after the maneuver ha..." alt="" coords="879,605,1112,659"/>
+<area shape="poly" id="edge55_Node000016_Node000043" title=" " alt="" coords="820,383,833,394,850,418,858,443,860,466,858,490,858,537,865,560,881,584,892,595,889,599,877,587,860,562,853,537,853,490,854,467,853,444,845,421,829,398,816,387"/>
+<area shape="rect" id="Node000018" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a6e8c99e2bd771ee723136e06611b19ff" title="Getter for the termianted flag." alt="" coords="1201,395,1370,450"/>
+<area shape="poly" id="edge24_Node000017_Node000018" title=" " alt="" coords="1096,471,1187,447,1188,452,1097,477"/>
+<area shape="rect" id="Node000019" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#ad3db1eaff352424f72c3ee535b7fd522" title="Updates a maneuver in the queue. Replace the first occurrence of the maneuver." alt="" coords="1180,474,1391,529"/>
+<area shape="poly" id="edge25_Node000017_Node000019" title=" " alt="" coords="1112,499,1166,499,1166,504,1112,504"/>
+<area shape="rect" id="Node000020" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#a5d1aebf4c43998899389737a1b50b6a7" title="Finds a maneuver in the queue by its UUID." alt="" coords="1459,547,1701,587"/>
+<area shape="poly" id="edge26_Node000019_Node000020" title=" " alt="" coords="1391,522,1476,541,1475,546,1390,527"/>
+<area shape="poly" id="edge28_Node000019_Node000021" title=" " alt="" coords="1391,504,1538,515,1702,532,1764,542,1763,547,1701,537,1538,520,1391,509"/>
+<area shape="poly" id="edge27_Node000020_Node000021" title=" " alt="" coords="1701,564,1762,564,1762,569,1701,569"/>
+<area shape="rect" id="Node000023" href="$classiii__drone_1_1utils_1_1Token.html#a057c789e1b27853924392e4a029d84b8" title="Is master." alt="" coords="1206,5,1365,45"/>
+<area shape="poly" id="edge30_Node000022_Node000023" title=" " alt="" coords="1075,38,1192,29,1192,35,1075,44"/>
+<area shape="poly" id="edge32_Node000024_Node000020" title=" " alt="" coords="1409,568,1445,567,1445,572,1409,573"/>
+<area shape="rect" id="Node000026" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a4c24958fe841dcbccfb6385f38f28ec2" title="Cancels all pending maneuvers." alt="" coords="1169,70,1402,125"/>
+<area shape="poly" id="edge34_Node000025_Node000026" title=" " alt="" coords="1112,120,1155,114,1155,119,1113,125"/>
+<area shape="rect" id="Node000027" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#afc039e2eeb8e4587c1bdb1a61f664739" title="Clears the queue." alt="" coords="1475,57,1685,111"/>
+<area shape="poly" id="edge35_Node000026_Node000027" title=" " alt="" coords="1402,89,1461,87,1461,92,1402,95"/>
+<area shape="poly" id="edge37_Node000028_Node000018" title=" " alt="" coords="1112,420,1187,420,1187,425,1112,425"/>
+<area shape="rect" id="Node000030" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#afff4234827a52c39b91b94ddda380a92" title="Returns whether a given maneuver can immediately execute." alt="" coords="1463,135,1697,190"/>
+<area shape="poly" id="edge39_Node000029_Node000030" title=" " alt="" coords="1045,230,1099,205,1159,185,1233,171,1309,162,1449,156,1450,161,1309,168,1234,176,1161,191,1101,210,1047,235"/>
+<area shape="rect" id="Node000036" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a6b694f0329c16fecaf0395fc4ef3f597" title="Returns whether a given maneuver can execute later." alt="" coords="1169,201,1402,255"/>
+<area shape="poly" id="edge45_Node000029_Node000036" title=" " alt="" coords="1112,244,1155,240,1155,245,1113,250"/>
+<area shape="rect" id="Node000042" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#ae770899d35d878379d229e817042c360" title="Pushes an item to the queue." alt="" coords="1160,280,1411,320"/>
+<area shape="poly" id="edge54_Node000029_Node000042" title=" " alt="" coords="1113,273,1147,278,1146,283,1112,279"/>
+<area shape="rect" id="Node000031" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a7489deb4a1885f6b4985a3f6de205b64" title="Getter for the combined drone awareness simple type by copy." alt="" coords="1749,167,2007,222"/>
+<area shape="poly" id="edge40_Node000030_Node000031" title=" " alt="" coords="1697,173,1736,177,1735,182,1696,178"/>
+<area shape="rect" id="Node000032" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a6ba3cad1d62a50cc78dc835e44ab1050" title="Evaluates whether a maneuver can be executed given an awareness." alt="" coords="2055,181,2288,235"/>
+<area shape="poly" id="edge41_Node000030_Node000032" title=" " alt="" coords="1697,147,1845,141,1927,143,2007,152,2049,161,2090,174,2089,179,2048,166,2006,157,1926,149,1845,146,1697,152"/>
+<area shape="rect" id="Node000034" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#ab46a10b4f9d526b6e3c2df89c33f78be" title="Get whether a maneuver is being executed or pending." alt="" coords="1759,37,1997,91"/>
+<area shape="poly" id="edge43_Node000030_Node000034" title=" " alt="" coords="1663,133,1700,120,1781,93,1782,98,1702,125,1665,138"/>
+<area shape="rect" id="Node000033" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a2a1dd737450465c565f5eba36e71ffad" title="Maneuver type getter." alt="" coords="2336,214,2505,269"/>
+<area shape="poly" id="edge42_Node000032_Node000033" title=" " alt="" coords="2288,221,2323,226,2322,231,2288,226"/>
+<area shape="rect" id="Node000035" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#a6ba6788f60421f28a651fcefadf2361d" title="Whether the queue is empty." alt="" coords="2066,37,2277,91"/>
+<area shape="poly" id="edge44_Node000034_Node000035" title=" " alt="" coords="1997,61,2052,61,2052,67,1997,67"/>
+<area shape="rect" id="Node000037" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a506aad4bb58475a1f64148aec17c570f" title="Returns the expected combined drone awareness upon completion or failure of given maneuver type,..." alt="" coords="1463,255,1697,310"/>
+<area shape="poly" id="edge46_Node000036_Node000037" title=" " alt="" coords="1403,247,1450,256,1449,261,1402,252"/>
+<area shape="poly" id="edge47_Node000037_Node000031" title=" " alt="" coords="1672,253,1771,223,1773,228,1674,258"/>
+<area shape="rect" id="Node000038" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a6bfc890dd85039701532c5251b2a20a5" title="Get copy of the currently executing maneuver. The currently executing maneuver is of type MANEUVER_TY..." alt="" coords="1761,325,1995,379"/>
+<area shape="poly" id="edge48_Node000037_Node000038" title=" " alt="" coords="1697,307,1749,319,1748,324,1696,312"/>
+<area shape="rect" id="Node000039" href="$classiii__drone_1_1utils_1_1Atomic.html#a9f8422d86cdbb429f29c6e16c61631ee" title="Get the value." alt="" coords="1794,483,1962,523"/>
+<area shape="poly" id="edge49_Node000037_Node000039" title=" " alt="" coords="1665,308,1685,321,1703,337,1716,354,1723,372,1727,405,1731,437,1738,452,1751,467,1782,486,1779,491,1748,471,1734,455,1726,439,1721,406,1717,373,1711,357,1699,340,1682,325,1662,313"/>
+<area shape="rect" id="Node000040" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverScheduler.html#a5c5c0d6419c85f15414b71453a47f69c" title="Returns the expected combined drone awareness upon completion or failure of given maneuver type,..." alt="" coords="1755,246,2001,301"/>
+<area shape="poly" id="edge50_Node000037_Node000040" title=" " alt="" coords="1697,276,1741,275,1741,280,1697,282"/>
+<area shape="rect" id="Node000041" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverQueue.html#a5a6e60809fc0dcfcf8b86f10ae3fd3e9" title="Gets the vector of maneuvers in the queue." alt="" coords="1773,403,1983,458"/>
+<area shape="poly" id="edge53_Node000037_Node000041" title=" " alt="" coords="1654,308,1703,337,1718,351,1727,364,1736,376,1751,388,1762,395,1760,400,1748,393,1732,380,1723,367,1714,354,1700,341,1651,313"/>
+<area shape="poly" id="edge52_Node000040_Node000032" title=" " alt="" coords="2001,243,2041,234,2042,240,2002,249"/>
+<area shape="poly" id="edge51_Node000040_Node000033" title=" " alt="" coords="2001,263,2322,244,2322,250,2002,269"/>
+<area shape="poly" id="edge61_Node000043_Node000019" title=" " alt="" coords="1039,602,1095,570,1159,539,1178,531,1180,536,1161,544,1098,575,1042,607"/>
+<area shape="poly" id="edge62_Node000043_Node000021" title=" " alt="" coords="1112,629,1382,620,1542,611,1701,596,1766,586,1767,592,1702,601,1542,616,1382,626,1112,634"/>
+<area shape="poly" id="edge57_Node000043_Node000024" title=" " alt="" coords="1112,606,1172,594,1173,599,1113,611"/>
+<area shape="rect" id="Node000044" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a562b9288530756542998d6454984c5ba" title="Creation time getter." alt="" coords="1201,841,1370,895"/>
+<area shape="poly" id="edge56_Node000043_Node000044" title=" " alt="" coords="1015,658,1039,696,1073,741,1114,787,1161,826,1189,841,1187,845,1159,830,1110,790,1069,744,1035,699,1010,661"/>
+<area shape="rect" id="Node000045" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverSchedulerParameters.html#ac43259193c169d7b3016c82de5083e69" title="Get the timeout duration for updating a maneuver after registering." alt="" coords="1169,668,1402,737"/>
+<area shape="poly" id="edge58_Node000043_Node000045" title=" " alt="" coords="1109,657,1156,668,1155,674,1108,662"/>
+<area shape="rect" id="Node000046" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a26a96a488c05107e53e5deecd20226e7" title="Indicate that the maneuver has terminated. Will delete the goal handle pointer." alt="" coords="1201,762,1370,817"/>
+<area shape="poly" id="edge59_Node000043_Node000046" title=" " alt="" coords="1030,657,1089,703,1161,747,1189,759,1186,764,1159,752,1086,707,1027,662"/>
+<area shape="rect" id="Node000047" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a8788992c198b7547518561a5ab184406" title="Getter for the success flag." alt="" coords="1495,762,1665,817"/>
+<area shape="poly" id="edge60_Node000046_Node000047" title=" " alt="" coords="1370,787,1481,787,1481,792,1370,792"/>
+<area shape="poly" id="edge65_Node000048_Node000005" title=" " alt="" coords="812,1162,829,1151,870,1120,907,1085,967,1020,971,1024,911,1088,873,1124,832,1156,815,1167"/>
+<area shape="poly" id="edge67_Node000049_Node000039" title=" " alt="" coords="543,1335,994,1335,1287,1335,1365,1330,1431,1315,1487,1291,1536,1258,1579,1216,1619,1164,1658,1103,1699,1033,1708,1013,1714,988,1719,927,1716,780,1714,704,1716,635,1726,576,1735,552,1747,533,1762,520,1780,510,1782,515,1765,524,1751,536,1740,554,1731,577,1722,635,1719,704,1721,780,1725,928,1719,989,1713,1015,1704,1036,1663,1106,1623,1167,1583,1219,1539,1262,1490,1296,1433,1320,1366,1335,1287,1340,994,1340,543,1340"/>
+<area shape="rect" id="Node000050" href="$classiii__drone_1_1utils_1_1Atomic.html#a9043ab811e9b5f5ceaf326534fc27060" title="Set the value." alt="" coords="627,1375,795,1415"/>
+<area shape="poly" id="edge68_Node000049_Node000050" title=" " alt="" coords="544,1360,613,1373,612,1378,542,1365"/>
+</map>

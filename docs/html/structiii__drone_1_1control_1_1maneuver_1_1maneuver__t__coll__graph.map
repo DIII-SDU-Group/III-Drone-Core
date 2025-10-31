@@ -1,0 +1,5 @@
+<map id="iii_drone::control::maneuver::maneuver_t" name="iii_drone::control::maneuver::maneuver_t">
+<area shape="rect" id="Node000001" title="Maneuver struct, contains a maneuver type, parameters, and goal handle." alt="" coords="5,148,180,368"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="8,5,177,71"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="95,71,95,131,90,131,90,71"/>
+</map>

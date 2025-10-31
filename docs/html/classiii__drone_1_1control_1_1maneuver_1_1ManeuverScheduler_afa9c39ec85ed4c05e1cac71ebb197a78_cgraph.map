@@ -1,0 +1,15 @@
+<map id="iii_drone::control::maneuver::ManeuverScheduler::onReferenceCallbackTokenReacquired" name="iii_drone::control::maneuver::ManeuverScheduler::onReferenceCallbackTokenReacquired">
+<area shape="rect" id="Node000001" title="Callback function for when the token is yielded from a maneuver server. Registers the hovering refere..." alt="" coords="5,141,284,196"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverManeuverServer.html#ac5152adf55a287fa83ad29f4a9f0709b" title="Gets the hover reference." alt="" coords="332,5,583,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="193,139,258,104,331,70,352,62,354,67,333,75,260,109,195,144"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1utils_1_1Token.html#a7f242bea6b8c01922066812119e6d5d1" title="Whether the token is held by the master." alt="" coords="378,85,537,125"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="278,139,364,121,365,126,279,144"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1utils_1_1Token.html#af148ea73a4a71657f67da885012b8768" title="Get the resource." alt="" coords="378,149,537,189"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="284,166,364,166,364,171,284,171"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a8788992c198b7547518561a5ab184406" title="Getter for the success flag." alt="" coords="373,213,542,268"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="265,193,360,216,359,221,263,199"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a6e8c99e2bd771ee723136e06611b19ff" title="Getter for the termianted flag." alt="" coords="373,292,542,347"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="187,194,254,236,333,277,360,288,358,293,331,282,252,240,185,198"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1utils_1_1Token.html#af0160e7c7f1f4c358ce903f3490c1026" title="Whether the token is held by the calling thread." alt="" coords="631,149,789,189"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="537,166,617,166,617,171,537,171"/>
+</map>

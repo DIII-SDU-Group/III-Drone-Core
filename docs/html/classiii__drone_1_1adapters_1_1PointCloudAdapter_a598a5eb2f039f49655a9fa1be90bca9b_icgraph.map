@@ -1,0 +1,13 @@
+<map id="iii_drone::adapters::PointCloudAdapter::points" name="iii_drone::adapters::PointCloudAdapter::points">
+<area shape="rect" id="Node000001" title="Point cloud data getter." alt="" coords="592,84,743,139"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#a155acd1e412911b7e8cf989e949a2e2f" title="Callback for mmwave data topic." alt="" coords="313,5,544,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="578,85,512,63,513,58,580,80"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1adapters_1_1PointCloudAdapter.html#a6e701f75e0c829e58ee194c8be33e155" title="Constructor." alt="" coords="353,84,504,139"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="579,114,504,114,504,109,579,109"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1adapters_1_1PointCloudAdapter.html#a917bfe0a995ba8ba6f921baa65eca5e6" title="Reads points from a ROS2 message." alt="" coords="353,163,504,217"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="580,143,505,168,503,163,578,138"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#a703ae72ba683ae11154ce597b8bbad9d" title="Constructor." alt="" coords="5,5,265,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="300,35,266,35,266,30,300,30"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1adapters_1_1PointCloudAdapter.html#ac41555cbcad8392d7befd751dabc4949" title="Constructor from ROS2 message." alt="" coords="60,163,211,217"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="340,193,211,193,211,187,340,187"/>
+</map>

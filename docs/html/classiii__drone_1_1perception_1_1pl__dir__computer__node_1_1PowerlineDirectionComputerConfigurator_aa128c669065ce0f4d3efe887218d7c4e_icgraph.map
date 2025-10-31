@@ -1,0 +1,7 @@
+<map id="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerConfigurator::declareNodeParameters" name="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerConfigurator::declareNodeParameters">
+<area shape="rect" id="Node000001" title="Declares the node specific parameters." alt="" coords="351,52,648,121"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerConfigurator.html#ac55d8c63ff14590a78b5f29130b77305" title="Constructor." alt="" coords="5,5,303,75"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="336,67,303,63,304,57,337,62"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1pl__dir__computer__node_1_1PowerlineDirectionComputerConfigurator.html#a7ad671bdb9545e64ff2cadb8adf24882" title="Constructor." alt="" coords="5,99,303,168"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="337,111,304,116,303,111,336,106"/>
+</map>

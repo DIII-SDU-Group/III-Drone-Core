@@ -1,0 +1,19 @@
+<map id="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerConfigurator" name="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerConfigurator">
+<area shape="rect" id="Node000001" title="Class for handling parameters for PowerlineDirectionComputer." alt="" coords="287,1037,576,1525"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html" title="Class for handling parameters of a node. The class works in conjunction with the ConfigurationServer ..." alt="" coords="189,545,429,960"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="362,973,377,1037,372,1038,357,974"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,333,143,413"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="100,412,182,542,177,545,96,414"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="167,333,333,413"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="259,413,277,529,271,530,253,413"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="357,340,492,405"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="418,406,379,531,374,529,412,405"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="483,705,689,800"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="575,801,510,1022,505,1020,570,799"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1perception_1_1PowerlineDirectionParameters.html" title="Class for storing the parameters of the powerline direction." alt="" coords="516,263,752,483"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="623,483,597,689,591,689,617,483"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="595,135,673,200"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="637,200,637,246,631,246,631,200"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="569,5,699,85"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="637,99,637,134,631,134,631,99"/>
+</map>

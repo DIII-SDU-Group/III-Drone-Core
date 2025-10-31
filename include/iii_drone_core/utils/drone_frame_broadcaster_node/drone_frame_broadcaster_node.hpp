@@ -6,6 +6,8 @@
 
 #include <geometry_msgs/msg/transform_stamped.hpp>
 
+#include <std_msgs/msg/header.hpp>
+
 #include <rclcpp/rclcpp.hpp>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -15,7 +17,12 @@
 #include <memory>
 #include <string>
 
-#include "iii_drone_core/utils/math.hpp"
+#include <iii_drone_core/utils/types.hpp>
+#include <iii_drone_core/utils/math.hpp>
+
+#include <iii_drone_configuration/configurator.hpp>
+
+#include <iii_drone_core/adapters/px4/vehicle_odometry_adapter.hpp>
 
 /*****************************************************************************/
 // Class
@@ -42,8 +49,11 @@ namespace drone_frame_broadcaster_node {
 
         iii_drone::types::rotation_matrix_t R_NED_to_body_frame;
 
-        std::string drone_frame_id_;
-        std::string world_frame_id_;
+        iii_drone::configuration::Configurator<rclcpp::Node>::SharedPtr configurator_;
+
+        rclcpp::Publisher<std_msgs::msg::Header>::SharedPtr is_alive_publisher_;
+
+        rclcpp::Time last_alive_pub_time_;
 
     };
 

@@ -1,0 +1,5 @@
+<map id="iii_drone::control::maneuver::maneuver_t::set_from_goal" name="iii_drone::control::maneuver::maneuver_t::set_from_goal">
+<area shape="rect" id="Node000001" title="Sets type and parameters from goal." alt="" coords="5,5,176,60"/>
+<area shape="rect" id="Node000002" href="$namespaceiii__drone_1_1types.html#a8215048242190c57b9ff2de3f1daba73" title=" " alt="" coords="224,13,420,53"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="176,30,210,30,210,35,176,35"/>
+</map>

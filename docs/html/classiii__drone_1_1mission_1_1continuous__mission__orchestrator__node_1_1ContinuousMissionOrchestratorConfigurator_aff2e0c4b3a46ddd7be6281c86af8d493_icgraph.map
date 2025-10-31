@@ -1,0 +1,7 @@
+<map id="iii_drone::mission::continuous_mission_orchestrator_node::ContinuousMissionOrchestratorConfigurator::declareNodeParameters" name="iii_drone::mission::continuous_mission_orchestrator_node::ContinuousMissionOrchestratorConfigurator::declareNodeParameters">
+<area shape="rect" id="Node000001" title="Declares the node specific parameters." alt="" coords="368,60,601,144"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1mission_1_1continuous__mission__orchestrator__node_1_1ContinuousMissionOrchestratorConfigurator.html#a7edf8bc6ac576cd2ac8cb79897ffc2f5" title="Constructor." alt="" coords="5,5,320,89"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="354,83,320,77,321,71,355,77"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1mission_1_1continuous__mission__orchestrator__node_1_1ContinuousMissionOrchestratorConfigurator.html#a96c51c6f2687abc26ef5d3e739f78d73" title="Constructor." alt="" coords="5,113,320,197"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="355,126,321,132,320,127,354,121"/>
+</map>

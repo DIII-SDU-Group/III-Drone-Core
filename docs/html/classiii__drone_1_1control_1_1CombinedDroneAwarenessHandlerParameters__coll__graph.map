@@ -1,0 +1,9 @@
+<map id="iii_drone::control::CombinedDroneAwarenessHandlerParameters" name="iii_drone::control::CombinedDroneAwarenessHandlerParameters">
+<area shape="rect" id="Node000001" title="Class for handling parameters for the combined drone awareness handler object." alt="" coords="30,365,286,833"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,135,140,200"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="73,200,71,265,77,341,78,349,73,350,71,342,66,266,67,200"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="205,135,284,200"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="242,201,218,342,216,350,211,349,213,341,237,200"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="179,5,310,85"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="247,99,247,134,242,134,242,99"/>
+</map>

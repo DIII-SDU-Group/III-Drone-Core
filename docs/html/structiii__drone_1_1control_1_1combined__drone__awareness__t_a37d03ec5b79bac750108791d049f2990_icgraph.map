@@ -1,0 +1,9 @@
+<map id="iii_drone::control::combined_drone_awareness_t::has_target" name="iii_drone::control::combined_drone_awareness_t::has_target">
+<area shape="rect" id="Node000001" title=" " alt="" coords="401,84,616,139"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1HoverByObjectManeuverServer.html#a43a1bd4911d8cb93397ab2eeabd61ee4" title="Whether the maneuver can be executed, will return false if the target is not visible or the drone has..." alt="" coords="46,5,313,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="390,83,353,74,305,63,306,57,354,69,391,78"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#ab9e4d04b91ff4a8df5113ccdc0356484" title="Updates the given combined drone awareness from the powerline. Triggers updates of target_cable_posit..." alt="" coords="5,84,353,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="388,114,354,114,354,109,388,109"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a197c146061816403499a4e652a8fe646" title="Updates the given combined drone awareness from the vehicle odometry. Triggers updates of ground alti..." alt="" coords="14,163,345,233"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="392,145,312,166,311,161,390,140"/>
+</map>

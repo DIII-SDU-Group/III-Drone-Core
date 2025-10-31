@@ -1,0 +1,5 @@
+<map id="iii_drone::control::CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromGripperStatus" name="iii_drone::control::CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromGripperStatus">
+<area shape="rect" id="Node000001" title="Updates the given combined drone awareness from the gripper status. Triggers updates of gripper_open." alt="" coords="5,5,379,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a7489deb4a1885f6b4985a3f6de205b64" title="Getter for the combined drone awareness simple type by copy." alt="" coords="427,5,684,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="379,30,413,30,413,35,379,35"/>
+</map>

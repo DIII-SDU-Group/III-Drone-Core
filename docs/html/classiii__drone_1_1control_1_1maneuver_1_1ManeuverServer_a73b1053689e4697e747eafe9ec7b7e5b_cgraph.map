@@ -1,0 +1,5 @@
+<map id="iii_drone::control::maneuver::ManeuverServer::Start" name="iii_drone::control::maneuver::ManeuverServer::Start">
+<area shape="rect" id="Node000001" title="Method to start the maneuver server. The maneuver server will reject any new goals until started." alt="" coords="5,5,216,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1ManeuverServer.html#a0c7390ca354621a0037ac3ff6850c4b1" title="Registered maneuvers map getter." alt="" coords="264,5,475,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="216,30,251,30,251,35,216,35"/>
+</map>

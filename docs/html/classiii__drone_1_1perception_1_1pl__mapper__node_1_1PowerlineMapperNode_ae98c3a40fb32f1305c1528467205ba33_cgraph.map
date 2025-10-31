@@ -1,0 +1,60 @@
+<map id="iii_drone::perception::pl_mapper_node::PowerlineMapperNode::odometryCallback" name="iii_drone::perception::pl_mapper_node::PowerlineMapperNode::odometryCallback">
+<area shape="rect" id="Node000001" title="Callback for fetching drone transform." alt="" coords="5,189,237,244"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#a9194f1052a84687ba3d387ea76ef2ac1" title="Get the drone frame ID." alt="" coords="292,10,503,79"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="152,187,211,139,284,89,294,83,297,88,287,94,214,143,155,191"/>
+<area shape="rect" id="Node000006" href="$namespaceiii__drone_1_1types.html#ae491cdaf54bd55874ba38675234f35b9" title=" " alt="" coords="300,197,495,237"/>
+<area shape="poly" id="edge7_Node000001_Node000006" title=" " alt="" coords="237,214,286,214,286,219,237,219"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#ae63deed15fc864af363d4a3b3ef76ae1" title="Publishes the powerline message." alt="" coords="285,345,509,400"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="172,242,337,336,334,341,170,247"/>
+<area shape="rect" id="Node000016" href="$classiii__drone_1_1perception_1_1Powerline.html#ae0f6a983c3039c6a41bda6258ec2b70d" title="Updates the powerline from odometry." alt="" coords="290,633,505,673"/>
+<area shape="poly" id="edge19_Node000001_Node000016" title=" " alt="" coords="142,243,378,619,374,622,138,246"/>
+<area shape="rect" id="Node000026" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperConfigurator.html#aa3290485be6c6045721b194b17a31ccb" title="Get the world frame ID." alt="" coords="292,103,503,173"/>
+<area shape="poly" id="edge31_Node000001_Node000026" title=" " alt="" coords="217,187,278,169,279,174,219,192"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="572,35,780,75"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="503,46,558,48,558,53,503,51"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="843,65,1057,105"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="781,64,829,69,829,74,780,69"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="1105,29,1344,84"/>
+<area shape="poly" id="edge6_Node000003_Node000005" title=" " alt="" coords="780,51,843,50,1057,50,1091,51,1091,56,1057,55,843,55,780,56"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="1057,71,1091,68,1092,73,1058,76"/>
+<area shape="poly" id="edge5_Node000005_Node000005" title=" " alt="" coords="1172,29,1172,19,1181,10,1199,5,1225,3,1256,6,1273,14,1271,18,1254,11,1225,8,1200,10,1184,15,1177,21,1177,29"/>
+<area shape="rect" id="Node000007" href="$namespaceiii__drone_1_1types.html#ab684c4851f41301e938970679086de49" title=" " alt="" coords="576,185,776,225"/>
+<area shape="poly" id="edge8_Node000006_Node000007" title=" " alt="" coords="495,210,562,207,562,212,495,215"/>
+<area shape="rect" id="Node000008" href="$namespaceiii__drone_1_1types.html#a42473d6c26ea6e0c7c0eeda54448907c" title=" " alt="" coords="591,121,761,161"/>
+<area shape="poly" id="edge9_Node000006_Node000008" title=" " alt="" coords="470,194,557,170,587,162,589,167,558,175,472,199"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1perception_1_1Powerline.html#a8b6f551b8e2df3466930add4b875fefd" title="Converts to a PowerlineAdapter." alt="" coords="593,505,759,545"/>
+<area shape="poly" id="edge11_Node000009_Node000010" title=" " alt="" coords="443,398,559,466,618,496,616,501,556,471,440,402"/>
+<area shape="rect" id="Node000012" href="$classiii__drone_1_1adapters_1_1PointCloudAdapter.html#abc0d1153908b68c2ad22cd5f6a70596f" title="Convert to ROS2 message." alt="" coords="601,249,751,304"/>
+<area shape="poly" id="edge14_Node000009_Node000012" title=" " alt="" coords="475,343,556,314,587,304,588,309,558,319,477,348"/>
+<area shape="rect" id="Node000013" href="$classiii__drone_1_1adapters_1_1PowerlineAdapter.html#ac8f502e81bf50278a9dfa5e6e8c024e2" title="Converts the powerline adapter object to a message." alt="" coords="579,353,773,393"/>
+<area shape="poly" id="edge15_Node000009_Node000013" title=" " alt="" coords="509,370,565,370,565,375,509,375"/>
+<area shape="rect" id="Node000015" href="$classiii__drone_1_1perception_1_1Powerline.html#a8f3c0b54f84069f25a68679084c7516d" title="Converts to a PointCloudAdapter." alt="" coords="557,417,795,457"/>
+<area shape="poly" id="edge18_Node000009_Node000015" title=" " alt="" coords="510,396,576,411,574,416,509,401"/>
+<area shape="poly" id="edge13_Node000010_Node000010" title=" " alt="" coords="626,505,623,495,631,486,649,480,676,478,707,481,725,488,723,493,706,486,676,483,650,485,634,490,628,496,631,503"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1perception_1_1Powerline.html#a210005c21c48227d8b6961e2a8f6cb86" title="Returns the powerline projection plane." alt="" coords="845,515,1055,555"/>
+<area shape="poly" id="edge12_Node000010_Node000011" title=" " alt="" coords="760,525,831,528,830,533,759,531"/>
+<area shape="poly" id="edge16_Node000013_Node000013" title=" " alt="" coords="626,353,623,343,631,334,649,328,676,326,707,329,725,336,723,341,706,334,676,331,650,333,634,338,628,344,631,351"/>
+<area shape="rect" id="Node000014" href="$classiii__drone_1_1adapters_1_1ProjectionPlaneAdapter.html#a9588993758b1daecc92de9e6452ecb40" title="Converts the projection plane adapter object to a message." alt="" coords="859,345,1041,400"/>
+<area shape="poly" id="edge17_Node000013_Node000014" title=" " alt="" coords="773,370,845,370,845,375,773,375"/>
+<area shape="rect" id="Node000017" href="$classiii__drone_1_1perception_1_1Powerline.html#ae01313af26d0faefd560f290feb28daf" title="Returns the drone quaternion orientation." alt="" coords="861,738,1039,778"/>
+<area shape="poly" id="edge20_Node000016_Node000017" title=" " alt="" coords="424,671,483,711,519,731,558,746,632,762,708,769,782,770,847,767,848,772,782,775,708,775,631,767,557,751,517,736,480,716,421,675"/>
+<area shape="rect" id="Node000019" href="$classiii__drone_1_1utils_1_1History.html#ad80957391e0cd45d17f023760daf0350" title="Returns true if the history is full." alt="" coords="591,569,761,609"/>
+<area shape="poly" id="edge22_Node000016_Node000019" title=" " alt="" coords="485,630,577,608,579,614,486,635"/>
+<area shape="rect" id="Node000020" href="$classiii__drone_1_1perception_1_1Powerline.html#abb9d44570c4decb7fc26620eb2ceb38d" title="Runs the Kalman Filter predict step for all lines." alt="" coords="585,633,767,673"/>
+<area shape="poly" id="edge23_Node000016_Node000020" title=" " alt="" coords="505,650,572,650,572,655,505,655"/>
+<area shape="rect" id="Node000025" href="$classiii__drone_1_1utils_1_1Timestamp.html#a373bc0de94c27153e2372c30f0eedbb1" title="Updates the timestamp to now." alt="" coords="578,697,774,737"/>
+<area shape="poly" id="edge30_Node000016_Node000025" title=" " alt="" coords="486,670,576,691,574,696,485,675"/>
+<area shape="rect" id="Node000018" href="$classiii__drone_1_1utils_1_1History.html#a4b015ee2da0e8a06ec7ac24e9fff5da3" title="Returns true if the history is empty." alt="" coords="1140,738,1309,778"/>
+<area shape="poly" id="edge21_Node000017_Node000018" title=" " alt="" coords="1039,755,1126,755,1126,761,1039,761"/>
+<area shape="poly" id="edge26_Node000020_Node000011" title=" " alt="" coords="760,630,794,618,900,560,903,564,796,623,762,635"/>
+<area shape="poly" id="edge24_Node000020_Node000017" title=" " alt="" coords="760,670,796,682,900,729,898,734,794,687,758,675"/>
+<area shape="rect" id="Node000021" href="$namespaceiii__drone_1_1math.html#af4cd05fd620f368b776def1c899e2f17" title=" " alt="" coords="851,656,1049,681"/>
+<area shape="poly" id="edge25_Node000020_Node000021" title=" " alt="" coords="767,655,837,659,837,665,767,661"/>
+<area shape="rect" id="Node000022" href="$namespaceiii__drone_1_1math.html#af8c96a0fa3940e1034c8db8425586ba8" title=" " alt="" coords="852,607,1048,632"/>
+<area shape="poly" id="edge27_Node000020_Node000022" title=" " alt="" coords="767,639,838,630,838,636,767,644"/>
+<area shape="rect" id="Node000023" href="$namespaceiii__drone_1_1math.html#a7f61d7905e9118b077f713da7e65e8df" title=" " alt="" coords="1131,581,1318,607"/>
+<area shape="poly" id="edge28_Node000022_Node000023" title=" " alt="" coords="1048,608,1118,601,1118,606,1049,613"/>
+<area shape="rect" id="Node000024" href="$namespaceiii__drone_1_1math.html#a8e7d7e25d07b368363d6da9939a9abed" title=" " alt="" coords="1129,631,1320,656"/>
+<area shape="poly" id="edge29_Node000022_Node000024" title=" " alt="" coords="1049,625,1116,631,1115,636,1048,631"/>
+<area shape="poly" id="edge32_Node000026_Node000003" title=" " alt="" coords="502,104,594,77,596,82,504,109"/>
+</map>

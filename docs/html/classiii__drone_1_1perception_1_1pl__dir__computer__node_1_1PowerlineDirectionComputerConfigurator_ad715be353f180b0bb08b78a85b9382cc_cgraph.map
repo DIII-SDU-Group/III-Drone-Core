@@ -1,0 +1,11 @@
+<map id="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerConfigurator::kf_q" name="iii_drone::perception::pl_dir_computer_node::PowerlineDirectionComputerConfigurator::kf_q">
+<area shape="rect" id="Node000001" title="Get the Kalman filter q coefficient." alt="" coords="5,29,339,84"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="387,37,595,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="339,54,373,54,373,59,339,59"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="643,7,857,47"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="595,42,629,38,629,44,595,48"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="905,29,1144,84"/>
+<area shape="poly" id="edge5_Node000002_Node000004" title=" " alt="" coords="595,56,643,57,857,57,891,56,891,62,857,62,643,62,595,61"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="858,36,892,40,891,45,857,41"/>
+<area shape="poly" id="edge4_Node000004_Node000004" title=" " alt="" coords="972,29,972,19,981,10,999,5,1025,3,1056,6,1073,14,1071,18,1054,11,1025,8,1000,10,984,15,977,21,977,29"/>
+</map>

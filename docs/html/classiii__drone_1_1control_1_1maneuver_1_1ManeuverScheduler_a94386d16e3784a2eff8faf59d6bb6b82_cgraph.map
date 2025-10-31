@@ -1,0 +1,5 @@
+<map id="iii_drone::control::maneuver::ManeuverScheduler::onManeuverCompleted" name="iii_drone::control::maneuver::ManeuverScheduler::onManeuverCompleted">
+<area shape="rect" id="Node000001" title="OnManeuverCompleted callback. Called every time a maneuver is completed." alt="" coords="5,5,239,60"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1maneuver_1_1Maneuver.html#a6e8c99e2bd771ee723136e06611b19ff" title="Getter for the termianted flag." alt="" coords="287,5,456,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="239,30,273,30,273,35,239,35"/>
+</map>

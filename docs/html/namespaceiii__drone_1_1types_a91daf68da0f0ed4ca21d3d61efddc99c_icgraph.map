@@ -1,0 +1,13 @@
+<map id="iii_drone::types::vectorFromTransformMsg" name="iii_drone::types::vectorFromTransformMsg">
+<area shape="rect" id="Node000001" title=" " alt="" coords="733,61,904,101"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#a703ae72ba683ae11154ce597b8bbad9d" title="Constructor." alt="" coords="425,13,685,68"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="719,68,685,63,686,58,720,63"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#aca25e593ebb1307381959a3b1e5a751c" title="Updates the drone location of a combined drone awareness object based on current awareness informatio..." alt="" coords="427,92,684,147"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="720,98,685,103,684,98,719,93"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#ab9e4d04b91ff4a8df5113ccdc0356484" title="Updates the given combined drone awareness from the powerline. Triggers updates of target_cable_posit..." alt="" coords="17,5,365,60"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="440,91,377,75,322,63,323,57,378,70,441,86"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a197c146061816403499a4e652a8fe646" title="Updates the given combined drone awareness from the vehicle odometry. Triggers updates of ground alti..." alt="" coords="26,85,357,154"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="413,122,357,122,357,117,413,117"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1CombinedDroneAwarenessHandler.html#a7055ad9c6b81c69e2f810d40c9448fcf" title="Updates the given combined drone awareness from the vehicle status. Triggers updates of armed,..." alt="" coords="5,179,377,233"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="441,153,378,169,323,181,322,176,377,163,440,148"/>
+</map>

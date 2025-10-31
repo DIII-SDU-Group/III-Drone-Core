@@ -4,28 +4,57 @@
 // Includes
 /*****************************************************************************/
 
+/*****************************************************************************/
+// Std:
+
 #include <string>
 #include <iostream>
 #include <chrono>
 #include <mutex>
 #include <fstream>
 
+/*****************************************************************************/
+// ROS2:
+
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/qos.hpp>
+
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
+#include <rclcpp_lifecycle/lifecycle_publisher.hpp>
+
+#include <std_msgs/msg/float32.hpp>
+
 #include <sensor_msgs/msg/point_cloud2.hpp>
-#include <geometry_msgs/msg/point.hpp>
-#include <geometry_msgs/msg/quaternion.hpp>
+
+#include <geometry_msgs/msg/quaternion_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
 #include <tf2/exceptions.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
-#include "iii_drone_interfaces/msg/powerline_direction.hpp"
-#include "iii_drone_interfaces/msg/powerline.hpp"
+/*****************************************************************************/
+// III-Drone-Interfaces:
 
-#include "iii_drone_core/utils/math.hpp"
-#include "iii_drone_core/utils/types.hpp"
+#include <iii_drone_interfaces/msg/powerline.hpp>
+#include <iii_drone_interfaces/msg/string_stamped.hpp>
+
+#include <iii_drone_interfaces/srv/system_command.hpp>
+
+/*****************************************************************************/
+// III-Drone-Configuration:
+
+#include <iii_drone_configuration/configurator.hpp>
+
+/*****************************************************************************/
+// III-Drone-Core:
+
+#include <iii_drone_core/utils/math.hpp>
+#include <iii_drone_core/utils/types.hpp>
+#include <iii_drone_core/utils/atomic.hpp>
+
+#include <iii_drone_core/perception/powerline_direction.hpp>
 
 /*****************************************************************************/
 // Class
@@ -35,75 +64,167 @@ namespace iii_drone {
 namespace perception {
 namespace pl_dir_computer_node {
 
-    class PowerlineDirectionComputerNode : public rclcpp::Node {
+    /**
+     * @brief Node for kalman filtering the powerline direction based on hough transform output.
+    */
+    class PowerlineDirectionComputerNode : public rclcpp_lifecycle::LifecycleNode {
     public:
     explicit
+        /**
+         * @brief Construct a new Powerline Direction Computer Node object
+         * 
+         * @param node_name Name of the node
+         * @param node_namespace Namespace of the node
+         * @param options Node options
+         */
         PowerlineDirectionComputerNode(
             const std::string & node_name="pl_dir_computer", 
-            const std::string & node_namespace="/pl_dir_computer",
+            const std::string & node_namespace="/perception/pl_dir_computer",
             const rclcpp::NodeOptions & options = rclcpp::NodeOptions()
         );
 
+        /**
+         * @brief Destructor
+         */
+        ~PowerlineDirectionComputerNode();
+
+        // Lifecycle callbacks
+
+        /**
+         * @brief Callback function for the configure transition
+         * 
+         * @param state The lifecycle state
+         * @return CallbackReturn The return value
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_configure(
+            const rclcpp_lifecycle::State & state
+        );
+
+        /**
+         * @brief Callback function for the cleanup transition
+         * 
+         * @param state The lifecycle state
+         * @return CallbackReturn The return value
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_cleanup(
+            const rclcpp_lifecycle::State & state
+        );
+
+        /**
+         * @brief Callback function for the activate transition
+         * 
+         * @param state The lifecycle state
+         * @return CallbackReturn The return value
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_activate(
+            const rclcpp_lifecycle::State & state
+        );
+
+        /**
+         * @brief Callback function for the deactivate transition
+         * 
+         * @param state The lifecycle state
+         * @return CallbackReturn The return value
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_deactivate(
+            const rclcpp_lifecycle::State & state
+        );
+
+        /**
+         * @brief Callback function for the shutdown transition
+         * 
+         * @param state The lifecycle state
+         * @return CallbackReturn The return value
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_shutdown(
+            const rclcpp_lifecycle::State & state
+        );
+
+        /**
+         * @brief Callback function for error handling
+         * 
+         * @param state The lifecycle state
+         * @return CallbackReturn The return value
+         */
+        rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_error(
+            const rclcpp_lifecycle::State & state
+        );
+
     private:
-        typedef struct {
+        /**
+         * @brief Configurator object
+         */
+        iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>::SharedPtr configurator_;
 
-            float state_est;
-            float var_est;
+        /**
+         * @brief Command service
+         */
+        rclcpp::Service<iii_drone_interfaces::srv::SystemCommand>::SharedPtr command_srv_;
 
-        } kf_est_t;
+        /**
+         * @brief Command service callback
+         * 
+         * @param request The request
+         * @param response The response
+         */
+        void commandCallback(
+            const std::shared_ptr<iii_drone_interfaces::srv::SystemCommand::Request> request,
+            std::shared_ptr<iii_drone_interfaces::srv::SystemCommand::Response> response
+        );
 
-        rclcpp::Subscription<iii_drone_interfaces::msg::PowerlineDirection>::SharedPtr pl_direction_sub_;
+        /**
+         * @brief Running flag.
+         * 
+         * @details If the node is running, this flag is set to true.
+         */
+        utils::Atomic<bool> running_;
+
+        rclcpp_lifecycle::LifecyclePublisher<iii_drone_interfaces::msg::StringStamped>::SharedPtr status_pub_;
+
+        rclcpp::TimerBase::SharedPtr status_timer_;
+
+        /**
+         * @brief Powerline direction object
+         */
+        PowerlineDirection::SharedPtr pl_direction_;
+
+        /**
+         * @brief Subscription object to powerline yaw angle
+         */
+        rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr pl_angle_sub_;
+
+        /**
+         * @brief Subscription object to powerline topic
+         */
         rclcpp::Subscription<iii_drone_interfaces::msg::Powerline>::SharedPtr pl_sub_;
 
-        rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pl_direction_pub_;
+        /**
+         * @brief Estimated powerline direction pose publisher
+         */
+        rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::PoseStamped>::SharedPtr pl_direction_pose_pub_;
+
+        /**
+         * @brief Estimated powerline direction quaternion publisher.
+         */
+        rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::QuaternionStamped>::SharedPtr pl_direction_quat_pub_;
 
         std::shared_ptr<tf2_ros::TransformListener> transform_listener_{nullptr};
         std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
         rclcpp::TimerBase::SharedPtr drone_tf_timer_{nullptr};
 
-        std::string world_frame_id_, drone_frame_id_, mmwave_frame_id_;
-
-        bool received_angle = false;
-        bool received_first_quat = false;
-        bool received_second_quat = false;
-
-        iii_drone::types::quat_t drone_quat_, last_drone_quat_;
-
-        iii_drone_interfaces::msg::Powerline pl_;
-
-        float r_, q_;
-
-        iii_drone::types::quat_t pl_direction_;
-
-        float W_pl_yaw_ = 0.;
-
-        kf_est_t pl_angle_est[3];
-
-        std::mutex direction_mutex_;
-        std::mutex kf_mutex_;
-        std::mutex pl_mutex_;
-
+        /**
+         * @brief Callback function for the odometry timer
+         * 
+         * @return void
+         */
         void odometryCallback();
-        void plDirectionCallback(const iii_drone_interfaces::msg::PowerlineDirection::SharedPtr msg);
 
-        void plCallback(const iii_drone_interfaces::msg::Powerline::SharedPtr msg);
-
-        void predict();
-        void update(float angle);
-
+        /**
+         * @brief Publishes the estimated powerline direction
+         * 
+         * @return void
+         */
         void publishPowerlineDirection();
-
-        float mapAngle(
-            float curr_angle, 
-            float new_angle
-        );
-        float mapAngle2(
-            float curr_angle, 
-            float new_angle
-        );
-        float backmapAngle(float angle);
-
-        bool anyCableInFOV();
 
     };
 

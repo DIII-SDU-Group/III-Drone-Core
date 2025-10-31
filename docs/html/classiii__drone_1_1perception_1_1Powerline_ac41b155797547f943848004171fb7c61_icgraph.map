@@ -1,0 +1,7 @@
+<map id="iii_drone::perception::Powerline::CleanupLines" name="iii_drone::perception::Powerline::CleanupLines">
+<area shape="rect" id="Node000001" title="Cleans up the lines that are not in the sensor FOV." alt="" coords="592,13,781,53"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#a155acd1e412911b7e8cf989e949a2e2f" title="Callback for mmwave data topic." alt="" coords="313,5,544,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="578,35,544,35,544,30,578,30"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1perception_1_1pl__mapper__node_1_1PowerlineMapperNode.html#a703ae72ba683ae11154ce597b8bbad9d" title="Constructor." alt="" coords="5,5,265,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="300,35,266,35,266,30,300,30"/>
+</map>

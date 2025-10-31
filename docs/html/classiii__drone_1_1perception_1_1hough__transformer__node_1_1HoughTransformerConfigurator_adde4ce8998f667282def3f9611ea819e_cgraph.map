@@ -1,0 +1,19 @@
+<map id="iii_drone::perception::hough_transformer_node::HoughTransformerConfigurator::initHoughTransformerParameters" name="iii_drone::perception::hough_transformer_node::HoughTransformerConfigurator::initHoughTransformerParameters">
+<area shape="rect" id="Node000001" title="Initialises the HoughTransformer parameters." alt="" coords="5,99,251,168"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1perception_1_1hough__transformer__node_1_1HoughTransformerConfigurator.html#a8b05de9a080e53682fc518342e64a1c7" title="Get the Canny kernel size." alt="" coords="299,5,529,75"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="234,96,293,76,295,82,236,101"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1perception_1_1hough__transformer__node_1_1HoughTransformerConfigurator.html#a187edf29750e6d6c203c55fdb57e139d" title="Get the Canny low threshold." alt="" coords="299,99,529,168"/>
+<area shape="poly" id="edge7_Node000001_Node000006" title=" " alt="" coords="251,131,285,131,285,136,251,136"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1perception_1_1hough__transformer__node_1_1HoughTransformerConfigurator.html#ad4ab282a7c6fbaa254f7a339529acbee" title="Get the Canny ratio." alt="" coords="299,192,529,261"/>
+<area shape="poly" id="edge9_Node000001_Node000007" title=" " alt="" coords="236,166,295,185,293,190,234,171"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1configuration_1_1Configurator.html#a896be5ed2c6890f9f5ecaa89cb0eee7d" title="Get a parameter." alt="" coords="577,113,785,153"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="515,72,611,106,610,111,513,77"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1configuration_1_1Configurator.html#ad6e7318a12eda7011acfbe4276e7056a" title="Gets multiple parameters." alt="" coords="833,84,1048,124"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="785,119,819,115,820,120,786,124"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1configuration_1_1Configurator.html#ac5360ab6b4f31277c7d73b5579815353" title="Static function for getting string representation of a parameter type from template type." alt="" coords="1096,106,1335,161"/>
+<area shape="poly" id="edge6_Node000003_Node000005" title=" " alt="" coords="786,133,833,133,1048,133,1082,133,1082,138,1048,139,833,139,786,138"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="1049,113,1083,116,1082,122,1048,118"/>
+<area shape="poly" id="edge5_Node000005_Node000005" title=" " alt="" coords="1162,106,1162,96,1172,87,1190,81,1215,79,1246,82,1264,90,1261,95,1245,88,1215,85,1191,87,1175,91,1167,98,1168,106"/>
+<area shape="poly" id="edge8_Node000006_Node000003" title=" " alt="" coords="529,131,563,131,563,136,529,136"/>
+<area shape="poly" id="edge10_Node000007_Node000003" title=" " alt="" coords="513,189,610,155,611,160,515,194"/>
+</map>

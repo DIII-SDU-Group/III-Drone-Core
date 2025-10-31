@@ -1,0 +1,26 @@
+<map id="iii_drone::control::BehaviorState::on_cable" name="iii_drone::control::BehaviorState::on_cable">
+<area shape="rect" id="Node000001" title="Whether the drone is on a cable." alt="" coords="5,301,193,341"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1BehaviorState.html#a950f5d0c9562cdfa1f03a2409ce9f682" title="Return the id of the cable that the drone is on if it is on a cable, &#45;1 otherwise." alt="" coords="241,293,388,348"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="194,318,228,318,228,323,194,323"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1BehaviorStateParameters.html#a0aed69b6a33b14d4b1f8001e83ffab39" title="Get the cable gripper frame id." alt="" coords="451,5,647,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="319,292,333,245,355,185,389,123,410,95,434,69,438,66,442,70,438,73,414,98,393,126,360,187,338,247,324,294"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1BehaviorStateParameters.html#a0d22018aece70a5a8a0f429bcd8a1894" title="Get the drone frame id." alt="" coords="451,84,647,139"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="326,292,368,221,398,183,434,149,443,143,446,148,438,153,402,186,372,224,331,295"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1utils_1_1History.html#a4b015ee2da0e8a06ec7ac24e9fff5da3" title="Returns true if the history is empty." alt="" coords="464,163,633,203"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="339,291,381,251,435,213,450,206,452,210,437,218,385,255,342,295"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1adapters_1_1PowerlineAdapter.html#a06ac6ce8729f92e9b5bb343f81301c97" title="Returns the single line adapter which is closest to the given position." alt="" coords="472,228,625,283"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="388,298,458,278,459,283,389,303"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#aee7b33b95f9bc339fd4f02709ce9033c" title="position getter." alt="" coords="721,261,869,316"/>
+<area shape="poly" id="edge10_Node000002_Node000007" title=" " alt="" coords="388,313,707,292,707,297,389,318"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1adapters_1_1SingleLineAdapter.html#a094ffe670b1d879fa9bd9012255a6173" title="Id getter." alt="" coords="465,358,633,398"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="389,336,454,352,453,357,388,341"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1control_1_1BehaviorStateParameters.html#a737eeeb5fd6fa9d02acce49869a4c69e" title="Get the on_cable_max_euc_distance value." alt="" coords="441,423,657,477"/>
+<area shape="poly" id="edge8_Node000002_Node000009" title=" " alt="" coords="349,346,390,378,437,408,451,414,449,419,435,412,387,382,346,350"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1adapters_1_1px4_1_1VehicleOdometryAdapter.html#a82c0aa2397ba3aa4df53c8ca6f97e487" title="Position getter." alt="" coords="436,501,661,556"/>
+<area shape="poly" id="edge9_Node000002_Node000010" title=" " alt="" coords="331,347,373,417,403,454,438,487,446,492,443,497,434,491,399,458,369,420,327,350"/>
+<area shape="rect" id="Node000011" href="$namespaceiii__drone_1_1types.html#a91daf68da0f0ed4ca21d3d61efddc99c" title=" " alt="" coords="463,581,634,621"/>
+<area shape="poly" id="edge11_Node000002_Node000011" title=" " alt="" coords="324,348,337,395,359,454,392,515,413,543,438,567,453,577,450,581,434,571,409,546,388,518,354,457,332,397,319,349"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="626,263,708,274,707,280,625,268"/>
+<area shape="rect" id="Node000012" href="$namespaceiii__drone_1_1types.html#a42473d6c26ea6e0c7c0eeda54448907c" title=" " alt="" coords="709,581,880,621"/>
+<area shape="poly" id="edge12_Node000011_Node000012" title=" " alt="" coords="634,598,695,598,695,603,634,603"/>
+</map>

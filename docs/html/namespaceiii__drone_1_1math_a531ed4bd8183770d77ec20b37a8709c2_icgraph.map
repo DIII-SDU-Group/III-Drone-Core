@@ -1,0 +1,25 @@
+<map id="iii_drone::math::eulToQuat" name="iii_drone::math::eulToQuat">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1456,145,1649,170"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1State.html#af1d4e966cfd9ac0912c8823e627c4b07" title=" " alt="" coords="1230,65,1361,105"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1493,144,1360,106,1361,101,1494,138"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1adapters_1_1ReferenceAdapter.html#aa8e55f2f2d08f81b59bb9e0b452dc0f7" title="Converts to pose stamped msg." alt="" coords="1218,130,1373,185"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="1442,160,1373,160,1373,155,1442,155"/>
+<area shape="rect" id="Node000010" href="$classiii__drone_1_1adapters_1_1px4_1_1VehicleOdometryAdapter.html#add458b12c101a10e2ab7d75e46186ea9" title="Updates the object from a new PX4 odometry message." alt="" coords="1183,209,1408,263"/>
+<area shape="poly" id="edge11_Node000001_Node000010" title=" " alt="" coords="1498,177,1386,211,1385,206,1496,172"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNode.html#a25bc69c79e137bb796ce2fea69bafe57" title="Publishes the currently planned trajectory." alt="" coords="618,41,850,111"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="1204,135,1134,120,987,99,850,86,851,81,987,94,1135,115,1205,130"/>
+<area shape="rect" id="Node000007" href="$classiii__drone_1_1adapters_1_1ReferenceTrajectoryAdapter.html#aa29c58cadc42cf79a2fb56426a2b678f" title="Converts to Path msg." alt="" coords="917,130,1127,185"/>
+<area shape="poly" id="edge7_Node000003_Node000007" title=" " alt="" coords="1204,160,1128,160,1128,155,1204,155"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNode.html#aefc447399b185fef5b912770b5059936" title="The compute reference trajectory service callback." alt="" coords="285,5,559,75"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="604,64,558,58,559,53,605,58"/>
+<area shape="rect" id="Node000006" href="$classiii__drone_1_1control_1_1trajectory__generator__node_1_1TrajectoryGeneratorNode.html#ac58d9ceab1e2ecc71cb971a5f360bc00" title=" " alt="" coords="5,41,237,111"/>
+<area shape="poly" id="edge6_Node000004_Node000006" title=" " alt="" coords="604,87,559,89,422,92,285,89,238,87,238,82,285,84,422,87,559,84,604,82"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="272,61,238,65,237,59,271,55"/>
+<area shape="poly" id="edge10_Node000007_Node000004" title=" " alt="" coords="911,129,850,111,851,106,912,124"/>
+<area shape="rect" id="Node000008" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a207c2c72ecfb7376ef44bd986e00ccce" title="Publishes the feedback." alt="" coords="611,135,857,190"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="903,162,857,163,857,158,903,157"/>
+<area shape="rect" id="Node000009" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServer.html#a5918df6e93a4e3b9c9a500bab1c17c6b" title="Publishes the feedback." alt="" coords="607,214,861,269"/>
+<area shape="poly" id="edge9_Node000007_Node000009" title=" " alt="" coords="916,191,829,217,827,211,914,186"/>
+<area shape="rect" id="Node000011" href="$classiii__drone_1_1adapters_1_1px4_1_1VehicleOdometryAdapter.html#a85fa7bce8bfbef3bc55befb8b8c510f7" title=" " alt="" coords="909,209,1135,263"/>
+<area shape="poly" id="edge12_Node000010_Node000011" title=" " alt="" coords="1169,239,1135,239,1135,233,1169,233"/>
+</map>

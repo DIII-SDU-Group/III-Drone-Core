@@ -1,0 +1,11 @@
+<map id="iii_drone::control::TrajectoryGeneratorClient::Cancel" name="iii_drone::control::TrajectoryGeneratorClient::Cancel">
+<area shape="rect" id="Node000001" title="Cancels the trajectory generation if it is active." alt="" coords="553,84,751,139"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1control_1_1TrajectoryGeneratorClient.html#a1c8bd3131a3ee0b17228c0cff272ecfe" title="Resets the client with the current state." alt="" coords="308,84,505,139"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="539,114,505,114,505,109,539,109"/>
+<area shape="rect" id="Node000003" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToObjectManeuverServer.html#a2ace3412e0d42d07a39c553c89ab0c6a" title="Compute the reference." alt="" coords="10,5,255,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="297,83,228,63,229,58,298,78"/>
+<area shape="rect" id="Node000004" href="$classiii__drone_1_1control_1_1maneuver_1_1FlyToPositionManeuverServer.html#ac13004e478653d73361c3569e11870dc" title="Compute the reference." alt="" coords="5,84,260,139"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="294,114,260,114,260,109,294,109"/>
+<area shape="rect" id="Node000005" href="$classiii__drone_1_1control_1_1TrajectoryGeneratorClient.html#ab54fcce3937599492581b96b86ee8719" title="Constructor." alt="" coords="34,163,231,217"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="298,145,229,165,228,160,297,140"/>
+</map>

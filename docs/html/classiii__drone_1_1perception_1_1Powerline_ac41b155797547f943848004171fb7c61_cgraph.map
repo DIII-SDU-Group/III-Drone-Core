@@ -1,0 +1,5 @@
+<map id="iii_drone::perception::Powerline::CleanupLines" name="iii_drone::perception::Powerline::CleanupLines">
+<area shape="rect" id="Node000001" title="Cleans up the lines that are not in the sensor FOV." alt="" coords="5,5,195,45"/>
+<area shape="rect" id="Node000002" href="$classiii__drone_1_1utils_1_1Timestamp.html#a373bc0de94c27153e2372c30f0eedbb1" title="Updates the timestamp to now." alt="" coords="243,5,439,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="195,23,229,23,229,28,195,28"/>
+</map>
