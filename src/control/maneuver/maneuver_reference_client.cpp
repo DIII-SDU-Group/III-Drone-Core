@@ -10,28 +10,25 @@ using namespace iii_drone::types;
 using namespace iii_drone::adapters;
 using namespace iii_drone::adapters::px4;
 using namespace iii_drone::control;
+using namespace iii_drone::configuration;
 
 /*****************************************************************************/
 // Implementation
 /*****************************************************************************/
 
 ManeuverReferenceClient::ManeuverReferenceClient(
-    rclcpp::Node * node,
+    rclcpp_lifecycle::LifecycleNode * node,
     History<adapters::px4::VehicleOdometryAdapter>::SharedPtr vehicle_odometry_adapter_history,
-    bool use_nans_when_hovering,
-    int max_failed_attempts_during_maneuver,
-    int get_reference_timeout_ms,
-    std::function<void()> on_fail_during_maneuver
+    ParameterBundle::SharedPtr parameters,
+    rclcpp::CallbackGroup::SharedPtr get_reference_cb_group
 ) : node_(node),
     vehicle_odometry_adapter_history_(vehicle_odometry_adapter_history),
     reference_mode_(reference_mode_t::PASSTHROUGH),
     reference_(Reference()),
-    use_nans_when_hovering_(use_nans_when_hovering),
-    max_failed_attempts_during_maneuver_(max_failed_attempts_during_maneuver),
-    get_reference_timeout_ms_(get_reference_timeout_ms),
-    on_fail_during_maneuver_(on_fail_during_maneuver) {
+    parameters_(parameters),
+    get_reference_cb_group_(get_reference_cb_group) {
 
-    get_reference_cb_group_ = node_->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    // get_reference_cb_group_ = node_->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     
     get_reference_client_ = node_->create_client<iii_drone_interfaces::srv::GetReference>(
         "/control/maneuver_controller/get_reference",
@@ -39,23 +36,35 @@ ManeuverReferenceClient::ManeuverReferenceClient(
         get_reference_cb_group_
     );
 
+    reference_mode_publisher_ = node_->create_publisher<iii_drone_interfaces::msg::StringStamped>(
+        "maneuver_reference_client/reference_mode",
+        10
+    );
+
 }
 
-void ManeuverReferenceClient::UpdateReference() {
+void ManeuverReferenceClient::UpdateReference(bool force) {
 
-    if (reference_mode_.Load() == reference_mode_t::MANEUVER) {
+    if (!force && isManeuverMode()) {
+        RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::UpdateReference(): Cannot update reference while in MANEUVER mode, returning.");
         return;
     }
 
     if (vehicle_odometry_adapter_history_->empty()) {
+        RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::UpdateReference(): Vehicle odometry adapter history is empty, returning.");
         return;
     }
+
+    RCLCPP_DEBUG(
+        node_->get_logger(), 
+        "ManeuverReferenceClient::UpdateReference(): Updating hover reference with current state."
+    );
 
     State state = (*vehicle_odometry_adapter_history_)[0].ToState();
 
     std::lock_guard<std::mutex> lock(reference_mutex_);
     
-    if (use_nans_when_hovering_) {
+    if (parameters_->GetParameter("use_nans_when_hovering").as_bool()) {
 
         reference_ = Reference(
             state.position(),
@@ -84,10 +93,15 @@ void ManeuverReferenceClient::UpdateReference() {
 
 void ManeuverReferenceClient::SetReference(Reference reference) {
 
-    if (reference_mode_.Load() == reference_mode_t::MANEUVER) {
-        RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::SetReference(): Cannot set reference while in MANEUVER mode.");
+    if (isManeuverMode()) {
+        RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::SetReference(): Cannot set reference while in a maneuver is active.");
         return;
     }
+
+    RCLCPP_DEBUG(
+        node_->get_logger(), 
+        "ManeuverReferenceClient::SetReference(): Setting reference."
+    );
 
     std::lock_guard<std::mutex> lock(reference_mutex_);
 
@@ -97,99 +111,168 @@ void ManeuverReferenceClient::SetReference(Reference reference) {
 
 void ManeuverReferenceClient::SetReferenceModePassthrough() {
 
-    if (reference_mode_.Load() == reference_mode_t::MANEUVER) {
-        RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::SetReferenceModePassthrough(): Cannot set reference mode to PASSTHROUGH while in MANEUVER mode.");
+    auto reference_mode = reference_mode_.Load();
+
+    if(isManeuverMode(reference_mode)) {
+        RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::SetReferenceModePassthrough(): Cannot set reference mode to PASSTHROUGH while in a maneuver mode.");
         return;
     }
+
+    if (reference_mode_.Load() == reference_mode_t::PASSTHROUGH) {
+        return;
+    }
+
+    RCLCPP_DEBUG(
+        node_->get_logger(), 
+        "ManeuverReferenceClient::SetReferenceModePassthrough(): Setting reference mode to PASSTHROUGH."
+    );
 
     reference_mode_.Store(reference_mode_t::PASSTHROUGH);
 
 }
 
-void ManeuverReferenceClient::SetReferenceModeHover() {
+void ManeuverReferenceClient::SetReferenceModeHover(bool force) {
 
-    if (reference_mode_.Load() == reference_mode_t::MANEUVER) {
-        RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::SetReferenceModeHover(): Cannot set reference mode to HOVER while in MANEUVER mode.");
+    auto reference_mode = reference_mode_.Load();
+
+    if (!force && isManeuverMode(reference_mode)) {
+        RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::SetReferenceModeHover(): Cannot set reference mode to HOVER while in a maneuver mode.");
         return;
     }
 
-    reference_mode_.Store(reference_mode_t::HOVER);
+    UpdateReference(true);
 
-    UpdateReference();
+    if (reference_mode == reference_mode_t::HOVER) {
+        return;
+    }
+
+    RCLCPP_DEBUG(
+        node_->get_logger(), 
+        "ManeuverReferenceClient::SetReferenceModeHover(): Setting reference mode to HOVER."
+    );
+
+    reference_mode_.Store(reference_mode_t::HOVER);
 
 }
 
-void ManeuverReferenceClient::StartManeuver() {
+bool ManeuverReferenceClient::StartManeuver() {
 
-    reference_mode_.Store(reference_mode_t::MANEUVER);
+    auto reference_mode = reference_mode_.Load();
 
-    std::lock_guard<std::mutex> lock(stop_maneuver_timer_mutex_);
-
-    if (stop_maneuver_timer_ != nullptr) {
-        stop_maneuver_timer_->cancel();
+    if (reference_mode == WAIT_FOR_MANEUVER_START || reference_mode == MANEUVER) {
+        RCLCPP_ERROR(node_->get_logger(), "ManeuverReferenceClient::StartManeuver(): Cannot start maneuver while a maneuver mode is already active");
+        return false;
     }
+
+    if (reference_mode == WAIT_FOR_MANEUVER_STOP) {
+        RCLCPP_DEBUG(node_->get_logger(), "ManeuverReferenceClient::StartManeuver(): Stopping currently waiting maneuver.");
+        stopManeuverPrematurely();
+    }
+
+    RCLCPP_DEBUG(
+        node_->get_logger(), 
+        "ManeuverReferenceClient::StartManeuver(): Starting maneuver."
+    );
+
+    if (reference_mode == PASSTHROUGH) {
+        UpdateReference();
+    } else if (reference_mode != HOVER && reference_mode != WAIT_FOR_MANEUVER_STOP) {
+        RCLCPP_ERROR(node_->get_logger(), "ManeuverReferenceClient::StartManeuver(): Reference mode is not PASSTHROUGH or HOVER and not a MANEUVER mode.");
+        return false;
+    }
+
+    reference_mode_.Store(reference_mode_t::WAIT_FOR_MANEUVER_START);
+
+    if (*stop_maneuver_timer_ != nullptr) {
+        (*stop_maneuver_timer_)->cancel();
+    }
+
+    maneuver_start_time_.Store(rclcpp::Clock().now());
+
+    return true;
 
 }
 
 void ManeuverReferenceClient::StopManeuver() {
 
-    if (reference_mode_.Load() != reference_mode_t::MANEUVER) {
-        RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::StopManeuver(): Cannot stop maneuver while not in MANEUVER mode.");
+    if (!isManeuverMode()) {
+        RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::StopManeuver(): Cannot stop maneuver while a maneuver mode is not active.");
         return;
     }
+
+    RCLCPP_DEBUG(
+        node_->get_logger(), 
+        "ManeuverReferenceClient::StopManeuver(): Stopping maneuver."
+    );
 
     reference_mode_.Store(reference_mode_t::HOVER);
 
     UpdateReference();
 
-    std::lock_guard<std::mutex> lock(stop_maneuver_timer_mutex_);
-
-    if (stop_maneuver_timer_ != nullptr) {
-        stop_maneuver_timer_->cancel();
-        stop_maneuver_timer_ = nullptr;
+    if (*stop_maneuver_timer_ != nullptr) {
+        (*stop_maneuver_timer_)->cancel();
+        stop_maneuver_timer_.Store(nullptr);
     }
 
 }
 
 void ManeuverReferenceClient::StopManeuver(Reference reference) {
 
-    if (reference_mode_.Load() != reference_mode_t::MANEUVER) {
-        RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::StopManeuver(): Cannot stop maneuver while not in MANEUVER mode.");
+    if (!isManeuverMode()) {
+        RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::StopManeuver(Reference): Cannot stop maneuver while a maneuver mode is not active.");
         return;
     }
+
+    RCLCPP_DEBUG(
+        node_->get_logger(), 
+        "ManeuverReferenceClient::StopManeuver(Reference): Stopping maneuver with given reference."
+    );
 
     reference_mode_.Store(reference_mode_t::HOVER);
 
     SetReference(reference);
 
-    std::lock_guard<std::mutex> lock(stop_maneuver_timer_mutex_);
-
-    if (stop_maneuver_timer_ != nullptr) {
-        stop_maneuver_timer_->cancel();
-        stop_maneuver_timer_ = nullptr;
+    if (*stop_maneuver_timer_ != nullptr) {
+        (*stop_maneuver_timer_)->cancel();
+        stop_maneuver_timer_.Store(nullptr);
     }
 
 }
 
 void ManeuverReferenceClient::StopManeuverAfterTimeout(int timeout_ms) {
 
-    if (reference_mode_.Load() != reference_mode_t::MANEUVER) {
-        RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::StopManeuverAfterTimeout(): Cannot stop maneuver while not in MANEUVER mode.");
+    if (!isManeuverMode()) {
+        RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::StopManeuverAfterTimeout(): Cannot stop maneuver while a maneuver mode is not active.");
         return;
     }
 
-    std::lock_guard<std::mutex> lock(stop_maneuver_timer_mutex_);
+    RCLCPP_DEBUG(
+        node_->get_logger(), 
+        "ManeuverReferenceClient::StopManeuverAfterTimeout(): Stopping maneuver after %d milliseconds.", 
+        timeout_ms
+    );
 
-    if (stop_maneuver_timer_ != nullptr && !stop_maneuver_timer_->is_canceled()) {
+    if (*stop_maneuver_timer_ != nullptr && !(*stop_maneuver_timer_)->is_canceled()) {
         RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::StopManeuverAfterTimeout(): Timer already running. Resetting timer.");
-        stop_maneuver_timer_->cancel();
-        stop_maneuver_timer_ = nullptr;
+        (*stop_maneuver_timer_)->cancel();
+        stop_maneuver_timer_.Store(nullptr);
     }
+
+    RCLCPP_DEBUG(
+        node_->get_logger(), 
+        "ManeuverReferenceClient::StopManeuverAfterTimeout(): Storing mode WAIT_FOR_MANEUVER_STOP."
+    );
+    reference_mode_.Store(WAIT_FOR_MANEUVER_STOP);
+
+    stop_maneuver_timer_callback_ = [this]() -> void {
+        RCLCPP_DEBUG(node_->get_logger(), "ManeuverReferenceClient::StopManeuverAfterTimeout(): Timer expired. Stopping maneuver.");
+        StopManeuver();
+    };
 
     stop_maneuver_timer_ = node_->create_wall_timer(
         std::chrono::milliseconds(timeout_ms),
         [this]() -> void {
-            StopManeuver();
+            (*stop_maneuver_timer_callback_)();
         }
     );
 
@@ -200,38 +283,61 @@ void ManeuverReferenceClient::StopManeuverAfterTimeout(
     int timeout_ms
 ) {
 
-    if (reference_mode_.Load() != reference_mode_t::MANEUVER) {
-        RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::StopManeuverAfterTimeout(): Cannot stop maneuver while not in MANEUVER mode.");
+    if (!isManeuverMode()) {
+        RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::StopManeuverAfterTimeout(Reference): Cannot stop maneuver while not in MANEUVER mode.");
         return;
     }
 
-    std::lock_guard<std::mutex> lock(stop_maneuver_timer_mutex_);
+    RCLCPP_DEBUG(
+        node_->get_logger(), 
+        "ManeuverReferenceClient::StopManeuverAfterTimeout(Reference): Stopping maneuver after %d milliseconds with given reference.", 
+        timeout_ms
+    );
 
-    if (stop_maneuver_timer_ != nullptr && !stop_maneuver_timer_->is_canceled()) {
-        RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::StopManeuverAfterTimeout(): Timer already running. Resetting timer.");
-        stop_maneuver_timer_->cancel();
-        stop_maneuver_timer_ = nullptr;
+    if (*stop_maneuver_timer_ != nullptr && !(*stop_maneuver_timer_)->is_canceled()) {
+        RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::StopManeuverAfterTimeout(Reference): Timer already running. Resetting timer.");
+        (*stop_maneuver_timer_)->cancel();
+        stop_maneuver_timer_.Store(nullptr);
     }
+
+    RCLCPP_DEBUG(
+        node_->get_logger(), 
+        "ManeuverReferenceClient::StopManeuverAfterTimeout(): Storing mode WAIT_FOR_MANEUVER_STOP."
+    );
+    reference_mode_.Store(WAIT_FOR_MANEUVER_STOP);
+
+    stop_maneuver_timer_callback_ = [this, reference]() -> void {
+        RCLCPP_DEBUG(node_->get_logger(), "ManeuverReferenceClient::StopManeuverAfterTimeout(Reference): Timer expired. Stopping maneuver with given reference.");
+        StopManeuver(reference);
+    };
 
     stop_maneuver_timer_ = node_->create_wall_timer(
         std::chrono::milliseconds(timeout_ms),
         [this, reference]() -> void {
-            StopManeuver(reference);
+            (*stop_maneuver_timer_callback_)();
         }
     );
 
 }
 
-Reference ManeuverReferenceClient::GetReference(double) {
+Reference ManeuverReferenceClient::GetReference(
+    double,
+    std::function<void()> on_fail_during_maneuver
+) {
 
     static int failed_attempts = 0;
     Reference reference;
+
+    iii_drone_interfaces::msg::StringStamped reference_mode_msg;
 
     switch(reference_mode_.Load()) {
         case reference_mode_t::PASSTHROUGH:
 
             failed_attempts = 0;
             reference = vehicle_odometry_adapter_history_->empty() ? Reference() : Reference((*vehicle_odometry_adapter_history_)[0].ToState());
+
+            reference_mode_msg.data = "passthrough";
+
             break;
 
         case reference_mode_t::HOVER: {
@@ -241,90 +347,248 @@ Reference ManeuverReferenceClient::GetReference(double) {
             std::lock_guard<std::mutex> lock(reference_mutex_);
 
             reference = reference_;
+
+            reference_mode_msg.data = "hover";
+
+            break;
+
+        }
+        case WAIT_FOR_MANEUVER_START: {
+    
+            failed_attempts = 0;
+
+            rclcpp::Duration elapsed_time_since_start = rclcpp::Clock().now() - *maneuver_start_time_;
+
+            int elapsed_ms = elapsed_time_since_start.nanoseconds() / 1e6;
+
+            if (elapsed_ms > parameters_->GetParameter("wait_for_maneuver_start_timeout_ms").as_int()) {
+
+                RCLCPP_ERROR(
+                    node_->get_logger(), 
+                    "ManeuverReferenceClient::GetReference(): WAIT_FOR_MANEUVER_START: Timeout while waiting for maneuver start after %d milliseconds. Calling on fail callback and switch to HOVER mode.", 
+                    elapsed_ms
+                );
+                on_fail_during_maneuver();
+
+                SetReferenceModeHover(true);
+
+                reference_mode_msg.data = "hover";
+                break;
+
+            }
+            
+            bool success = getReferenceFromServer(reference);
+
+            if (!success) {
+
+                RCLCPP_DEBUG(node_->get_logger(), "ManeuverReferenceClient::GetReference(): WAIT_FOR_MANEUVER_START: Reference is not yet valid, returning hover reference.");
+
+                reference = reference_;
+
+                reference_mode_msg.data = "wait_for_maneuver_start";
+
+                break;
+
+            }
+
+            if (reference_mode_.Load() == reference_mode_t::WAIT_FOR_MANEUVER_START) {
+
+                RCLCPP_DEBUG(node_->get_logger(), "ManeuverReferenceClient::GetReference(): WAIT_FOR_MANEUVER_START: Reference is valid, switching to MANEUVER mode.");
+
+                reference_mode_.Store(reference_mode_t::MANEUVER);
+
+                reference_mode_msg.data = "maneuver";
+
+            } else if (reference_mode_.Load() == reference_mode_t::WAIT_FOR_MANEUVER_STOP) {
+
+                RCLCPP_DEBUG(node_->get_logger(), "ManeuverReferenceClient::GetReference(): WAIT_FOR_MANEUVER_START: Mode switched to WAIT_FOR_MANEUVER_STOP while waiting.");
+
+                reference_mode_msg.data = "wait_for_maneuver_stop";
+
+            } else {
+
+                RCLCPP_ERROR(node_->get_logger(), "ManeuverReferenceClient::GetReference(): WAIT_FOR_MANEUVER_START: Mode switched to %d while waiting.", reference_mode_.Load());
+
+                reference_mode_msg.data = "error";
+
+            }
+
             break;
 
         }
         case reference_mode_t::MANEUVER: {
 
-            if (!get_reference_client_->wait_for_service(std::chrono::nanoseconds(static_cast<int64_t>(5e6)))) {
-                RCLCPP_ERROR(node_->get_logger(), "ManeuverReferenceClient::GetReference(): Service not available within 5 milliseconds.");
-                reference = vehicle_odometry_adapter_history_->empty() ? Reference() : Reference((*vehicle_odometry_adapter_history_)[0].ToState());
+            bool success = getReferenceFromServer(reference);
+
+            // Check if mode is hovering:
+            if (reference_mode_.Load() == reference_mode_t::HOVER) {
+                RCLCPP_DEBUG(node_->get_logger(), "ManeuverReferenceClient::GetReference(): MANEUVER: Mode switched to HOVER while waiting, returning hover reference");
+                reference = reference_;
+                reference_mode_msg.data = "hover";
                 break;
             }
 
-            if (!get_reference_client_->service_is_ready()) {
-                RCLCPP_ERROR(node_->get_logger(), "ManeuverReferenceClient::GetReference(): Service not ready.");
-                reference = vehicle_odometry_adapter_history_->empty() ? Reference() : Reference((*vehicle_odometry_adapter_history_)[0].ToState());
-                break;
-            }
-
-            // // RCLCPP_DEBUG(node_->get_logger(), "ManeuverReferenceClient::GetReference(): Sending request to maneuver controller.");
-
-            bool finished = false;
-            std::shared_ptr<iii_drone_interfaces::srv::GetReference::Response> response;
-            auto request = std::make_shared<iii_drone_interfaces::srv::GetReference::Request>();
-
-            auto result = get_reference_client_->async_send_request(
-                request
-            );
-
-            bool failed = false;
-
-            // // RCLCPP_DEBUG(node_->get_logger(), "ManeuverReferenceClient::GetReference(): Waiting for response for %d milliseconds.", get_reference_timeout_ms_);
-
-            result.wait();
-            // if (result.wait_for(std::chrono::milliseconds(get_reference_timeout_ms_)) == std::future_status::ready) {
-                // // RCLCPP_DEBUG(node_->get_logger(), "ManeuverReferenceClient::GetReference(): Received response.");
-                response = result.get();
-            // } else {
-            //     // RCLCPP_DEBUG(node_->get_logger(), "ManeuverReferenceClient::GetReference(): Timeout while waiting for response.");
-            //     failed = true;
-            // }
-
-            std::lock_guard<std::mutex> lock(reference_mutex_);
-
-            if (failed || !response->is_valid) {
-
-                if (!failed && !response->is_valid) {
-                    RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::GetReference(): Received invalid reference.");
-                }
+            if (!success) {
 
                 failed_attempts++;
 
-                if (failed_attempts >= max_failed_attempts_during_maneuver_) {
+                if (failed_attempts >= parameters_->GetParameter("max_failed_attempts_during_maneuver").as_int()) {
 
                     RCLCPP_ERROR(
                         node_->get_logger(), 
-                        "ManeuverReferenceClient::GetReference(): Failed to acquire valid reference after %d attempts. Calling on failed callback and returning passthrough reference.", 
-                        max_failed_attempts_during_maneuver_
+                        "ManeuverReferenceClient::GetReference(): MANEUVER: Failed to acquire valid reference after %d attempts. Calling on failed callback and setting mode to HOVER.", 
+                        failed_attempts
                     );
-                    on_fail_during_maneuver_();
 
-                } else {
+                    on_fail_during_maneuver();
 
-                    RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::GetReference(): Failed to acquire valid reference. Using passthrough reference.");
+                    SetReferenceModeHover(true);
+
+                    reference = reference_;
+
+                    reference_mode_msg.data = "hover";
+
+                    break;
 
                 }
 
-                // // RCLCPP_DEBUG(node_->get_logger(), "ManeuverReferenceClient::GetReference(): Failed attempts: %d", failed_attempts);
-                // // RCLCPP_DEBUG(node_->get_logger(), "ManeuverReferenceClient::GetReference(): Returning passthrough reference.");
+                RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::GetReference(): MANEUVER: Failed to acquire valid reference. Using nan reference.");
 
-                reference = vehicle_odometry_adapter_history_->empty() ? Reference() : Reference((*vehicle_odometry_adapter_history_)[0].ToState());
+                reference_mode_msg.data = "nan";
+
                 break;
 
             } 
 
-            reference = ReferenceAdapter(response->reference).reference();
-
-            // RCLCPP_DEBUG(node_->get_logger(), "ManeuverReferenceClient::GetReference(): Received valid reference:");
-            // RCLCPP_DEBUG(node_->get_logger(), "ManeuverReferenceClient::GetReference(): position: [%f, %f, %f]", reference.position().x(), reference.position().y(), reference.position().z());
-            // RCLCPP_DEBUG(node_->get_logger(), "ManeuverReferenceClient::GetReference(): yaw: %f", reference.yaw());
+            reference_mode_msg.data = "maneuver";
 
             break;
 
         }
+        case WAIT_FOR_MANEUVER_STOP: {
+
+            failed_attempts = 0;
+
+            bool success = getReferenceFromServer(reference);
+
+            if (!success) {
+
+                RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::GetReference(): WAIT_FOR_MANEUVER_STOP: Reference is not valid, switching to HOVER mode prematurely.");
+
+                stopManeuverPrematurely();
+
+                reference = reference_;
+
+                reference_mode_msg.data = "hover";
+
+                break;
+
+            }
+
+            reference_mode_msg.data = "wait_for_maneuver_stop";
+
+        }
     }
 
+    reference_mode_msg.stamp = rclcpp::Clock().now();
+
+    reference_mode_publisher_->publish(reference_mode_msg);
+
     return reference;
+
+}
+
+void ManeuverReferenceClient::stopManeuverPrematurely() {
+
+    (*stop_maneuver_timer_)->cancel();
+    (*stop_maneuver_timer_callback_)();
+    
+}
+
+bool ManeuverReferenceClient::isManeuverMode() {
+
+    auto reference_mode = reference_mode_.Load();
+
+    return isManeuverMode(reference_mode);
+
+}
+
+bool ManeuverReferenceClient::isManeuverMode(reference_mode_t reference_mode) {
+
+    switch(reference_mode) {
+        case WAIT_FOR_MANEUVER_START:
+        case MANEUVER:
+        case WAIT_FOR_MANEUVER_STOP:
+            return true;
+        default:
+            return false;
+    }
+
+}
+
+bool ManeuverReferenceClient::getReferenceFromServer(Reference & reference) {
+
+    Reference nan_ref(
+        point_t::Constant(NAN),
+        NAN,
+        vector_t::Constant(NAN),
+        NAN,
+        vector_t::Constant(NAN),
+        NAN
+    );
+
+    if (!get_reference_client_->wait_for_service(std::chrono::nanoseconds(static_cast<int64_t>(5e6)))) {
+        RCLCPP_ERROR(node_->get_logger(), "ManeuverReferenceClient::getReferenceFromServer(): Service not available within 5 milliseconds, using nan reference.");
+        reference = nan_ref;
+        return false;
+
+    }
+
+    if (!get_reference_client_->service_is_ready()) {
+        RCLCPP_ERROR(node_->get_logger(), "ManeuverReferenceClient::getReferenceFromServer(): Service not ready, using nan reference.");
+        reference = nan_ref;
+        return false;
+    }
+
+    std::shared_ptr<iii_drone_interfaces::srv::GetReference::Response> response;
+    auto request = std::make_shared<iii_drone_interfaces::srv::GetReference::Request>();
+
+    auto result = get_reference_client_->async_send_request(
+        request
+    );
+
+    bool failed = false;
+
+    // result.wait();
+
+    int get_reference_timeout_ms = parameters_->GetParameter("get_reference_timeout_ms").as_int();
+
+    if (result.wait_for(std::chrono::milliseconds(get_reference_timeout_ms)) == std::future_status::ready) {
+        // RCLCPP_DEBUG(node_->get_logger(), "ManeuverReferenceClient::GetReference(): Received response.");
+        response = result.get();
+    } else {
+        RCLCPP_DEBUG(node_->get_logger(), "ManeuverReferenceClient::GetReference(): Timeout while waiting for response.");
+        failed = true;
+    }
+
+    if (failed) {
+
+        RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::getReferenceFromServer(): Timeout while waiting for response.");
+        reference = nan_ref;
+        return false;
+    
+    }
+
+    if(!response->is_valid) {
+
+        RCLCPP_WARN(node_->get_logger(), "ManeuverReferenceClient::getReferenceFromServer(): Received invalid reference.");
+        reference = nan_ref;
+        return false;
+
+    }
+
+    reference = ReferenceAdapter(response->reference).reference();
+
+    return true;
 
 }

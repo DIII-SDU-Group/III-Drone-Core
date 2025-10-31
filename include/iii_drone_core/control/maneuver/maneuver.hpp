@@ -178,6 +178,13 @@ namespace maneuver {
 		const rclcpp::Time start_time() const;
 
 		/**
+		 * @brief Termination time getter.
+		 * 
+		 * @return The termination time.
+		 */
+		const rclcpp::Time termination_time() const;
+
+		/**
 		 * @brief Getter for the started flag.
 		 * 
 		 * @return Whether the maneuver has started.
@@ -197,6 +204,13 @@ namespace maneuver {
 		 * @return Whether the maneuver was successful.
 		 */
 		bool success() const;
+
+		/**
+		 * @brief Returns whether the maneuver is canceling.
+		 * 
+		 * @return Whether the maneuver is canceling.
+		 */
+		bool canceling() const;
 
     private:
 		/**
@@ -228,6 +242,11 @@ namespace maneuver {
 		 * @brief The ROS2 time at which the maneuver is started.
 		 */
 		rclcpp::Time start_time_;
+
+		/**
+		 * @brief The ROS2 time at which the maneuver is terminated.
+		 */
+		rclcpp::Time termination_time_;
 
 		/**
 		 * @brief Whether the maneuver has started.

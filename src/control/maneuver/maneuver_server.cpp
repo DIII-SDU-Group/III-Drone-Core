@@ -38,9 +38,11 @@ void ManeuverServer::Start(
     std::map<iii_drone::control::maneuver::maneuver_type_t, std::shared_ptr<ManeuverServer>> registered_maneuvers
 ) {
 
-    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::Start()");
+    std::string action_name_ = action_name();
 
-    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::Start(): Setting callbacks");
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::Start(): %s", action_name_.c_str());
+
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::Start(): %s: Setting callbacks", action_name_.c_str());
 
     register_maneuver_ = register_maneuver_function;
     update_maneuver_ = update_manuever_function;
@@ -49,21 +51,34 @@ void ManeuverServer::Start(
     verify_maneuver_active_ = verify_maneuver_active_function;
     done_callback_ = done_callback;
 
-    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::Start(): Setting reference callback token");
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::Start(): %s: Setting reference callback token", action_name_.c_str());
 
     reference_callback_token_ = reference_callback_token;
 
-    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::Start(): Setting registered maneuvers map");
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::Start(): %s: Setting registered maneuvers map", action_name_.c_str());
 
     registered_maneuvers_ = registered_maneuvers;
 
     running_ = true;
 
-    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::Start(): Finished");
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::Start(): %s: Finished", action_name_.c_str());
 }
 
 void ManeuverServer::Stop() {
     running_ = false;
+
+    registered_maneuvers_.clear();
+
+    reference_callback_token_.reset();
+    reference_callback_token_ = nullptr;
+
+    done_callback_ = nullptr;
+    verify_maneuver_active_ = nullptr;
+    verify_maneuver_in_queue_ = nullptr;
+    cancel_maneuver_ = nullptr;
+    update_maneuver_ = nullptr;
+    register_maneuver_ = nullptr;
+
 }
 
 bool ManeuverServer::running() const {
@@ -101,7 +116,9 @@ rclcpp_action::GoalResponse ManeuverServer::handleGoal(
     std::shared_ptr<const typename ActionT::Goal> goal
 ) {
 
-    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::handleGoal()");
+    std::string action_name_ = action_name();
+
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::handleGoal(): %s: Received goal", action_name_.c_str());
 
     if (!running_) {
         return rclcpp_action::GoalResponse::REJECT;
@@ -121,16 +138,16 @@ rclcpp_action::GoalResponse ManeuverServer::handleGoal(
 
     if (!success) {
 
-        RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::handleGoal(): Could not register maneuver, rejecting goal");
+        RCLCPP_WARN(node_->get_logger(), "ManeuverServer::handleGoal(): %s: Could not register maneuver, rejecting goal", action_name_.c_str());
         return rclcpp_action::GoalResponse::REJECT;
     }
 
     if (executing_instantly) {
-        RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::handleGoal(): Accepting and executing goal");
+        RCLCPP_INFO(node_->get_logger(), "ManeuverServer::handleGoal(): %s: Accepting and executing goal", action_name_.c_str());
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
     }
 
-    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::handleGoal(): Accepting and deferring goal");
+    RCLCPP_INFO(node_->get_logger(), "ManeuverServer::handleGoal(): %s: Accepting and deferring goal", action_name_.c_str());
 
     return rclcpp_action::GoalResponse::ACCEPT_AND_DEFER;
 
@@ -141,16 +158,18 @@ rclcpp_action::CancelResponse ManeuverServer::handleCancel(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<ActionT>> goal_handle
 ) {
 
-    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::handleCancel()");
+    std::string action_name_ = action_name();
+
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::handleCancel(): %s: Received cancel request", action_name_.c_str());
 
     (void)goal_handle;
 
     if (canCancel()) {
-        RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::handleCancel(): Accepting cancel");
+        RCLCPP_INFO(node_->get_logger(), "ManeuverServer::handleCancel(): %s: Accepting cancel", action_name_.c_str());
         return rclcpp_action::CancelResponse::ACCEPT;
     }
 
-    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::handleCancel(): Rejecting cancel");
+    RCLCPP_WARN(node_->get_logger(), "ManeuverServer::handleCancel(): %s: Rejecting cancel", action_name_.c_str());
     return rclcpp_action::CancelResponse::REJECT;
 
 }
@@ -160,25 +179,28 @@ void ManeuverServer::handleAccepted(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<ActionT>> goal_handle
 ) {
 
-    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::handleAccepted()");
+    std::string action_name_ = action_name();
+
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::handleAccepted(): %s: Received accepted", action_name_.c_str());
 
     Maneuver maneuver = Maneuver::FromGoalHandle<ActionT>(goal_handle);
 
-    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::handleAccepted(): Updating maneuver with the maneuver scheduler");
+    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::handleAccepted(): %s: Updating maneuver with the maneuver scheduler", action_name_.c_str());
 
     if (!update_maneuver_(maneuver)) {
-        RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::handleAccepted(): Could not update maneuver, aborting goal");
+        RCLCPP_WARN(node_->get_logger(), "ManeuverServer::handleAccepted(): %s: Could not update maneuver, aborting accepted", action_name_.c_str());
         goal_handle->abort(std::make_shared<typename ActionT::Result>());
         return;
     }
 
-    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::handleAccepted(): Starting async execution");
+    RCLCPP_INFO(node_->get_logger(), "ManeuverServer::handleAccepted(): %s: Starting async execution", action_name_.c_str());
 
-    std::thread{std::bind(
-        &ManeuverServer::asyncExecute<ActionT>,
-        this, 
-        std::placeholders::_1
-    ),
+    std::thread{
+        std::bind(
+            &ManeuverServer::asyncExecute<ActionT>,
+            this, 
+            std::placeholders::_1
+        ),
         goal_handle
     }.detach();
 
@@ -189,113 +211,140 @@ void ManeuverServer::asyncExecute(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<ActionT>> goal_handle
 ) {
 
-    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::asyncExecute()");
+    std::string action_name_ = action_name();
+
+    RCLCPP_INFO(node_->get_logger(), "ManeuverServer::asyncExecute(): %s", action_name_.c_str());
 
     Maneuver maneuver = Maneuver::FromGoalHandle<ActionT>(goal_handle);
 
     rclcpp::Rate rate = rclcpp::Rate(std::chrono::milliseconds(wait_for_execute_poll_ms_));
 
+    auto abort_maneuver = [this, &maneuver, &goal_handle]() {
+        if (!goal_handle->is_canceling())
+            goal_handle->abort(std::make_shared<typename ActionT::Result>());
+        maneuver.Terminate(false);
+        cancel_maneuver_(maneuver);
+        current_maneuver_ = Maneuver();
+    };
+
+    auto cancel_maneuver = [this, &maneuver, &goal_handle]() {
+        if (!goal_handle->is_canceling())
+            goal_handle->canceled(std::make_shared<typename ActionT::Result>());
+        maneuver.Terminate(false);
+        cancel_maneuver_(maneuver);
+        current_maneuver_ = Maneuver();
+    };
+
     while(!goal_handle->is_executing()) {
         // RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::asyncExecute(): Waiting for goal to start executing");
         rate.sleep();
         if (!verify_maneuver_in_queue_(maneuver)) {
-            RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::asyncExecute(): Goal was removed from queue, aborting goal and cancelling maneuver with the scheduler");
-            goal_handle->abort(std::make_shared<typename ActionT::Result>());
-            maneuver.Terminate(false);
-            cancel_maneuver_(maneuver);
-            current_maneuver_ = Maneuver();
+            RCLCPP_WARN(
+                node_->get_logger(), 
+                "ManeuverServer::asyncExecute(): %s: Goal was removed from queue, aborting goal and cancelling maneuver with the scheduler", 
+                action_name_.c_str()
+            );
+            abort_maneuver();
+            return;
+        }
 
+        if (maneuver.canceling()) {
+            RCLCPP_WARN(
+                node_->get_logger(), 
+                "ManeuverServer::asyncExecute(): %s: Goal is canceling, aborting goal and cancelling maneuver with the scheduler",
+                action_name_.c_str()
+            );
+            cancel_maneuver();
             return;
         }
     }
 
-    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::asyncExecute(): Starting execution");
+    RCLCPP_DEBUG(
+        node_->get_logger(), 
+        "ManeuverServer::asyncExecute(): %s: Starting execution",
+        action_name_.c_str()
+    
+    );
 
     std::unique_lock<std::mutex> lock(mutex_, std::try_to_lock);
 
     if (!lock.owns_lock()) {
-        RCLCPP_ERROR(node_->get_logger(), "ManeuverServer::asyncExecute(): Could not acquire lock, aborting goal");
-        goal_handle->canceled(std::make_shared<typename ActionT::Result>());
+        RCLCPP_ERROR(
+            node_->get_logger(), 
+            "ManeuverServer::asyncExecute(): %s: Could not acquire lock, aborting goal",
+            action_name_.c_str()
+        );
+        abort_maneuver();
         return;
     }
 
     current_maneuver_ = maneuver;
 
     if (!reference_callback_token_->Acquire()) {
-        RCLCPP_ERROR(node_->get_logger(), "ManeuverServer::asyncExecute(): Could not acquire reference callback token, aborting goal");
-        goal_handle->canceled(std::make_shared<typename ActionT::Result>());
-        maneuver.Terminate(false);
-        cancel_maneuver_(maneuver);
-        current_maneuver_ = Maneuver();
+        RCLCPP_ERROR(
+            node_->get_logger(), 
+            "ManeuverServer::asyncExecute(): %s: Could not acquire reference callback token, aborting goal",
+            action_name_.c_str()
+        );
+        abort_maneuver();
 
         return;
     }
 
     startExecution(maneuver);
 
-    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::asyncExecute(): Storing reference callback");
+    RCLCPP_DEBUG(
+        node_->get_logger(), 
+        "ManeuverServer::asyncExecute(): %s: Storing reference callback",
+        action_name_.c_str()
+    );
 
-    Atomic<std::function<Reference(const State &)>> &get_reference_callback = reference_callback_token_->resource();
-
-    get_reference_callback.Store(
+    reference_callback_token_->resource().set(
         std::bind(
             &ManeuverServer::computeReference, 
             this, 
             std::placeholders::_1
-        )
+        ),
+        action_name()
     );
 
-    // reference_callback_token_->resource().Store(
-    //     std::bind(
-    //         &ManeuverServer::computeReference, 
-    //         this, 
-    //         std::placeholders::_1
-    //     )
-    // );
-
-    bool success;
+    bool success = false;
+    bool active = true;
+    bool canceling = false;
+    bool failed = false;
 
     while(true) {
 
         if (!verify_maneuver_active_(maneuver) || !running_) {
-            RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::asyncExecute(): Goal was removed from active maneuvers, cancelling goal");
+
+            RCLCPP_WARN(
+                node_->get_logger(), 
+                "ManeuverServer::asyncExecute(): %s: Goal was removed from active maneuvers, cancelling goal",
+                action_name_.c_str()
+            );
             publishResultAndFinalize(
                 maneuver,
                 MANEUVER_RESULT_TYPE_CANCEL
             );
-            maneuver.Terminate(false);
             cancel_maneuver_(maneuver);
             current_maneuver_ = Maneuver();
+
             return;
         }
 
         if (goal_handle->is_canceling()) {
-            RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::asyncExecute(): Goal is canceling, cancelling maneuver");
             success = false;
-            publishResultAndFinalize(
-                maneuver,
-                MANEUVER_RESULT_TYPE_CANCEL
-            );
+            canceling = true;
             break;
         }
 
         if (hasSucceeded(maneuver)) {
-            RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::asyncExecute(): Maneuver succeeded");
             success = true;
-            publishResultAndFinalize(
-                maneuver,
-                MANEUVER_RESULT_TYPE_SUCCEED
-            );
             break;
         }
 
         if (hasFailed(maneuver)) {
-            RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::asyncExecute(): Maneuver failed");
             success = false;
-            publishResultAndFinalize(
-                maneuver,
-                MANEUVER_RESULT_TYPE_ABORT
-            );
             break;
         }
 
@@ -317,12 +366,54 @@ void ManeuverServer::asyncExecute(
 
     }
 
-    if (success) {
-        RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::asyncExecute(): Goal succeeded");
+    if (canceling) {
+
+        RCLCPP_WARN(
+            node_->get_logger(), 
+            "ManeuverServer::asyncExecute(): Goal is canceling, cancelling maneuver",
+            action_name_.c_str()
+        );
+        
+        publishResultAndFinalize(
+            maneuver,
+            MANEUVER_RESULT_TYPE_CANCEL
+        );
+
+    } else if (success) {
+
+        RCLCPP_INFO(
+            node_->get_logger(), 
+            "ManeuverServer::asyncExecute(): %s: Maneuver succeeded",
+            action_name_.c_str()
+        );
+
         registerReferenceCallbackOnSuccess(maneuver);
+
+        publishResultAndFinalize(
+            maneuver,
+            MANEUVER_RESULT_TYPE_SUCCEED
+        );
+
+    } else {
+
+        RCLCPP_WARN(
+            node_->get_logger(), 
+            "ManeuverServer::asyncExecute(): %s: Maneuver failed",
+            action_name_.c_str()
+        );
+        
+        publishResultAndFinalize(
+            maneuver,
+            MANEUVER_RESULT_TYPE_ABORT
+        );
+
     }
 
-    RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::asyncExecute(): Terminating maneuver and releasing reference callback token");
+    RCLCPP_DEBUG(
+        node_->get_logger(), 
+        "ManeuverServer::asyncExecute(): %s: Terminating maneuver.",
+        action_name_.c_str()
+    );
 
     maneuver.Terminate(success);
 
@@ -330,12 +421,27 @@ void ManeuverServer::asyncExecute(
 
     current_maneuver_ = Maneuver();
 
+    RCLCPP_DEBUG(
+        node_->get_logger(), 
+        "ManeuverServer::asyncExecute(): %s: Releasing reference callback token",
+        action_name_.c_str()
+    );
+
     reference_callback_token_->Release();
+
+    RCLCPP_INFO(
+        node_->get_logger(), 
+        "ManeuverServer::asyncExecute(): %s: Finished",
+        action_name_.c_str()
+    );
 
 }
 
-void ManeuverServer::registerCallback(const std::function<Reference(const State &)> &callback) {
-    reference_callback_token_->resource() = callback;
+void ManeuverServer::registerCallback(const ReferenceCallback &callback) {
+    reference_callback_token_->resource().set(
+        callback,
+        action_name()
+    );
 }
 
 template <typename ActionT>
@@ -365,6 +471,10 @@ void ManeuverServer::createServer() {
 
     server_ = std::static_pointer_cast<void>(server);
 
+}
+
+const rclcpp_lifecycle::LifecycleNode & ManeuverServer::node_handle() const {
+    return *node_;
 }
 
 

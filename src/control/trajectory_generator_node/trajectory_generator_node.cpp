@@ -42,6 +42,21 @@ TrajectoryGeneratorNode::TrajectoryGeneratorNode(
 
 	}
 
+    trajectory_path_publisher_ = this->create_publisher<nav_msgs::msg::Path>(
+        "trajectory_path",
+        10
+    );
+
+    target_pose_publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
+        "target_pose",
+        10
+    );
+
+    trajectory_compute_time_publisher_ = this->create_publisher<iii_drone_interfaces::msg::TrajectoryComputeTime>(
+        "trajectory_compute_time",
+        10
+    );
+
     RCLCPP_INFO(this->get_logger(), "TrajectoryGeneratorNode::TrajectoryGeneratorNode(): Ready.");
 
 }
@@ -72,13 +87,8 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Trajec
     );
 
     configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>>(
-        this
-    );
-
-    trajectory_generator_ = std::make_shared<TrajectoryGenerator> (
-        configurator_->GetParameterBundle("position_MPC"),
-        configurator_->GetParameterBundle("cable_landing_MPC"),
-        configurator_->GetParameterBundle("cable_takeoff_MPC")
+        this,
+        "trajectory_generator"
     );
 
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
@@ -107,9 +117,6 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Trajec
     configurator_.reset();
     configurator_ = nullptr;
 
-    trajectory_generator_.reset();
-    trajectory_generator_ = nullptr;
-
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 
 }
@@ -127,6 +134,18 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Trajec
         );
         return parent_return;
     }
+
+    trajectory_generator_ = std::make_shared<TrajectoryGenerator> (
+        configurator_->GetParameterBundle("position_MPC"),
+        configurator_->GetParameterBundle("cable_landing_MPC"),
+        configurator_->GetParameterBundle("cable_takeoff_MPC"),
+        this
+    );
+
+    trajectory_interpolator_ = std::make_shared<TrajectoryInterpolator> (
+        configurator_->GetParameterBundle("trajectory_interpolator"),
+        this
+    );
 
     compute_reference_trajectory_service_ = this->create_service<iii_drone_interfaces::srv::ComputeReferenceTrajectory>(
         "compute_reference_trajectory",
@@ -159,6 +178,12 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Trajec
     compute_reference_trajectory_service_->clear_on_new_request_callback();
     compute_reference_trajectory_service_.reset();
     compute_reference_trajectory_service_ = nullptr;
+
+    trajectory_interpolator_.reset();
+    trajectory_interpolator_ = nullptr;
+
+    trajectory_generator_.reset();
+    trajectory_generator_ = nullptr;
 
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 
@@ -215,19 +240,91 @@ void TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(
     adapters::StateAdapter state_adapter(request->state);
     adapters::ReferenceAdapter reference_adapter(request->reference);
 
+    bool use_mpc = request->use_mpc;
+
     // Compute the reference trajectory
-    ReferenceTrajectory ref_traj = trajectory_generator_->ComputeReferenceTrajectory(
-        state_adapter.state(),
-        reference_adapter.reference(),
-        request->set_reference,
-        request->reset,
-        (MPC_mode_t)request->mpc_mode.mode
-    );
+    ReferenceTrajectory ref_traj;
+
+    // Measure time
+    uint64_t nanoseconds;
+    std::string type;
+    
+    if (use_mpc) {
+
+        type = "MPC";
+
+        RCLCPP_DEBUG(
+            this->get_logger(), 
+            "TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(): Using MPC."
+        );
+
+        auto start = std::chrono::high_resolution_clock::now();
+
+        ref_traj = trajectory_generator_->ComputeReferenceTrajectory(
+            state_adapter.state(),
+            reference_adapter.reference(),
+            request->set_reference,
+            request->reset,
+            (trajectory_mode_t)request->trajectory_mode.mode
+        );
+
+        auto end = std::chrono::high_resolution_clock::now();
+
+        nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+
+    } else {
+
+        type = "Interpolation";
+
+        RCLCPP_DEBUG(
+            this->get_logger(), 
+            "TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(): Using interpolation."
+        );
+
+        auto start = std::chrono::high_resolution_clock::now();
+
+        ref_traj = trajectory_interpolator_->ComputeReferenceTrajectory(
+            state_adapter.state(),
+            reference_adapter.reference(),
+            request->set_reference,
+            request->reset
+        );
+
+        auto end = std::chrono::high_resolution_clock::now();
+
+        nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+
+    }
 
     // Set the response
-    iii_drone_interfaces::msg::ReferenceTrajectory msg = adapters::ReferenceTrajectoryAdapter(ref_traj).ToMsg();
+    adapters::ReferenceTrajectoryAdapter ref_traj_adapter(ref_traj);
+    iii_drone_interfaces::msg::ReferenceTrajectory msg = ref_traj_adapter.ToMsg();
 
     response->reference_trajectory = msg;
+
+    publishTrajectoryPath(ref_traj_adapter);
+    publishTargetPose(reference_adapter);
+
+    iii_drone_interfaces::msg::TrajectoryComputeTime compute_time_msg;
+    compute_time_msg.nanoseconds = nanoseconds;
+    compute_time_msg.trajectory_type = type;
+
+    trajectory_compute_time_publisher_->publish(compute_time_msg);
+
+}
+
+void TrajectoryGeneratorNode::publishTrajectoryPath(const adapters::ReferenceTrajectoryAdapter & reference_trajectory_adapter) {
+
+    nav_msgs::msg::Path path_msg = reference_trajectory_adapter.ToPathMsg(configurator_->GetParameter("world_frame_id").as_string());
+
+    trajectory_path_publisher_->publish(path_msg);
+
+}
+
+void TrajectoryGeneratorNode::publishTargetPose(const adapters::ReferenceAdapter & reference_adapter) {
+
+    geometry_msgs::msg::PoseStamped pose_msg = reference_adapter.ToPoseStampedMsg(configurator_->GetParameter("world_frame_id").as_string());
+    target_pose_publisher_->publish(pose_msg);
 
 }
 

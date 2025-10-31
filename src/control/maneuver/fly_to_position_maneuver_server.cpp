@@ -37,10 +37,30 @@ FlyToPositionManeuverServer::FlyToPositionManeuverServer(
 
 bool FlyToPositionManeuverServer::CanExecuteManeuver(
     const Maneuver & maneuver,
-    const combined_drone_awareness_t & drone_awareness
+    const iii_drone::adapters::CombinedDroneAwarenessAdapter & drone_awareness
 ) const {
 
     if (maneuver.maneuver_type() != MANEUVER_TYPE_FLY_TO_POSITION) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "FlyToPositionManeuverServer::CanExecuteManeuver(): Maneuver type is not FlyToPosition"
+        );
+        return false;
+    }
+
+    if (!drone_awareness.in_flight()) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "FlyToPositionManeuverServer::CanExecuteManeuver(): Drone is not in flight"
+        );
+        return false;
+    }
+
+    if (!drone_awareness.offboard()) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "FlyToPositionManeuverServer::CanExecuteManeuver(): Drone is not in offboard mode"
+        );
         return false;
     }
 
@@ -48,21 +68,27 @@ bool FlyToPositionManeuverServer::CanExecuteManeuver(
 
     bool maneuver_params_valid = validateManeuverParameters(fly_to_position_maneuver_params);
 
-    return drone_awareness.in_flight() && 
-        drone_awareness.offboard &&
-        maneuver_params_valid;
+    if (!maneuver_params_valid) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "FlyToPositionManeuverServer::CanExecuteManeuver(): Maneuver parameters are invalid"
+        );
+        return false;
+    }
+
+    return true;
 
 }
 
-combined_drone_awareness_t FlyToPositionManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver &maneuver) {
+iii_drone::adapters::CombinedDroneAwarenessAdapter FlyToPositionManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver &maneuver) {
 
-    combined_drone_awareness_t awareness_after;
+    iii_drone::adapters::CombinedDroneAwarenessAdapter awareness_after;
 
-    awareness_after.armed = true;
-    awareness_after.offboard = true;
-    awareness_after.target_adapter = TargetAdapter();
-    awareness_after.target_position_known = false;
-    awareness_after.drone_location = DRONE_LOCATION_IN_FLIGHT;
+    awareness_after.armed() = true;
+    awareness_after.offboard() = true;
+    awareness_after.target_adapter() = TargetAdapter();
+    awareness_after.target_position_known() = false;
+    awareness_after.drone_location() = DRONE_LOCATION_IN_FLIGHT;
 
     fly_to_position_maneuver_params_t maneuver_params(maneuver.maneuver_params());
 
@@ -84,7 +110,7 @@ combined_drone_awareness_t FlyToPositionManeuverServer::ExpectedAwarenessAfterEx
         )
     );
 
-    awareness_after.state = State(
+    awareness_after.state() = State(
         target_position_in_world_frame,
         vector_t(0,0,0),
         target_orientation,
@@ -101,35 +127,40 @@ maneuver_type_t FlyToPositionManeuverServer::maneuver_type() const {
 
 void FlyToPositionManeuverServer::startExecution(Maneuver & maneuver) {
 
+    RCLCPP_INFO(
+        node()->get_logger(),
+        "FlyToPositionManeuverServer::startExecution(): Starting execution of maneuver."
+    );
+
     auto cda_handler = awareness_handler();
 
     fly_to_position_maneuver_params_t fly_to_position_maneuver_params(maneuver.maneuver_params());
 
     State state = cda_handler->GetState();
 
-    RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): State: %f, %f, %f, %f", state.position()[0], state.position()[1], state.position()[2], state.yaw());
+    // RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): State: %f, %f, %f, %f", state.position()[0], state.position()[1], state.position()[2], state.yaw());
 
     point_t target_point = fly_to_position_maneuver_params.target_position;
 
-    RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): Target point: %f, %f, %f", target_point[0], target_point[1], target_point[2]);
+    // RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): Target point: %f, %f, %f", target_point[0], target_point[1], target_point[2]);
 
     point_t target_position_in_world_frame = fly_to_position_maneuver_params.transform_target_position(
         parameters_->GetParameter("world_frame_id").as_string(),
         cda_handler->tf_buffer()
     );
 
-    RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): Target position in world frame: %f, %f, %f", target_position_in_world_frame[0], target_position_in_world_frame[1], target_position_in_world_frame[2]);
+    // RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): Target position in world frame: %f, %f, %f", target_position_in_world_frame[0], target_position_in_world_frame[1], target_position_in_world_frame[2]);
 
     double yaw = fly_to_position_maneuver_params.target_yaw;
 
-    RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): Yaw: %f", yaw);
+    // RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): Yaw: %f", yaw);
 
     double target_yaw_in_world_frame = fly_to_position_maneuver_params.transform_target_yaw(
         parameters_->GetParameter("world_frame_id").as_string(),
         cda_handler->tf_buffer()
     );
 
-    RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): Target yaw in world frame: %f", target_yaw_in_world_frame);
+    // RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): Target yaw in world frame: %f", target_yaw_in_world_frame);
 
     target_reference_ = iii_drone::control::Reference(
         target_position_in_world_frame,
@@ -147,6 +178,7 @@ void FlyToPositionManeuverServer::startExecution(Maneuver & maneuver) {
     }
 
     first_iteration_ = true;
+    has_failed_ = false;
 
     cda_handler->ClearTarget();
 
@@ -161,13 +193,40 @@ Reference FlyToPositionManeuverServer::computeReference(const State & state) {
     bool reset, set_reference;
     reset = set_reference = first_iteration_;
 
-    Reference ref = trajectory_generator_client_->ComputeReference(
-        state,
-        target_reference_,
-        set_reference,
-        reset,
-        MPC_mode_t::positional
-    );
+    if (parameters_->GetParameter("use_mpc").as_bool()) {
+        RCLCPP_DEBUG(
+            node()->get_logger(),
+            "FlyToPositionManeuverServer::computeReference(): Using MPC"
+        );
+    } else {
+        RCLCPP_DEBUG(
+            node()->get_logger(),
+            "FlyToPositionManeuverServer::computeReference(): Using interpolation"
+        );
+    }
+
+    Reference ref;
+    
+    try {
+        ref = trajectory_generator_client_->ComputeReference(
+            state,
+            target_reference_,
+            set_reference,
+            reset,
+            trajectory_mode_t::positional,
+            parameters_->GetParameter("use_mpc").as_bool()
+        );
+    } catch (std::runtime_error & e) {
+        RCLCPP_ERROR(
+            node()->get_logger(),
+            "FlyToPositionManeuverServer::computeReference(): %s",
+            e.what()
+        );
+
+        has_failed_ = true;
+        
+        ref = Reference(state,true,true);
+    }
 
     if (first_iteration_) {
 
@@ -202,7 +261,7 @@ bool FlyToPositionManeuverServer::hasSucceeded(Maneuver &) {
     double distance = (state.position() - target_reference_->position()).norm();
     // double distance = (euc_pos - target_euc_pos).norm();
 
-    RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::hasSucceeded(): Euc pos: %f, %f, %f, %f, target euc pos: %f, %f, %f, %f, distance: %f", euc_pos[0], euc_pos[1], euc_pos[2], euc_pos[3], target_euc_pos[0], target_euc_pos[1], target_euc_pos[2], target_euc_pos[3], distance);
+    // RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::hasSucceeded(): Euc pos: %f, %f, %f, %f, target euc pos: %f, %f, %f, %f, distance: %f", euc_pos[0], euc_pos[1], euc_pos[2], euc_pos[3], target_euc_pos[0], target_euc_pos[1], target_euc_pos[2], target_euc_pos[3], distance);
 
     return distance < parameters_->GetParameter("reached_position_euclidean_distance_threshold").as_double();
 
@@ -212,9 +271,39 @@ bool FlyToPositionManeuverServer::hasFailed(Maneuver &) {
 
     auto cda_handler = awareness_handler();
 
-    return !cda_handler->in_flight() 
-        || !cda_handler->offboard()
-        || !cda_handler->armed();
+    if (!cda_handler->in_flight()) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "FlyToPositionManeuverServer::hasFailed(): Drone is not in flight"
+        );
+        return true;
+    }
+
+    if (!cda_handler->offboard()) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "FlyToPositionManeuverServer::hasFailed(): Drone is not in offboard mode"
+        );
+        return true;
+    }
+
+    if (!cda_handler->armed()) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "FlyToPositionManeuverServer::hasFailed(): Drone is not armed"
+        );
+        return true;
+    }
+
+    if (has_failed_) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "FlyToPositionManeuverServer::hasFailed(): Maneuver failed flag is set"
+        );
+        return true;
+    }
+
+    return false;
 
 }
 

@@ -68,6 +68,13 @@ namespace control {
         State();
 
         /**
+         * @brief Sets velocities to NAN.
+         * 
+         * @return State&
+         */
+        State& ApplyNans();
+
+        /**
          * Getter for the position.
          *
          * @return The position.

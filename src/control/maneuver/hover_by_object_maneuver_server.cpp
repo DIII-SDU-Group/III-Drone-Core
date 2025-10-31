@@ -39,16 +39,24 @@ HoverByObjectManeuverServer::HoverByObjectManeuverServer(
 
 bool HoverByObjectManeuverServer::CanExecuteManeuver(
     const Maneuver & maneuver,
-    const combined_drone_awareness_t & drone_awareness
+    const iii_drone::adapters::CombinedDroneAwarenessAdapter & drone_awareness
 ) const {
 
     if (maneuver.maneuver_type() != MANEUVER_TYPE_HOVER_BY_OBJECT) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "HoverByObjectManeuverServer::CanExecuteManeuver(): Maneuver type is not HoverByObject"
+        );
         return false;
     }
 
     hover_by_object_maneuver_params_t params(maneuver.maneuver_params());
 
     if (params.target_adapter.target_type() != TARGET_TYPE_CABLE) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "HoverByObjectManeuverServer::CanExecuteManeuver(): Target type is not CABLE"
+        );
         return false;
     }
 
@@ -56,7 +64,7 @@ bool HoverByObjectManeuverServer::CanExecuteManeuver(
 
 }
 
-combined_drone_awareness_t HoverByObjectManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver & maneuver) {
+iii_drone::adapters::CombinedDroneAwarenessAdapter HoverByObjectManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver & maneuver) {
 
     hover_by_object_maneuver_params_t params(maneuver.maneuver_params());
 
@@ -64,14 +72,14 @@ combined_drone_awareness_t HoverByObjectManeuverServer::ExpectedAwarenessAfterEx
 
     State target_state = awareness_handler()->ComputeTargetState(target_adapter);
 
-    combined_drone_awareness_t awareness_after;
-    awareness_after.armed = true;
-    awareness_after.offboard = true;
-    awareness_after.target_adapter = target_adapter_;
-    awareness_after.target_position_known = true;
-    awareness_after.drone_location = DRONE_LOCATION_IN_FLIGHT;
-    awareness_after.state = target_state;
-
+    iii_drone::adapters::CombinedDroneAwarenessAdapter awareness_after = awareness_handler()->adapter();
+    awareness_after.armed() = true;
+    awareness_after.offboard() = true;
+    awareness_after.target_adapter() = target_adapter_;
+    awareness_after.target_position_known() = true;
+    awareness_after.drone_location() = DRONE_LOCATION_IN_FLIGHT;
+    awareness_after.state() = target_state;
+                      
     return awareness_after;
 
 }
@@ -87,7 +95,17 @@ bool HoverByObjectManeuverServer::Update(const iii_drone::adapters::TargetAdapte
 
     transform_matrix_t target_transform;
     
-    if (!validateAwareness(awareness_handler()->combined_drone_awareness())) {
+    if (
+        !validateAwareness(
+            awareness_handler()->adapter(),
+            target_adapter
+        )
+    ) {
+
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "HoverByObjectManeuverServer::Update(): Failed to validate awareness"
+        );
 
         has_target_ = false;
 
@@ -111,11 +129,11 @@ iii_drone::control::Reference HoverByObjectManeuverServer::GetReference(const ii
 
     }
 
-    if (!has_target_) {
+    // if (!has_target_) {
 
-        throw std::runtime_error("No target set for HoverByObjectManeuverServer");
+    //     throw std::runtime_error("No target set for HoverByObjectManeuverServer");
 
-    }
+    // }
 
     transform_matrix_t target_transform;
     
@@ -129,7 +147,7 @@ iii_drone::control::Reference HoverByObjectManeuverServer::GetReference(const ii
 
     }
 
-    if (!validateAwareness(awareness_handler()->combined_drone_awareness())) {
+    if (!validateAwareness(awareness_handler()->adapter())) {
 
         has_target_ = false;
 
@@ -193,6 +211,11 @@ maneuver_type_t HoverByObjectManeuverServer::maneuver_type() const {
 
 void HoverByObjectManeuverServer::startExecution(Maneuver & maneuver) {
 
+    RCLCPP_INFO(
+        node()->get_logger(),
+        "HoverByObjectManeuverServer::startExecution(): Starting execution of HoverByObject maneuver"
+    );
+
     if (!has_on_fail_callback_) {
 
         throw std::runtime_error("No on fail callback registered for HoverByObjectManeuverServer");
@@ -210,7 +233,7 @@ void HoverByObjectManeuverServer::startExecution(Maneuver & maneuver) {
 
     sustain_action_ = params.sustain_action;
 
-    hover_start_time_ = node()->now();
+    hover_start_time_ = rclcpp::Clock().now();
 
 }
 
@@ -240,7 +263,7 @@ bool HoverByObjectManeuverServer::hasSucceeded(Maneuver & maneuver) {
 
     }
 
-    if (node()->now() - hover_start_time_ >= rclcpp::Duration::from_seconds(hover_duration_s_)) {
+    if (rclcpp::Clock().now() - hover_start_time_ >= rclcpp::Duration::from_seconds(hover_duration_s_)) {
 
         return true;
 
@@ -252,7 +275,7 @@ bool HoverByObjectManeuverServer::hasSucceeded(Maneuver & maneuver) {
 
 bool HoverByObjectManeuverServer::hasFailed(Maneuver & maneuver) {
 
-    return !validateAwareness(awareness_handler()->combined_drone_awareness());
+    return !validateAwareness(awareness_handler()->adapter());
 
 }
 
@@ -311,13 +334,16 @@ bool HoverByObjectManeuverServer::validateTargetTransform(
 
 }
 
-bool HoverByObjectManeuverServer::validateAwareness(combined_drone_awareness_t drone_awareness) const {
+bool HoverByObjectManeuverServer::validateAwareness(
+    iii_drone::adapters::CombinedDroneAwarenessAdapter drone_awareness,
+    const iii_drone::adapters::TargetAdapter &target_adapter
+) const {
 
-    if (!drone_awareness.offboard) {
+    if (!drone_awareness.offboard()) {
         return false;
     }
 
-    if (!drone_awareness.armed) {
+    if (!drone_awareness.armed()) {
         return false;
     }
 
@@ -333,7 +359,16 @@ bool HoverByObjectManeuverServer::validateAwareness(combined_drone_awareness_t d
     
     try {
 
-        target_transform = awareness_handler()->ComputeTargetTransform(target_adapter_);
+        if (target_adapter.target_type() == iii_drone::adapters::target_type_t::TARGET_TYPE_NONE) {
+
+            target_transform = awareness_handler()->ComputeTargetTransform(target_adapter_);
+        
+        } else {
+
+            target_transform = awareness_handler()->ComputeTargetTransform(target_adapter);
+
+        }
+
 
     } catch (const std::runtime_error &e) {
 
@@ -343,7 +378,7 @@ bool HoverByObjectManeuverServer::validateAwareness(combined_drone_awareness_t d
 
     if (!validateTargetTransform(
         target_transform,
-        drone_awareness.state
+        drone_awareness.state()
     )) {
 
         return false;

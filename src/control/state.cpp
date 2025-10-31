@@ -57,6 +57,15 @@ State::State() {
 
 }
 
+State &State::ApplyNans() {
+
+    velocity_ = vector_t::Constant(NAN);
+    angular_velocity_ = vector_t::Constant(NAN);
+
+    return *this;
+
+}
+
 const point_t State::position() const {
     return position_;
 }

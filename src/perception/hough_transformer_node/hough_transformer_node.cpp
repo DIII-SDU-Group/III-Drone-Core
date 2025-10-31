@@ -52,6 +52,25 @@ HoughTransformerNode::HoughTransformerNode(
 		10
 	);
 
+	status_pub_ = this->create_publisher<iii_drone_interfaces::msg::StringStamped>(
+		"status", 
+		10
+	);
+
+	status_timer_ = this->create_wall_timer(
+		std::chrono::seconds(1), 
+		[this](){
+			if (running_) {
+
+				auto msg = iii_drone_interfaces::msg::StringStamped();
+				msg.stamp = this->now();
+				msg.data = running_ ? "Running" : "Stopped";
+				status_pub_->publish(msg);
+
+			}
+		}
+	);
+
 }
 
 HoughTransformerNode::~HoughTransformerNode() {
@@ -80,7 +99,7 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughT
 	}
 
 	// Configurator object
-	configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>>(this);
+	configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>>(this, "hough_transformer");
 
 	// HoughTransformer object
 	hough_transformer_ = std::make_shared<HoughTransformer>(
@@ -154,7 +173,7 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughT
 		return parent_return;
 	}
 
-	rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(10));
+	rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(1));
 	qos.best_effort();
 	qos.durability_volatile();
 

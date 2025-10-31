@@ -30,6 +30,7 @@
 
 #include <px4_msgs/msg/vehicle_status.hpp>
 #include <px4_msgs/msg/vehicle_odometry.hpp>
+#include <px4_msgs/msg/vehicle_global_position.hpp>
 
 /*****************************************************************************/
 // III-Drone-Interfaces:
@@ -58,68 +59,18 @@
 
 #include <iii_drone_core/adapters/px4/vehicle_status_adapter.hpp>
 #include <iii_drone_core/adapters/px4/vehicle_odometry_adapter.hpp>
+#include <iii_drone_core/adapters/px4/vehicle_global_position_adapter.hpp>
 #include <iii_drone_core/adapters/powerline_adapter.hpp>
 #include <iii_drone_core/adapters/single_line_adapter.hpp>
 #include <iii_drone_core/adapters/gripper_status_adapter.hpp>
 #include <iii_drone_core/adapters/target_adapter.hpp>
 #include <iii_drone_core/adapters/state_adapter.hpp>
+#include <iii_drone_core/adapters/combined_drone_awareness_adapter.hpp>
 
 #include <iii_drone_core/control/state.hpp>
 #include <iii_drone_core/control/reference.hpp>
 
 #include <iii_drone_core/control/maneuver/maneuver_types.hpp>
-
-/*****************************************************************************/
-// Defines
-/*****************************************************************************/
-
-namespace iii_drone {
-namespace control {
-
-    /**
-     * @brief Where the drone is located in a high-level sense.
-     */
-    typedef enum {
-        DRONE_LOCATION_UNKNOWN = 0,
-        DRONE_LOCATION_ON_GROUND = 1,
-        DRONE_LOCATION_IN_FLIGHT = 2,
-        DRONE_LOCATION_ON_CABLE = 3
-    } drone_location_t;
-
-	/**
-	 * @brief Represents a combination of drone awareness information, on which behavior execution depends.
-	 */
-    typedef struct {
-        iii_drone::control::State state;
-        bool armed;
-        bool offboard;
-        iii_drone::adapters::TargetAdapter target_adapter;
-        bool target_position_known;
-        drone_location_t drone_location;
-        int on_cable_id;
-        double ground_altitude_estimate;
-        bool gripper_open;
-
-        bool has_target() const {
-            return target_adapter.target_type() != iii_drone::adapters::TARGET_TYPE_NONE;
-        }
-
-        bool on_ground() const {
-            return drone_location == DRONE_LOCATION_ON_GROUND;
-        }
-
-        bool on_cable() const {
-            return drone_location == DRONE_LOCATION_ON_CABLE;
-        }
-
-        bool in_flight() const {
-            return drone_location == DRONE_LOCATION_IN_FLIGHT;
-        }
-
-    } combined_drone_awareness_t;
-
-} // namespace control
-} // namespace iii_drone
 
 /*****************************************************************************/
 // Class
@@ -142,6 +93,7 @@ namespace control {
     class CombinedDroneAwarenessHandler {
         using VehicleStatusAdapterHistory = iii_drone::utils::History<iii_drone::adapters::px4::VehicleStatusAdapter>;
         using VehicleOdometryAdapterHistory = iii_drone::utils::History<iii_drone::adapters::px4::VehicleOdometryAdapter>;
+        using VehicleGlobalPositionAdapterHistory = iii_drone::utils::History<iii_drone::adapters::px4::VehicleGlobalPositionAdapter>;
         using PowerlineAdapterHistory = iii_drone::utils::History<iii_drone::adapters::PowerlineAdapter>;
         using GripperStatusAdapterHistory = iii_drone::utils::History<iii_drone::adapters::GripperStatusAdapter>;
 
@@ -205,7 +157,7 @@ namespace control {
         iii_drone::types::transform_matrix_t ComputeTargetTransform(const iii_drone::adapters::TargetAdapter & target_adapter) const;
 
         /**
-         * @brief Gets the pose of the target.
+         * @brief Gets the pose of the target object in the world frame (not considering the target transform).
          * 
          * @param target_adapter The target adapter.
          * 
@@ -230,11 +182,11 @@ namespace control {
         void ClearTarget();
 
         /**
-         * @brief Getter for the combined drone awareness simple type by copy.
+         * @brief Get adapter.
          * 
-         * @return The combined drone awareness member.
+         * @return The combined drone awareness adapter.
          */
-        const combined_drone_awareness_t combined_drone_awareness() const;
+        const iii_drone::adapters::CombinedDroneAwarenessAdapter adapter() const;
 
         /**
          * @brief Whether the drone is armed.
@@ -314,14 +266,21 @@ namespace control {
          * 
          * @return The drone location.
          */
-        drone_location_t drone_location(int &on_cable_id) const;
+        iii_drone::adapters::drone_location_t drone_location(int &on_cable_id) const;
 
         /**
          * @brief Returns the drone location.
          * 
          * @return The drone location.
          */
-        drone_location_t drone_location() const;
+        iii_drone::adapters::drone_location_t drone_location() const;
+
+        /**
+         * @brief Returns whether the gripper is open.
+         * 
+         * @return true if the gripper is open.
+         */
+        bool gripper_open() const;
 
         /**
          * @brief Returns the tf buffer shared ptr.
@@ -395,9 +354,9 @@ namespace control {
         rclcpp::Service<iii_drone_interfaces::srv::RegisterOffboardMode>::SharedPtr register_offboard_mode_srv_;
 
         /**
-         * @brief Atomic combined drone awareness simple type member.
+         * @brief Atomic combined drone awareness adapter member.
          */
-        iii_drone::utils::Atomic<combined_drone_awareness_t>::SharedPtr combined_drone_awareness_;
+        iii_drone::utils::Atomic<iii_drone::adapters::CombinedDroneAwarenessAdapter>::SharedPtr combined_drone_awareness_adapter_;
 
         /**
          * @brief Updates the combined drone awareness based on current information.
@@ -416,6 +375,16 @@ namespace control {
          * @brief Combined drone awareness publisher.
          */
         rclcpp_lifecycle::LifecyclePublisher<iii_drone_interfaces::msg::CombinedDroneAwareness>::SharedPtr combined_drone_awareness_pub_;
+
+        /**
+         * @brief Target pose publisher.
+         */
+        rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::PoseStamped>::SharedPtr target_pose_pub_;
+
+        /**
+         * @brief Target drone pose publisher.
+         */
+        rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::PoseStamped>::SharedPtr target_drone_pose_pub_;
 
         /**
          * @brief Has found initial location flag.
@@ -444,11 +413,11 @@ namespace control {
          * @brief Updates the given combined drone awareness from the vehicle status.
          * Triggers updates of armed, offboard, and location.
          * 
-         * @param combined_drone_awareness The combined drone awareness to update.
+         * @param combined_drone_awareness_adapter The combined drone awareness adapter to update.
          * 
          * @return void
          */
-        void updateCombinedDroneAwarenessFromVehicleStatus(combined_drone_awareness_t & combined_drone_awareness);
+        void updateCombinedDroneAwarenessFromVehicleStatus(iii_drone::adapters::CombinedDroneAwarenessAdapter & combined_drone_awareness_adapter);
 
 		/**
 		 * @brief PX4 odometry subscription
@@ -472,11 +441,15 @@ namespace control {
          * @brief Updates the given combined drone awareness from the vehicle odometry.
          * Triggers updates of ground altitude estimate and location.
          * 
-         * @param combined_drone_awareness The combined drone awareness to update.
+         * @param combined_drone_awareness_adapter The combined drone awareness adapter to update.
          * 
          * @return void
          */
-        void updateCombinedDroneAwarenessFromVehicleOdometry(combined_drone_awareness_t & combined_drone_awareness);
+        void updateCombinedDroneAwarenessFromVehicleOdometry(iii_drone::adapters::CombinedDroneAwarenessAdapter & combined_drone_awareness_adapter);
+
+        rclcpp::Subscription<px4_msgs::msg::VehicleGlobalPosition>::SharedPtr vehicle_global_position_sub_;
+
+        VehicleGlobalPositionAdapterHistory::SharedPtr vehicle_global_position_adapter_history_;
 
 		/**
 		 * @brief Powerline subscription
@@ -500,11 +473,11 @@ namespace control {
          * @brief Updates the given combined drone awareness from the powerline.
          * Triggers updates of target_cable_position_known and location.
          * 
-         * @param combined_drone_awareness The combined drone awareness to update.
+         * @param combined_drone_awareness_adapter The combined drone awareness adapter to update.
          * 
          * @return void
          */
-        void updateCombinedDroneAwarenessFromPowerline(combined_drone_awareness_t & combined_drone_awareness);
+        void updateCombinedDroneAwarenessFromPowerline(iii_drone::adapters::CombinedDroneAwarenessAdapter & combined_drone_awareness_adapter);
 
 		/**
 		 * @brief Gripper status subscription
@@ -528,11 +501,11 @@ namespace control {
          * @brief Updates the given combined drone awareness from the gripper status.
          * Triggers updates of gripper_open.
          * 
-         * @param combined_drone_awareness The combined drone awareness to update.
+         * @param combined_drone_awareness_adapter The combined drone awareness to update.
          * 
          * @return void
          */
-        void updateCombinedDroneAwarenessFromGripperStatus(combined_drone_awareness_t & combined_drone_awareness);
+        void updateCombinedDroneAwarenessFromGripperStatus(iii_drone::adapters::CombinedDroneAwarenessAdapter & combined_drone_awareness_adapter);
 
         /**
          * @brief Atomic target adapter member.
@@ -556,16 +529,21 @@ namespace control {
          * @brief Updates the given combined drone awareness from the target adapter.
          * Triggers updates of target_adapter, target_position_known, and has_target.
          * 
-         * @param combined_drone_awareness The combined drone awareness to update.
+         * @param combined_drone_awareness_adapter The combined drone awareness to update.
          * 
          * @return void
          */
-        void updateCombinedDroneAwarenessFromTarget(combined_drone_awareness_t & combined_drone_awareness);
+        void updateCombinedDroneAwarenessFromTarget(iii_drone::adapters::CombinedDroneAwarenessAdapter & combined_drone_awareness_adapter);
 
         /**
          * @brief Atomic ground altitude estimate member.
          */
         iii_drone::utils::Atomic<double>::SharedPtr ground_altitude_estimate_;
+
+        /**
+         * @brief Atomic ground altitude estimate AMSL member.
+         */
+        iii_drone::utils::Atomic<double>::SharedPtr ground_altitude_estimate_amsl_;
 
         /**
          * @brief Ground altitudes history.
@@ -608,11 +586,11 @@ namespace control {
          * on_cable_id will be set to -1 if the drone is not on a cable.
          * on_cable_id can be different from target_cable_id.
          * 
-         * @param awareness The combined drone awareness object to update.
+         * @param awareness The combined drone awareness adapter to update.
          * 
          * @return void
          */
-        void updateDroneLocation(combined_drone_awareness_t & awareness);
+        void updateDroneLocation(iii_drone::adapters::CombinedDroneAwarenessAdapter & awareness_adapter);
 
         /**
          * @brief Timer for publishing members.

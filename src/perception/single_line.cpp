@@ -171,7 +171,9 @@ bool SingleLine::IsInFOV(
     in_FOV &= dist >= min_point_dist;
 
     const char* simulation_env = std::getenv("SIMULATION");
-    bool simulation = (simulation_env != nullptr) ? (std::string(simulation_env) == "True") : false;
+    std::string simulation_env_str = (simulation_env != nullptr) ? std::string(simulation_env) : "";
+    std::transform(simulation_env_str.begin(), simulation_env_str.end(), simulation_env_str.begin(), ::tolower);
+    bool simulation = simulation_env_str == "true";
 
     if (simulation) {
 
@@ -197,10 +199,16 @@ bool SingleLine::IsInFOV() const {
     point_stamped.header.frame_id = frame_id_;
     point_stamped.point = pointMsgFromPoint(position_);
 
-    geometry_msgs::msg::PointStamped mmwave_point_stamped = tf_buffer_->transform(
-        point_stamped, 
-        parameters_->GetParameter("mmwave_frame_id").as_string()
-    );
+    geometry_msgs::msg::PointStamped mmwave_point_stamped;
+
+    try {
+        mmwave_point_stamped = tf_buffer_->transform(
+            point_stamped, 
+            parameters_->GetParameter("mmwave_frame_id").as_string()
+        );
+    } catch (tf2::TransformException & ex) {
+        return false;
+    }
 
     point_t mmwave_point = pointFromPointMsg(mmwave_point_stamped.point);
 
@@ -223,10 +231,16 @@ bool SingleLine::IsInFOVStrict() const {
     point_stamped.header.frame_id = frame_id_;
     point_stamped.point = pointMsgFromPoint(position_);
 
-    geometry_msgs::msg::PointStamped mmwave_point_stamped = tf_buffer_->transform(
-        point_stamped, 
-        parameters_->GetParameter("mmwave_frame_id").as_string()
-    );
+    geometry_msgs::msg::PointStamped mmwave_point_stamped;
+
+    try {
+        mmwave_point_stamped = tf_buffer_->transform(
+            point_stamped, 
+            parameters_->GetParameter("mmwave_frame_id").as_string()
+        );
+    } catch (tf2::TransformException & ex) {
+        return false;
+    }
 
     point_t mmwave_point = pointFromPointMsg(mmwave_point_stamped.point);
 

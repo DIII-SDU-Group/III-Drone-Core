@@ -38,7 +38,7 @@ CableTakeoffManeuverServer::CableTakeoffManeuverServer(
 
 bool CableTakeoffManeuverServer::CanExecuteManeuver(
     const Maneuver & maneuver,
-    const combined_drone_awareness_t & drone_awareness
+    const iii_drone::adapters::CombinedDroneAwarenessAdapter & drone_awareness
 ) const {
 
     cable_takeoff_maneuver_params_t cable_takeoff_maneuver_params(maneuver.maneuver_params());
@@ -47,11 +47,11 @@ bool CableTakeoffManeuverServer::CanExecuteManeuver(
         return false;
     }
 
-    if (!drone_awareness.armed) {
+    if (!drone_awareness.armed()) {
         return false;
     }
 
-    if (!drone_awareness.offboard) {
+    if (!drone_awareness.offboard()) {
         return false;
     }
 
@@ -63,11 +63,11 @@ bool CableTakeoffManeuverServer::CanExecuteManeuver(
         return false;
     }
 
-    if (drone_awareness.target_adapter.target_type() != TARGET_TYPE_CABLE) {
+    if (drone_awareness.target_adapter().target_type() != TARGET_TYPE_CABLE) {
         return false;
     }
 
-    if (drone_awareness.target_adapter.target_id() != cable_takeoff_maneuver_params.target_cable_id) {
+    if (drone_awareness.target_adapter().target_id() != cable_takeoff_maneuver_params.target_cable_id) {
         return false;
     }
 
@@ -83,7 +83,7 @@ bool CableTakeoffManeuverServer::CanExecuteManeuver(
 
 }
 
-combined_drone_awareness_t CableTakeoffManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver & maneuver) {
+iii_drone::adapters::CombinedDroneAwarenessAdapter CableTakeoffManeuverServer::ExpectedAwarenessAfterExecution(const Maneuver & maneuver) {
 
     cable_takeoff_maneuver_params_t cable_takeoff_maneuver_params(maneuver.maneuver_params());
 
@@ -92,7 +92,7 @@ combined_drone_awareness_t CableTakeoffManeuverServer::ExpectedAwarenessAfterExe
     TargetAdapter target_adapter = TargetAdapter(
         TARGET_TYPE_CABLE,
         cable_takeoff_maneuver_params.target_cable_id,
-        parameters_->GetParameter("drone_frame_id").as_string(),
+        parameters_->GetParameter("gripper_frame_id").as_string(),
         target_transform
     );
 
@@ -115,14 +115,14 @@ combined_drone_awareness_t CableTakeoffManeuverServer::ExpectedAwarenessAfterExe
 
     }
 
-    combined_drone_awareness_t awareness_after;
+    iii_drone::adapters::CombinedDroneAwarenessAdapter awareness_after;
 
-    awareness_after.armed = true;
-    awareness_after.offboard = true;
-    awareness_after.target_position_known = true;
-    awareness_after.drone_location = DRONE_LOCATION_ON_CABLE;
-    awareness_after.target_adapter = target_adapter;
-    awareness_after.state = target_state;
+    awareness_after.armed() = true;
+    awareness_after.offboard() = true;
+    awareness_after.target_position_known() = true;
+    awareness_after.drone_location() = DRONE_LOCATION_ON_CABLE;
+    awareness_after.target_adapter() = target_adapter;
+    awareness_after.state() = target_state;
 
     return awareness_after;
 
@@ -143,8 +143,10 @@ void CableTakeoffManeuverServer::startExecution(Maneuver & maneuver) {
     target_adapter_ = TargetAdapter(
         TARGET_TYPE_CABLE,
         cable_takeoff_maneuver_params.target_cable_id,
-        parameters_->GetParameter("drone_frame_id").as_string(),
+        // parameters_->GetParameter("drone_frame_id").as_string(),
+        parameters_->GetParameter("gripper_frame_id").as_string(),
         target_transform
+        // transform_matrix_t::Identity()
     );
 
     start_state_ = cda_handler->GetState();
@@ -160,6 +162,7 @@ void CableTakeoffManeuverServer::startExecution(Maneuver & maneuver) {
     }
 
     first_iteration_ = true;
+    has_failed_ = false;
 
     cda_handler->SetTarget(target_adapter_);
 
@@ -181,13 +184,34 @@ Reference CableTakeoffManeuverServer::computeReference(const State & state) {
     bool reset = first_iteration_;
     bool set_reference = true;
 
-    Reference ref = trajectory_generator_client_->ComputeReference(
-        state,
-        target_reference,
-        reset,
-        set_reference,
-        MPC_mode_t::cable_takeoff
-    );
+    first_iteration_ = false;
+
+    Reference ref;
+    
+    try {
+
+        ref = trajectory_generator_client_->ComputeReference(
+            state,
+            target_reference,
+            set_reference,
+            reset,
+            trajectory_mode_t::cable_takeoff,
+            parameters_->GetParameter("use_mpc").as_bool()
+        );
+
+    } catch (const std::runtime_error &e) {
+
+        RCLCPP_ERROR(node()->get_logger(), "CableTakeoffManeuverServer::computeReference(): %s", e.what());
+
+        has_failed_ = true;
+
+        ref = Reference(
+            state,
+            true,
+            true
+        );
+
+    }
 
     return ref;
 

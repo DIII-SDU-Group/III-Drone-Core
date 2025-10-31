@@ -112,10 +112,19 @@ void Maneuver::SetFromGoal(const std::shared_ptr<const typename ActionT::Goal> g
     } else if constexpr (std::is_same<ActionT, iii_drone_interfaces::action::CableLanding>::value) {
 
         maneuver_type_ = MANEUVER_TYPE_CABLE_LANDING;
+        maneuver_params_ = std::make_shared<cable_landing_maneuver_params_t>();
 
-        maneuver_params_ = nullptr;
+        std::shared_ptr<cable_landing_maneuver_params_t> p = std::static_pointer_cast<cable_landing_maneuver_params_t>(maneuver_params_);
 
-    } else if constexpr (std::is_same<ActionT, iii_drone_interfaces::action::CableLanding>::value) {
+        if (p == nullptr) {
+            std::string msg = "Maneuver::setFromGoal(): Failed to cast maneuver params to cable_landing_maneuver_params_t";
+            RCLCPP_FATAL(rclcpp::get_logger("rclcpp"),msg.c_str());
+            throw std::runtime_error(msg);
+        }
+
+        *p = cable_landing_maneuver_params_t(goal->target_cable_id);
+
+    } else if constexpr (std::is_same<ActionT, iii_drone_interfaces::action::CableTakeoff>::value) {
 
         maneuver_type_ = MANEUVER_TYPE_CABLE_TAKEOFF;
         maneuver_params_ = std::make_shared<cable_takeoff_maneuver_params_t>();
@@ -128,7 +137,10 @@ void Maneuver::SetFromGoal(const std::shared_ptr<const typename ActionT::Goal> g
             throw std::runtime_error(msg);
         }
 
-        *p = cable_takeoff_maneuver_params_t(goal->target_cable_distance);
+        *p = cable_takeoff_maneuver_params_t(
+            goal->target_cable_id,
+            goal->target_cable_distance
+        );
 
     } else if constexpr (std::is_same<ActionT, iii_drone_interfaces::action::Hover>::value) {
 
@@ -145,6 +157,7 @@ void Maneuver::SetFromGoal(const std::shared_ptr<const typename ActionT::Goal> g
 
         *p = hover_maneuver_params_t(
             goal->duration_s,
+            goal->sustain_duration_s,
             goal->sustain_action
         );
 
@@ -214,43 +227,43 @@ void Maneuver::Start() {
     switch(maneuver_type_) {
         case MANEUVER_TYPE_FLY_TO_POSITION: {
             auto goal_handle = std::static_pointer_cast<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::FlyToPosition>>(goal_handle_);
-            if (!goal_handle->is_executing()) goal_handle->execute();
+            if (!goal_handle->is_executing() && !goal_handle->is_canceling()) goal_handle->execute();
             break;
         }
 
         case MANEUVER_TYPE_FLY_TO_OBJECT: {
             auto goal_handle = std::static_pointer_cast<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::FlyToObject>>(goal_handle_);
-            if (!goal_handle->is_executing()) goal_handle->execute();
+            if (!goal_handle->is_executing() && !goal_handle->is_canceling()) goal_handle->execute();
             break;
         }
 
         case MANEUVER_TYPE_CABLE_LANDING: {
             auto goal_handle = std::static_pointer_cast<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::CableLanding>>(goal_handle_);
-            if (!goal_handle->is_executing()) goal_handle->execute();
+            if (!goal_handle->is_executing() && !goal_handle->is_canceling()) goal_handle->execute();
             break;
         }
 
         case MANEUVER_TYPE_CABLE_TAKEOFF: {
             auto goal_handle = std::static_pointer_cast<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::CableTakeoff>>(goal_handle_);
-            if (!goal_handle->is_executing()) goal_handle->execute();
+            if (!goal_handle->is_executing() && !goal_handle->is_canceling()) goal_handle->execute();
             break;
         }
 
         case MANEUVER_TYPE_HOVER: {
             auto goal_handle = std::static_pointer_cast<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::Hover>>(goal_handle_);
-            if (!goal_handle->is_executing()) goal_handle->execute();
+            if (!goal_handle->is_executing() && !goal_handle->is_canceling()) goal_handle->execute();
             break;
         }
 
         case MANEUVER_TYPE_HOVER_BY_OBJECT: {
             auto goal_handle = std::static_pointer_cast<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::HoverByObject>>(goal_handle_);
-            if (!goal_handle->is_executing()) goal_handle->execute();
+            if (!goal_handle->is_executing() && !goal_handle->is_canceling()) goal_handle->execute();
             break;
         }
 
         case MANEUVER_TYPE_HOVER_ON_CABLE: {
             auto goal_handle = std::static_pointer_cast<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::HoverOnCable>>(goal_handle_);
-            if (!goal_handle->is_executing()) goal_handle->execute();
+            if (!goal_handle->is_executing() && !goal_handle->is_canceling()) goal_handle->execute();
             break;
         }
 
@@ -270,6 +283,8 @@ void Maneuver::Terminate(bool success) {
     terminated_ = true;
     success_ = success;
     goal_handle_ = nullptr;
+
+    termination_time_ = rclcpp::Clock().now();
 
 }
 
@@ -328,6 +343,10 @@ const rclcpp::Time Maneuver::start_time() const {
     return start_time_;
 }
 
+const rclcpp::Time Maneuver::termination_time() const {
+    return termination_time_;
+}
+
 bool Maneuver::started() const {
     return started_;
 }
@@ -338,6 +357,55 @@ bool Maneuver::terminated() const {
 
 bool Maneuver::success() const {
     return success_;
+}
+
+bool Maneuver::canceling() const {
+    if (goal_handle_ == nullptr) return false;
+    
+    switch(maneuver_type_) {
+        case MANEUVER_TYPE_FLY_TO_POSITION: {
+            auto goal_handle = std::static_pointer_cast<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::FlyToPosition>>(goal_handle_);
+            return goal_handle->is_canceling();
+        }
+
+        case MANEUVER_TYPE_FLY_TO_OBJECT: {
+            auto goal_handle = std::static_pointer_cast<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::FlyToObject>>(goal_handle_);
+            return goal_handle->is_canceling();
+        }
+
+        case MANEUVER_TYPE_CABLE_LANDING: {
+            auto goal_handle = std::static_pointer_cast<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::CableLanding>>(goal_handle_);
+            return goal_handle->is_canceling();
+        }
+
+        case MANEUVER_TYPE_CABLE_TAKEOFF: {
+            auto goal_handle = std::static_pointer_cast<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::CableTakeoff>>(goal_handle_);
+            return goal_handle->is_canceling();
+        }
+
+        case MANEUVER_TYPE_HOVER: {
+            auto goal_handle = std::static_pointer_cast<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::Hover>>(goal_handle_);
+            return goal_handle->is_canceling();
+        }
+
+        case MANEUVER_TYPE_HOVER_BY_OBJECT: {
+            auto goal_handle = std::static_pointer_cast<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::HoverByObject>>(goal_handle_);
+            return goal_handle->is_canceling();
+        }
+
+        case MANEUVER_TYPE_HOVER_ON_CABLE: {
+            auto goal_handle = std::static_pointer_cast<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::HoverOnCable>>(goal_handle_);
+            return goal_handle->is_canceling();
+        }
+
+        case MANEUVER_TYPE_NONE:
+            return false;
+
+        default:
+            RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),"Maneuver::Start(): Unknown maneuver type");
+            return false;
+        
+    }
 }
 
 /*****************************************************************************/

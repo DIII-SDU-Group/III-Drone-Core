@@ -53,6 +53,11 @@ TrajectoryGeneratorClient::~TrajectoryGeneratorClient() {
 
 void TrajectoryGeneratorClient::Reset(const State & state) {
 
+    RCLCPP_DEBUG(
+        node_->get_logger(), 
+        "TrajectoryGeneratorClient::Reset(): Resetting trajectory generator client."
+    );
+
     Cancel();
 
     Reference reference(
@@ -78,7 +83,8 @@ Reference TrajectoryGeneratorClient::ComputeReference(
     const Reference & reference,
     bool set_reference,
     bool reset,
-    MPC_mode_t mpc_mode
+    trajectory_mode_t trajectory_mode,
+    bool use_mpc
 ) {
 
     Reference ref_out;
@@ -89,7 +95,7 @@ Reference TrajectoryGeneratorClient::ComputeReference(
 
     }
 
-    if (parameters_->GetParameter("generate_trajectories_asynchronously_with_delay").as_bool()) {
+    if (use_mpc && parameters_->GetParameter("generate_trajectories_asynchronously_with_delay").as_bool()) {
 
         if (reset) {
 
@@ -114,7 +120,8 @@ Reference TrajectoryGeneratorClient::ComputeReference(
             reference,
             set_reference,
             reset,
-            mpc_mode
+            trajectory_mode,
+            use_mpc
         );
 
     } else {
@@ -124,13 +131,23 @@ Reference TrajectoryGeneratorClient::ComputeReference(
             reference,
             set_reference,
             reset,
-            mpc_mode,
-            parameters_->GetParameter("generate_trajectories_poll_period_ms").as_int()
+            trajectory_mode,
+            parameters_->GetParameter("generate_trajectories_poll_period_ms").as_int(),
+            use_mpc
         );
 
         ref_out = GetReferenceTrajectory().references()[0];
 
     }
+
+    // RCLCPP_DEBUG(
+    //     node_->get_logger(), 
+    //     "TrajectoryGeneratorClient::ComputeReference(): Reference computed: %f, %f, %f, %f.",
+    //     ref_out.position()[0],
+    //     ref_out.position()[1],
+    //     ref_out.position()[2],
+    //     ref_out.yaw()
+    // );
 
     return ref_out;
 
@@ -141,7 +158,8 @@ void TrajectoryGeneratorClient::ComputeReferenceTrajectoryAsync(
     const Reference & reference,
     bool set_reference,
     bool reset,
-    MPC_mode_t mpc_mode
+    trajectory_mode_t trajectory_mode,
+    bool use_mpc
 ) {
 
     if (busy()) {
@@ -170,7 +188,9 @@ void TrajectoryGeneratorClient::ComputeReferenceTrajectoryAsync(
     request->set_reference = set_reference;
     request->reset = reset;
 
-    request->mpc_mode.mode = mpc_mode;
+    request->trajectory_mode.mode = trajectory_mode;
+
+    request->use_mpc = use_mpc;
 
     // Send request
     auto future = client_->async_send_request(
@@ -191,8 +211,9 @@ void TrajectoryGeneratorClient::ComputeReferenceTrajectoryBlocking(
     const Reference & reference,
     bool set_reference,
     bool reset,
-    MPC_mode_t mpc_mode,
-    unsigned int poll_period_ms
+    trajectory_mode_t trajectory_mode,
+    unsigned int poll_period_ms,
+    bool use_mpc
 ) {
 
     ComputeReferenceTrajectoryAsync(
@@ -200,7 +221,8 @@ void TrajectoryGeneratorClient::ComputeReferenceTrajectoryBlocking(
         reference, 
         set_reference, 
         reset, 
-        mpc_mode
+        trajectory_mode,
+        use_mpc
     );
 
     rclcpp::Time wait_start_time = node_->now();

@@ -45,6 +45,8 @@
 /*****************************************************************************/
 // III-Drone-Interfaces:
 
+#include <iii_drone_interfaces/msg/string_stamped.hpp>
+
 #include <iii_drone_interfaces/srv/system_command.hpp>
 
 /*****************************************************************************/
@@ -192,6 +194,10 @@ namespace hough_transformer_node {
 		 * @details Flag to indicate if the node is running
 		 */
 		utils::Atomic<bool> running_;
+
+		rclcpp_lifecycle::LifecyclePublisher<iii_drone_interfaces::msg::StringStamped>::SharedPtr status_pub_;
+
+		rclcpp::TimerBase::SharedPtr status_timer_;
 
 		/**
 		 * @brief Callback function for the image topic

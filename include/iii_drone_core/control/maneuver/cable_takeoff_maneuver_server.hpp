@@ -42,6 +42,7 @@
 #include <iii_drone_core/adapters/state_adapter.hpp>
 #include <iii_drone_core/adapters/reference_trajectory_adapter.hpp>
 #include <iii_drone_core/adapters/target_adapter.hpp>
+#include <iii_drone_core/adapters/combined_drone_awareness_adapter.hpp>
 
 /*****************************************************************************/
 // III-Drone-Interfaces:
@@ -94,7 +95,7 @@ namespace maneuver {
          */
         bool CanExecuteManeuver(
             const Maneuver & maneuver,
-            const combined_drone_awareness_t & drone_awareness
+            const iii_drone::adapters::CombinedDroneAwarenessAdapter & drone_awareness
         ) const override;
 
         /**
@@ -104,7 +105,7 @@ namespace maneuver {
          * 
          * @return The expected awareness after execution.
          */
-        combined_drone_awareness_t ExpectedAwarenessAfterExecution(const Maneuver & maneuver) override;
+        iii_drone::adapters::CombinedDroneAwarenessAdapter ExpectedAwarenessAfterExecution(const Maneuver & maneuver) override;
 
     private:
         /**
@@ -212,6 +213,11 @@ namespace maneuver {
          * @brief Flag for first iteration.
          */
         iii_drone::utils::Atomic<bool> first_iteration_ = true;
+
+        /**
+         * @brief Has failed flag.
+         */
+        iii_drone::utils::Atomic<bool> has_failed_ = false;
 
         /**
          * @brief Get updated target reference. 

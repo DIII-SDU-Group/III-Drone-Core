@@ -40,7 +40,7 @@
 #include <iii_drone_core/adapters/reference_adapter.hpp>
 #include <iii_drone_core/adapters/reference_trajectory_adapter.hpp>
 
-#include <iii_drone_core/control/mpc_mode.hpp>
+#include <iii_drone_core/control/trajectory_mode.hpp>
 #include <iii_drone_core/control/state.hpp>
 #include <iii_drone_core/control/reference.hpp>
 #include <iii_drone_core/control/reference_trajectory.hpp>
@@ -95,7 +95,8 @@ namespace control {
          * @param reference Reference
          * @param set_reference Updates the internal MPC reference if true
          * @param reset Resets the internal MPC if true
-         * @param mpc_mode The MPC mode
+         * @param trajectory_mode The trajectory mode
+         * @param use_mpc Use MPC if true, default is true
          * 
          * @return reference
          * 
@@ -106,7 +107,8 @@ namespace control {
             const iii_drone::control::Reference & reference,
             bool set_reference,
             bool reset,
-            MPC_mode_t mpc_mode
+            trajectory_mode_t trajectory_mode,
+            bool use_mpc=true
         );
 
         /**
@@ -117,6 +119,7 @@ namespace control {
          * @param set_reference Updates the internal MPC reference if true
          * @param reset Resets the internal MPC if true
          * @param mpc_mode The MPC mode
+         * @param use_mpc Use MPC if true
          * 
          * @throws std::runtime_error if the trajectory generator is busy
          */
@@ -125,7 +128,8 @@ namespace control {
             const iii_drone::control::Reference & reference,
             bool set_reference,
             bool reset,
-            MPC_mode_t mpc_mode
+            trajectory_mode_t trajectory_mode,
+            bool use_mpc=true
         );
 
         /**
@@ -135,8 +139,9 @@ namespace control {
          * @param reference Reference
          * @param set_reference Updates the internal MPC reference if true
          * @param reset Resets the internal MPC if true
-         * @param mpc_mode The MPC mode
+         * @param trajectory_mode The trajectory mode
          * @param poll_period_ms Poll period in milliseconds
+         * @param use_mpc Use MPC if true
          * 
          * @throws std::runtime_error if the trajectory generator is busy
          */
@@ -145,8 +150,9 @@ namespace control {
             const iii_drone::control::Reference & reference,
             bool set_reference,
             bool reset,
-            MPC_mode_t mpc_mode,
-            unsigned int poll_period_ms
+            trajectory_mode_t trajectory_mode,
+            unsigned int poll_period_ms,
+            bool use_mpc=true
         );
 
         /**

@@ -81,6 +81,37 @@ PowerlineMapperNode::PowerlineMapperNode(
         system_command_clients_callback_group_
     );
 
+    state_pub_ = this->create_publisher<iii_drone_interfaces::msg::StringStamped>(
+        "state", 
+        10
+    );
+
+    state_pub_timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(1000), 
+        [this]() {
+            auto msg = std::make_unique<iii_drone_interfaces::msg::StringStamped>();
+            msg->stamp = this->now();
+            
+            switch(pl_mapper_state_) {
+                case pl_mapper_state_running:
+                    msg->data = "Running";
+                    break;
+                case pl_mapper_state_paused:
+                    msg->data = "Paused";
+                    break;
+                case pl_mapper_state_frozen:
+                    msg->data = "Frozen";
+                    break;
+                default:
+                case pl_mapper_state_idle:
+                    msg->data = "Idle";
+                    break;
+            }
+
+            state_pub_->publish(std::move(msg));
+        }
+    );
+
     RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::PowerlineMapperNode(): PL mapper ready");
 
 }
@@ -112,7 +143,8 @@ PowerlineMapperNode::on_configure(const rclcpp_lifecycle::State & state) {
     );
 
     configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>>(
-        this
+        this,
+        "pl_mapper"
     );
 
     RCLCPP_DEBUG(
@@ -504,12 +536,12 @@ void PowerlineMapperNode::plMapperCommandCallback(
         RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Pausing PL mapper");
 
         send_system_command(
-            false,
+            true,
             hough_transformer_command_client_
         );
         
         send_system_command(
-            false,
+            true,
             pl_dir_computer_command_client_
         );
 
@@ -619,12 +651,16 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
     }
 
+    // RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::mmWaveCallback(): Processing %u points", msg->width);
+
     iii_drone::adapters::PointCloudAdapter pcl_adapter(msg);
 
     std::vector<point_t> transformed_points;
     std::vector<point_t> projected_points;
 
     std::vector<point_t> pcl_points = pcl_adapter.points();
+
+    int n_skipped = 0;
 
     for (size_t i = 0; i < pcl_points.size(); i++) {
 
@@ -639,6 +675,10 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
         if(!line.IsInFOV()) {
 
+            // RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::mmWaveCallback(): Point not in FOV, skipping");
+
+            n_skipped++;
+
             continue;
 
         }
@@ -647,12 +687,19 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
         pt.header.frame_id = msg->header.frame_id;
         pt.point = pointMsgFromPoint(pcl_points[i]);
 
-        pt = tf_buffer_->transform(
-            pt, 
-            configurator_->GetParameter("drone_frame_id").as_string()
-        );
+        try {
+            pt = tf_buffer_->transform(
+                pt, 
+                configurator_->GetParameter("drone_frame_id").as_string()
+            );
+        } catch (tf2::TransformException & ex) {
+            n_skipped++;
+            continue;
+        }
 
         point_t transformed_point = pointFromPointMsg(pt.point);
+
+        // RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::mmWaveCallback(): Point in FOV, updating powerline");
 
         point_t projected_point = powerline_->UpdateLine(transformed_point);
 
@@ -661,11 +708,14 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
     }   
 
+    // RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::mmWaveCallback(): Skipped %d points", n_skipped);
+
     powerline_->CleanupLines();
 
     powerline_->ComputeInterLinePositions();
 
-    powerline_->UpdateNonFOVLines();
+    if (configurator_->GetParameter("use_inter_line_positions").as_bool())
+        powerline_->UpdateNonFOVLines();
 
     publishPoints(
         transformed_points, 
@@ -685,7 +735,7 @@ void PowerlineMapperNode::plDirectionCallback(const geometry_msgs::msg::Quaterni
 
     RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::plDirectionCallback(): Received powerline direction, updating powerline");
 
-    if (pl_mapper_state_ != pl_mapper_state_running) {
+    if (pl_mapper_state_ != pl_mapper_state_running && pl_mapper_state_ != pl_mapper_state_paused) {
 
         return;
 

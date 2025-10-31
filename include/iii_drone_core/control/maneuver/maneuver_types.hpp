@@ -132,11 +132,13 @@ namespace maneuver {
 	 */
 	struct hover_maneuver_params_t {
 		double duration_s;
+		double sustain_duration_s;
 		bool sustain_action;
 
 		hover_maneuver_params_t();
 		hover_maneuver_params_t(
 			double duration_s,
+			double sustain_duration_s,
 			bool sustain_action
 		);
 		hover_maneuver_params_t(std::shared_ptr<void> params);

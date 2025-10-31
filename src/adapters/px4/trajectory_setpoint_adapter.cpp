@@ -86,6 +86,7 @@ px4_msgs::msg::TrajectorySetpoint TrajectorySetpointAdapter::ToMsg() const {
         trajectory_setpoint_msg.position[i] = multiplier*position_[i];
         trajectory_setpoint_msg.velocity[i] = multiplier*velocity_[i];
         trajectory_setpoint_msg.acceleration[i] = multiplier*acceleration_[i];
+        trajectory_setpoint_msg.jerk[i] = NAN;
 
     }
 

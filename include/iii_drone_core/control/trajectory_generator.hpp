@@ -18,11 +18,13 @@
 #include <iii_drone_core/control/state.hpp>
 #include <iii_drone_core/control/reference.hpp>
 #include <iii_drone_core/control/reference_trajectory.hpp>
+#include <iii_drone_core/control/trajectory_mode.hpp>
 
 /*****************************************************************************/
 // ROS2:
 
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
 
 /*****************************************************************************/
 // MATLAB MPC generated code:
@@ -39,25 +41,6 @@
 #include <memory>
 
 /*****************************************************************************/
-// Defines
-/*****************************************************************************/
-
-namespace iii_drone {
-namespace control {
-
-	/**
-	 * @brief The supported MPC modes
-	 */
-	enum MPC_mode_t {
-		positional = 0,
-		cable_landing = 1,
-		cable_takeoff = 2
-	};
-
-}
-}
-
-/*****************************************************************************/
 // Class
 /*****************************************************************************/
 
@@ -72,11 +55,13 @@ namespace control {
          * @param positional_mpc_params The positional MPC parameters
          * @param cable_landing_mpc_params The cable landing MPC parameters
          * @param cable_takeoff_mpc_params The cable takeoff MPC parameters
+         * @param node The node
          */
         TrajectoryGenerator(
             iii_drone::configuration::ParameterBundle::SharedPtr positional_mpc_params, 
             iii_drone::configuration::ParameterBundle::SharedPtr cable_landing_mpc_params, 
-            iii_drone::configuration::ParameterBundle::SharedPtr cable_takeoff_mpc_params
+            iii_drone::configuration::ParameterBundle::SharedPtr cable_takeoff_mpc_params,
+            rclcpp_lifecycle::LifecycleNode * node
         );
 
 		/**
@@ -86,7 +71,7 @@ namespace control {
 		 * @param reference The reference state
 		 * @param set_target Whether to update the target state
 		 * @param reset Whether to reset the MPC
-		 * @param mpc_mode The MPC mode
+		 * @param trajectory_mode The trajectory mode
 		 * 
 		 * @return The MPC reference trajectory
 		*/
@@ -95,7 +80,7 @@ namespace control {
 			Reference reference, 
 			bool set_target, 
 			bool reset, 
-			MPC_mode_t mpc_mode
+			trajectory_mode_t trajectory_mode
 		);
 
         /**
@@ -108,6 +93,11 @@ namespace control {
          * @brief The MPC parameters
          */
         iii_drone::configuration::ParameterBundle::SharedPtr positional_mpc_params_, cable_landing_mpc_params_, cable_takeoff_mpc_params_;
+
+        /**
+         * @brief The node
+         */
+        rclcpp_lifecycle::LifecycleNode * node_;
 
         /**
          * @brief Sets up the MPC.

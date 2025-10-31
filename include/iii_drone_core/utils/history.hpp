@@ -37,9 +37,9 @@ namespace utils {
         /**
          * @brief Constructor.
          * 
-         * @param capacity The capacity of the history, default 2.
+         * @param capacity The capacity of the history.
          */
-        History(const size_t capacity = 2) : capacity_(capacity) {
+        History(const size_t capacity) : capacity_(capacity) {
                 
             COMPATIBLE_T_ASSERTION(T)
 
@@ -50,11 +50,11 @@ namespace utils {
          * @brief Constructor from value.
          * 
          * @param value The value.
-         * @param capacity The capacity of the history, default 2.
+         * @param capacity The capacity of the history.
          */
         History(
             const T & value,
-            const size_t capacity = 2
+            const size_t capacity
         ) : capacity_(capacity) {
                     
             COMPATIBLE_T_ASSERTION(T)

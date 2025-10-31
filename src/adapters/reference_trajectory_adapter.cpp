@@ -63,6 +63,9 @@ nav_msgs::msg::Path ReferenceTrajectoryAdapter::ToPathMsg(std::string frame_id) 
 
     nav_msgs::msg::Path msg;
 
+    msg.header.frame_id = frame_id;
+    msg.header.stamp = reference_trajectory_.references().front().stamp();
+
     for (auto reference : reference_trajectory_.references()) {
         msg.poses.push_back(ReferenceAdapter(reference).ToPoseStampedMsg(frame_id));
     }

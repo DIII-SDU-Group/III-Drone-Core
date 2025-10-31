@@ -58,6 +58,21 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(
         10
     );
 
+    status_pub_ = this->create_publisher<iii_drone_interfaces::msg::StringStamped>(
+        "status", 
+        10
+    );
+
+    status_timer_ = this->create_wall_timer(
+        std::chrono::seconds(1), 
+        [this]() {
+            iii_drone_interfaces::msg::StringStamped status_stamped_msg;
+            status_stamped_msg.stamp = this->now();
+            status_stamped_msg.data = running_ ? "Running" : "Stopped";
+            status_pub_->publish(status_stamped_msg);
+        }
+    );
+
     RCLCPP_DEBUG(this->get_logger(), "PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(): PL dir computer");
 
 }
@@ -92,7 +107,7 @@ PowerlineDirectionComputerNode::on_configure(const rclcpp_lifecycle::State & sta
         "PowerlineDirectionComputerNode::on_configure(): Initializing configurator object."
     );
 
-    configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>>(this);
+    configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>>(this, "pl_dir_computer");
 
     // Powerline direction object:
     RCLCPP_DEBUG(

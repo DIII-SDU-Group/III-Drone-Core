@@ -25,12 +25,19 @@ DroneFrameBroadcasterNode::DroneFrameBroadcasterNode(
 
     RCLCPP_DEBUG(this->get_logger(), "DroneFrameBroadcasterNode::DroneFrameBroadcasterNode(): Constructor");
 
-    configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp::Node>>(this);
+    configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp::Node>>(this, "drone_frame_broadcaster");
 
     // Initialize the transform broadcaster
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
     std::ostringstream stream;
+
+    is_alive_publisher_ = this->create_publisher<std_msgs::msg::Header>(
+        "is_alive", 
+        rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().best_effort()
+    );
+
+    last_alive_pub_time_ = rclcpp::Clock().now();
 
     rclcpp::QoS sub_qos(rclcpp::KeepLast(1));
     sub_qos.transient_local();
@@ -43,7 +50,7 @@ DroneFrameBroadcasterNode::DroneFrameBroadcasterNode(
 
     R_NED_to_body_frame = eulToMat(euler_angles_t(M_PI, 0, 0));
 
-    RCLCPP_DEBUG(this->get_logger(), "DroneFrameBroadcasterNode::DroneFrameBroadcasterNode(): Initialized");
+    RCLCPP_INFO(this->get_logger(), "DroneFrameBroadcasterNode::DroneFrameBroadcasterNode(): Initialized");
 
 }
 
@@ -60,6 +67,18 @@ void DroneFrameBroadcasterNode::odometryCallback(const std::shared_ptr<px4_msgs:
 
     // Send the transformation
     tf_broadcaster_->sendTransform(t);
+
+    rclcpp::Time now = rclcpp::Clock().now();
+
+    // Publish is_alive message
+    if (now - last_alive_pub_time_ > rclcpp::Duration(1, 0)) {
+        std_msgs::msg::Header header;
+        header.stamp = now;
+        is_alive_publisher_->publish(header);
+        last_alive_pub_time_ = now;
+
+        RCLCPP_INFO(this->get_logger(), "DroneFrameBroadcasterNode::odometryCallback(): Is alive");
+    }
 
     // RCLCPP debug published transform
     RCLCPP_DEBUG(this->get_logger(), "Published transform: %s -> %s", t.header.frame_id.c_str(), t.child_frame_id.c_str());

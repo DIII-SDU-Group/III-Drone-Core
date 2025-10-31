@@ -38,6 +38,7 @@
 // III-Drone-Interfaces:
 
 #include <iii_drone_interfaces/msg/powerline.hpp>
+#include <iii_drone_interfaces/msg/string_stamped.hpp>
 
 #include <iii_drone_interfaces/srv/system_command.hpp>
 
@@ -177,6 +178,10 @@ namespace pl_dir_computer_node {
          * @details If the node is running, this flag is set to true.
          */
         utils::Atomic<bool> running_;
+
+        rclcpp_lifecycle::LifecyclePublisher<iii_drone_interfaces::msg::StringStamped>::SharedPtr status_pub_;
+
+        rclcpp::TimerBase::SharedPtr status_timer_;
 
         /**
          * @brief Powerline direction object

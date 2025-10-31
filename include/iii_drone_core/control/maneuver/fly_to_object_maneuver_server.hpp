@@ -32,11 +32,13 @@
 #include <iii_drone_core/control/maneuver/maneuver_types.hpp>
 
 #include <iii_drone_core/control/maneuver/hover_by_object_maneuver_server.hpp>
+#include <iii_drone_core/control/maneuver/hover_maneuver_server.hpp>
 
 #include <iii_drone_core/control/trajectory_generator_client.hpp>
 
 #include <iii_drone_core/adapters/state_adapter.hpp>
 #include <iii_drone_core/adapters/reference_trajectory_adapter.hpp>
+#include <iii_drone_core/adapters/combined_drone_awareness_adapter.hpp>
 
 /*****************************************************************************/
 // III-Drone-Interfaces:
@@ -89,7 +91,7 @@ namespace maneuver {
          */
         bool CanExecuteManeuver(
             const Maneuver & maneuver,
-            const combined_drone_awareness_t & drone_awareness
+            const iii_drone::adapters::CombinedDroneAwarenessAdapter & drone_awareness
         ) const override;
 
         /**
@@ -99,7 +101,7 @@ namespace maneuver {
          * 
          * @return The expected awareness after execution.
          */
-        combined_drone_awareness_t ExpectedAwarenessAfterExecution(const Maneuver & maneuver) override;
+        iii_drone::adapters::CombinedDroneAwarenessAdapter ExpectedAwarenessAfterExecution(const Maneuver & maneuver) override;
 
     private:
         /**
@@ -225,7 +227,7 @@ namespace maneuver {
          * @return bool Whether the drone awareness and maneuver parameters are valid.
          */
         bool validateAwarenessAndParameters(
-            const combined_drone_awareness_t & drone_awareness,
+            const iii_drone::adapters::CombinedDroneAwarenessAdapter & drone_awareness,
             const fly_to_object_maneuver_params_t & maneuver_params
         ) const;
 

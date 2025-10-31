@@ -17,6 +17,7 @@
 #include <iii_drone_core/control/maneuver/maneuver_types.hpp>
 
 #include <iii_drone_core/adapters/target_adapter.hpp>
+#include <iii_drone_core/adapters/combined_drone_awareness_adapter.hpp>
 
 /*****************************************************************************/
 // III-Drone-Interfaces:
@@ -80,7 +81,7 @@ namespace maneuver {
          */
         bool CanExecuteManeuver(
             const Maneuver & maneuver,
-            const combined_drone_awareness_t & drone_awareness
+            const iii_drone::adapters::CombinedDroneAwarenessAdapter & drone_awareness
         ) const override;
 
         /**
@@ -88,9 +89,9 @@ namespace maneuver {
          * 
          * @param maneuver The maneuver.
          * 
-         * @return combined_drone_awareness_t The expected awareness after execution.
+         * @return iii_drone::adapters::CombinedDroneAwarenessAdapter The expected awareness after execution.
          */
-        combined_drone_awareness_t ExpectedAwarenessAfterExecution(const Maneuver & maneuver) override;
+        iii_drone::adapters::CombinedDroneAwarenessAdapter ExpectedAwarenessAfterExecution(const Maneuver & maneuver) override;
 
         /**
          * @brief Register a callback for when the target is not visible or the drone has drifted too far away from the target relative pose.
@@ -239,10 +240,14 @@ namespace maneuver {
          * @brief Validates the drone awareness.
          * 
          * @param drone_awareness The drone awareness.
+         * @param target_adapter The target adapter, defaults to check internally stored target_adapter_.
          * 
          * @return bool Whether the awareness is valid.
          */
-        bool validateAwareness(combined_drone_awareness_t drone_awareness) const;
+        bool validateAwareness(
+            iii_drone::adapters::CombinedDroneAwarenessAdapter drone_awareness,
+            const iii_drone::adapters::TargetAdapter &target_adapter = iii_drone::adapters::TargetAdapter()
+        ) const;
 
         /**
          * @brief The hover duration.
