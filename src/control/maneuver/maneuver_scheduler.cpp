@@ -578,15 +578,6 @@ bool ManeuverScheduler::UpdateManeuver(Maneuver maneuver) {
 
     }
 
-    if (!&maneuver_mutex_) {
-
-        RCLCPP_FATAL(node_->get_logger(), "ManeuverScheduler::UpdateManeuver(): maneuver_mutex_ is null");
-        throw std::runtime_error("ManeuverScheduler::UpdateManeuver(): maneuver_mutex_ is null");
-
-    } else {
-
-    }
-
     auto update_timeout_elapsed = [this](Maneuver & maneuver) -> bool {
 
         rclcpp::Time maneuver_creation_time = maneuver.creation_time();

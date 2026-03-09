@@ -134,7 +134,6 @@ ReferenceTrajectory TrajectoryGenerator::ComputeReferenceTrajectory(
         t0,
         MPC_N,
         dt,
-        u, 
         planned_traj,
         planned_u_traj,
         ref.yaw()
@@ -591,7 +590,6 @@ ReferenceTrajectory TrajectoryGenerator::postProcessMPC(
     rclcpp::Time t0,
     int N,
     double dt,
-    double *u, 
     double *planned_traj,
     double *planned_u_traj,
     double target_yaw
