@@ -569,14 +569,12 @@ namespace control {
          * Updates the ground altitude estimate by pushing the current altitude to the history and taking the mean of the history.
          * 
          * @param armed Whether the drone is armed.
-         * @param offboard Whether the drone is in offboard mode.
          * @param has_target_cable Whether the drone has a target cable.
          * 
          * @return void
          */
         void updateGroundAltitudeEstimate(
             bool armed,
-            bool offboard,
             bool has_target_cable
         );
 
@@ -608,4 +606,3 @@ namespace control {
 
 } // namespace control
 } // namespace iii_drone
-
