@@ -140,20 +140,12 @@ void FlyToPositionManeuverServer::startExecution(Maneuver & maneuver) {
 
     // RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): State: %f, %f, %f, %f", state.position()[0], state.position()[1], state.position()[2], state.yaw());
 
-    point_t target_point = fly_to_position_maneuver_params.target_position;
-
-    // RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): Target point: %f, %f, %f", target_point[0], target_point[1], target_point[2]);
-
     point_t target_position_in_world_frame = fly_to_position_maneuver_params.transform_target_position(
         parameters_->GetParameter("world_frame_id").as_string(),
         cda_handler->tf_buffer()
     );
 
     // RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): Target position in world frame: %f, %f, %f", target_position_in_world_frame[0], target_position_in_world_frame[1], target_position_in_world_frame[2]);
-
-    double yaw = fly_to_position_maneuver_params.target_yaw;
-
-    // RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): Yaw: %f", yaw);
 
     double target_yaw_in_world_frame = fly_to_position_maneuver_params.transform_target_yaw(
         parameters_->GetParameter("world_frame_id").as_string(),
@@ -244,24 +236,7 @@ bool FlyToPositionManeuverServer::hasSucceeded(Maneuver &) {
 
     State state = cda_handler->GetState();
 
-    Eigen::Vector4d euc_pos = {
-        state.position()[0], 
-        state.position()[1], 
-        state.position()[2], 
-        state.yaw()
-    };
-
-    Eigen::Vector4d target_euc_pos = {
-        target_reference_->position()[0], 
-        target_reference_->position()[1], 
-        target_reference_->position()[2], 
-        target_reference_->yaw()
-    };
-
     double distance = (state.position() - target_reference_->position()).norm();
-    // double distance = (euc_pos - target_euc_pos).norm();
-
-    // RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::hasSucceeded(): Euc pos: %f, %f, %f, %f, target euc pos: %f, %f, %f, %f, distance: %f", euc_pos[0], euc_pos[1], euc_pos[2], euc_pos[3], target_euc_pos[0], target_euc_pos[1], target_euc_pos[2], target_euc_pos[3], distance);
 
     return distance < parameters_->GetParameter("reached_position_euclidean_distance_threshold").as_double();
 

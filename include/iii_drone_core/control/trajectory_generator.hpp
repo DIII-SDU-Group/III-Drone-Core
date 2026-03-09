@@ -177,7 +177,6 @@ namespace control {
          * @param t0 The MPC start time
          * @param N The MPC horizon
          * @param dt The MPC timestep
-         * @param u The MPC control input
          * @param planned_traj The MPC planned trajectory
          * @param planned_u_traj The MPC planned control input trajectory
          * @param target_yaw The MPC target yaw
@@ -188,7 +187,6 @@ namespace control {
             rclcpp::Time t0,
             int N,
             double dt,
-            double *u, 
             double *planned_traj,
             double *planned_u_traj,
             double target_yaw

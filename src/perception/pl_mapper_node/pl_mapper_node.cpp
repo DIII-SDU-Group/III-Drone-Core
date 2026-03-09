@@ -21,6 +21,12 @@ PowerlineMapperNode::PowerlineMapperNode(
     node_namespace,
     options
 ) {
+    auto set_logger_level = [this](int severity) {
+        const rcutils_ret_t ret = rcutils_logging_set_logger_level(this->get_logger().get_name(), severity);
+        if (ret != RCUTILS_RET_OK) {
+            RCLCPP_WARN(this->get_logger(), "Failed to set logger level, rcutils_ret_t=%d", static_cast<int>(ret));
+        }
+    };
 
 	std::string log_level = std::getenv("PL_MAPPER_LOG_LEVEL");
 
@@ -35,15 +41,15 @@ PowerlineMapperNode::PowerlineMapperNode(
 		);
 
 		if (log_level == "DEBUG") {
-			rcutils_logging_set_logger_level(this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_DEBUG);
+			set_logger_level(RCUTILS_LOG_SEVERITY_DEBUG);
 		} else if (log_level == "INFO") {
-			rcutils_logging_set_logger_level(this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_INFO);
+			set_logger_level(RCUTILS_LOG_SEVERITY_INFO);
 		} else if (log_level == "WARN") {
-			rcutils_logging_set_logger_level(this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_WARN);
+			set_logger_level(RCUTILS_LOG_SEVERITY_WARN);
 		} else if (log_level == "ERROR") {
-			rcutils_logging_set_logger_level(this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_ERROR);
+			set_logger_level(RCUTILS_LOG_SEVERITY_ERROR);
 		} else if (log_level == "FATAL") {
-			rcutils_logging_set_logger_level(this->get_logger().get_name(), RCUTILS_LOG_SEVERITY_FATAL);
+			set_logger_level(RCUTILS_LOG_SEVERITY_FATAL);
 		}
 
 	}
@@ -71,13 +77,13 @@ PowerlineMapperNode::PowerlineMapperNode(
 
     hough_transformer_command_client_ = this->create_client<iii_drone_interfaces::srv::SystemCommand>(
         "/perception/hough_transformer/command",
-        rmw_qos_profile_services_default,
+        rclcpp::ServicesQoS(),
         system_command_clients_callback_group_
     );
 
     pl_dir_computer_command_client_ = this->create_client<iii_drone_interfaces::srv::SystemCommand>(
         "/perception/pl_dir_computer/command",
-        rmw_qos_profile_services_default,
+        rclcpp::ServicesQoS(),
         system_command_clients_callback_group_
     );
 
@@ -429,6 +435,7 @@ PowerlineMapperNode::on_shutdown(const rclcpp_lifecycle::State & state) {
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 PowerlineMapperNode::on_error(const rclcpp_lifecycle::State & state) {
+    (void)state;
 
     RCLCPP_FATAL(this->get_logger(), "PowerlineMapperNode::on_error(): An error occured");
 
@@ -465,8 +472,8 @@ void PowerlineMapperNode::plMapperCommandCallback(
 
         bool done = false;
 
-        auto cb = [this, &done](
-            rclcpp::Client<iii_drone_interfaces::srv::SystemCommand>::SharedFuture future
+        auto cb = [&done](
+            rclcpp::Client<iii_drone_interfaces::srv::SystemCommand>::SharedFuture
         ) {
             done = true;
         };
@@ -600,6 +607,7 @@ void PowerlineMapperNode::predictCallback() {
 
         case pl_mapper_state_frozen:
             only_orientation = true;
+            [[fallthrough]];
         case pl_mapper_state_running:
         case pl_mapper_state_paused: {
 
