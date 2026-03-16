@@ -19,8 +19,7 @@ if(NOT DEFINED CMAKE_SUPPRESS_DEVELOPER_WARNINGS)
      set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE INTERNAL "No dev warnings")
 endif()
 
-# Options:
-option(BUILD_TESTING "Build tests" OFF)
+include(CTest)
 
 # Includes and link:
 set(III_DRONE_INCLUDE_DIRS
@@ -348,6 +347,68 @@ install(DIRECTORY
 
 # If building tests, merge the test/launch directory with the main launch directory
 if (BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+
+  ament_add_gtest(iii_drone_core_history_test
+    test/utils/history_test.cpp
+  )
+
+  ament_add_gtest(iii_drone_core_math_types_test
+    test/utils/math_types_test.cpp
+  )
+
+  ament_add_gtest(iii_drone_core_timestamp_test
+    test/utils/timestamp_test.cpp
+  )
+
+  ament_add_gtest(iii_drone_core_reference_test
+    test/control/reference_test.cpp
+  )
+
+  ament_add_gtest(iii_drone_core_basic_adapters_test
+    test/adapters/basic_adapters_test.cpp
+  )
+
+  ament_add_gtest(iii_drone_core_perception_adapters_test
+    test/adapters/perception_adapters_test.cpp
+  )
+
+  if(TARGET iii_drone_core_history_test)
+    target_include_directories(iii_drone_core_history_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_history_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_history_test ${dependencies})
+  endif()
+
+  if(TARGET iii_drone_core_math_types_test)
+    target_include_directories(iii_drone_core_math_types_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_math_types_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_math_types_test ${dependencies})
+  endif()
+
+  if(TARGET iii_drone_core_timestamp_test)
+    target_include_directories(iii_drone_core_timestamp_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_timestamp_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_timestamp_test ${dependencies})
+  endif()
+
+  if(TARGET iii_drone_core_reference_test)
+    target_include_directories(iii_drone_core_reference_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_reference_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_reference_test ${dependencies})
+  endif()
+
+  if(TARGET iii_drone_core_basic_adapters_test)
+    target_include_directories(iii_drone_core_basic_adapters_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_basic_adapters_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_basic_adapters_test ${dependencies})
+  endif()
+
+  if(TARGET iii_drone_core_perception_adapters_test)
+    target_include_directories(iii_drone_core_perception_adapters_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_perception_adapters_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_perception_adapters_test ${dependencies})
+  endif()
+
   install(DIRECTORY
     test/launch
     DESTINATION share/${PROJECT_NAME}
