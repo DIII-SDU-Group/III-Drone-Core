@@ -1,16 +1,16 @@
-from struct import pack
 from launch import LaunchDescription
 from launch.substitutions import LaunchConfiguration
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.actions import DeclareLaunchArgument
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
-from launch.substitutions import PathJoinSubstitution
-from ament_index_python.packages import get_package_share_directory
 import os
 
 def generate_launch_description():
-    ros_params = os.path.join(os.getenv("CONFIG_BASE_DIR", default="~/.config"), "iii_drone", "ros_params.yaml")
+    simulation = os.getenv("SIMULATION", "false").lower() == "true"
+    ros_params = os.path.join(
+        os.path.expanduser(os.getenv("CONFIG_BASE_DIR", default="~/.config")),
+        "iii_drone",
+        "ros_params_sim.yaml" if simulation else "ros_params_real.yaml"
+    )
     
     trajectory_generator_log_level = LaunchConfiguration("trajectory_generator_log_level")
 

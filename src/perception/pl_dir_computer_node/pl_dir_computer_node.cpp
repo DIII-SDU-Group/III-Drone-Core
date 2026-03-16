@@ -8,6 +8,40 @@ using namespace iii_drone::perception::pl_dir_computer_node;
 using namespace iii_drone::types;
 using namespace iii_drone::math;
 
+namespace {
+
+using LifecycleConfigurator = iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>;
+using ParameterType = rclcpp::ParameterType;
+using ConfigurationEntry = iii_drone::configuration::configuration_entry_t;
+
+void DeclareManagedParameters(LifecycleConfigurator & configurator)
+{
+    const auto bool_t = ParameterType::PARAMETER_BOOL;
+    const auto int_t = ParameterType::PARAMETER_INTEGER;
+    const auto double_t = ParameterType::PARAMETER_DOUBLE;
+    const auto string_t = ParameterType::PARAMETER_STRING;
+
+    configurator.DeclareParameter("/perception/begin_running", bool_t);
+    configurator.DeclareParameter("/perception/pl_dir_computer/kf_r", double_t);
+    configurator.DeclareParameter("/perception/pl_dir_computer/kf_q", double_t);
+    configurator.DeclareParameter("/perception/pl_dir_computer/odometry_callback_period_ms", int_t);
+    configurator.DeclareParameter("/perception/pl_mapper/min_point_dist", double_t);
+    configurator.DeclareParameter("/perception/pl_mapper/max_point_dist", double_t);
+    configurator.DeclareParameter("/perception/pl_mapper/view_cone_slope", double_t);
+    configurator.DeclareParameter("/tf/drone_frame_id", string_t);
+    configurator.DeclareParameter("/tf/world_frame_id", string_t);
+    configurator.DeclareParameter("/tf/cable_gripper_frame_id", string_t);
+    configurator.DeclareParameter("/tf/mmwave_frame_id", string_t);
+
+    configurator.CreateConfiguration("powerline_direction", {
+        ConfigurationEntry("/tf/drone_frame_id", string_t),
+        ConfigurationEntry("/perception/pl_dir_computer/kf_r", double_t),
+        ConfigurationEntry("/perception/pl_dir_computer/kf_q", double_t),
+    });
+}
+
+}  // namespace
+
 /*****************************************************************************/
 // Implementation
 /*****************************************************************************/
@@ -114,6 +148,8 @@ PowerlineDirectionComputerNode::on_configure(const rclcpp_lifecycle::State & sta
     );
 
     configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>>(this, "pl_dir_computer");
+    DeclareManagedParameters(*configurator_);
+    configurator_->validate();
 
     // Powerline direction object:
     RCLCPP_DEBUG(
@@ -122,7 +158,7 @@ PowerlineDirectionComputerNode::on_configure(const rclcpp_lifecycle::State & sta
     );
 
     pl_direction_ = std::make_shared<PowerlineDirection>(
-        configurator_->GetParameterBundle("powerline_direction")
+        configurator_->GetConfiguration("powerline_direction")
     );
 
     // Tf
@@ -243,7 +279,7 @@ PowerlineDirectionComputerNode::on_activate(const rclcpp_lifecycle::State & stat
     );
 
     std::chrono::milliseconds odom_callback_ms(
-        configurator_->GetParameter("odometry_callback_period_ms").as_int()
+        configurator_->GetParameter("/perception/pl_dir_computer/odometry_callback_period_ms").as_int()
     );
 
     drone_tf_timer_ = this->create_wall_timer(
@@ -269,7 +305,7 @@ PowerlineDirectionComputerNode::on_activate(const rclcpp_lifecycle::State & stat
         )
     );
 
-    running_ = configurator_->GetParameter("begin_running").as_bool();
+    running_ = configurator_->GetParameter("/perception/begin_running").as_bool();
 
     return CallbackReturn::SUCCESS;
 
@@ -426,8 +462,8 @@ void PowerlineDirectionComputerNode::odometryCallback() {
     try {
 
         tf = tf_buffer_->lookupTransform(
-            configurator_->GetParameter("drone_frame_id").as_string(),
-            configurator_->GetParameter("world_frame_id").as_string(), 
+            configurator_->GetParameter("/tf/drone_frame_id").as_string(),
+            configurator_->GetParameter("/tf/world_frame_id").as_string(), 
             tf2::TimePointZero
         );
 
@@ -451,10 +487,10 @@ void PowerlineDirectionComputerNode::publishPowerlineDirection() {
     RCLCPP_DEBUG(this->get_logger(), "Publishing powerline direction");
 
     geometry_msgs::msg::PoseStamped pose_msg = pl_direction_->ToPoseStampedMsg(
-        configurator_->GetParameter("drone_frame_id").as_string()
+        configurator_->GetParameter("/tf/drone_frame_id").as_string()
     );
     geometry_msgs::msg::QuaternionStamped quat_msg = pl_direction_->ToQuaternionStampedMsg(
-        configurator_->GetParameter("drone_frame_id").as_string()
+        configurator_->GetParameter("/tf/drone_frame_id").as_string()
     );
 
     pl_direction_pose_pub_->publish(pose_msg);

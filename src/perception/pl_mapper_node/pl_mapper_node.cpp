@@ -8,6 +8,65 @@ using namespace iii_drone::perception::pl_mapper_node;
 using namespace iii_drone::math;
 using namespace iii_drone::types;
 
+namespace {
+
+using LifecycleConfigurator = iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>;
+using ParameterType = rclcpp::ParameterType;
+using ConfigurationEntry = iii_drone::configuration::configuration_entry_t;
+
+void DeclareManagedParameters(LifecycleConfigurator & configurator)
+{
+    const auto bool_t = ParameterType::PARAMETER_BOOL;
+    const auto int_t = ParameterType::PARAMETER_INTEGER;
+    const auto double_t = ParameterType::PARAMETER_DOUBLE;
+    const auto string_t = ParameterType::PARAMETER_STRING;
+
+    configurator.DeclareParameter("/perception/begin_running", bool_t);
+    configurator.DeclareParameter("/perception/pl_mapper/kf_r", double_t);
+    configurator.DeclareParameter("/perception/pl_mapper/kf_q", double_t);
+    configurator.DeclareParameter("/perception/pl_mapper/alive_cnt_low_thresh", int_t);
+    configurator.DeclareParameter("/perception/pl_mapper/alive_cnt_high_thresh", int_t);
+    configurator.DeclareParameter("/perception/pl_mapper/alive_cnt_ceiling", int_t);
+    configurator.DeclareParameter("/perception/pl_mapper/min_point_dist", double_t);
+    configurator.DeclareParameter("/perception/pl_mapper/max_point_dist", double_t);
+    configurator.DeclareParameter("/perception/pl_mapper/view_cone_slope", double_t);
+    configurator.DeclareParameter("/perception/pl_mapper/strict_min_point_dist", double_t);
+    configurator.DeclareParameter("/perception/pl_mapper/strict_max_point_dist", double_t);
+    configurator.DeclareParameter("/perception/pl_mapper/strict_view_cone_slope", double_t);
+    configurator.DeclareParameter("/perception/pl_mapper/matching_line_max_dist", double_t);
+    configurator.DeclareParameter("/perception/pl_mapper/predict_callback_period_ms", int_t);
+    configurator.DeclareParameter("/perception/pl_mapper/max_lines", int_t);
+    configurator.DeclareParameter("/perception/pl_mapper/use_inter_line_positions", bool_t);
+    configurator.DeclareParameter("/perception/pl_mapper/inter_pos_window_size", int_t);
+    configurator.DeclareParameter("/perception/pl_mapper/overwrite_non_FOV_line_positions_from_inter_pos", bool_t);
+    configurator.DeclareParameter("/tf/drone_frame_id", string_t);
+    configurator.DeclareParameter("/tf/world_frame_id", string_t);
+    configurator.DeclareParameter("/tf/cable_gripper_frame_id", string_t);
+    configurator.DeclareParameter("/tf/mmwave_frame_id", string_t);
+
+    configurator.CreateConfiguration("powerline", {
+        ConfigurationEntry("/perception/pl_mapper/kf_r", double_t),
+        ConfigurationEntry("/perception/pl_mapper/kf_q", double_t),
+        ConfigurationEntry("/perception/pl_mapper/alive_cnt_low_thresh", int_t),
+        ConfigurationEntry("/perception/pl_mapper/alive_cnt_high_thresh", int_t),
+        ConfigurationEntry("/perception/pl_mapper/alive_cnt_ceiling", int_t),
+        ConfigurationEntry("/perception/pl_mapper/matching_line_max_dist", double_t),
+        ConfigurationEntry("/perception/pl_mapper/max_lines", int_t),
+        ConfigurationEntry("/perception/pl_mapper/min_point_dist", double_t),
+        ConfigurationEntry("/perception/pl_mapper/max_point_dist", double_t),
+        ConfigurationEntry("/perception/pl_mapper/view_cone_slope", double_t),
+        ConfigurationEntry("/perception/pl_mapper/strict_min_point_dist", double_t),
+        ConfigurationEntry("/perception/pl_mapper/strict_max_point_dist", double_t),
+        ConfigurationEntry("/perception/pl_mapper/strict_view_cone_slope", double_t),
+        ConfigurationEntry("/perception/pl_mapper/inter_pos_window_size", int_t),
+        ConfigurationEntry("/perception/pl_mapper/overwrite_non_FOV_line_positions_from_inter_pos", bool_t),
+        ConfigurationEntry("/tf/drone_frame_id", string_t),
+        ConfigurationEntry("/tf/mmwave_frame_id", string_t),
+    });
+}
+
+}  // namespace
+
 /*****************************************************************************/
 // Implementation
 /*****************************************************************************/
@@ -152,13 +211,15 @@ PowerlineMapperNode::on_configure(const rclcpp_lifecycle::State & state) {
         this,
         "pl_mapper"
     );
+    DeclareManagedParameters(*configurator_);
+    configurator_->validate();
 
     RCLCPP_DEBUG(
         this->get_logger(), 
         "PowerlineMapperNode::on_configure(): Setting internal state"
     );
 
-    pl_mapper_state_ = configurator_->GetParameter("begin_running").as_bool() ? pl_mapper_state_running : pl_mapper_state_idle;
+    pl_mapper_state_ = configurator_->GetParameter("/perception/begin_running").as_bool() ? pl_mapper_state_running : pl_mapper_state_idle;
 
     // Tf:
     RCLCPP_DEBUG(
@@ -236,7 +297,7 @@ PowerlineMapperNode::on_activate(const rclcpp_lifecycle::State & state) {
     );
 
     powerline_ = std::make_shared<Powerline>(
-        configurator_->GetParameterBundle("powerline"),
+        configurator_->GetConfiguration("powerline"),
         tf_buffer_
     );
 
@@ -289,7 +350,7 @@ PowerlineMapperNode::on_activate(const rclcpp_lifecycle::State & state) {
     );
 
     std::chrono::milliseconds predict_callback_ms(
-        configurator_->GetParameter("predict_callback_period_ms").as_int()
+        configurator_->GetParameter("/perception/pl_mapper/predict_callback_period_ms").as_int()
     );
 
     pl_predict_timer_ = this->create_wall_timer(
@@ -315,8 +376,8 @@ PowerlineMapperNode::on_activate(const rclcpp_lifecycle::State & state) {
         try {
 
             mmw_tf = tf_buffer_->lookupTransform(
-                configurator_->GetParameter("drone_frame_id").as_string(), 
-                configurator_->GetParameter("mmwave_frame_id").as_string(), 
+                configurator_->GetParameter("/tf/drone_frame_id").as_string(), 
+                configurator_->GetParameter("/tf/mmwave_frame_id").as_string(), 
                 tf2::TimePointZero
             );
 
@@ -533,7 +594,7 @@ void PowerlineMapperNode::plMapperCommandCallback(
 
         publishPowerline(
             Powerline(
-                configurator_->GetParameterBundle("powerline"),
+                configurator_->GetConfiguration("powerline"),
                 tf_buffer_
             )
         );
@@ -616,8 +677,8 @@ void PowerlineMapperNode::predictCallback() {
             try {
 
                 tf = tf_buffer_->lookupTransform(
-                    configurator_->GetParameter("world_frame_id").as_string(), 
-                    configurator_->GetParameter("drone_frame_id").as_string(), 
+                    configurator_->GetParameter("/tf/world_frame_id").as_string(), 
+                    configurator_->GetParameter("/tf/drone_frame_id").as_string(), 
                     tf2::TimePointZero
                 );
 
@@ -676,9 +737,9 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
             -1,
             pcl_points[i],
             pl_direction_,
-            configurator_->GetParameter("mmwave_frame_id").as_string(),
+            configurator_->GetParameter("/tf/mmwave_frame_id").as_string(),
             tf_buffer_,
-            configurator_->GetParameterBundle("powerline")
+            configurator_->GetConfiguration("powerline")
         );
 
         if(!line.IsInFOV()) {
@@ -698,7 +759,7 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
         try {
             pt = tf_buffer_->transform(
                 pt, 
-                configurator_->GetParameter("drone_frame_id").as_string()
+                configurator_->GetParameter("/tf/drone_frame_id").as_string()
             );
         } catch (tf2::TransformException & ex) {
             n_skipped++;
@@ -722,7 +783,7 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
     powerline_->ComputeInterLinePositions();
 
-    if (configurator_->GetParameter("use_inter_line_positions").as_bool())
+    if (configurator_->GetParameter("/perception/pl_mapper/use_inter_line_positions").as_bool())
         powerline_->UpdateNonFOVLines();
 
     publishPoints(
@@ -774,7 +835,7 @@ void PowerlineMapperNode::publishPoints(
 
     iii_drone::adapters::PointCloudAdapter pcl_adapter(
         powerline_->stamp(),
-        configurator_->GetParameter("drone_frame_id").as_string(),
+        configurator_->GetParameter("/tf/drone_frame_id").as_string(),
         points
     );
 

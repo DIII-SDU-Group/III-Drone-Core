@@ -1,4 +1,3 @@
-from struct import pack
 from launch import LaunchDescription
 from launch.substitutions import LaunchConfiguration
 from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
@@ -6,9 +5,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import PathJoinSubstitution
-from ament_index_python.packages import get_package_share_directory
 import os
-import yaml
 
 def generate_launch_description():
     mmwave_log_level = LaunchConfiguration("mmwave_log_level")
@@ -75,20 +72,9 @@ def generate_launch_description():
         description="The logging level for the configuration server node, default is warn",
     )
 
-    iii_config_dir = os.path.join(os.getenv("CONFIG_BASE_DIR", default="~/.config"), "iii_drone")
-    ros_params = os.path.join(iii_config_dir, "ros_params.yaml")
-    ros_params_dict = yaml.safe_load(open(ros_params,"r").read())
-    parameters_dir = os.path.join(iii_config_dir, ros_params_dict["/**"]["ros__parameters"]["parameters_path_postfix"])
-    default_parameter_file = ros_params_dict["/**"]["ros__parameters"]["default_parameter_file"]
-    parameters_file = os.path.join(parameters_dir, default_parameter_file)
-
-    # Replace "~" with "/home/<user>" in the path
-    if parameters_file[0] == "~":
-        parameters_file = "/home/" + os.getenv("USER") + parameters_file[1:]
-    
-    params_dict = yaml.safe_load(open(parameters_file,"r").read())
-    
-    simulation = bool(os.getenv("SIMULATION", False))
+    iii_config_dir = os.path.join(os.path.expanduser(os.getenv("CONFIG_BASE_DIR", default="~/.config")), "iii_drone")
+    simulation = os.getenv("SIMULATION", "false").lower() == "true"
+    ros_params = os.path.join(iii_config_dir, "ros_params_sim.yaml" if simulation else "ros_params_real.yaml")
     
     if simulation:
         micro_ros_agent = Node(

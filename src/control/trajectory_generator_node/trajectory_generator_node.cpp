@@ -3,8 +3,67 @@
 /*****************************************************************************/
 
 #include <iii_drone_core/control/trajectory_generator_node/trajectory_generator_node.hpp>
-
 using namespace iii_drone::control::trajectory_generator_node;
+
+namespace {
+
+using LifecycleConfigurator = iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>;
+using ParameterType = rclcpp::ParameterType;
+using ConfigurationEntry = iii_drone::configuration::configuration_entry_t;
+
+void DeclareManagedParameters(LifecycleConfigurator & configurator)
+{
+    const auto bool_t = ParameterType::PARAMETER_BOOL;
+    const auto int_t = ParameterType::PARAMETER_INTEGER;
+    const auto double_t = ParameterType::PARAMETER_DOUBLE;
+    const auto string_t = ParameterType::PARAMETER_STRING;
+
+    configurator.DeclareParameter("/control/trajectory_generator/MPC_use_state_feedback", bool_t);
+    configurator.DeclareParameter("/control/trajectory_generator/MPC_N", int_t);
+    configurator.DeclareParameter("/control/dt", double_t);
+    configurator.DeclareParameter("/control/trajectory_interpolator/interpolation_avg_velocity_m_s", double_t);
+    configurator.DeclareParameter("/control/trajectory_interpolator/reference_trajectory_length_N", int_t);
+    configurator.DeclareParameter("/tf/world_frame_id", string_t);
+    configurator.DeclareParameter("/tf/drone_frame_id", string_t);
+
+    const std::vector<std::string> mpc_prefixes = {"position_MPC", "cable_landing_MPC", "cable_takeoff_MPC"};
+    const std::vector<std::string> weighted_suffixes = {
+        "vx_max", "vy_max", "vz_max",
+        "ax_max", "ay_max", "az_max",
+        "wx", "wy", "wz",
+        "wvx", "wvy", "wvz",
+        "wax", "way", "waz",
+        "wjx", "wjy", "wjz",
+    };
+
+    for (const auto & prefix : mpc_prefixes) {
+        for (const auto & suffix : weighted_suffixes) {
+            configurator.DeclareParameter("/control/trajectory_generator/" + prefix + "_" + suffix, double_t);
+        }
+    }
+
+    for (const auto & prefix : mpc_prefixes) {
+        std::vector<ConfigurationEntry> entries;
+        entries.reserve(5 + weighted_suffixes.size());
+        entries.emplace_back("/control/trajectory_generator/MPC_use_state_feedback", bool_t);
+        entries.emplace_back("/control/trajectory_generator/MPC_N", int_t);
+        entries.emplace_back("/control/dt", double_t);
+        entries.emplace_back("/tf/world_frame_id", string_t);
+        entries.emplace_back("/tf/drone_frame_id", string_t);
+        for (const auto & suffix : weighted_suffixes) {
+            entries.emplace_back("/control/trajectory_generator/" + prefix + "_" + suffix, double_t);
+        }
+        configurator.CreateConfiguration(prefix, entries);
+    }
+
+    configurator.CreateConfiguration("trajectory_interpolator", {
+        ConfigurationEntry("/control/trajectory_interpolator/interpolation_avg_velocity_m_s", double_t),
+        ConfigurationEntry("/control/trajectory_interpolator/reference_trajectory_length_N", int_t),
+        ConfigurationEntry("/control/dt", double_t),
+    });
+}
+
+}  // namespace
 
 /*****************************************************************************/
 // Implementation
@@ -96,6 +155,8 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Trajec
         this,
         "trajectory_generator"
     );
+    DeclareManagedParameters(*configurator_);
+    configurator_->validate();
 
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 
@@ -142,14 +203,14 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Trajec
     }
 
     trajectory_generator_ = std::make_shared<TrajectoryGenerator> (
-        configurator_->GetParameterBundle("position_MPC"),
-        configurator_->GetParameterBundle("cable_landing_MPC"),
-        configurator_->GetParameterBundle("cable_takeoff_MPC"),
+        configurator_->GetConfiguration("position_MPC"),
+        configurator_->GetConfiguration("cable_landing_MPC"),
+        configurator_->GetConfiguration("cable_takeoff_MPC"),
         this
     );
 
     trajectory_interpolator_ = std::make_shared<TrajectoryInterpolator> (
-        configurator_->GetParameterBundle("trajectory_interpolator"),
+        configurator_->GetConfiguration("trajectory_interpolator"),
         this
     );
 
@@ -321,7 +382,7 @@ void TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(
 
 void TrajectoryGeneratorNode::publishTrajectoryPath(const adapters::ReferenceTrajectoryAdapter & reference_trajectory_adapter) {
 
-    nav_msgs::msg::Path path_msg = reference_trajectory_adapter.ToPathMsg(configurator_->GetParameter("world_frame_id").as_string());
+    nav_msgs::msg::Path path_msg = reference_trajectory_adapter.ToPathMsg(configurator_->GetParameter("/tf/world_frame_id").as_string());
 
     trajectory_path_publisher_->publish(path_msg);
 
@@ -329,7 +390,7 @@ void TrajectoryGeneratorNode::publishTrajectoryPath(const adapters::ReferenceTra
 
 void TrajectoryGeneratorNode::publishTargetPose(const adapters::ReferenceAdapter & reference_adapter) {
 
-    geometry_msgs::msg::PoseStamped pose_msg = reference_adapter.ToPoseStampedMsg(configurator_->GetParameter("world_frame_id").as_string());
+    geometry_msgs::msg::PoseStamped pose_msg = reference_adapter.ToPoseStampedMsg(configurator_->GetParameter("/tf/world_frame_id").as_string());
     target_pose_publisher_->publish(pose_msg);
 
 }

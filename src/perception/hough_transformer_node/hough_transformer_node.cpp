@@ -6,6 +6,37 @@
 
 using namespace iii_drone::perception::hough_transformer_node;
 
+namespace {
+
+using LifecycleConfigurator = iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>;
+using ParameterType = rclcpp::ParameterType;
+using ConfigurationEntry = iii_drone::configuration::configuration_entry_t;
+
+void DeclareManagedParameters(LifecycleConfigurator & configurator)
+{
+    const auto bool_t = ParameterType::PARAMETER_BOOL;
+    const auto int_t = ParameterType::PARAMETER_INTEGER;
+    const auto string_t = ParameterType::PARAMETER_STRING;
+
+    configurator.DeclareParameter("/perception/begin_running", bool_t);
+    configurator.DeclareParameter("/perception/hough_transformer/canny_low_threshold", int_t);
+    configurator.DeclareParameter("/perception/hough_transformer/canny_ratio", int_t);
+    configurator.DeclareParameter("/perception/hough_transformer/canny_kernel_size", int_t);
+    configurator.DeclareParameter("/perception/hough_transformer/n_lines_include", int_t);
+    configurator.DeclareParameter("/tf/drone_frame_id", string_t);
+    configurator.DeclareParameter("/tf/world_frame_id", string_t);
+    configurator.DeclareParameter("/tf/cable_gripper_frame_id", string_t);
+    configurator.DeclareParameter("/tf/mmwave_frame_id", string_t);
+
+    configurator.CreateConfiguration("hough_transformer", {
+        ConfigurationEntry("/perception/hough_transformer/canny_low_threshold", int_t),
+        ConfigurationEntry("/perception/hough_transformer/canny_ratio", int_t),
+        ConfigurationEntry("/perception/hough_transformer/canny_kernel_size", int_t),
+    });
+}
+
+}  // namespace
+
 /*****************************************************************************/
 // Implementation
 /*****************************************************************************/
@@ -106,10 +137,12 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughT
 
 	// Configurator object
 	configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp_lifecycle::LifecycleNode>>(this, "hough_transformer");
+	DeclareManagedParameters(*configurator_);
+	configurator_->validate();
 
 	// HoughTransformer object
 	hough_transformer_ = std::make_shared<HoughTransformer>(
-		configurator_->GetParameterBundle("hough_transformer")
+		configurator_->GetConfiguration("hough_transformer")
 	);
 
 	return CallbackReturn::SUCCESS;
@@ -203,7 +236,7 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughT
 		)
 	);
 
-	running_ = configurator_->GetParameter("begin_running").as_bool();
+	running_ = configurator_->GetParameter("/perception/begin_running").as_bool();
 
 	return CallbackReturn::SUCCESS;
 

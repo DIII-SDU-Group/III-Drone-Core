@@ -35,7 +35,7 @@
 /*****************************************************************************/
 // III-Drone-Configuration:
 
-#include <iii_drone_configuration/parameter_bundle.hpp>
+#include <iii_drone_configuration/configuration.hpp>
 
 /*****************************************************************************/
 // III-Drone-Core:
@@ -77,7 +77,7 @@ namespace perception {
          * @param tf_buffer Pointer to the tf buffer.
         */
         Powerline(
-            iii_drone::configuration::ParameterBundle::SharedPtr powerline_parameters,
+            iii_drone::configuration::Configuration::SharedPtr powerline_parameters,
             std::shared_ptr<tf2_ros::Buffer> tf_buffer
         );
 
@@ -216,7 +216,7 @@ namespace perception {
         /**
          * @brief The powerline parameters.
         */
-        iii_drone::configuration::ParameterBundle::SharedPtr parameters_;
+        iii_drone::configuration::Configuration::SharedPtr configuration_;
 
         /**
          * @brief The tf buffer.

@@ -20,7 +20,7 @@
 /*****************************************************************************/
 // III-Drone-Configuration:
 
-#include <iii_drone_configuration/parameter_bundle.hpp>
+#include <iii_drone_configuration/configuration.hpp>
 
 /*****************************************************************************/
 // III-Drone-Core:
@@ -81,7 +81,7 @@ namespace maneuver {
             const std::string & action_name,
             unsigned int wait_for_execute_poll_ms,
             unsigned int evaluate_done_poll_ms,
-            iii_drone::configuration::ParameterBundle::SharedPtr cable_takeoff_maneuver_server_parameters,
+            iii_drone::configuration::Configuration::SharedPtr cable_takeoff_maneuver_server_parameters,
             iii_drone::control::TrajectoryGeneratorClient::SharedPtr trajectory_generator_client
         );
 
@@ -192,7 +192,7 @@ namespace maneuver {
         /**
          * @brief The cable takeoff maneuver server parameters shared pointer.
          */
-        iii_drone::configuration::ParameterBundle::SharedPtr parameters_;
+        iii_drone::configuration::Configuration::SharedPtr configuration_;
 
         /**
          * @brief The trajectory generator client shared pointer.

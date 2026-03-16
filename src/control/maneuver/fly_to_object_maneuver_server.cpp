@@ -20,7 +20,7 @@ FlyToObjectManeuverServer::FlyToObjectManeuverServer(
     const std::string & action_name,
     unsigned int wait_for_execute_poll_ms,
     unsigned int evaluate_done_poll_ms,
-    iii_drone::configuration::ParameterBundle::SharedPtr parameters,
+    iii_drone::configuration::Configuration::SharedPtr parameters,
     iii_drone::control::TrajectoryGeneratorClient::SharedPtr trajectory_generator_client
 ) : ManeuverServer(
     node,
@@ -28,7 +28,7 @@ FlyToObjectManeuverServer::FlyToObjectManeuverServer(
     action_name,
     wait_for_execute_poll_ms,
     evaluate_done_poll_ms
-),  parameters_(parameters),
+),  configuration_(parameters),
     trajectory_generator_client_(trajectory_generator_client) {
 
     createServer<FlyToObject>();
@@ -151,7 +151,7 @@ Reference FlyToObjectManeuverServer::computeReference(const State & state) {
             set_reference,
             reset,
             trajectory_mode_t::positional,
-            parameters_->GetParameter("use_mpc").as_bool()
+            configuration_->GetParameter("/control/maneuver_controller/fly_to_object_use_mpc").as_bool()
         );
 
     } catch (const std::runtime_error &e) {
@@ -208,7 +208,7 @@ bool FlyToObjectManeuverServer::hasSucceeded(Maneuver & maneuver) {
 
     double distance = (euc_pos - target_euc_pos).norm();
 
-    return distance < parameters_->GetParameter("reached_position_euclidean_distance_threshold").as_double();
+    return distance < configuration_->GetParameter("/control/maneuver_controller/reached_position_euclidean_distance_threshold").as_double();
 
 }
 
@@ -282,8 +282,8 @@ std::shared_ptr<void> FlyToObjectManeuverServer::getFeedback(Maneuver &) {
         return std::static_pointer_cast<void>(feedback);
     }
 
-    feedback->planned_path = reference_trajectory_adapter.ToPathMsg(parameters_->GetParameter("world_frame_id").as_string());
-    feedback->vehicle_pose = StateAdapter(awareness_handler()->GetState()).ToPoseStampedMsg(parameters_->GetParameter("world_frame_id").as_string());
+    feedback->planned_path = reference_trajectory_adapter.ToPathMsg(configuration_->GetParameter("/tf/world_frame_id").as_string());
+    feedback->vehicle_pose = StateAdapter(awareness_handler()->GetState()).ToPoseStampedMsg(configuration_->GetParameter("/tf/world_frame_id").as_string());
     feedback->distance_vehicle_to_target = (target_reference.position() - state.position()).norm();
 
     return std::static_pointer_cast<void>(feedback);
@@ -428,7 +428,7 @@ bool FlyToObjectManeuverServer::validateAwarenessAndParameters(
 
     point_t target_position_in_world_frame = target_transform.block<3, 1>(0, 3);
 
-    bool target_position_valid = target_position_in_world_frame[2] - cda_handler->ground_altitude_estimate() >= parameters_->GetParameter("minimum_target_altitude").as_double();
+    bool target_position_valid = target_position_in_world_frame[2] - cda_handler->ground_altitude_estimate() >= configuration_->GetParameter("/control/maneuver_controller/minimum_target_altitude").as_double();
 
     if (!target_position_valid) {
         RCLCPP_WARN(node()->get_logger(), "FlyToObjectManeuverServer::validateAwarenessAndParameters(): Target position is not valid, returning false.");

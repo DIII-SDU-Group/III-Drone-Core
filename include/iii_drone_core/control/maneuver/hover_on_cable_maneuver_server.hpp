@@ -18,7 +18,7 @@
 /*****************************************************************************/
 // III-Drone-Configuration:
 
-#include <iii_drone_configuration/parameter_bundle.hpp>
+#include <iii_drone_configuration/configuration.hpp>
 
 /*****************************************************************************/
 // III-Drone-Core:
@@ -73,7 +73,7 @@ namespace maneuver {
          * @param action_name Action name
          * @param wait_for_execute_poll_ms Wait for execute poll milliseconds
          * @param evaluate_done_poll_ms Evaluate done poll milliseconds
-         * @param parameters The hover on cable parameter bundle
+         * @param parameters The hover on cable configuration view
          */
         HoverOnCableManeuverServer(
             rclcpp_lifecycle::LifecycleNode * node,
@@ -81,7 +81,7 @@ namespace maneuver {
             const std::string & action_name,
             unsigned int wait_for_execute_poll_ms,
             unsigned int evaluate_done_poll_ms,
-            iii_drone::configuration::ParameterBundle::SharedPtr parameters
+            iii_drone::configuration::Configuration::SharedPtr parameters
         );
 
         /**
@@ -141,7 +141,7 @@ namespace maneuver {
         /**
          * @brief The hover on cable parameter bundle.
          */
-        iii_drone::configuration::ParameterBundle::SharedPtr parameters_;
+        iii_drone::configuration::Configuration::SharedPtr configuration_;
 
         /**
          * @brief Get the maneuver type (MANEUVER_TYPE_HOVER_ON_CABLE).

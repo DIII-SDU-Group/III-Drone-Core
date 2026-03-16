@@ -20,7 +20,7 @@ FlyToPositionManeuverServer::FlyToPositionManeuverServer(
     const std::string & action_name,
     unsigned int wait_for_execute_poll_ms,
     unsigned int evaluate_done_poll_ms,
-    iii_drone::configuration::ParameterBundle::SharedPtr parameters,
+    iii_drone::configuration::Configuration::SharedPtr parameters,
     iii_drone::control::TrajectoryGeneratorClient::SharedPtr trajectory_generator_client
 ) : ManeuverServer(
     node,
@@ -28,7 +28,7 @@ FlyToPositionManeuverServer::FlyToPositionManeuverServer(
     action_name,
     wait_for_execute_poll_ms,
     evaluate_done_poll_ms
-),  parameters_(parameters),
+),  configuration_(parameters),
     trajectory_generator_client_(trajectory_generator_client) {
 
     createServer<iii_drone_interfaces::action::FlyToPosition>();
@@ -95,7 +95,7 @@ iii_drone::adapters::CombinedDroneAwarenessAdapter FlyToPositionManeuverServer::
     auto cda_handler = awareness_handler();
 
     point_t target_position_in_world_frame = maneuver_params.transform_target_position(
-        parameters_->GetParameter("world_frame_id").as_string(),
+        configuration_->GetParameter("/tf/world_frame_id").as_string(),
         cda_handler->tf_buffer()
     );
 
@@ -104,7 +104,7 @@ iii_drone::adapters::CombinedDroneAwarenessAdapter FlyToPositionManeuverServer::
             0.0, 
             0.0, 
             maneuver_params.transform_target_yaw(
-                parameters_->GetParameter("world_frame_id").as_string(),
+                configuration_->GetParameter("/tf/world_frame_id").as_string(),
                 cda_handler->tf_buffer()
             )
         )
@@ -141,14 +141,14 @@ void FlyToPositionManeuverServer::startExecution(Maneuver & maneuver) {
     // RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): State: %f, %f, %f, %f", state.position()[0], state.position()[1], state.position()[2], state.yaw());
 
     point_t target_position_in_world_frame = fly_to_position_maneuver_params.transform_target_position(
-        parameters_->GetParameter("world_frame_id").as_string(),
+        configuration_->GetParameter("/tf/world_frame_id").as_string(),
         cda_handler->tf_buffer()
     );
 
     // RCLCPP_DEBUG(node()->get_logger(), "FlyToPositionManeuverServer::startExecution(): Target position in world frame: %f, %f, %f", target_position_in_world_frame[0], target_position_in_world_frame[1], target_position_in_world_frame[2]);
 
     double target_yaw_in_world_frame = fly_to_position_maneuver_params.transform_target_yaw(
-        parameters_->GetParameter("world_frame_id").as_string(),
+        configuration_->GetParameter("/tf/world_frame_id").as_string(),
         cda_handler->tf_buffer()
     );
 
@@ -185,7 +185,7 @@ Reference FlyToPositionManeuverServer::computeReference(const State & state) {
     bool reset, set_reference;
     reset = set_reference = first_iteration_;
 
-    if (parameters_->GetParameter("use_mpc").as_bool()) {
+    if (configuration_->GetParameter("/control/maneuver_controller/fly_to_position_use_mpc").as_bool()) {
         RCLCPP_DEBUG(
             node()->get_logger(),
             "FlyToPositionManeuverServer::computeReference(): Using MPC"
@@ -206,7 +206,7 @@ Reference FlyToPositionManeuverServer::computeReference(const State & state) {
             set_reference,
             reset,
             trajectory_mode_t::positional,
-            parameters_->GetParameter("use_mpc").as_bool()
+            configuration_->GetParameter("/control/maneuver_controller/fly_to_position_use_mpc").as_bool()
         );
     } catch (std::runtime_error & e) {
         RCLCPP_ERROR(
@@ -238,7 +238,7 @@ bool FlyToPositionManeuverServer::hasSucceeded(Maneuver &) {
 
     double distance = (state.position() - target_reference_->position()).norm();
 
-    return distance < parameters_->GetParameter("reached_position_euclidean_distance_threshold").as_double();
+    return distance < configuration_->GetParameter("/control/maneuver_controller/reached_position_euclidean_distance_threshold").as_double();
 
 }
 
@@ -290,8 +290,8 @@ std::shared_ptr<void> FlyToPositionManeuverServer::getFeedback(Maneuver &) {
 
     ReferenceTrajectoryAdapter reference_trajectory_adapter(reference_trajectory);
 
-    feedback->planned_path = reference_trajectory_adapter.ToPathMsg(parameters_->GetParameter("world_frame_id").as_string());
-    feedback->vehicle_pose = StateAdapter(awareness_handler()->GetState()).ToPoseStampedMsg(parameters_->GetParameter("world_frame_id").as_string());
+    feedback->planned_path = reference_trajectory_adapter.ToPathMsg(configuration_->GetParameter("/tf/world_frame_id").as_string());
+    feedback->vehicle_pose = StateAdapter(awareness_handler()->GetState()).ToPoseStampedMsg(configuration_->GetParameter("/tf/world_frame_id").as_string());
 
     return std::static_pointer_cast<void>(feedback);
 
@@ -346,11 +346,11 @@ bool FlyToPositionManeuverServer::validateManeuverParameters(const fly_to_positi
     auto cda_handler = awareness_handler();
 
     point_t target_position_in_world_frame = maneuver_params.transform_target_position(
-        parameters_->GetParameter("world_frame_id").as_string(),
+        configuration_->GetParameter("/tf/world_frame_id").as_string(),
         cda_handler->tf_buffer()
     );
 
-    bool target_position_valid = target_position_in_world_frame[2] - cda_handler->ground_altitude_estimate() >= parameters_->GetParameter("minimum_target_altitude").as_double();
+    bool target_position_valid = target_position_in_world_frame[2] - cda_handler->ground_altitude_estimate() >= configuration_->GetParameter("/control/maneuver_controller/minimum_target_altitude").as_double();
 
     return target_position_valid;
 

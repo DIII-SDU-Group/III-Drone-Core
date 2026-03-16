@@ -15,10 +15,10 @@ using namespace iii_drone::configuration;
 
 TrajectoryGeneratorClient::TrajectoryGeneratorClient(
     rclcpp_lifecycle::LifecycleNode * node,
-    ParameterBundle::SharedPtr parameters,
+    Configuration::SharedPtr parameters,
     rclcpp::CallbackGroup::SharedPtr callback_group
 ) : node_(node),
-    parameters_(parameters) {
+    configuration_(parameters) {
 
     RCLCPP_DEBUG(node_->get_logger(), "TrajectoryGeneratorClient::TrajectoryGeneratorClient(): Initializing.");
 
@@ -95,7 +95,7 @@ Reference TrajectoryGeneratorClient::ComputeReference(
 
     }
 
-    if (use_mpc && parameters_->GetParameter("generate_trajectories_asynchronously_with_delay").as_bool()) {
+    if (use_mpc && configuration_->GetParameter("/control/maneuver_controller/generate_trajectories_asynchronously_with_delay").as_bool()) {
 
         if (reset) {
 
@@ -107,7 +107,7 @@ Reference TrajectoryGeneratorClient::ComputeReference(
 
             while(!done()) {
 
-                rclcpp::sleep_for(std::chrono::milliseconds(parameters_->GetParameter("generate_trajectories_poll_period_ms").as_int()));
+                rclcpp::sleep_for(std::chrono::milliseconds(configuration_->GetParameter("/control/maneuver_controller/generate_trajectories_poll_period_ms").as_int()));
 
             }
 
@@ -132,7 +132,7 @@ Reference TrajectoryGeneratorClient::ComputeReference(
             set_reference,
             reset,
             trajectory_mode,
-            parameters_->GetParameter("generate_trajectories_poll_period_ms").as_int(),
+            configuration_->GetParameter("/control/maneuver_controller/generate_trajectories_poll_period_ms").as_int(),
             use_mpc
         );
 
@@ -231,7 +231,7 @@ void TrajectoryGeneratorClient::ComputeReferenceTrajectoryBlocking(
 
         rclcpp::sleep_for(std::chrono::milliseconds(poll_period_ms));
 
-        if (node_->now() - wait_start_time > rclcpp::Duration::from_nanoseconds(parameters_->GetParameter("generate_trajectories_timeout_ms").as_int() * 1e6)) {
+        if (node_->now() - wait_start_time > rclcpp::Duration::from_nanoseconds(configuration_->GetParameter("/control/maneuver_controller/generate_trajectories_timeout_ms").as_int() * 1e6)) {
 
             std::string error_message = "TrajectoryGeneratorClient::ComputeReferenceTrajectoryBlocking(): Timeout while waiting for blocking trajectory generation.";
 

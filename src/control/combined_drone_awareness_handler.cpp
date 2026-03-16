@@ -20,11 +20,11 @@ using GripperStatusAdapterHistory = iii_drone::utils::History<iii_drone::adapter
 /*****************************************************************************/
 
 CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(
-    iii_drone::configuration::ParameterBundle::SharedPtr params,
+    iii_drone::configuration::Configuration::SharedPtr params,
     tf2_ros::Buffer::SharedPtr tf_buffer,
     rclcpp_lifecycle::LifecycleNode * node,
     bool debug
-) : params_(params),
+) : configuration_(params),
     tf_buffer_(tf_buffer),
     node_(node) {
 
@@ -112,11 +112,11 @@ void CombinedDroneAwarenessHandler::Start() {
     );
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Start(): Creating ground altitude estimate");
-    int ground_estimate_window_size = params_->GetParameter("ground_estimate_window_size").as_int();
+    int ground_estimate_window_size = configuration_->GetParameter("/control/maneuver_controller/ground_estimate_window_size").as_int();
     ground_altitudes_history_ = std::make_shared<History<double>>(0, ground_estimate_window_size);
 
     ground_altitude_update_timer_ = node_->create_wall_timer(
-        std::chrono::milliseconds(params_->GetParameter("ground_estimate_update_period_ms").as_int()),
+        std::chrono::milliseconds(configuration_->GetParameter("/control/maneuver_controller/ground_estimate_update_period_ms").as_int()),
         [this]() {
             if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::ground_altitude_update_timer_: Updating ground altitude estimate");
             ground_altitude_update_timer_->cancel();
@@ -133,7 +133,7 @@ void CombinedDroneAwarenessHandler::Start() {
 
     if (debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Start(): Creating combined drone awareness publish timer");
     combined_drone_awareness_pub_timer_ = node_->create_wall_timer(
-        std::chrono::milliseconds(params_->GetParameter("combined_drone_awareness_pub_period_ms").as_int()),
+        std::chrono::milliseconds(configuration_->GetParameter("/control/maneuver_controller/combined_drone_awareness_pub_period_ms").as_int()),
         [this]() {
             if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::combined_drone_awareness_pub_timer_: Publishing combined drone awareness");
 
@@ -440,7 +440,7 @@ iii_drone::types::transform_matrix_t CombinedDroneAwarenessHandler::ComputeTarge
 
             target_object_pose_stamped_world = tf_buffer_->transform(
                 target_object_pose_stamped,
-                params_->GetParameter("world_frame_id").as_string(),
+                configuration_->GetParameter("/tf/world_frame_id").as_string(),
                 tf2::durationFromSec(1.)
             );
 
@@ -480,7 +480,7 @@ iii_drone::types::transform_matrix_t CombinedDroneAwarenessHandler::ComputeTarge
         std::string target_reference_frame_id = target_adapter.reference_frame_id();
         geometry_msgs::msg::TransformStamped ref_T_drone_msg = tf_buffer_->lookupTransform(
             target_reference_frame_id,
-            params_->GetParameter("drone_frame_id").as_string(),
+            configuration_->GetParameter("/tf/drone_frame_id").as_string(),
             tf2::TimePointZero
         );
         iii_drone::types::transform_matrix_t ref_T_drone = transformMatrixFromTransformMsg(ref_T_drone_msg.transform);
@@ -522,7 +522,7 @@ iii_drone::types::pose_t CombinedDroneAwarenessHandler::GetPoseOfTarget(const ii
 
         geometry_msgs::msg::PoseStamped target_object_pose_stamped_world = tf_buffer_->transform(
             target_object_pose_stamped,
-            params_->GetParameter("world_frame_id").as_string()
+            configuration_->GetParameter("/tf/world_frame_id").as_string()
         );
 
         pose = poseFromPoseMsg(target_object_pose_stamped_world.pose);
@@ -878,8 +878,8 @@ void CombinedDroneAwarenessHandler::updateGroundAltitudeEstimate(
     geometry_msgs::msg::TransformStamped ground_tf;
 
     ground_tf.header.stamp = node_->now();
-    ground_tf.header.frame_id = params_->GetParameter("world_frame_id").as_string();
-    ground_tf.child_frame_id = params_->GetParameter("ground_frame_id").as_string();
+    ground_tf.header.frame_id = configuration_->GetParameter("/tf/world_frame_id").as_string();
+    ground_tf.child_frame_id = configuration_->GetParameter("/tf/ground_frame_id").as_string();
 
     ground_tf.transform = transformMsgFromTransform(
         vector_t(0, 0, ground_altitude_estimate),
@@ -905,7 +905,7 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(CombinedDroneAwarenessAd
     point_t drone_position = vehicle_odometry_adapter.position();
 
     // Check if on ground:
-    if (drone_position[2] - ground_altitude_estimate_->Load() < params_->GetParameter("landed_altitude_threshold").as_double()) {
+    if (drone_position[2] - ground_altitude_estimate_->Load() < configuration_->GetParameter("/control/maneuver_controller/landed_altitude_threshold").as_double()) {
         adapter.drone_location() = DRONE_LOCATION_ON_GROUND;
         adapter.on_cable_id() = -1;
         has_found_initial_location_ = true;
@@ -920,8 +920,8 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(CombinedDroneAwarenessAd
         geometry_msgs::msg::TransformStamped transform_stamped;
         try{
             transform_stamped = tf_buffer_->lookupTransform(
-                params_->GetParameter("drone_frame_id").as_string(),
-                params_->GetParameter("cable_gripper_frame_id").as_string(),
+                configuration_->GetParameter("/tf/drone_frame_id").as_string(),
+                configuration_->GetParameter("/tf/cable_gripper_frame_id").as_string(),
                 tf2::TimePointZero
             );
 
@@ -951,7 +951,7 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(CombinedDroneAwarenessAd
                 found_closest_line = false;
             }
 
-            if (params_->GetParameter("use_gripper_status_condition").as_bool() && !gripper_open()) {
+            if (configuration_->GetParameter("/control/maneuver_controller/use_gripper_status_condition").as_bool() && !gripper_open()) {
                 adapter.drone_location() = DRONE_LOCATION_ON_CABLE;
                 adapter.on_cable_id() = -1;
                 has_found_initial_location_ = true;
@@ -970,7 +970,7 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(CombinedDroneAwarenessAd
                 try {
                     closest_line_position_stamped = tf_buffer_->transform(
                         closest_line_position_stamped,
-                        params_->GetParameter("drone_frame_id").as_string()
+                        configuration_->GetParameter("/tf/drone_frame_id").as_string()
                     );
                     could_transform = true;
                 } catch (tf2::TransformException & e) {
@@ -984,7 +984,7 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(CombinedDroneAwarenessAd
 
                     float closest_line_distance = (closest_line_position - v_drone_to_gripper).norm();
 
-                    if (closest_line_distance <= params_->GetParameter("on_cable_max_euc_distance").as_double() || (params_->GetParameter("use_gripper_status_condition").as_bool()  && !gripper_open())) {
+                    if (closest_line_distance <= configuration_->GetParameter("/control/maneuver_controller/on_cable_max_euc_distance").as_double() || (configuration_->GetParameter("/control/maneuver_controller/use_gripper_status_condition").as_bool()  && !gripper_open())) {
                         
                         adapter.drone_location() = DRONE_LOCATION_ON_CABLE;
                         adapter.on_cable_id() = closest_line.id();
@@ -1024,7 +1024,7 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(CombinedDroneAwarenessAd
     // // Throw error if no location found
     // std::string error_message = "CombinedDroneAwarenessHandler::updateDroneLocation(): Could not determine drone location.";
 
-    // if (params_->GetParameter("fail_on_unable_to_locate").as_bool()) {
+    // if (configuration_->GetParameter("/control/maneuver_controller/fail_on_unable_to_locate").as_bool()) {
     //     RCLCPP_FATAL(node_->get_logger(), error_message.c_str());
     //     throw std::runtime_error(error_message);
     // } else {
@@ -1054,7 +1054,7 @@ void CombinedDroneAwarenessHandler::publishMembers() {
 
         geometry_msgs::msg::PoseStamped target_pose_stamped;
         target_pose_stamped.header.stamp = node_->now();
-        target_pose_stamped.header.frame_id = params_->GetParameter("world_frame_id").as_string();
+        target_pose_stamped.header.frame_id = configuration_->GetParameter("/tf/world_frame_id").as_string();
         target_pose_stamped.pose = poseMsgFromPose(target_pose);
 
         target_pose_pub_->publish(target_pose_stamped);
@@ -1070,7 +1070,7 @@ void CombinedDroneAwarenessHandler::publishMembers() {
 
         geometry_msgs::msg::PoseStamped target_pose_world_to_drone_stamped;
         target_pose_world_to_drone_stamped.header.stamp = node_->now();
-        target_pose_world_to_drone_stamped.header.frame_id = params_->GetParameter("world_frame_id").as_string();
+        target_pose_world_to_drone_stamped.header.frame_id = configuration_->GetParameter("/tf/world_frame_id").as_string();
         target_pose_world_to_drone_stamped.pose = poseMsgFromPose(target_pose_world_to_drone);
 
         target_drone_pose_pub_->publish(target_pose_world_to_drone_stamped);

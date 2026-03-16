@@ -7,7 +7,7 @@
 /*****************************************************************************/
 // III-Drone-Configuration:
 
-#include <iii_drone_configuration/parameter_bundle.hpp>
+#include <iii_drone_configuration/configuration.hpp>
 
 /*****************************************************************************/
 // III-Drone-Core:
@@ -58,9 +58,9 @@ namespace control {
          * @param node The node
          */
         TrajectoryGenerator(
-            iii_drone::configuration::ParameterBundle::SharedPtr positional_mpc_params, 
-            iii_drone::configuration::ParameterBundle::SharedPtr cable_landing_mpc_params, 
-            iii_drone::configuration::ParameterBundle::SharedPtr cable_takeoff_mpc_params,
+            iii_drone::configuration::Configuration::SharedPtr positional_mpc_params, 
+            iii_drone::configuration::Configuration::SharedPtr cable_landing_mpc_params, 
+            iii_drone::configuration::Configuration::SharedPtr cable_takeoff_mpc_params,
             rclcpp_lifecycle::LifecycleNode * node
         );
 
@@ -92,7 +92,7 @@ namespace control {
         /**
          * @brief The MPC parameters
          */
-        iii_drone::configuration::ParameterBundle::SharedPtr positional_mpc_params_, cable_landing_mpc_params_, cable_takeoff_mpc_params_;
+        iii_drone::configuration::Configuration::SharedPtr positional_mpc_params_, cable_landing_mpc_params_, cable_takeoff_mpc_params_;
 
         /**
          * @brief The node
@@ -123,7 +123,7 @@ namespace control {
          * @return void
         */
         void setupMPC(
-            iii_drone::configuration::ParameterBundle::SharedPtr mpc_params,
+            iii_drone::configuration::Configuration::SharedPtr mpc_params,
             bool set_target,
             bool first,
             bool reset,
@@ -168,7 +168,7 @@ namespace control {
 			int reset_trajectory, 
 			int reset_bounds, 
 			int reset_weights, 
-            iii_drone::configuration::ParameterBundle::SharedPtr mpc_parameters
+            iii_drone::configuration::Configuration::SharedPtr mpc_parameters
 		);
 
         /**

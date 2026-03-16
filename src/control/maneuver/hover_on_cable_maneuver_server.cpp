@@ -20,7 +20,7 @@ HoverOnCableManeuverServer::HoverOnCableManeuverServer(
     const std::string & action_name,
     unsigned int wait_for_execute_poll_ms,
     unsigned int evaluate_done_poll_ms,
-    ParameterBundle::SharedPtr parameters
+    Configuration::SharedPtr parameters
 ) : ManeuverServer(
         node,
         combined_drone_awareness_handler,
@@ -28,7 +28,7 @@ HoverOnCableManeuverServer::HoverOnCableManeuverServer(
         wait_for_execute_poll_ms,
         evaluate_done_poll_ms
     ),
-    parameters_(parameters),
+    configuration_(parameters),
     has_on_fail_callback_(false) {
 
     createServer<HoverOnCable>();
@@ -62,7 +62,7 @@ bool HoverOnCableManeuverServer::CanExecuteManeuver(
         return false;
     }
 
-    if (drone_awareness.target_adapter().reference_frame_id() != parameters_->GetParameter("gripper_frame_id").as_string()) {
+    if (drone_awareness.target_adapter().reference_frame_id() != configuration_->GetParameter("/tf/cable_gripper_frame_id").as_string()) {
         RCLCPP_WARN(
             node()->get_logger(),
             "HoverOnCableManeuverServer::CanExecuteManeuver(): reference_frame_id must be gripper_frame_id."
@@ -105,7 +105,7 @@ iii_drone::adapters::CombinedDroneAwarenessAdapter HoverOnCableManeuverServer::E
     TargetAdapter target_adapter = iii_drone::adapters::TargetAdapter(
         iii_drone::adapters::TARGET_TYPE_CABLE,
         params.target_cable_id,
-        parameters_->GetParameter("gripper_frame_id").as_string(),
+        configuration_->GetParameter("/tf/cable_gripper_frame_id").as_string(),
         iii_drone::types::transform_matrix_t::Identity()
     );
 
@@ -152,7 +152,7 @@ bool HoverOnCableManeuverServer::Update(
     TargetAdapter target_adapter = iii_drone::adapters::TargetAdapter(
         iii_drone::adapters::TARGET_TYPE_CABLE,
         target_cable_id,
-        parameters_->GetParameter("gripper_frame_id").as_string(),
+        configuration_->GetParameter("/tf/cable_gripper_frame_id").as_string(),
         iii_drone::types::transform_matrix_t::Identity()
     );
 
@@ -321,7 +321,7 @@ bool HoverOnCableManeuverServer::validateAwareness(iii_drone::adapters::Combined
         return false;
     }
 
-    if (drone_awareness.target_adapter().reference_frame_id() != parameters_->GetParameter("gripper_frame_id").as_string()) {
+    if (drone_awareness.target_adapter().reference_frame_id() != configuration_->GetParameter("/tf/cable_gripper_frame_id").as_string()) {
         RCLCPP_WARN(node()->get_logger(), "HoverByObjectManeuverServer::validateAwareness(): Reference frame id is not gripper.");
         return false;
     }

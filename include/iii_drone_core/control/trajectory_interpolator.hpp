@@ -7,7 +7,7 @@
 /*****************************************************************************/
 // III-Drone-Configuration:
 
-#include <iii_drone_configuration/parameter_bundle.hpp>
+#include <iii_drone_configuration/configuration.hpp>
 
 /*****************************************************************************/
 // III-Drone-Core:
@@ -57,7 +57,7 @@ namespace control {
     class TrajectoryInterpolator {
     public:
         TrajectoryInterpolator(
-            iii_drone::configuration::ParameterBundle::SharedPtr params,
+            iii_drone::configuration::Configuration::SharedPtr params,
             rclcpp_lifecycle::LifecycleNode * node
         );
 
@@ -80,7 +80,7 @@ namespace control {
         typedef std::shared_ptr<TrajectoryInterpolator> SharedPtr;
 
     private:
-        iii_drone::configuration::ParameterBundle::SharedPtr params_;
+        iii_drone::configuration::Configuration::SharedPtr configuration_;
         rclcpp_lifecycle::LifecycleNode * node_;
 
         Reference reference_;

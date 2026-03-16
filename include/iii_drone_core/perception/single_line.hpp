@@ -37,7 +37,7 @@
 /*****************************************************************************/
 // III-Drone-Configuration:
 
-#include <iii_drone_configuration/parameter_bundle.hpp>
+#include <iii_drone_configuration/configuration.hpp>
 
 /*****************************************************************************/
 // III-Drone-Core:
@@ -79,7 +79,7 @@ namespace perception {
             const int & id,
             const geometry_msgs::msg::Pose & pose,
             const std::shared_ptr<tf2_ros::Buffer> & tf_buffer,
-            const iii_drone::configuration::ParameterBundle::SharedPtr parameters
+            const iii_drone::configuration::Configuration::SharedPtr parameters
         );
 
         /**
@@ -96,7 +96,7 @@ namespace perception {
             const iii_drone::types::point_t & position,
             const iii_drone::types::quaternion_t & quaternion,
             const std::shared_ptr<tf2_ros::Buffer> & tf_buffer,
-            const iii_drone::configuration::ParameterBundle::SharedPtr parameters
+            const iii_drone::configuration::Configuration::SharedPtr parameters
         );
 
         /**
@@ -115,7 +115,7 @@ namespace perception {
             const iii_drone::types::quaternion_t & quaternion,
             const std::string & frame_id,
             const std::shared_ptr<tf2_ros::Buffer> & tf_buffer,
-            const iii_drone::configuration::ParameterBundle::SharedPtr parameters
+            const iii_drone::configuration::Configuration::SharedPtr parameters
         );
 
         /**
@@ -128,7 +128,7 @@ namespace perception {
         SingleLine(
             const iii_drone::adapters::SingleLineAdapter & adapter,
             const std::shared_ptr<tf2_ros::Buffer> & tf_buffer,
-            const iii_drone::configuration::ParameterBundle::SharedPtr parameters
+            const iii_drone::configuration::Configuration::SharedPtr parameters
         );
 
         /**
@@ -263,7 +263,7 @@ namespace perception {
         /**
          * @brief parameters getter.
          */
-        iii_drone::configuration::ParameterBundle::SharedPtr parameters() const;
+        iii_drone::configuration::Configuration::SharedPtr parameters() const;
 
         /**
          * @brief Alive counter getter.
@@ -304,7 +304,7 @@ namespace perception {
         /**
          * @brief The powerline parameters.
          */
-        iii_drone::configuration::ParameterBundle::SharedPtr parameters_;
+        iii_drone::configuration::Configuration::SharedPtr configuration_;
 
         /**
          * @brief The mutex.

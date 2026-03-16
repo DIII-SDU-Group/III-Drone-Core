@@ -17,11 +17,11 @@ using namespace iii_drone::adapters;
 ManeuverScheduler::ManeuverScheduler(
     rclcpp_lifecycle::LifecycleNode *node,
     const CombinedDroneAwarenessHandler::SharedPtr combined_drone_awareness_handler,
-    const iii_drone::configuration::ParameterBundle::SharedPtr parameters,
+    const iii_drone::configuration::Configuration::SharedPtr parameters,
     rclcpp::CallbackGroup::SharedPtr maneuver_execution_callback_group
 ) : node_(node),
     combined_drone_awareness_handler_(combined_drone_awareness_handler),
-    parameters_(parameters),
+    configuration_(parameters),
     maneuver_execution_callback_group_(maneuver_execution_callback_group),
     reference_callback_struct_(std::make_shared<ReferenceCallbackStruct>()),
     reference_callback_token_(
@@ -85,12 +85,12 @@ void ManeuverScheduler::Start() {
 
     }
 
-    maneuver_queue_ = std::make_unique<ManeuverQueue>(parameters_->GetParameter("maneuver_queue_size").as_int());
+    maneuver_queue_ = std::make_unique<ManeuverQueue>(configuration_->GetParameter("/control/maneuver_controller/maneuver_queue_size").as_int());
     
     current_maneuver_ = Maneuver();
 
     maneuver_publish_timer_ = node_->create_wall_timer(
-        std::chrono::milliseconds(parameters_->GetParameter("maneuver_publish_period_ms").as_int()),
+        std::chrono::milliseconds(configuration_->GetParameter("/control/maneuver_controller/maneuver_publish_period_ms").as_int()),
         [this]() -> void {
 
             Maneuver current_maneuver;
@@ -122,7 +122,7 @@ void ManeuverScheduler::Start() {
     );
 
     maneuver_execution_timer_ = node_->create_wall_timer(
-        std::chrono::milliseconds(parameters_->GetParameter("maneuver_execution_period_ms").as_int()),
+        std::chrono::milliseconds(configuration_->GetParameter("/control/maneuver_controller/maneuver_execution_period_ms").as_int()),
         std::bind(
             &ManeuverScheduler::maneuverExecutionTimerCallback,
             this
@@ -133,7 +133,7 @@ void ManeuverScheduler::Start() {
     maneuver_execution_timer_->cancel();
 
     // reference_callback_provider_publish_timer_ = node_->create_wall_timer(
-    //     std::chrono::milliseconds(parameters_->GetParameter("reference_callback_provider_publish_period_ms").as_int()),
+    //     std::chrono::milliseconds(configuration_->GetParameter("/control/maneuver_controller/reference_callback_provider_publish_period_ms").as_int()),
     //     [this]() -> void {
 
     //         std_msgs::msg::String msg;
@@ -584,7 +584,7 @@ bool ManeuverScheduler::UpdateManeuver(Maneuver maneuver) {
 
         rclcpp::Time current_time = rclcpp::Clock().now();
 
-        return (current_time - maneuver_creation_time).seconds() > parameters_->GetParameter("maneuver_register_update_timeout_s").as_double();
+        return (current_time - maneuver_creation_time).seconds() > configuration_->GetParameter("/control/maneuver_controller/maneuver_register_update_timeout_s").as_double();
 
     };
 
@@ -848,7 +848,7 @@ void ManeuverScheduler::progressScheduler() {
 
         auto set_default_no_maneuver_idle_cnt = [this]() {
 
-            no_maneuver_idle_cnt_ = parameters_->GetParameter("no_maneuver_idle_cnt_s").as_double() * 1000 / parameters_->GetParameter("maneuver_execution_period_ms").as_int();
+            no_maneuver_idle_cnt_ = configuration_->GetParameter("/control/maneuver_controller/no_maneuver_idle_cnt_s").as_double() * 1000 / configuration_->GetParameter("/control/maneuver_controller/maneuver_execution_period_ms").as_int();
 
             maneuver_server_get_reference_callback_still_registered_ = false;
 
@@ -875,7 +875,7 @@ void ManeuverScheduler::progressScheduler() {
 
                     }
 
-                    no_maneuver_idle_cnt_ = maneuver_params.duration_s * 1000 / parameters_->GetParameter("maneuver_execution_period_ms").as_int();
+                    no_maneuver_idle_cnt_ = maneuver_params.duration_s * 1000 / configuration_->GetParameter("/control/maneuver_controller/maneuver_execution_period_ms").as_int();
 
                     maneuver_server_get_reference_callback_still_registered_ = true;
 
@@ -892,7 +892,7 @@ void ManeuverScheduler::progressScheduler() {
 
                     }
 
-                    no_maneuver_idle_cnt_ = maneuver_params.duration_s * 1000 / parameters_->GetParameter("maneuver_execution_period_ms").as_int();
+                    no_maneuver_idle_cnt_ = maneuver_params.duration_s * 1000 / configuration_->GetParameter("/control/maneuver_controller/maneuver_execution_period_ms").as_int();
 
                     maneuver_server_get_reference_callback_still_registered_ = true;
 
@@ -909,7 +909,7 @@ void ManeuverScheduler::progressScheduler() {
 
                     }
 
-                    no_maneuver_idle_cnt_ = maneuver_params.duration_s * 1000 / parameters_->GetParameter("maneuver_execution_period_ms").as_int();
+                    no_maneuver_idle_cnt_ = maneuver_params.duration_s * 1000 / configuration_->GetParameter("/control/maneuver_controller/maneuver_execution_period_ms").as_int();
 
                     maneuver_server_get_reference_callback_still_registered_ = true;
 
@@ -974,7 +974,7 @@ void ManeuverScheduler::progressScheduler() {
 
                 float elapsed_seconds = (now - current_maneuver_->termination_time()).seconds();
 
-                float timeout_seconds = parameters_->GetParameter("maneuver_completion_token_acquisition_timeout_s").as_double();
+                float timeout_seconds = configuration_->GetParameter("/control/maneuver_controller/maneuver_completion_token_acquisition_timeout_s").as_double();
 
                 if (elapsed_seconds > timeout_seconds) {
 
@@ -1047,7 +1047,7 @@ void ManeuverScheduler::progressScheduler() {
                 rclcpp::Time maneuver_creation_time = current_maneuver_->creation_time();
                 rclcpp::Time current_time = rclcpp::Clock().now();
 
-                if ((current_time - maneuver_creation_time).seconds() > parameters_->GetParameter("maneuver_register_update_timeout_s").as_double()) {
+                if ((current_time - maneuver_creation_time).seconds() > configuration_->GetParameter("/control/maneuver_controller/maneuver_register_update_timeout_s").as_double()) {
 
                     on_failure(current_maneuver_);
 
@@ -1091,7 +1091,7 @@ void ManeuverScheduler::progressScheduler() {
                     rclcpp::Time maneuver_start_time = current_maneuver_->start_time();
                     rclcpp::Time current_time = rclcpp::Clock().now();
 
-                    if ((current_time - maneuver_start_time).seconds() > parameters_->GetParameter("maneuver_start_timeout_s").as_double()) {
+                    if ((current_time - maneuver_start_time).seconds() > configuration_->GetParameter("/control/maneuver_controller/maneuver_start_timeout_s").as_double()) {
 
                         on_failure(current_maneuver_);
 

@@ -8,14 +8,44 @@
 using namespace iii_drone::control;
 using namespace iii_drone::types;
 
+namespace {
+
+std::string ResolveMpcPrefix(const iii_drone::configuration::Configuration::SharedPtr & mpc_params)
+{
+    const std::vector<std::string> prefixes = {
+        "position_MPC",
+        "cable_landing_MPC",
+        "cable_takeoff_MPC",
+    };
+
+    for (const auto & prefix : prefixes) {
+        const std::string candidate = "/control/trajectory_generator/" + prefix + "_vx_max";
+        if (mpc_params->HasParameter(candidate)) {
+            return prefix;
+        }
+    }
+
+    throw std::runtime_error("TrajectoryGenerator: could not resolve MPC parameter prefix.");
+}
+
+std::string ResolveMpcParameterName(
+    const iii_drone::configuration::Configuration::SharedPtr & mpc_params,
+    const std::string & suffix
+)
+{
+    return "/control/trajectory_generator/" + ResolveMpcPrefix(mpc_params) + "_" + suffix;
+}
+
+}  // namespace
+
 /*****************************************************************************/
 // Implementation
 /*****************************************************************************/
 
 TrajectoryGenerator::TrajectoryGenerator(
-    iii_drone::configuration::ParameterBundle::SharedPtr positional_mpc_params,
-    iii_drone::configuration::ParameterBundle::SharedPtr cable_landing_mpc_params,
-    iii_drone::configuration::ParameterBundle::SharedPtr cable_takeoff_mpc_params,
+    iii_drone::configuration::Configuration::SharedPtr positional_mpc_params,
+    iii_drone::configuration::Configuration::SharedPtr cable_landing_mpc_params,
+    iii_drone::configuration::Configuration::SharedPtr cable_takeoff_mpc_params,
     rclcpp_lifecycle::LifecycleNode * node
 ) : positional_mpc_params_(positional_mpc_params),
     cable_landing_mpc_params_(cable_landing_mpc_params),
@@ -32,7 +62,7 @@ ReferenceTrajectory TrajectoryGenerator::ComputeReferenceTrajectory(
 
 	// Variables:
 
-    iii_drone::configuration::ParameterBundle::SharedPtr mpc_params;
+    iii_drone::configuration::Configuration::SharedPtr mpc_params;
 
     switch(trajectory_mode) {
         case trajectory_mode_t::positional:
@@ -48,10 +78,10 @@ ReferenceTrajectory TrajectoryGenerator::ComputeReferenceTrajectory(
 
 	static bool first = true;
 
-	static int MPC_N = mpc_params->GetParameter("N").as_int();
-    static double dt = mpc_params->GetParameter("dt").as_double();
+	static int MPC_N = mpc_params->GetParameter("/control/trajectory_generator/MPC_N").as_int();
+    static double dt = mpc_params->GetParameter("/control/dt").as_double();
 
-	static bool use_state_feedback = mpc_params->GetParameter("use_state_feedback").as_bool();
+	static bool use_state_feedback = mpc_params->GetParameter("/control/trajectory_generator/MPC_use_state_feedback").as_bool();
 
 	static double planned_traj[120];
 	static double planned_u_traj[30];
@@ -164,7 +194,7 @@ ReferenceTrajectory TrajectoryGenerator::ComputeReferenceTrajectory(
 }
 
 void TrajectoryGenerator::setupMPC(
-    iii_drone::configuration::ParameterBundle::SharedPtr mpc_params,
+    iii_drone::configuration::Configuration::SharedPtr mpc_params,
     bool set_target,
     bool first,
     bool reset,
@@ -215,7 +245,7 @@ void TrajectoryGenerator::setupMPC(
 
 	if (reset_trajectory) {
 
-		use_state_feedback = mpc_params->GetParameter("use_state_feedback").as_bool();
+		use_state_feedback = mpc_params->GetParameter("/control/trajectory_generator/MPC_use_state_feedback").as_bool();
 
 	}
 
@@ -243,7 +273,7 @@ void TrajectoryGenerator::setupMPC(
 
         point_t vehicle_position = state.position();
 
-		for (int i = 0; i < mpc_params->GetParameter("N").as_int(); i++) {
+		for (int i = 0; i < mpc_params->GetParameter("/control/trajectory_generator/MPC_N").as_int(); i++) {
 			for (int j = 0; j < 3; j++) {
 
 				planned_traj[i*6+j] = vehicle_position[j];
@@ -447,7 +477,7 @@ void TrajectoryGenerator::stepMPC(
     int reset_trajectory, 
     int reset_bounds, 
     int reset_weights, 
-    iii_drone::configuration::ParameterBundle::SharedPtr mpc_parameters
+    iii_drone::configuration::Configuration::SharedPtr mpc_parameters
 ) {
 
 	const int N = 10;
@@ -475,14 +505,14 @@ void TrajectoryGenerator::stepMPC(
 	if (reset_bounds) {
 
 		vector_t a_max(
-            mpc_parameters->GetParameter("ax_max").as_double(),
-            mpc_parameters->GetParameter("ay_max").as_double(),
-            mpc_parameters->GetParameter("az_max").as_double()
+            mpc_parameters->GetParameter(ResolveMpcParameterName(mpc_parameters, "ax_max")).as_double(),
+            mpc_parameters->GetParameter(ResolveMpcParameterName(mpc_parameters, "ay_max")).as_double(),
+            mpc_parameters->GetParameter(ResolveMpcParameterName(mpc_parameters, "az_max")).as_double()
         );
 		vector_t v_max(
-            mpc_parameters->GetParameter("vx_max").as_double(),
-            mpc_parameters->GetParameter("vy_max").as_double(),
-            mpc_parameters->GetParameter("vz_max").as_double()
+            mpc_parameters->GetParameter(ResolveMpcParameterName(mpc_parameters, "vx_max")).as_double(),
+            mpc_parameters->GetParameter(ResolveMpcParameterName(mpc_parameters, "vy_max")).as_double(),
+            mpc_parameters->GetParameter(ResolveMpcParameterName(mpc_parameters, "vz_max")).as_double()
         );
 
 		mpconlinedata.limits.umax[0] = a_max[0];
@@ -525,24 +555,24 @@ void TrajectoryGenerator::stepMPC(
 	if (reset_weights) {
 
 		vector_t wp(
-            mpc_parameters->GetParameter("wx").as_double(),
-            mpc_parameters->GetParameter("wy").as_double(),
-            mpc_parameters->GetParameter("wz").as_double()
+            mpc_parameters->GetParameter(ResolveMpcParameterName(mpc_parameters, "wx")).as_double(),
+            mpc_parameters->GetParameter(ResolveMpcParameterName(mpc_parameters, "wy")).as_double(),
+            mpc_parameters->GetParameter(ResolveMpcParameterName(mpc_parameters, "wz")).as_double()
         );
 		vector_t wv(
-            mpc_parameters->GetParameter("wvx").as_double(),
-            mpc_parameters->GetParameter("wvy").as_double(),
-            mpc_parameters->GetParameter("wvz").as_double()
+            mpc_parameters->GetParameter(ResolveMpcParameterName(mpc_parameters, "wvx")).as_double(),
+            mpc_parameters->GetParameter(ResolveMpcParameterName(mpc_parameters, "wvy")).as_double(),
+            mpc_parameters->GetParameter(ResolveMpcParameterName(mpc_parameters, "wvz")).as_double()
         );
 		vector_t wa(
-            mpc_parameters->GetParameter("wax").as_double(),
-            mpc_parameters->GetParameter("way").as_double(),
-            mpc_parameters->GetParameter("waz").as_double()
+            mpc_parameters->GetParameter(ResolveMpcParameterName(mpc_parameters, "wax")).as_double(),
+            mpc_parameters->GetParameter(ResolveMpcParameterName(mpc_parameters, "way")).as_double(),
+            mpc_parameters->GetParameter(ResolveMpcParameterName(mpc_parameters, "waz")).as_double()
         );
 		vector_t wj(
-            mpc_parameters->GetParameter("wjx").as_double(),
-            mpc_parameters->GetParameter("wjy").as_double(),
-            mpc_parameters->GetParameter("wjz").as_double()
+            mpc_parameters->GetParameter(ResolveMpcParameterName(mpc_parameters, "wjx")).as_double(),
+            mpc_parameters->GetParameter(ResolveMpcParameterName(mpc_parameters, "wjy")).as_double(),
+            mpc_parameters->GetParameter(ResolveMpcParameterName(mpc_parameters, "wjz")).as_double()
         );
 
 		mpconlinedata.weights.du[0] = wj[0];
