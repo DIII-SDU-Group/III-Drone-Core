@@ -1,3 +1,10 @@
+"""Quaternion, Euler-angle, and rotation helpers shared by Python III tools.
+
+The functions in this module mirror the core C++ math vocabulary closely
+enough for GUI and tooling code to perform frame and orientation conversions
+without depending on the C++ runtime layer directly.
+"""
+
 ####################################################################################################
 # Imports:
 ####################################################################################################

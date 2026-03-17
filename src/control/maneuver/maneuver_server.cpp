@@ -309,9 +309,7 @@ void ManeuverServer::asyncExecute(
     );
 
     bool success = false;
-    bool active = true;
     bool canceling = false;
-    bool failed = false;
 
     while(true) {
 
@@ -370,7 +368,7 @@ void ManeuverServer::asyncExecute(
 
         RCLCPP_WARN(
             node_->get_logger(), 
-            "ManeuverServer::asyncExecute(): Goal is canceling, cancelling maneuver",
+            "ManeuverServer::asyncExecute(): %s: Goal is canceling, cancelling maneuver",
             action_name_.c_str()
         );
         

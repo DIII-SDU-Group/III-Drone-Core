@@ -164,7 +164,7 @@ void CombinedDroneAwarenessHandler::Start() {
 	px4_sub_qos.best_effort();
 
     vehicle_status_sub_ = node_->create_subscription<px4_msgs::msg::VehicleStatus>(
-        "/fmu/out/vehicle_status",
+        "/fmu/out/vehicle_status_v1",
         px4_sub_qos,
         [this](const px4_msgs::msg::VehicleStatus::SharedPtr msg) {
             if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::vehicle_status_sub_: Vehicle status received");
@@ -718,7 +718,6 @@ void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromVehicleOdome
     // Update the ground altitude estimate
     updateGroundAltitudeEstimate(
         adapter.armed(),
-        adapter.offboard(),
         adapter.has_target()
     );
 
@@ -816,7 +815,6 @@ void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromTarget(Combi
 
 void CombinedDroneAwarenessHandler::updateGroundAltitudeEstimate(
     bool armed,
-    bool offboard,
     bool has_target_cable
 ) {
 

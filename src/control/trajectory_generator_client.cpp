@@ -28,7 +28,7 @@ TrajectoryGeneratorClient::TrajectoryGeneratorClient(
     // Create service client
     client_ = node_->create_client<iii_drone_interfaces::srv::ComputeReferenceTrajectory>(
         "/control/trajectory_generator/compute_reference_trajectory",
-        rmw_qos_profile_services_default,
+        rclcpp::ServicesQoS(),
         callback_group_
     );
 

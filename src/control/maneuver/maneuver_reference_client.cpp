@@ -22,17 +22,17 @@ ManeuverReferenceClient::ManeuverReferenceClient(
     ParameterBundle::SharedPtr parameters,
     rclcpp::CallbackGroup::SharedPtr get_reference_cb_group
 ) : node_(node),
+    get_reference_cb_group_(get_reference_cb_group),
     vehicle_odometry_adapter_history_(vehicle_odometry_adapter_history),
     reference_mode_(reference_mode_t::PASSTHROUGH),
     reference_(Reference()),
-    parameters_(parameters),
-    get_reference_cb_group_(get_reference_cb_group) {
+    parameters_(parameters) {
 
     // get_reference_cb_group_ = node_->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     
     get_reference_client_ = node_->create_client<iii_drone_interfaces::srv::GetReference>(
         "/control/maneuver_controller/get_reference",
-        rmw_qos_profile_services_default,
+        rclcpp::ServicesQoS(),
         get_reference_cb_group_
     );
 

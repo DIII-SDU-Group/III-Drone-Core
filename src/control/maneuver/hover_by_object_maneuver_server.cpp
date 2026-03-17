@@ -273,7 +273,7 @@ bool HoverByObjectManeuverServer::hasSucceeded(Maneuver & maneuver) {
 
 }
 
-bool HoverByObjectManeuverServer::hasFailed(Maneuver & maneuver) {
+bool HoverByObjectManeuverServer::hasFailed(Maneuver &) {
 
     return !validateAwareness(awareness_handler()->adapter());
 
