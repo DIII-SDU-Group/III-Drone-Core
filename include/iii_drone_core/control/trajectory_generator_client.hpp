@@ -27,7 +27,7 @@
 /*****************************************************************************/
 // III-Drone-Configuration:
 
-#include <iii_drone_configuration/parameter_bundle.hpp>
+#include <iii_drone_configuration/configuration.hpp>
 
 /*****************************************************************************/
 // III-Drone-Core:
@@ -62,12 +62,12 @@ namespace control {
          * @brief Constructor.
          * 
          * @param node Node pointer
-         * @param parameters Trajectory generator client parameter bundle
+         * @param parameters Trajectory generator client configuration view
          * @param callback_group Callback group
          */
         TrajectoryGeneratorClient(
             rclcpp_lifecycle::LifecycleNode * node,
-            iii_drone::configuration::ParameterBundle::SharedPtr parameters,
+            iii_drone::configuration::Configuration::SharedPtr parameters,
             rclcpp::CallbackGroup::SharedPtr callback_group
         );
 
@@ -192,7 +192,7 @@ namespace control {
         /**
          * @brief Trajectory generator client parameters
          */
-        iii_drone::configuration::ParameterBundle::SharedPtr parameters_;
+        iii_drone::configuration::Configuration::SharedPtr configuration_;
 
         /**
          * @brief Service client

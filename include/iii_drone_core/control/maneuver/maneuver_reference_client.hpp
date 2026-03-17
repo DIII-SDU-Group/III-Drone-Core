@@ -32,7 +32,7 @@
 /*****************************************************************************/
 // III-Drone-Configuration:
 
-#include <iii_drone_configuration/parameter_bundle.hpp>
+#include <iii_drone_configuration/configuration.hpp>
 
 /*****************************************************************************/
 // III-Drone-Interfaces:
@@ -70,12 +70,12 @@ namespace maneuver {
          * 
          * @param node The node pointer.
          * @param vehicle_odometry_adapter_history Shared pointer to the vehicle odometry adapter history.
-         * @param parameters Parameter bundle
+         * @param parameters Read-only live configuration view
          */
         ManeuverReferenceClient(
             rclcpp_lifecycle::LifecycleNode * node,
             iii_drone::utils::History<iii_drone::adapters::px4::VehicleOdometryAdapter>::SharedPtr vehicle_odometry_adapter_history,
-            iii_drone::configuration::ParameterBundle::SharedPtr parameters,
+            iii_drone::configuration::Configuration::SharedPtr parameters,
             rclcpp::CallbackGroup::SharedPtr get_reference_cb_group
         );
 
@@ -258,9 +258,9 @@ namespace maneuver {
         bool getReferenceFromServer(Reference & reference);
 
         /**
-         * @brief Parameter bundle
+         * @brief Read-only live configuration view
          */
-        iii_drone::configuration::ParameterBundle::SharedPtr parameters_;
+        iii_drone::configuration::Configuration::SharedPtr configuration_;
 
     };
 

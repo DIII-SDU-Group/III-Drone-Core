@@ -21,7 +21,7 @@ CableTakeoffManeuverServer::CableTakeoffManeuverServer(
     const std::string & action_name,
     unsigned int wait_for_execute_poll_ms,
     unsigned int evaluate_done_poll_ms,
-    iii_drone::configuration::ParameterBundle::SharedPtr parameters,
+    iii_drone::configuration::Configuration::SharedPtr parameters,
     iii_drone::control::TrajectoryGeneratorClient::SharedPtr trajectory_generator_client
 ) : ManeuverServer(
     node,
@@ -29,7 +29,7 @@ CableTakeoffManeuverServer::CableTakeoffManeuverServer(
     action_name,
     wait_for_execute_poll_ms,
     evaluate_done_poll_ms
-),  parameters_(parameters),
+),  configuration_(parameters),
     trajectory_generator_client_(trajectory_generator_client) {
 
     createServer<iii_drone_interfaces::action::CableTakeoff>();
@@ -71,11 +71,11 @@ bool CableTakeoffManeuverServer::CanExecuteManeuver(
         return false;
     }
 
-    if(cable_takeoff_maneuver_params.target_cable_distance < parameters_->GetParameter("cable_takeoff_min_target_cable_distance").as_double()) {
+    if(cable_takeoff_maneuver_params.target_cable_distance < configuration_->GetParameter("/control/maneuver_controller/cable_takeoff_min_target_cable_distance").as_double()) {
         return false;
     }
 
-    if (cable_takeoff_maneuver_params.target_cable_distance > parameters_->GetParameter("cable_takeoff_max_target_cable_distance").as_double()) {
+    if (cable_takeoff_maneuver_params.target_cable_distance > configuration_->GetParameter("/control/maneuver_controller/cable_takeoff_max_target_cable_distance").as_double()) {
         return false;
     }
 
@@ -92,7 +92,7 @@ iii_drone::adapters::CombinedDroneAwarenessAdapter CableTakeoffManeuverServer::E
     TargetAdapter target_adapter = TargetAdapter(
         TARGET_TYPE_CABLE,
         cable_takeoff_maneuver_params.target_cable_id,
-        parameters_->GetParameter("gripper_frame_id").as_string(),
+        configuration_->GetParameter("/tf/cable_gripper_frame_id").as_string(),
         target_transform
     );
 
@@ -143,8 +143,8 @@ void CableTakeoffManeuverServer::startExecution(Maneuver & maneuver) {
     target_adapter_ = TargetAdapter(
         TARGET_TYPE_CABLE,
         cable_takeoff_maneuver_params.target_cable_id,
-        // parameters_->GetParameter("drone_frame_id").as_string(),
-        parameters_->GetParameter("gripper_frame_id").as_string(),
+        // configuration_->GetParameter("/tf/drone_frame_id").as_string(),
+        configuration_->GetParameter("/tf/cable_gripper_frame_id").as_string(),
         target_transform
         // transform_matrix_t::Identity()
     );
@@ -196,7 +196,7 @@ Reference CableTakeoffManeuverServer::computeReference(const State & state) {
             set_reference,
             reset,
             trajectory_mode_t::cable_takeoff,
-            parameters_->GetParameter("use_mpc").as_bool()
+            configuration_->GetParameter("/control/maneuver_controller/cable_takeoff_use_mpc").as_bool()
         );
 
     } catch (const std::runtime_error &e) {
@@ -241,7 +241,7 @@ bool CableTakeoffManeuverServer::hasSucceeded(Maneuver &) {
 
     double distance = (euc_pos - target_euc_pos).norm();
 
-    return distance < parameters_->GetParameter("reached_position_euclidean_distance_threshold").as_double();
+    return distance < configuration_->GetParameter("/control/maneuver_controller/reached_position_euclidean_distance_threshold").as_double();
 
 }
 
@@ -270,8 +270,8 @@ std::shared_ptr<void> CableTakeoffManeuverServer::getFeedback(Maneuver &) {
 
     auto feedback = std::make_shared<iii_drone_interfaces::action::CableTakeoff::Feedback>();
 
-    feedback->planned_path = reference_trajectory_adapter.ToPathMsg(parameters_->GetParameter("world_frame_id").as_string());
-    feedback->vehicle_pose = StateAdapter(awareness_handler()->GetState()).ToPoseStampedMsg(parameters_->GetParameter("world_frame_id").as_string());
+    feedback->planned_path = reference_trajectory_adapter.ToPathMsg(configuration_->GetParameter("/tf/world_frame_id").as_string());
+    feedback->vehicle_pose = StateAdapter(awareness_handler()->GetState()).ToPoseStampedMsg(configuration_->GetParameter("/tf/world_frame_id").as_string());
     feedback->distance_vehicle_to_cable = (state.position() - target_reference.position()).norm();
 
     return std::static_pointer_cast<void>(feedback);

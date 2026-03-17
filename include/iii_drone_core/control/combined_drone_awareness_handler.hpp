@@ -46,7 +46,7 @@
 /*****************************************************************************/
 // III-Drone-Configuration:
 
-#include <iii_drone_configuration/parameter_bundle.hpp>
+#include <iii_drone_configuration/configuration.hpp>
 
 /*****************************************************************************/
 // III-Drone-Core:
@@ -104,13 +104,13 @@ namespace control {
         /**
          * @brief Construct a new CombinedDroneAwarenessHandler object, initializing all the subscriptions.
          * 
-         * @param params Shared pointer to the parameters for the combined drone awareness handler object.
+         * @param params Shared pointer to the combined drone awareness handler configuration view.
          * @param tf_buffer Shared pointer to the tf2 buffer.
          * @param node Simple pointer to the containing node.
          * @param debug Whether to print debug messages.
          */
         CombinedDroneAwarenessHandler(
-            iii_drone::configuration::ParameterBundle::SharedPtr params,
+            iii_drone::configuration::Configuration::SharedPtr params,
             tf2_ros::Buffer::SharedPtr tf_buffer,
             rclcpp_lifecycle::LifecycleNode * node,
             bool debug = false
@@ -308,7 +308,7 @@ namespace control {
         /**
          * @brief Parameters for the combined drone awareness handler.
          */
-        iii_drone::configuration::ParameterBundle::SharedPtr params_;
+        iii_drone::configuration::Configuration::SharedPtr configuration_;
 
         /**
          * @brief The tf2 buffer.

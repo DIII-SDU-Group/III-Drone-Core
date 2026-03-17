@@ -8,6 +8,16 @@ using namespace iii_drone::utils::drone_frame_broadcaster_node;
 using namespace iii_drone::math;
 using namespace iii_drone::types;
 
+namespace {
+
+void DeclareManagedParameters(iii_drone::configuration::Configurator<rclcpp::Node> & configurator)
+{
+    configurator.DeclareParameter("/tf/drone_frame_id", rclcpp::ParameterType::PARAMETER_STRING);
+    configurator.DeclareParameter("/tf/world_frame_id", rclcpp::ParameterType::PARAMETER_STRING);
+}
+
+}  // namespace
+
 /*****************************************************************************/
 // Implementation
 /*****************************************************************************/
@@ -26,6 +36,8 @@ DroneFrameBroadcasterNode::DroneFrameBroadcasterNode(
     RCLCPP_DEBUG(this->get_logger(), "DroneFrameBroadcasterNode::DroneFrameBroadcasterNode(): Constructor");
 
     configurator_ = std::make_shared<iii_drone::configuration::Configurator<rclcpp::Node>>(this, "drone_frame_broadcaster");
+    DeclareManagedParameters(*configurator_);
+    configurator_->validate();
 
     // Initialize the transform broadcaster
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
@@ -61,8 +73,8 @@ void DroneFrameBroadcasterNode::odometryCallback(const std::shared_ptr<px4_msgs:
     iii_drone::adapters::px4::VehicleOdometryAdapter adapter(*msg);
 
     geometry_msgs::msg::TransformStamped t = adapter.ToTransformStamped(
-        configurator_->GetParameter("drone_frame_id").as_string(),
-        configurator_->GetParameter("world_frame_id").as_string()
+        configurator_->GetParameter("/tf/drone_frame_id").as_string(),
+        configurator_->GetParameter("/tf/world_frame_id").as_string()
     );
 
     // Send the transformation

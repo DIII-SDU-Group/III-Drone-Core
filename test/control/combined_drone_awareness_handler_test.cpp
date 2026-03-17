@@ -4,7 +4,7 @@
  * The test assume the drone is in flight and in position mode.
 */
 
-#include <iii_drone_core/configuration/configurator.hpp>
+#include <iii_drone_configuration/configurator.hpp>
 
 #include <iii_drone_core/control/combined_drone_awareness_handler.hpp>
 
@@ -362,12 +362,41 @@ int main(int argc, char **argv) {
     rclcpp::Node *nodePtr = node.get();
 
     std::shared_ptr<Configurator> configurator = std::make_shared<Configurator>(nodePtr,"maneuver_controller");
+    configurator->DeclareParameter("/control/maneuver_controller/ground_estimate_window_size", rclcpp::ParameterType::PARAMETER_INTEGER);
+    configurator->DeclareParameter("/control/maneuver_controller/ground_estimate_update_period_ms", rclcpp::ParameterType::PARAMETER_INTEGER);
+    configurator->DeclareParameter("/control/maneuver_controller/ground_estimate_initial_delay_s", rclcpp::ParameterType::PARAMETER_DOUBLE);
+    configurator->DeclareParameter("/control/maneuver_controller/landed_altitude_threshold", rclcpp::ParameterType::PARAMETER_DOUBLE);
+    configurator->DeclareParameter("/control/maneuver_controller/landed_altitude_threshold_on_start", rclcpp::ParameterType::PARAMETER_DOUBLE);
+    configurator->DeclareParameter("/control/maneuver_controller/on_cable_max_euc_distance", rclcpp::ParameterType::PARAMETER_DOUBLE);
+    configurator->DeclareParameter("/control/maneuver_controller/fail_on_unable_to_locate", rclcpp::ParameterType::PARAMETER_BOOL);
+    configurator->DeclareParameter("/control/maneuver_controller/combined_drone_awareness_pub_period_ms", rclcpp::ParameterType::PARAMETER_INTEGER);
+    configurator->DeclareParameter("/control/maneuver_controller/use_gripper_status_condition", rclcpp::ParameterType::PARAMETER_BOOL);
+    configurator->DeclareParameter("/tf/cable_gripper_frame_id", rclcpp::ParameterType::PARAMETER_STRING);
+    configurator->DeclareParameter("/tf/drone_frame_id", rclcpp::ParameterType::PARAMETER_STRING);
+    configurator->DeclareParameter("/tf/world_frame_id", rclcpp::ParameterType::PARAMETER_STRING);
+    configurator->DeclareParameter("/tf/ground_frame_id", rclcpp::ParameterType::PARAMETER_STRING);
+    configurator->CreateConfiguration("combined_drone_awareness_handler", {
+        iii_drone::configuration::configuration_entry_t("/control/maneuver_controller/ground_estimate_window_size", rclcpp::ParameterType::PARAMETER_INTEGER),
+        iii_drone::configuration::configuration_entry_t("/control/maneuver_controller/ground_estimate_update_period_ms", rclcpp::ParameterType::PARAMETER_INTEGER),
+        iii_drone::configuration::configuration_entry_t("/control/maneuver_controller/ground_estimate_initial_delay_s", rclcpp::ParameterType::PARAMETER_DOUBLE),
+        iii_drone::configuration::configuration_entry_t("/control/maneuver_controller/landed_altitude_threshold", rclcpp::ParameterType::PARAMETER_DOUBLE),
+        iii_drone::configuration::configuration_entry_t("/control/maneuver_controller/landed_altitude_threshold_on_start", rclcpp::ParameterType::PARAMETER_DOUBLE),
+        iii_drone::configuration::configuration_entry_t("/control/maneuver_controller/on_cable_max_euc_distance", rclcpp::ParameterType::PARAMETER_DOUBLE),
+        iii_drone::configuration::configuration_entry_t("/control/maneuver_controller/fail_on_unable_to_locate", rclcpp::ParameterType::PARAMETER_BOOL),
+        iii_drone::configuration::configuration_entry_t("/control/maneuver_controller/combined_drone_awareness_pub_period_ms", rclcpp::ParameterType::PARAMETER_INTEGER),
+        iii_drone::configuration::configuration_entry_t("/control/maneuver_controller/use_gripper_status_condition", rclcpp::ParameterType::PARAMETER_BOOL),
+        iii_drone::configuration::configuration_entry_t("/tf/cable_gripper_frame_id", rclcpp::ParameterType::PARAMETER_STRING),
+        iii_drone::configuration::configuration_entry_t("/tf/drone_frame_id", rclcpp::ParameterType::PARAMETER_STRING),
+        iii_drone::configuration::configuration_entry_t("/tf/world_frame_id", rclcpp::ParameterType::PARAMETER_STRING),
+        iii_drone::configuration::configuration_entry_t("/tf/ground_frame_id", rclcpp::ParameterType::PARAMETER_STRING),
+    });
+    configurator->validate();
 
     auto tfBuffer = std::make_shared<tf2_ros::Buffer>(node->get_clock());
     auto tfListener = std::make_shared<tf2_ros::TransformListener>(*tfBuffer);
 
     cdah = std::make_shared<CombinedDroneAwarenessHandler>(
-        configurator->GetParameterBundle("combined_drone_awareness_handler"),
+        configurator->GetConfiguration("combined_drone_awareness_handler"),
         tfBuffer,
         nodePtr
     );

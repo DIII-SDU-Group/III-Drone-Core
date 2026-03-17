@@ -14,9 +14,9 @@ using namespace iii_drone::types;
 /*****************************************************************************/
 
 TrajectoryInterpolator::TrajectoryInterpolator(
-    ParameterBundle::SharedPtr params,
+    Configuration::SharedPtr params,
     rclcpp_lifecycle::LifecycleNode * node
-) : params_(params), node_(node) { }
+) : configuration_(params), node_(node) { }
 
 TrajectoryInterpolator::~TrajectoryInterpolator() { }
 
@@ -115,7 +115,7 @@ double TrajectoryInterpolator::computeInterpolation(
     const double yaw_acceleration_T = 0;
 
     const double t0 = 0.0;
-    const double T = (pT - p0).norm() / params_->GetParameter("interpolation_avg_velocity_m_s").as_double();
+    const double T = (pT - p0).norm() / configuration_->GetParameter("/control/trajectory_interpolator/interpolation_avg_velocity_m_s").as_double();
 
     Eigen::Matrix<double, 6, 6> A;
 
@@ -245,8 +245,8 @@ Reference TrajectoryInterpolator::referenceFunction(double t) {
 
 ReferenceTrajectory TrajectoryInterpolator::referenceTrajectoryFunction(double t) {
 
-    int N = params_->GetParameter("reference_trajectory_length_N").as_int();
-    double dt = params_->GetParameter("dt").as_double();
+    int N = configuration_->GetParameter("/control/trajectory_interpolator/reference_trajectory_length_N").as_int();
+    double dt = configuration_->GetParameter("/control/dt").as_double();
 
     std::vector<Reference> reference_trajectory;
 

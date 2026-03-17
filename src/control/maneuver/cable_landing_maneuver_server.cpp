@@ -21,7 +21,7 @@ CableLandingManeuverServer::CableLandingManeuverServer(
     const std::string & action_name,
     unsigned int wait_for_execute_poll_ms,
     unsigned int evaluate_done_poll_ms,
-    iii_drone::configuration::ParameterBundle::SharedPtr parameters,
+    iii_drone::configuration::Configuration::SharedPtr parameters,
     iii_drone::control::TrajectoryGeneratorClient::SharedPtr trajectory_generator_client
 ) : ManeuverServer(
     node,
@@ -29,7 +29,7 @@ CableLandingManeuverServer::CableLandingManeuverServer(
     action_name,
     wait_for_execute_poll_ms,
     evaluate_done_poll_ms
-),  parameters_(parameters),
+),  configuration_(parameters),
     trajectory_generator_client_(trajectory_generator_client) {
 
     createServer<iii_drone_interfaces::action::CableLanding>();
@@ -98,7 +98,7 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
     try {
         current_target_translation_drone_to_cable = cda_handler->tf_buffer()->transform(
             current_target_translation_drone_to_cable,
-            parameters_->GetParameter("drone_frame_id").as_string()
+            configuration_->GetParameter("/tf/drone_frame_id").as_string()
         );
     } catch (const tf2::TransformException &e) {
         RCLCPP_WARN(node()->get_logger(), "CableLandingManeuverServer::CanExecuteManeuver(): Could not transform translation.");
@@ -112,12 +112,12 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
         return false;
     }
 
-    if (current_target_translation(2) < parameters_->GetParameter("cable_landing_min_z_distance").as_double()) {
+    if (current_target_translation(2) < configuration_->GetParameter("/control/maneuver_controller/cable_landing_min_z_distance").as_double()) {
         RCLCPP_WARN(node()->get_logger(), "CableLandingManeuverServer::CanExecuteManeuver(): Target translation is less than cable_landing_min_z_distance.");
         return false;
     }
 
-    if (current_target_translation(2) > parameters_->GetParameter("cable_landing_max_z_distance").as_double()) {
+    if (current_target_translation(2) > configuration_->GetParameter("/control/maneuver_controller/cable_landing_max_z_distance").as_double()) {
         RCLCPP_WARN(node()->get_logger(), "CableLandingManeuverServer::CanExecuteManeuver(): Target translation is greater than cable_landing_max_z_distance.");
         return false;
     }
@@ -131,7 +131,7 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
     try {
         current_target_quat_gripper_to_cable_msg = cda_handler->tf_buffer()->transform(
             current_target_quat_gripper_to_cable_msg,
-            parameters_->GetParameter("gripper_frame_id").as_string()
+            configuration_->GetParameter("/tf/cable_gripper_frame_id").as_string()
         );
     } catch (const tf2::TransformException &e) {
         RCLCPP_WARN(node()->get_logger(), "CableLandingManeuverServer::CanExecuteManeuver(): Could not transform quaternion.");
@@ -170,7 +170,7 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
 
     vector_t p_drone_to_target = current_target_pos_world_to_drone - pos_world_to_drone;
 
-    if (p_drone_to_target.norm() > parameters_->GetParameter("cable_landing_max_initial_distance_error").as_double()) {
+    if (p_drone_to_target.norm() > configuration_->GetParameter("/control/maneuver_controller/cable_landing_max_initial_distance_error").as_double()) {
         RCLCPP_WARN(node()->get_logger(), "CableLandingManeuverServer::CanExecuteManeuver(): Initial distance error is too large.");
         return false;
     }
@@ -181,7 +181,7 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
 
     // geometry_msgs::msg::QuaternionStamped current_world_to_target_quat = cda_handler->tf_buffer()->transform(
     //     current_target_pose.orientation,
-    //     parameters_->GetParameter("drone_frame_id").as_string()
+    //     configuration_->GetParameter("/tf/drone_frame_id").as_string()
     // );
 
     quaternion_t current_target_quat_world_to_drone = matToQuat(current_target_transform_world_to_drone.block<3, 3>(0, 0));
@@ -194,7 +194,7 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
 
     euler_angles_t eul_drone_to_target = quatToEul(quat_drone_to_target);
 
-    if (abs(eul_drone_to_target(2)) > parameters_->GetParameter("cable_landing_max_initial_yaw_error").as_double()) {
+    if (abs(eul_drone_to_target(2)) > configuration_->GetParameter("/control/maneuver_controller/cable_landing_max_initial_yaw_error").as_double()) {
         RCLCPP_WARN(node()->get_logger(), "CableLandingManeuverServer::CanExecuteManeuver(): Initial yaw error is too large.");
         return false;
     }
@@ -212,7 +212,7 @@ iii_drone::adapters::CombinedDroneAwarenessAdapter CableLandingManeuverServer::E
     TargetAdapter target_adapter = TargetAdapter(
         TARGET_TYPE_CABLE,
         cable_landing_maneuver_params.target_cable_id,
-        parameters_->GetParameter("gripper_frame_id").as_string(),
+        configuration_->GetParameter("/tf/cable_gripper_frame_id").as_string(),
         transform_matrix_t::Identity()
     );
 
@@ -256,7 +256,7 @@ void CableLandingManeuverServer::startExecution(Maneuver & maneuver) {
     target_adapter_ = TargetAdapter(
         TARGET_TYPE_CABLE,
         cable_landing_maneuver_params.target_cable_id,
-        parameters_->GetParameter("gripper_frame_id").as_string(),
+        configuration_->GetParameter("/tf/cable_gripper_frame_id").as_string(),
         transform_matrix_t::Identity()
     );
 
@@ -309,7 +309,7 @@ Reference CableLandingManeuverServer::computeReference(const State & state) {
             set_reference,
             reset,
             trajectory_mode_t::cable_landing,
-            parameters_->GetParameter("use_mpc").as_bool()
+            configuration_->GetParameter("/control/maneuver_controller/cable_landing_use_mpc").as_bool()
         );
 
         Reference truncated_ref = truncateReferenceWithinSafetyZone(
@@ -343,7 +343,7 @@ bool CableLandingManeuverServer::hasSucceeded(Maneuver &) {
 
     auto cda_handler = awareness_handler();
 
-    if (parameters_->GetParameter("use_gripper_status_condition").as_bool()) {
+    if (configuration_->GetParameter("/control/maneuver_controller/use_gripper_status_condition").as_bool()) {
 
         if (!cda_handler->gripper_open()) {
             RCLCPP_INFO(
@@ -375,7 +375,7 @@ bool CableLandingManeuverServer::hasSucceeded(Maneuver &) {
 
     double distance = (euc_pos - target_euc_pos).norm();
 
-    if(distance < parameters_->GetParameter("reached_position_euclidean_distance_threshold").as_double()) {
+    if(distance < configuration_->GetParameter("/control/maneuver_controller/cable_landing_reached_position_euclidean_distance_threshold").as_double()) {
         RCLCPP_INFO(
             node()->get_logger(),
             "CableLandingManeuverServer::hasSucceeded(): Reached position Euclidean distance threshold, succeeded."
@@ -493,7 +493,7 @@ std::shared_ptr<void> CableLandingManeuverServer::getFeedback(Maneuver &) {
 
     Reference target_reference = getUpdatedTargetReference(state);
 
-    std::string world_frame_id = parameters_->GetParameter("world_frame_id").as_string();
+    std::string world_frame_id = configuration_->GetParameter("/tf/world_frame_id").as_string();
 
     feedback->planned_path = reference_trajectory_adapter.ToPathMsg(world_frame_id);
     feedback->vehicle_pose = StateAdapter(awareness_handler()->GetState()).ToPoseStampedMsg(world_frame_id);
@@ -538,8 +538,8 @@ void CableLandingManeuverServer::registerReferenceCallbackOnSuccess(const Maneuv
 
     hover_on_cable_maneuver_server->Update(
         target_adapter_->target_id(),
-        parameters_->GetParameter("hover_on_cable_default_z_velocity").as_double(),
-        parameters_->GetParameter("hover_on_cable_default_yaw_rate").as_double()
+        configuration_->GetParameter("/control/maneuver_controller/hover_on_cable_default_z_velocity").as_double(),
+        configuration_->GetParameter("/control/maneuver_controller/hover_on_cable_default_yaw_rate").as_double()
     );
 
     registerCallback(
@@ -588,7 +588,7 @@ Reference CableLandingManeuverServer::getUpdatedTargetReference(
         target_reference = Reference(
             target_transform.block<3, 1>(0, 3),
             quatToEul(matToQuat(target_transform.block<3, 3>(0, 0)))[2],
-            vector_t(0,0,parameters_->GetParameter("cable_landing_target_upwards_velocity").as_double())
+            vector_t(0,0,configuration_->GetParameter("/control/maneuver_controller/cable_landing_target_upwards_velocity").as_double())
         );
 
     }
@@ -605,7 +605,7 @@ bool CableLandingManeuverServer::isWithinSafetyZone(
     point_t drone_pos = state.position();
     point_t target_pos = target_reference.position();
 
-    bool is_within_safety_zone = (drone_pos - target_pos).norm() <= parameters_->GetParameter("cable_landing_safety_zone_radius").as_double();
+    bool is_within_safety_zone = (drone_pos - target_pos).norm() <= configuration_->GetParameter("/control/maneuver_controller/cable_landing_safety_zone_radius").as_double();
 
     return is_within_safety_zone;
 
@@ -623,14 +623,14 @@ bool CableLandingManeuverServer::isWithinSafetyMargins(
         return true;
     }
 
-    float cable_landing_safety_margin_max_xy_position_error = parameters_->GetParameter("cable_landing_safety_margin_max_xy_position_error").as_double();
-    float cable_landing_safety_margin_max_xy_velocity = parameters_->GetParameter("cable_landing_safety_margin_max_xy_velocity").as_double();
-    float cable_landing_safety_margin_max_yaw_error = parameters_->GetParameter("cable_landing_safety_margin_max_yaw_error").as_double();
-    float cable_landing_safety_margin_max_yaw_rate = parameters_->GetParameter("cable_landing_safety_margin_max_yaw_rate").as_double();
+    float cable_landing_safety_margin_max_xy_position_error = configuration_->GetParameter("/control/maneuver_controller/cable_landing_safety_margin_max_xy_position_error").as_double();
+    float cable_landing_safety_margin_max_xy_velocity = configuration_->GetParameter("/control/maneuver_controller/cable_landing_safety_margin_max_xy_velocity").as_double();
+    float cable_landing_safety_margin_max_yaw_error = configuration_->GetParameter("/control/maneuver_controller/cable_landing_safety_margin_max_yaw_error").as_double();
+    float cable_landing_safety_margin_max_yaw_rate = configuration_->GetParameter("/control/maneuver_controller/cable_landing_safety_margin_max_yaw_rate").as_double();
 
-    float cable_landing_safety_margin_max_negative_vertical_distance = parameters_->GetParameter("cable_landing_safety_margin_max_negative_vertical_distance").as_double();
-    float cable_landing_safety_margin_cone_slope = parameters_->GetParameter("cable_landing_safety_margin_cone_slope").as_double();
-    float cable_landing_safety_margin_cone_tolerance = parameters_->GetParameter("cable_landing_safety_margin_cone_tolerance").as_double();
+    float cable_landing_safety_margin_max_negative_vertical_distance = configuration_->GetParameter("/control/maneuver_controller/cable_landing_safety_margin_max_negative_vertical_distance").as_double();
+    float cable_landing_safety_margin_cone_slope = configuration_->GetParameter("/control/maneuver_controller/cable_landing_safety_margin_cone_slope").as_double();
+    float cable_landing_safety_margin_cone_tolerance = configuration_->GetParameter("/control/maneuver_controller/cable_landing_safety_margin_cone_tolerance").as_double();
 
     point_t drone_pos = state.position();
     point_t target_pos = target_reference.position();
@@ -722,7 +722,7 @@ Reference CableLandingManeuverServer::truncateReferenceWithinSafetyZone(
     const iii_drone::control::Reference & target_reference
 ) const {
 
-    if ((state.position() - target_reference.position()).norm() > parameters_->GetParameter("cable_landing_reference_truncate_radius").as_double()) {
+    if ((state.position() - target_reference.position()).norm() > configuration_->GetParameter("/control/maneuver_controller/cable_landing_reference_truncate_radius").as_double()) {
 
         return reference;
 

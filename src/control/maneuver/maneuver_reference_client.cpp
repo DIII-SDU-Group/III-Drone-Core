@@ -19,14 +19,14 @@ using namespace iii_drone::configuration;
 ManeuverReferenceClient::ManeuverReferenceClient(
     rclcpp_lifecycle::LifecycleNode * node,
     History<adapters::px4::VehicleOdometryAdapter>::SharedPtr vehicle_odometry_adapter_history,
-    ParameterBundle::SharedPtr parameters,
+    Configuration::SharedPtr parameters,
     rclcpp::CallbackGroup::SharedPtr get_reference_cb_group
 ) : node_(node),
     get_reference_cb_group_(get_reference_cb_group),
     vehicle_odometry_adapter_history_(vehicle_odometry_adapter_history),
     reference_mode_(reference_mode_t::PASSTHROUGH),
     reference_(Reference()),
-    parameters_(parameters) {
+    configuration_(parameters) {
 
     // get_reference_cb_group_ = node_->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     
@@ -64,7 +64,7 @@ void ManeuverReferenceClient::UpdateReference(bool force) {
 
     std::lock_guard<std::mutex> lock(reference_mutex_);
     
-    if (parameters_->GetParameter("use_nans_when_hovering").as_bool()) {
+    if (configuration_->GetParameter("/mission/use_nans_when_hovering").as_bool()) {
 
         reference_ = Reference(
             state.position(),
@@ -361,7 +361,7 @@ Reference ManeuverReferenceClient::GetReference(
 
             int elapsed_ms = elapsed_time_since_start.nanoseconds() / 1e6;
 
-            if (elapsed_ms > parameters_->GetParameter("wait_for_maneuver_start_timeout_ms").as_int()) {
+            if (elapsed_ms > configuration_->GetParameter("/mission/wait_for_maneuver_start_timeout_ms").as_int()) {
 
                 RCLCPP_ERROR(
                     node_->get_logger(), 
@@ -432,7 +432,7 @@ Reference ManeuverReferenceClient::GetReference(
 
                 failed_attempts++;
 
-                if (failed_attempts >= parameters_->GetParameter("max_failed_attempts_during_maneuver").as_int()) {
+                if (failed_attempts >= configuration_->GetParameter("/mission/max_failed_attempts_during_maneuver").as_int()) {
 
                     RCLCPP_ERROR(
                         node_->get_logger(), 
@@ -561,7 +561,7 @@ bool ManeuverReferenceClient::getReferenceFromServer(Reference & reference) {
 
     // result.wait();
 
-    int get_reference_timeout_ms = parameters_->GetParameter("get_reference_timeout_ms").as_int();
+    int get_reference_timeout_ms = configuration_->GetParameter("/mission/get_reference_timeout_ms").as_int();
 
     if (result.wait_for(std::chrono::milliseconds(get_reference_timeout_ms)) == std::future_status::ready) {
         // RCLCPP_DEBUG(node_->get_logger(), "ManeuverReferenceClient::GetReference(): Received response.");

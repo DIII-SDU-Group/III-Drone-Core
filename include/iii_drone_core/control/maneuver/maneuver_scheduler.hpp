@@ -34,7 +34,7 @@
 /*****************************************************************************/
 // III-Drone-Configuration:
 
-#include <iii_drone_configuration/parameter_bundle.hpp>
+#include <iii_drone_configuration/configuration.hpp>
 
 /*****************************************************************************/
 // III-Drone-Core:
@@ -96,13 +96,13 @@ namespace maneuver {
          * 
          * @param node Simple pointer to the containing node.
          * @param combined_drone_awareness_handler Shared pointer to the combined drone awareness handler for retrieving drone awareness.
-         * @param parameters Shared pointer to the parameters for the maneuver scheduler.
+         * @param parameters Shared pointer to the maneuver scheduler configuration view.
          * @param maneuver_execution_callback_group Shared pointer to the callback group for parallel maneuver execution.
          */
         ManeuverScheduler(
             rclcpp_lifecycle::LifecycleNode *node,
             const iii_drone::control::CombinedDroneAwarenessHandler::SharedPtr combined_drone_awareness_handler,
-            const iii_drone::configuration::ParameterBundle::SharedPtr parameters,
+            const iii_drone::configuration::Configuration::SharedPtr parameters,
             rclcpp::CallbackGroup::SharedPtr maneuver_execution_callback_group
         );
 
@@ -301,7 +301,7 @@ namespace maneuver {
         /**
          * @brief The maneuver scheduler parameters.
          */
-        iii_drone::configuration::ParameterBundle::SharedPtr parameters_;
+        iii_drone::configuration::Configuration::SharedPtr configuration_;
 
         /**
          * @brief The maneuver execution callback group.

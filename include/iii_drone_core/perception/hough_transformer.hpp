@@ -24,7 +24,7 @@
 /*****************************************************************************/
 // III-Drone-Configuration:
 
-#include <iii_drone_configuration/parameter_bundle.hpp>
+#include <iii_drone_configuration/configuration.hpp>
 
 /*****************************************************************************/
 // Class
@@ -41,9 +41,9 @@ namespace perception {
         /**
          * @brief Constructor.
          * 
-         * @param parameters The hough transformer parameter bundle.
+         * @param parameters The hough transformer configuration view.
          */
-        HoughTransformer(iii_drone::configuration::ParameterBundle::SharedPtr parameters);
+        HoughTransformer(iii_drone::configuration::Configuration::SharedPtr parameters);
 
         /**
          * @brief Destructor.
@@ -98,7 +98,7 @@ namespace perception {
         /**
          * @brief The hough transformer parameter bundle.
          */
-        iii_drone::configuration::ParameterBundle::SharedPtr parameters_;
+        iii_drone::configuration::Configuration::SharedPtr configuration_;
 
         /**
          * @brief Finds the index of the best hough line match.
