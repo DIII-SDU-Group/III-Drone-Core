@@ -16,6 +16,7 @@
 
 #include <memory>
 #include <string>
+#include <chrono>
 
 #include <iii_drone_core/utils/types.hpp>
 #include <iii_drone_core/utils/math.hpp>
@@ -43,6 +44,7 @@ namespace drone_frame_broadcaster_node {
 
     private:
         void odometryCallback(const std::shared_ptr<px4_msgs::msg::VehicleOdometry> msg);
+        void publishIsAlive();
 
         rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr subscription_;
         std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
@@ -52,6 +54,7 @@ namespace drone_frame_broadcaster_node {
         iii_drone::configuration::Configurator<rclcpp::Node>::SharedPtr configurator_;
 
         rclcpp::Publisher<std_msgs::msg::Header>::SharedPtr is_alive_publisher_;
+        rclcpp::TimerBase::SharedPtr is_alive_timer_;
 
         rclcpp::Time last_alive_pub_time_;
 

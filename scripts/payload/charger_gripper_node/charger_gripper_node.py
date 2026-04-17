@@ -345,8 +345,11 @@ class ChargerGripperNode(Node):
         
         def shutdown():
             sleep(1)
-            
-            rclpy.shutdown()
+            if rclpy.ok():
+                try:
+                    rclpy.shutdown()
+                except Exception as exc:
+                    self.get_logger().debug(f"rclpy shutdown already completed: {exc}")
         
         shutdown_thread = Thread(target=shutdown)
         shutdown_thread.start()
@@ -608,14 +611,16 @@ def main():
         DEBUG_PORT = int(os.environ.get('CHARGER_GRIPPER_DEBUG_PORT', 0))
         
         if DEBUG_PORT > 0:
-            debugpy.listen(
-                (
-                    'localhost',
-                    DEBUG_PORT
+            try:
+                debugpy.listen(
+                    (
+                        'localhost',
+                        DEBUG_PORT
+                    )
                 )
-            )
-            
-            print("Listening for debugger on port " + str(DEBUG_PORT))
+                print("Listening for debugger on port " + str(DEBUG_PORT))
+            except RuntimeError as exc:
+                print(f"Skipping debugger listener on port {DEBUG_PORT}: {exc}")
 
     rclpy.init(args=sys.argv)
 

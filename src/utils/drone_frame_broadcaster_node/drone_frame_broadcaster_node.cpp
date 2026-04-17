@@ -49,11 +49,14 @@ DroneFrameBroadcasterNode::DroneFrameBroadcasterNode(
         rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().best_effort()
     );
 
-    last_alive_pub_time_ = rclcpp::Clock().now();
+    last_alive_pub_time_ = this->get_clock()->now();
+    publishIsAlive();
+    is_alive_timer_ = this->create_wall_timer(
+        std::chrono::seconds(1),
+        std::bind(&DroneFrameBroadcasterNode::publishIsAlive, this)
+    );
 
-    rclcpp::QoS sub_qos(rclcpp::KeepLast(1));
-    sub_qos.transient_local();
-    sub_qos.best_effort();
+    rclcpp::SensorDataQoS sub_qos;
 
     subscription_ = this->create_subscription<px4_msgs::msg::VehicleOdometry>(
         "/fmu/out/vehicle_odometry", 
@@ -77,24 +80,24 @@ void DroneFrameBroadcasterNode::odometryCallback(const std::shared_ptr<px4_msgs:
         configurator_->GetParameter("/tf/world_frame_id").as_string()
     );
 
+    // PX4 timestamps are boot-relative; TF needs ROS time so buffers reset correctly on sim/PX4 restarts.
+    t.header.stamp = this->get_clock()->now();
+
     // Send the transformation
     tf_broadcaster_->sendTransform(t);
-
-    rclcpp::Time now = rclcpp::Clock().now();
-
-    // Publish is_alive message
-    if (now - last_alive_pub_time_ > rclcpp::Duration(1, 0)) {
-        std_msgs::msg::Header header;
-        header.stamp = now;
-        is_alive_publisher_->publish(header);
-        last_alive_pub_time_ = now;
-
-        RCLCPP_INFO(this->get_logger(), "DroneFrameBroadcasterNode::odometryCallback(): Is alive");
-    }
 
     // RCLCPP debug published transform
     RCLCPP_DEBUG(this->get_logger(), "Published transform: %s -> %s", t.header.frame_id.c_str(), t.child_frame_id.c_str());
 
+}
+
+void DroneFrameBroadcasterNode::publishIsAlive() {
+    std_msgs::msg::Header header;
+    header.stamp = this->get_clock()->now();
+    is_alive_publisher_->publish(header);
+    last_alive_pub_time_ = header.stamp;
+
+    RCLCPP_DEBUG(this->get_logger(), "DroneFrameBroadcasterNode::publishIsAlive(): Published heartbeat");
 }
 
 int main(int argc, char * argv[]) {

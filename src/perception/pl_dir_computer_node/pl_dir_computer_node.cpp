@@ -62,7 +62,8 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(
         }
     };
 
-	std::string log_level = std::getenv("PL_DIR_COMPUTER_LOG_LEVEL");
+	const char * log_level_env = std::getenv("PL_DIR_COMPUTER_LOG_LEVEL");
+	std::string log_level = log_level_env == nullptr ? "" : log_level_env;
 
 	if (log_level != "") {
 
@@ -395,16 +396,12 @@ PowerlineDirectionComputerNode::on_shutdown(const rclcpp_lifecycle::State & stat
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 PowerlineDirectionComputerNode::on_error(const rclcpp_lifecycle::State & state) {
-    (void)state;
-
     RCLCPP_FATAL(
 		this->get_logger(), 
-		"PowerlineDirectionComputerNode::on_error(): An error occured"
+		"PowerlineDirectionComputerNode::on_error(): Lifecycle transition failed."
 	);
 
-	throw std::runtime_error("An error occured");
-
-	return CallbackReturn::ERROR;
+	return rclcpp_lifecycle::LifecycleNode::on_error(state);
 
 }
 
@@ -516,7 +513,7 @@ int main(int argc, char *argv[]) {
         executor.spin();
 
     } catch(const std::exception& e) {
-        
+        RCLCPP_FATAL(node->get_logger(), "PowerlineDirectionComputerNode main loop failed: %s", e.what());
         node.reset();
 
     }

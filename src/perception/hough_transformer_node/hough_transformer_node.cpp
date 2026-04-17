@@ -57,7 +57,8 @@ HoughTransformerNode::HoughTransformerNode(
         }
     };
 
-	std::string log_level = std::getenv("HOUGH_TRANSFORMER_LOG_LEVEL");
+	const char * log_level_env = std::getenv("HOUGH_TRANSFORMER_LOG_LEVEL");
+	std::string log_level = log_level_env == nullptr ? "" : log_level_env;
 
 	if (log_level != "") {
 
@@ -306,16 +307,12 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughT
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughTransformerNode::on_error(
 	const rclcpp_lifecycle::State & state
 ) {
-    (void)state;
-
 	RCLCPP_FATAL(
 		this->get_logger(), 
-		"HoughTransformerNode::on_error(): An error occured"
+		"HoughTransformerNode::on_error(): Lifecycle transition failed."
 	);
 
-	throw std::runtime_error("An error occured");
-
-	return CallbackReturn::ERROR;
+	return rclcpp_lifecycle::LifecycleNode::on_error(state);
 
 }
 
@@ -417,7 +414,7 @@ int main(int argc, char *argv[])
 
 	} catch (const std::exception & e) {
 
-		// std::cerr << e.what() << std::endl;
+		RCLCPP_FATAL(node->get_logger(), "HoughTransformerNode main loop failed: %s", e.what());
 		node.reset();
 	}
 	
