@@ -7,6 +7,18 @@ from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import PathJoinSubstitution
 import os
 
+from iii_drone_configuration.schema_utils import resolve_active_parameter_file, seed_runtime_configuration
+
+
+def _resolve_ros_params_file(profile_name: str) -> str:
+    seed_runtime_configuration(profile_name)
+    return str(resolve_active_parameter_file(profile_name))
+
+
+def _parameter_sources(profile_name: str) -> list[object]:
+    return [_resolve_ros_params_file(profile_name), {"use_sim_time": profile_name == "sim"}]
+
+
 def generate_launch_description():
     mmwave_log_level = LaunchConfiguration("mmwave_log_level")
 
@@ -72,16 +84,15 @@ def generate_launch_description():
         description="The logging level for the configuration server node, default is warn",
     )
 
-    iii_config_dir = os.path.join(os.path.expanduser(os.getenv("CONFIG_BASE_DIR", default="~/.config")), "iii_drone")
     simulation = os.getenv("SIMULATION", "false").lower() == "true"
-    ros_params = os.path.join(iii_config_dir, "ros_params_sim.yaml" if simulation else "ros_params_real.yaml")
+    profile_name = "sim" if simulation else "real"
     
     if simulation:
         micro_ros_agent = Node(
             package='micro_ros_agent',
             executable='micro_ros_agent',
             arguments=["udp4", "--port", "8888"],
-            parameters=[ros_params],
+            parameters=_parameter_sources(profile_name),
         )
     
         sensors = IncludeLaunchDescription(
@@ -103,7 +114,7 @@ def generate_launch_description():
             package='micro_ros_agent',
             executable='micro_ros_agent',
             arguments=["udp4", "--port", "8888"], # Fix for real drone
-            parameters=[ros_params],
+            parameters=_parameter_sources(profile_name),
         )
 
         sensors = IncludeLaunchDescription(
@@ -153,7 +164,7 @@ def generate_launch_description():
         configuration_server = Node(
             package='iii_drone_core',
             executable='configuration_server_node.py',
-            parameters=[ros_params],
+            parameters=_parameter_sources(profile_name),
             arguments=["--ros-args", "--log-level", configuration_server_log_level],
         )
         

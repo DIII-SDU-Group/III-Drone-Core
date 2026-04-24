@@ -81,7 +81,8 @@ TrajectoryGeneratorNode::TrajectoryGeneratorNode(
         }
     };
 
-	std::string log_level = std::getenv("TRAJECTORY_GENERATOR_LOG_LEVEL");
+	const char * log_level_env = std::getenv("TRAJECTORY_GENERATOR_LOG_LEVEL");
+	std::string log_level = log_level_env == nullptr ? "" : log_level_env;
 
 	if (log_level != "") {
 
@@ -283,7 +284,7 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Trajec
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn TrajectoryGeneratorNode::on_error(const rclcpp_lifecycle::State & state) {
 
-    RCLCPP_INFO(this->get_logger(), "TrajectoryGeneratorNode::on_error(): Error.");
+    RCLCPP_FATAL(this->get_logger(), "TrajectoryGeneratorNode::on_error(): Lifecycle transition failed.");
 
     CallbackReturn parent_return = rclcpp_lifecycle::LifecycleNode::on_error(state);
 
@@ -411,7 +412,7 @@ int main(int argc, char * argv[]) {
         executor.spin();
 
     } catch(const std::exception& e) {
-        
+        RCLCPP_FATAL(node->get_logger(), "TrajectoryGeneratorNode main loop failed: %s", e.what());
         node.reset();
 
     }

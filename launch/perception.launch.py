@@ -4,13 +4,21 @@ from launch.actions import DeclareLaunchArgument
 from launch_ros.actions import Node
 import os
 
+from iii_drone_configuration.schema_utils import resolve_active_parameter_file, seed_runtime_configuration
+
+
+def _resolve_ros_params_file(profile_name: str) -> str:
+    seed_runtime_configuration(profile_name)
+    return str(resolve_active_parameter_file(profile_name))
+
+
+def _parameter_sources(profile_name: str) -> list[object]:
+    return [_resolve_ros_params_file(profile_name), {"use_sim_time": profile_name == "sim"}]
+
+
 def generate_launch_description():
     simulation = os.getenv("SIMULATION", "false").lower() == "true"
-    ros_params = os.path.join(
-        os.path.expanduser(os.getenv("CONFIG_BASE_DIR", default="~/.config")),
-        "iii_drone",
-        "ros_params_sim.yaml" if simulation else "ros_params_real.yaml"
-    )
+    profile_name = "sim" if simulation else "real"
 
     hough_transformer_log_level = LaunchConfiguration("hough_transformer_log_level")
 
@@ -41,7 +49,7 @@ def generate_launch_description():
         executable="hough_transformer",
         namespace="/perception/hough_transformer",
         arguments=["--ros-args", "--log-level", hough_transformer_log_level],
-        parameters=[ros_params],
+        parameters=_parameter_sources(profile_name),
     )
 
     pl_dir_computer = Node(
@@ -49,7 +57,7 @@ def generate_launch_description():
         executable="pl_dir_computer",
         namespace="/perception/pl_dir_computer",
         arguments=["--ros-args", "--log-level", pl_dir_computer_log_level],
-        parameters=[ros_params],
+        parameters=_parameter_sources(profile_name),
     )
 
     pl_mapper = Node(
@@ -57,7 +65,7 @@ def generate_launch_description():
         executable="pl_mapper",
         namespace="/perception/pl_mapper",
         arguments=["--ros-args", "--log-level", pl_mapper_log_level],
-        parameters=[ros_params],
+        parameters=_parameter_sources(profile_name),
     )
 
     return LaunchDescription([

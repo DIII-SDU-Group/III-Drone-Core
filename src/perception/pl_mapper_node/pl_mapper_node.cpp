@@ -87,7 +87,8 @@ PowerlineMapperNode::PowerlineMapperNode(
         }
     };
 
-	std::string log_level = std::getenv("PL_MAPPER_LOG_LEVEL");
+	const char * log_level_env = std::getenv("PL_MAPPER_LOG_LEVEL");
+	std::string log_level = log_level_env == nullptr ? "" : log_level_env;
 
 	if (log_level != "") {
 
@@ -496,13 +497,9 @@ PowerlineMapperNode::on_shutdown(const rclcpp_lifecycle::State & state) {
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 PowerlineMapperNode::on_error(const rclcpp_lifecycle::State & state) {
-    (void)state;
+    RCLCPP_FATAL(this->get_logger(), "PowerlineMapperNode::on_error(): Lifecycle transition failed.");
 
-    RCLCPP_FATAL(this->get_logger(), "PowerlineMapperNode::on_error(): An error occured");
-
-    throw std::runtime_error("An error occured");
-
-    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::ERROR;
+    return rclcpp_lifecycle::LifecycleNode::on_error(state);
 
 }
 
@@ -859,7 +856,7 @@ int main(int argc, char *argv[]) {
         executor.spin();
 
     } catch(const std::exception& e) {
-        
+        RCLCPP_FATAL(node->get_logger(), "PowerlineMapperNode main loop failed: %s", e.what());
         node.reset();
 
     }
