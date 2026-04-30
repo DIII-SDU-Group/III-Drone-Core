@@ -84,6 +84,7 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
         ConfigurationEntry("/control/maneuver_controller/landed_altitude_threshold", double_t),
         ConfigurationEntry("/control/maneuver_controller/landed_altitude_threshold_on_start", double_t),
         ConfigurationEntry("/control/maneuver_controller/on_cable_max_euc_distance", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_reached_position_euclidean_distance_threshold", double_t),
         ConfigurationEntry("/control/maneuver_controller/fail_on_unable_to_locate", bool_t),
         ConfigurationEntry("/control/maneuver_controller/combined_drone_awareness_pub_period_ms", int_t),
         ConfigurationEntry("/control/maneuver_controller/use_gripper_status_condition", bool_t),
