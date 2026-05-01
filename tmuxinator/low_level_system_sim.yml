@@ -6,6 +6,6 @@ root: ~/
 windows:
   - micro_ros_agent: ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888  
   - tf: ros2 launch iii_drone tf_sim.launch.py
-  - sensors: ros2 launch iii_drone sensors_sim.launch.py
+  - sim_assets: ros2 launch iii_drone_simulation sim_assets.launch.py
   - pl_mapper: ros2 launch iii_drone pl_mapper_SW.launch.py
   - controller: ros2 launch iii_drone controller.launch.py

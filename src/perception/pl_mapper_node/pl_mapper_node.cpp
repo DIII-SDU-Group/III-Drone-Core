@@ -319,7 +319,7 @@ PowerlineMapperNode::on_activate(const rclcpp_lifecycle::State & state) {
     );
 
     mmwave_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-        "/sensor/mmwave/pcl", 
+        "/sensor/mmwave/points", 
         10, 
         std::bind(
             &PowerlineMapperNode::mmWaveCallback, 
@@ -734,7 +734,7 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
             -1,
             pcl_points[i],
             pl_direction_,
-            configurator_->GetParameter("/tf/mmwave_frame_id").as_string(),
+            msg->header.frame_id,
             tf_buffer_,
             configurator_->GetConfiguration("powerline")
         );
