@@ -116,6 +116,7 @@ int HoughTransformer::getBestLineIndex(
 
 		if (dist < best_dist) {
 			best_idx = i;
+			best_dist = dist;
 		}
 	}
 

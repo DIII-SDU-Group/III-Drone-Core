@@ -103,38 +103,54 @@ Reference TrajectoryGeneratorClient::ComputeReference(
 
         } else {
 
-            rclcpp::Time wait_start_time = node_->now();
-
-            while(!done()) {
-
-                rclcpp::sleep_for(std::chrono::milliseconds(configuration_->GetParameter("/control/maneuver_controller/generate_trajectories_poll_period_ms").as_int()));
-
+            if (!done()) {
+                RCLCPP_DEBUG(
+                    node_->get_logger(),
+                    "TrajectoryGeneratorClient::ComputeReference(): Asynchronous trajectory is still pending. Reusing latest reference trajectory."
+                );
             }
 
-            ref_out = GetReferenceTrajectory().references()[1];
+            ReferenceTrajectory latest_trajectory = GetReferenceTrajectory();
+            ref_out = latest_trajectory.references().size() > 1 ?
+                latest_trajectory.references()[1] :
+                latest_trajectory.references()[0];
 
         }
 
-        ComputeReferenceTrajectoryAsync(
-            state,
-            reference,
-            set_reference,
-            reset,
-            trajectory_mode,
-            use_mpc
-        );
+        if (!busy()) {
+            ComputeReferenceTrajectoryAsync(
+                state,
+                reference,
+                set_reference,
+                reset,
+                trajectory_mode,
+                use_mpc
+            );
+        } else {
+            RCLCPP_DEBUG(
+                node_->get_logger(),
+                "TrajectoryGeneratorClient::ComputeReference(): Previous asynchronous trajectory request is still busy; not submitting a new request."
+            );
+        }
 
     } else {
 
-        ComputeReferenceTrajectoryBlocking(
-            state,
-            reference,
-            set_reference,
-            reset,
-            trajectory_mode,
-            configuration_->GetParameter("/control/maneuver_controller/generate_trajectories_poll_period_ms").as_int(),
-            use_mpc
-        );
+        if (!busy()) {
+            ComputeReferenceTrajectoryBlocking(
+                state,
+                reference,
+                set_reference,
+                reset,
+                trajectory_mode,
+                configuration_->GetParameter("/control/maneuver_controller/generate_trajectories_poll_period_ms").as_int(),
+                use_mpc
+            );
+        } else {
+            RCLCPP_WARN(
+                node_->get_logger(),
+                "TrajectoryGeneratorClient::ComputeReference(): Previous blocking trajectory request is still busy; reusing latest reference trajectory."
+            );
+        }
 
         ref_out = GetReferenceTrajectory().references()[0];
 
@@ -150,6 +166,43 @@ Reference TrajectoryGeneratorClient::ComputeReference(
     // );
 
     return ref_out;
+
+}
+
+Reference TrajectoryGeneratorClient::ComputeReference(
+    const Reference & start_reference,
+    const Reference & reference,
+    bool set_reference,
+    bool reset,
+    trajectory_mode_t trajectory_mode
+) {
+
+    if (reset) {
+        reference_trajectory_adapter_history_ = std::make_shared<History<ReferenceTrajectoryAdapter>>(1);
+        reference_trajectory_adapter_history_->Store(ReferenceTrajectoryAdapter(start_reference));
+    }
+
+    if (!busy()) {
+        ComputeReferenceTrajectoryBlocking(
+            start_reference,
+            reference,
+            set_reference,
+            reset,
+            trajectory_mode,
+            configuration_->GetParameter("/control/maneuver_controller/generate_trajectories_poll_period_ms").as_int()
+        );
+    } else {
+        RCLCPP_WARN(
+            node_->get_logger(),
+            "TrajectoryGeneratorClient::ComputeReference(): Previous blocking trajectory request is still busy; reusing latest reference trajectory."
+        );
+    }
+
+    if (!last_request_success_) {
+        throw std::runtime_error(last_error_message_.Load());
+    }
+
+    return GetReferenceTrajectory().references()[0];
 
 }
 
@@ -177,6 +230,8 @@ void TrajectoryGeneratorClient::ComputeReferenceTrajectoryAsync(
 
     // Set done flag
     done_ = false;
+    last_request_success_ = true;
+    last_error_message_ = "";
 
     // Create request
     auto request = std::make_shared<iii_drone_interfaces::srv::ComputeReferenceTrajectory::Request>();
@@ -184,6 +239,8 @@ void TrajectoryGeneratorClient::ComputeReferenceTrajectoryAsync(
     // Set request
     request->state = StateAdapter(state).ToMsg();
     request->reference = ReferenceAdapter(reference).ToMsg();
+    request->use_start_reference = false;
+    request->start_reference = ReferenceAdapter(Reference(state)).ToMsg();
 
     request->set_reference = set_reference;
     request->reset = reset;
@@ -206,7 +263,61 @@ void TrajectoryGeneratorClient::ComputeReferenceTrajectoryAsync(
 
 }
 
-void TrajectoryGeneratorClient::ComputeReferenceTrajectoryBlocking(
+void TrajectoryGeneratorClient::ComputeReferenceTrajectoryAsync(
+    const Reference & start_reference,
+    const Reference & reference,
+    bool set_reference,
+    bool reset,
+    trajectory_mode_t trajectory_mode
+) {
+
+    if (busy()) {
+
+        std::string error_message = "TrajectoryGeneratorClient::ComputeReferenceTrajectoryAsync(): Trajectory generator is busy.";
+
+        RCLCPP_ERROR(node_->get_logger(), error_message.c_str());
+
+        throw std::runtime_error(error_message);
+
+    }
+
+    busy_ = true;
+    done_ = false;
+    last_request_success_ = true;
+    last_error_message_ = "";
+
+    auto request = std::make_shared<iii_drone_interfaces::srv::ComputeReferenceTrajectory::Request>();
+
+    request->state = StateAdapter(State(
+        start_reference.position(),
+        start_reference.velocity(),
+        start_reference.yaw(),
+        iii_drone::types::vector_t(0.0, 0.0, start_reference.yaw_rate()),
+        start_reference.stamp()
+    )).ToMsg();
+    request->reference = ReferenceAdapter(reference).ToMsg();
+    request->use_start_reference = true;
+    request->start_reference = ReferenceAdapter(start_reference).ToMsg();
+
+    request->set_reference = set_reference;
+    request->reset = reset;
+    request->trajectory_mode.mode = trajectory_mode;
+    request->use_mpc = false;
+
+    auto future = client_->async_send_request(
+        request,
+        std::bind(
+            &TrajectoryGeneratorClient::serviceResultCallback,
+            this,
+            std::placeholders::_1
+        )
+    );
+
+    future_ = future.future;
+
+}
+
+bool TrajectoryGeneratorClient::ComputeReferenceTrajectoryBlocking(
     const State & state,
     const Reference & reference,
     bool set_reference,
@@ -233,15 +344,68 @@ void TrajectoryGeneratorClient::ComputeReferenceTrajectoryBlocking(
 
         if (node_->now() - wait_start_time > rclcpp::Duration::from_nanoseconds(configuration_->GetParameter("/control/maneuver_controller/generate_trajectories_timeout_ms").as_int() * 1e6)) {
 
-            std::string error_message = "TrajectoryGeneratorClient::ComputeReferenceTrajectoryBlocking(): Timeout while waiting for blocking trajectory generation.";
+            RCLCPP_WARN(
+                node_->get_logger(),
+                "TrajectoryGeneratorClient::ComputeReferenceTrajectoryBlocking(): Timed out waiting for blocking trajectory generation after %ld ms. Reusing latest reference trajectory.",
+                configuration_->GetParameter("/control/maneuver_controller/generate_trajectories_timeout_ms").as_int()
+            );
 
-            RCLCPP_FATAL(node_->get_logger(), error_message.c_str());
-
-            throw std::runtime_error(error_message);
+            return false;
 
         }
 
     }
+
+    if (!last_request_success_) {
+        throw std::runtime_error(last_error_message_.Load());
+    }
+
+    return true;
+
+}
+
+bool TrajectoryGeneratorClient::ComputeReferenceTrajectoryBlocking(
+    const Reference & start_reference,
+    const Reference & reference,
+    bool set_reference,
+    bool reset,
+    trajectory_mode_t trajectory_mode,
+    unsigned int poll_period_ms
+) {
+
+    ComputeReferenceTrajectoryAsync(
+        start_reference,
+        reference,
+        set_reference,
+        reset,
+        trajectory_mode
+    );
+
+    rclcpp::Time wait_start_time = node_->now();
+
+    while (!done()) {
+
+        rclcpp::sleep_for(std::chrono::milliseconds(poll_period_ms));
+
+        if (node_->now() - wait_start_time > rclcpp::Duration::from_nanoseconds(configuration_->GetParameter("/control/maneuver_controller/generate_trajectories_timeout_ms").as_int() * 1e6)) {
+
+            RCLCPP_WARN(
+                node_->get_logger(),
+                "TrajectoryGeneratorClient::ComputeReferenceTrajectoryBlocking(): Timed out waiting for blocking trajectory generation after %ld ms. Reusing latest reference trajectory.",
+                configuration_->GetParameter("/control/maneuver_controller/generate_trajectories_timeout_ms").as_int()
+            );
+
+            return false;
+
+        }
+
+    }
+
+    if (!last_request_success_) {
+        throw std::runtime_error(last_error_message_.Load());
+    }
+
+    return true;
 
 }
 
@@ -265,6 +429,18 @@ bool TrajectoryGeneratorClient::done() const {
 
 }
 
+bool TrajectoryGeneratorClient::lastRequestSucceeded() const {
+
+    return last_request_success_;
+
+}
+
+std::string TrajectoryGeneratorClient::lastErrorMessage() const {
+
+    return last_error_message_.Load();
+
+}
+
 void TrajectoryGeneratorClient::serviceResultCallback(
     rclcpp::Client<iii_drone_interfaces::srv::ComputeReferenceTrajectory>::SharedFuture future
 ) {
@@ -282,6 +458,9 @@ void TrajectoryGeneratorClient::serviceResultCallback(
         throw std::runtime_error(error_message);
 
     }
+
+    last_request_success_ = response->success;
+    last_error_message_ = response->error_message;
 
     // Create reference trajectory adapter
     ReferenceTrajectoryAdapter reference_trajectory_adapter(response->reference_trajectory);

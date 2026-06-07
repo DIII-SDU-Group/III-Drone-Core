@@ -8,6 +8,7 @@
 // Std:
 
 #include <memory>
+#include <string>
 
 /*****************************************************************************/
 // ROS2:
@@ -112,6 +113,20 @@ namespace control {
         );
 
         /**
+         * @brief Computes an interpolation reference from a full start reference.
+         *
+         * This is used for blended FTP transitions where acceleration continuity
+         * matters. It is only valid for interpolation-based trajectories.
+         */
+        iii_drone::control::Reference ComputeReference(
+            const iii_drone::control::Reference & start_reference,
+            const iii_drone::control::Reference & reference,
+            bool set_reference,
+            bool reset,
+            trajectory_mode_t trajectory_mode
+        );
+
+        /**
          * @brief Starts generating a trajectory.
          * 
          * @param state Current state
@@ -132,6 +147,14 @@ namespace control {
             bool use_mpc=true
         );
 
+        void ComputeReferenceTrajectoryAsync(
+            const iii_drone::control::Reference & start_reference,
+            const iii_drone::control::Reference & reference,
+            bool set_reference,
+            bool reset,
+            trajectory_mode_t trajectory_mode
+        );
+
         /**
          * @brief Generates a trajectory and blocks until it is done.
          * 
@@ -143,9 +166,12 @@ namespace control {
          * @param poll_period_ms Poll period in milliseconds
          * @param use_mpc Use MPC if true
          * 
-         * @throws std::runtime_error if the trajectory generator is busy
+         * @return true if a fresh trajectory was received before timeout.
+         *
+         * @throws std::runtime_error if the trajectory generator is busy or the
+         * service reports a computation failure
          */
-        void ComputeReferenceTrajectoryBlocking(
+        bool ComputeReferenceTrajectoryBlocking(
             const iii_drone::control::State & state,
             const iii_drone::control::Reference & reference,
             bool set_reference,
@@ -153,6 +179,15 @@ namespace control {
             trajectory_mode_t trajectory_mode,
             unsigned int poll_period_ms,
             bool use_mpc=true
+        );
+
+        bool ComputeReferenceTrajectoryBlocking(
+            const iii_drone::control::Reference & start_reference,
+            const iii_drone::control::Reference & reference,
+            bool set_reference,
+            bool reset,
+            trajectory_mode_t trajectory_mode,
+            unsigned int poll_period_ms
         );
 
         /**
@@ -177,6 +212,16 @@ namespace control {
          * @return true if the trajectory generator is done
          */
         bool done() const;
+
+        /**
+         * @brief Returns whether the last completed trajectory request succeeded.
+         */
+        bool lastRequestSucceeded() const;
+
+        /**
+         * @brief Returns the error message from the last completed trajectory request.
+         */
+        std::string lastErrorMessage() const;
 
         /**
          * @brief Shared pointer type.
@@ -218,6 +263,9 @@ namespace control {
          * @brief Done flag
          */
         iii_drone::utils::Atomic<bool> done_;
+
+        iii_drone::utils::Atomic<bool> last_request_success_{true};
+        iii_drone::utils::Atomic<std::string> last_error_message_;
 
         /**
          * @brief Service future

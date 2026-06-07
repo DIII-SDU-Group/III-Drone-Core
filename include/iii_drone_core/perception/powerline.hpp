@@ -124,6 +124,16 @@ namespace perception {
         iii_drone::types::point_t UpdateLine(const iii_drone::types::point_t & point);
 
         /**
+         * @brief Updates from one sensor scan. Each tracked line can consume at most one
+         * measurement from the scan; unmatched measurements register new lines.
+         *
+         * @param points Points to update from.
+         *
+         * @return The projected points corresponding to the input points.
+        */
+        std::vector<iii_drone::types::point_t> UpdateLines(const std::vector<iii_drone::types::point_t> & points);
+
+        /**
          * @brief Updates the powerline direction and updates the projection plane.
          * 
          * @param pl_direction The powerline direction.
@@ -293,6 +303,13 @@ namespace perception {
          * @param point The point to register the new line from.
          */
         void registerNewLine(const iii_drone::types::point_t & point);
+
+        /**
+         * @brief Registers a new line. Caller must hold lines_mutex_ exclusively.
+         *
+         * @param point The point to register.
+         */
+        void registerNewLineLocked(const iii_drone::types::point_t & point);
 
         /**
          * @brief Projects a point onto the powerline projection plane.

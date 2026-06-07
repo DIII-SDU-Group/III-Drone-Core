@@ -40,6 +40,7 @@
 #include <iii_drone_core/control/maneuver/hover_by_object_maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/hover_on_cable_maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/fly_to_position_maneuver_server.hpp>
+#include <iii_drone_core/control/maneuver/cable_aware_fly_to_position_maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/fly_to_object_maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/cable_landing_maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/cable_takeoff_maneuver_server.hpp>
@@ -231,6 +232,12 @@ namespace maneuver_controller_node {
          * Will serve fly to position action requests.
          */
         std::shared_ptr<iii_drone::control::maneuver::FlyToPositionManeuverServer> fly_to_position_maneuver_server_;
+
+        /**
+         * @brief The cable-aware fly to position maneuver server shared pointer.
+         * Will serve cable-aware fly to position action requests.
+         */
+        std::shared_ptr<iii_drone::control::maneuver::CableAwareFlyToPositionManeuverServer> cable_aware_fly_to_position_maneuver_server_;
 
         /**
          * @brief The fly to object maneuver server shared pointer. 

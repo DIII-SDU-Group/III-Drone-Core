@@ -15,6 +15,7 @@ using namespace iii_drone::math;
 VehicleOdometryAdapter::VehicleOdometryAdapter() { 
 
     stamp_ = rclcpp::Time(0);
+    reset_counter_ = 0;
 
 }
 
@@ -34,6 +35,7 @@ void VehicleOdometryAdapter::UpdateFromMsg(const px4_msgs::msg::VehicleOdometry 
         -vehicle_odometry_msg.position[1], 
         -vehicle_odometry_msg.position[2]
     };
+    reset_counter_ = vehicle_odometry_msg.reset_counter;
 
     quaternion_t px4_q = {
         vehicle_odometry_msg.q[0], 
@@ -131,6 +133,18 @@ const pose_frame_t & VehicleOdometryAdapter::pose_frame() const {
 const point_t & VehicleOdometryAdapter::position() const {
 
     return position_;
+
+}
+
+void VehicleOdometryAdapter::ApplyPositionOffset(const point_t & offset) {
+
+    position_ += offset;
+
+}
+
+uint8_t VehicleOdometryAdapter::reset_counter() const {
+
+    return reset_counter_;
 
 }
 

@@ -30,6 +30,7 @@
 #include <iii_drone_interfaces/msg/string_stamped.hpp>
 
 #include <iii_drone_interfaces/srv/get_reference.hpp>
+#include <iii_drone_interfaces/srv/clear_maneuver_queue.hpp>
 
 /*****************************************************************************/
 // III-Drone-Configuration:
@@ -236,6 +237,13 @@ namespace maneuver {
         bool maneuverIsExecutingOrPending() const;
 
         /**
+         * @brief Clears queued maneuvers without cancelling the current maneuver.
+         *
+         * @return Number of queued maneuvers that were cleared.
+         */
+        uint32_t ClearManeuverQueue();
+
+        /**
          * @brief Shared pointer type.
          */
         typedef std::shared_ptr<ManeuverScheduler> SharedPtr;
@@ -377,6 +385,11 @@ namespace maneuver {
         rclcpp::Service<iii_drone_interfaces::srv::GetReference>::SharedPtr get_reference_service_;
 
         /**
+         * @brief Clear maneuver queue service.
+         */
+        rclcpp::Service<iii_drone_interfaces::srv::ClearManeuverQueue>::SharedPtr clear_maneuver_queue_service_;
+
+        /**
          * @brief Get reference service callback.
          * 
          * @param request The request.
@@ -387,6 +400,19 @@ namespace maneuver {
         void getReferenceServiceCallback(
             const std::shared_ptr<iii_drone_interfaces::srv::GetReference::Request> request,
             std::shared_ptr<iii_drone_interfaces::srv::GetReference::Response> response
+        );
+
+        /**
+         * @brief Clear maneuver queue service callback.
+         *
+         * @param request The request.
+         * @param response The response.
+         *
+         * @return void
+         */
+        void clearManeuverQueueServiceCallback(
+            const std::shared_ptr<iii_drone_interfaces::srv::ClearManeuverQueue::Request> request,
+            std::shared_ptr<iii_drone_interfaces::srv::ClearManeuverQueue::Response> response
         );
 
         /**

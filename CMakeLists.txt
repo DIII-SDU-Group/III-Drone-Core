@@ -96,6 +96,7 @@ set(III_DRONE_LIBRARY_HEADERS
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/state.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/reference.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/reference_trajectory.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/cable_aware_trajectory_planner.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator_client.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_interpolator.hpp"
@@ -113,6 +114,7 @@ set(III_DRONE_LIBRARY_HEADERS
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/hover_by_object_maneuver_server.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/hover_on_cable_maneuver_server.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/fly_to_position_maneuver_server.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/cable_aware_fly_to_position_maneuver_server.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/fly_to_object_maneuver_server.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/cable_landing_maneuver_server.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/cable_takeoff_maneuver_server.hpp"
@@ -153,6 +155,7 @@ set(III_DRONE_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/control/state.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/reference.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/reference_trajectory.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/cable_aware_trajectory_planner.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator_client.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/trajectory_interpolator.cpp"
@@ -170,6 +173,7 @@ set(III_DRONE_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/hover_by_object_maneuver_server.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/hover_on_cable_maneuver_server.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/fly_to_position_maneuver_server.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver/cable_aware_fly_to_position_maneuver_server.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/fly_to_object_maneuver_server.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/cable_landing_maneuver_server.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/cable_takeoff_maneuver_server.cpp"
@@ -365,12 +369,20 @@ if (BUILD_TESTING)
     test/control/reference_test.cpp
   )
 
+  ament_add_gtest(iii_drone_core_cable_aware_trajectory_planner_test
+    test/control/cable_aware_trajectory_planner_test.cpp
+  )
+
   ament_add_gtest(iii_drone_core_basic_adapters_test
     test/adapters/basic_adapters_test.cpp
   )
 
   ament_add_gtest(iii_drone_core_perception_adapters_test
     test/adapters/perception_adapters_test.cpp
+  )
+
+  ament_add_gtest(iii_drone_core_hough_transformer_test
+    test/perception/hough_transformer_test.cpp
   )
 
   if(TARGET iii_drone_core_history_test)
@@ -397,6 +409,12 @@ if (BUILD_TESTING)
     ament_target_dependencies(iii_drone_core_reference_test ${dependencies})
   endif()
 
+  if(TARGET iii_drone_core_cable_aware_trajectory_planner_test)
+    target_include_directories(iii_drone_core_cable_aware_trajectory_planner_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_cable_aware_trajectory_planner_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_cable_aware_trajectory_planner_test ${dependencies})
+  endif()
+
   if(TARGET iii_drone_core_basic_adapters_test)
     target_include_directories(iii_drone_core_basic_adapters_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
     target_link_libraries(iii_drone_core_basic_adapters_test iii_drone_lib)
@@ -407,6 +425,12 @@ if (BUILD_TESTING)
     target_include_directories(iii_drone_core_perception_adapters_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
     target_link_libraries(iii_drone_core_perception_adapters_test iii_drone_lib)
     ament_target_dependencies(iii_drone_core_perception_adapters_test ${dependencies})
+  endif()
+
+  if(TARGET iii_drone_core_hough_transformer_test)
+    target_include_directories(iii_drone_core_hough_transformer_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_hough_transformer_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_hough_transformer_test ${dependencies})
   endif()
 
   install(DIRECTORY

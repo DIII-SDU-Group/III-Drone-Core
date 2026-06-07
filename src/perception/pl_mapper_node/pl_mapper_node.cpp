@@ -528,24 +528,7 @@ void PowerlineMapperNode::plMapperCommandCallback(
         auto req = std::make_shared<iii_drone_interfaces::srv::SystemCommand::Request>();
         req->command = start_nstop ? req->SYSTEM_COMMAND_START : req->SYSTEM_COMMAND_STOP;
 
-        bool done = false;
-
-        auto cb = [&done](
-            rclcpp::Client<iii_drone_interfaces::srv::SystemCommand>::SharedFuture
-        ) {
-            done = true;
-        };
-
-        auto res = command_client->async_send_request(
-            req,
-            cb
-        );
-
-        rclcpp::Rate rate(10);
-
-        while (!done) {
-            rate.sleep();
-        }
+        (void) command_client->async_send_request(req);
 
         return;
 
@@ -765,14 +748,11 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
         point_t transformed_point = pointFromPointMsg(pt.point);
 
-        // RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::mmWaveCallback(): Point in FOV, updating powerline");
-
-        point_t projected_point = powerline_->UpdateLine(transformed_point);
-
         transformed_points.push_back(transformed_point);
-        projected_points.push_back(projected_point);
 
     }   
+
+    projected_points = powerline_->UpdateLines(transformed_points);
 
     // RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::mmWaveCallback(): Skipped %d points", n_skipped);
 

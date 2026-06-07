@@ -44,40 +44,94 @@ bool CableTakeoffManeuverServer::CanExecuteManeuver(
     cable_takeoff_maneuver_params_t cable_takeoff_maneuver_params(maneuver.maneuver_params());
 
     if (maneuver.maneuver_type() != MANEUVER_TYPE_CABLE_TAKEOFF) {
+        RCLCPP_DEBUG(
+            node()->get_logger(),
+            "CableTakeoffManeuverServer::CanExecuteManeuver(): Maneuver type is not MANEUVER_TYPE_CABLE_TAKEOFF."
+        );
         return false;
     }
 
     if (!drone_awareness.armed()) {
+        RCLCPP_DEBUG(
+            node()->get_logger(),
+            "CableTakeoffManeuverServer::CanExecuteManeuver(): Drone is not armed."
+        );
         return false;
     }
 
     if (!drone_awareness.offboard()) {
+        RCLCPP_DEBUG(
+            node()->get_logger(),
+            "CableTakeoffManeuverServer::CanExecuteManeuver(): Drone is not offboard."
+        );
         return false;
     }
 
-    if (!drone_awareness.on_cable()) {
+    if (!drone_awareness.gripper_open()) {
+        RCLCPP_DEBUG(
+            node()->get_logger(),
+            "CableTakeoffManeuverServer::CanExecuteManeuver(): Gripper is not open."
+        );
+        return false;
+    }
+
+    if (!drone_awareness.on_cable() && !drone_awareness.in_flight()) {
+        RCLCPP_DEBUG(
+            node()->get_logger(),
+            "CableTakeoffManeuverServer::CanExecuteManeuver(): Drone is neither on cable nor in flight."
+        );
         return false;
     }
 
     if (!drone_awareness.has_target()) {
+        RCLCPP_DEBUG(
+            node()->get_logger(),
+            "CableTakeoffManeuverServer::CanExecuteManeuver(): Drone does not have a target."
+        );
         return false;
     }
 
     if (drone_awareness.target_adapter().target_type() != TARGET_TYPE_CABLE) {
+        RCLCPP_DEBUG(
+            node()->get_logger(),
+            "CableTakeoffManeuverServer::CanExecuteManeuver(): Target type is not TARGET_TYPE_CABLE."
+        );
         return false;
     }
 
     if (drone_awareness.target_adapter().target_id() != cable_takeoff_maneuver_params.target_cable_id) {
-        return false;
+        RCLCPP_DEBUG(
+            node()->get_logger(),
+            "CableTakeoffManeuverServer::CanExecuteManeuver(): Requested target id %d differs from active target id %d; accepting because cable takeoff freezes a local clearance target.",
+            cable_takeoff_maneuver_params.target_cable_id,
+            drone_awareness.target_adapter().target_id()
+        );
     }
 
     if(cable_takeoff_maneuver_params.target_cable_distance < configuration_->GetParameter("/control/maneuver_controller/cable_takeoff_min_target_cable_distance").as_double()) {
+        RCLCPP_DEBUG(
+            node()->get_logger(),
+            "CableTakeoffManeuverServer::CanExecuteManeuver(): target_cable_distance %.3f is below minimum %.3f.",
+            cable_takeoff_maneuver_params.target_cable_distance,
+            configuration_->GetParameter("/control/maneuver_controller/cable_takeoff_min_target_cable_distance").as_double()
+        );
         return false;
     }
 
     if (cable_takeoff_maneuver_params.target_cable_distance > configuration_->GetParameter("/control/maneuver_controller/cable_takeoff_max_target_cable_distance").as_double()) {
+        RCLCPP_DEBUG(
+            node()->get_logger(),
+            "CableTakeoffManeuverServer::CanExecuteManeuver(): target_cable_distance %.3f is above maximum %.3f.",
+            cable_takeoff_maneuver_params.target_cable_distance,
+            configuration_->GetParameter("/control/maneuver_controller/cable_takeoff_max_target_cable_distance").as_double()
+        );
         return false;
     }
+
+    RCLCPP_DEBUG(
+        node()->get_logger(),
+        "CableTakeoffManeuverServer::CanExecuteManeuver(): Cable takeoff maneuver can be executed."
+    );
 
     return true;
 
@@ -96,31 +150,20 @@ iii_drone::adapters::CombinedDroneAwarenessAdapter CableTakeoffManeuverServer::E
         target_transform
     );
 
-    State target_state;
-    
-    try {
-    
-        target_state = awareness_handler()->ComputeTargetState(target_adapter);
-
-    } catch (const std::runtime_error &e) {
-
-        State current_state = awareness_handler()->GetState();
-
-        target_state = State(
-            current_state.position() - vector_t(0, 0, cable_takeoff_maneuver_params.target_cable_distance),
-            vector_t::Zero(),
-            current_state.yaw(),
-            vector_t::Zero()
-        );
-
-    }
+    State current_state = awareness_handler()->GetState();
+    State target_state(
+        current_state.position() - vector_t(0, 0, cable_takeoff_maneuver_params.target_cable_distance),
+        vector_t::Zero(),
+        current_state.yaw(),
+        vector_t::Zero()
+    );
 
     iii_drone::adapters::CombinedDroneAwarenessAdapter awareness_after;
 
     awareness_after.armed() = true;
     awareness_after.offboard() = true;
     awareness_after.target_position_known() = true;
-    awareness_after.drone_location() = DRONE_LOCATION_ON_CABLE;
+    awareness_after.drone_location() = DRONE_LOCATION_IN_FLIGHT;
     awareness_after.target_adapter() = target_adapter;
     awareness_after.state() = target_state;
 
@@ -163,14 +206,38 @@ void CableTakeoffManeuverServer::startExecution(Maneuver & maneuver) {
 
     first_iteration_ = true;
     has_failed_ = false;
+    abort_because_gripper_closed_ = false;
+    start_on_cable_ = cda_handler->on_cable();
+    in_flight_since_.reset();
+    started_at_ = std::chrono::steady_clock::now();
+    last_distance_improvement_at_ = started_at_;
+    best_distance_to_target_ = std::numeric_limits<double>::infinity();
 
     cda_handler->SetTarget(target_adapter_);
+
+    target_reference_ = Reference(
+        start_state_->position() - vector_t(0, 0, cable_takeoff_maneuver_params.target_cable_distance),
+        start_state_->yaw()
+    );
+
+    const Reference frozen_target_reference = target_reference_;
+
+    RCLCPP_INFO(
+        node()->get_logger(),
+        "CableTakeoffManeuverServer::startExecution(): Frozen takeoff clearance target position=[%.3f, %.3f, %.3f] yaw=%.3f target_id=%d distance=%.3f",
+        frozen_target_reference.position()[0],
+        frozen_target_reference.position()[1],
+        frozen_target_reference.position()[2],
+        frozen_target_reference.yaw(),
+        cable_takeoff_maneuver_params.target_cable_id,
+        cable_takeoff_maneuver_params.target_cable_distance
+    );
 
 }
 
 bool CableTakeoffManeuverServer::canCancel() {
     
-    return false;
+    return true;
 
 }
 
@@ -178,13 +245,13 @@ Reference CableTakeoffManeuverServer::computeReference(const State & state) {
 
     Reference target_reference = getUpdatedTargetReference(
         state,
-        true
+        false
     );
 
+    const bool use_mpc = configuration_->GetParameter("/control/maneuver_controller/cable_takeoff_use_mpc").as_bool();
     bool reset = first_iteration_;
     bool set_reference = true;
-
-    first_iteration_ = false;
+    bool compute_with_mpc = use_mpc;
 
     Reference ref;
     
@@ -196,7 +263,7 @@ Reference CableTakeoffManeuverServer::computeReference(const State & state) {
             set_reference,
             reset,
             trajectory_mode_t::cable_takeoff,
-            configuration_->GetParameter("/control/maneuver_controller/cable_takeoff_use_mpc").as_bool()
+            compute_with_mpc
         );
 
     } catch (const std::runtime_error &e) {
@@ -213,6 +280,10 @@ Reference CableTakeoffManeuverServer::computeReference(const State & state) {
 
     }
 
+    if (first_iteration_) {
+        first_iteration_ = false;
+    }
+
     return ref;
 
 }
@@ -220,6 +291,11 @@ Reference CableTakeoffManeuverServer::computeReference(const State & state) {
 bool CableTakeoffManeuverServer::hasSucceeded(Maneuver &) {
 
     auto cda_handler = awareness_handler();
+
+    if (!cda_handler->in_flight()) {
+        in_flight_since_.reset();
+        return false;
+    }
 
     State state = cda_handler->GetState();
 
@@ -241,7 +317,40 @@ bool CableTakeoffManeuverServer::hasSucceeded(Maneuver &) {
 
     double distance = (euc_pos - target_euc_pos).norm();
 
-    return distance < configuration_->GetParameter("/control/maneuver_controller/reached_position_euclidean_distance_threshold").as_double();
+    const bool reached = distance < configuration_->GetParameter("/control/maneuver_controller/reached_position_euclidean_distance_threshold").as_double();
+    if (distance + 0.05 < best_distance_to_target_) {
+        best_distance_to_target_ = distance;
+        last_distance_improvement_at_ = std::chrono::steady_clock::now();
+        RCLCPP_DEBUG(
+            node()->get_logger(),
+            "CableTakeoffManeuverServer::hasSucceeded(): target distance improved to %.3f m.",
+            distance
+        );
+    }
+
+    if (!reached) {
+        in_flight_since_.reset();
+        return false;
+    }
+
+    const auto now = std::chrono::steady_clock::now();
+    if (!in_flight_since_.has_value()) {
+        in_flight_since_ = now;
+        return false;
+    }
+
+    const auto stable_duration = now - in_flight_since_.value();
+    if (stable_duration < std::chrono::milliseconds(1500)) {
+        return false;
+    }
+
+    RCLCPP_INFO(
+        node()->get_logger(),
+        "CableTakeoffManeuverServer::hasSucceeded(): in-flight and target reached for %.2f seconds.",
+        std::chrono::duration<double>(stable_duration).count()
+    );
+
+    return true;
 
 }
 
@@ -249,12 +358,72 @@ bool CableTakeoffManeuverServer::hasFailed(Maneuver &) {
 
     auto cda_handler = awareness_handler();
 
-    Reference target_reference = getUpdatedTargetReference(cda_handler->GetState());
+    if (has_failed_) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "CableTakeoffManeuverServer::hasFailed(): Internal maneuver failure flag is set."
+        );
+        return true;
+    }
 
-    return !(cda_handler->in_flight() || cda_handler->on_cable())
-        || !cda_handler->offboard()
-        || !cda_handler->armed()
-        || cda_handler->target_adapter() != target_adapter_;
+    if (!cda_handler->gripper_open()) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "CableTakeoffManeuverServer::hasFailed(): Gripper is closed."
+        );
+        abort_because_gripper_closed_ = true;
+        return true;
+    }
+
+    if (!cda_handler->offboard()) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "CableTakeoffManeuverServer::hasFailed(): Drone is not offboard."
+        );
+        return true;
+    }
+
+    if (!cda_handler->armed()) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "CableTakeoffManeuverServer::hasFailed(): Drone is not armed."
+        );
+        return true;
+    }
+
+    if (cda_handler->target_adapter() != target_adapter_) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "CableTakeoffManeuverServer::hasFailed(): Target adapter does not match."
+        );
+        return true;
+    }
+
+    const auto now = std::chrono::steady_clock::now();
+    if (started_at_.has_value() && last_distance_improvement_at_.has_value()) {
+        const auto elapsed = now - started_at_.value();
+        const auto since_improvement = now - last_distance_improvement_at_.value();
+        if (
+            elapsed > std::chrono::seconds(10) &&
+            since_improvement > std::chrono::seconds(5)
+        ) {
+            const State state = cda_handler->GetState();
+            const Reference target_reference = getUpdatedTargetReference(state);
+            const double distance = (state.position() - target_reference.position()).norm();
+            RCLCPP_WARN(
+                node()->get_logger(),
+                "CableTakeoffManeuverServer::hasFailed(): Target distance stalled. distance=%.3f best_distance=%.3f elapsed=%.2f since_improvement=%.2f start_on_cable=%s",
+                distance,
+                best_distance_to_target_,
+                std::chrono::duration<double>(elapsed).count(),
+                std::chrono::duration<double>(since_improvement).count(),
+                start_on_cable_.Load() ? "true" : "false"
+            );
+            return true;
+        }
+    }
+
+    return false;
 
 }
 
@@ -294,7 +463,14 @@ void CableTakeoffManeuverServer::publishResultAndFinalize(
         case MANEUVER_RESULT_TYPE_ABORT:
             result->success = false;
             goal_handle->abort(result);
-            awareness_handler()->ClearTarget();
+            if (abort_because_gripper_closed_) {
+                RCLCPP_INFO(
+                    node()->get_logger(),
+                    "CableTakeoffManeuverServer::publishResultAndFinalize(): Preserving cable target because abort was caused by closed gripper."
+                );
+            } else {
+                awareness_handler()->ClearTarget();
+            }
             break;
         case MANEUVER_RESULT_TYPE_CANCEL:
             result->success = false;
@@ -311,7 +487,7 @@ void CableTakeoffManeuverServer::registerReferenceCallbackOnSuccess(const Maneuv
 
     std::shared_ptr<HoverManeuverServer> hover_maneuver_server = std::static_pointer_cast<HoverManeuverServer>(registered_hover_maneuver->second);
 
-    hover_maneuver_server->Update(awareness_handler()->GetState());
+    hover_maneuver_server->Update(target_reference_);
 
     registerCallback(
         std::bind(
@@ -328,40 +504,8 @@ Reference CableTakeoffManeuverServer::getUpdatedTargetReference(
     bool compute
 ) {
 
-    static Atomic<Reference> target_reference;
+    (void) compute;
 
-    if (compute || first_iteration_) {
-
-        auto cda_handler = awareness_handler();
-
-        transform_matrix_t target_transform;
-
-        try {
-
-            target_transform = cda_handler->ComputeTargetTransform(target_adapter_);
-
-            target_reference = Reference(
-                target_transform.block<3, 1>(0, 3),
-                quatToEul(matToQuat(target_transform.block<3, 3>(0, 0)))[2]
-            );
-
-        } catch (const std::runtime_error &e) {
-
-            State target_state(
-                start_state_->position() - target_adapter_->target_transform().block<3, 1>(0, 3),
-                vector_t::Zero(),
-                start_state_->yaw(),
-                vector_t::Zero()
-            );
-
-            target_reference = Reference(
-                target_state.position(),
-                target_state.yaw()
-            );
-
-        }
-    }
-
-    return target_reference;
+    return target_reference_;
 
 }

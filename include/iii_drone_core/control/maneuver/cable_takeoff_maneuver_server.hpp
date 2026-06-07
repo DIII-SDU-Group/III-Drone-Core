@@ -4,6 +4,10 @@
 // Includes
 /*****************************************************************************/
 
+#include <chrono>
+#include <limits>
+#include <optional>
+
 /*****************************************************************************/
 // ROS2:
 
@@ -210,6 +214,11 @@ namespace maneuver {
         iii_drone::utils::Atomic<iii_drone::control::State> start_state_;
 
         /**
+         * @brief Frozen target reference for the active cable takeoff.
+         */
+        iii_drone::utils::Atomic<iii_drone::control::Reference> target_reference_;
+
+        /**
          * @brief Flag for first iteration.
          */
         iii_drone::utils::Atomic<bool> first_iteration_ = true;
@@ -218,6 +227,22 @@ namespace maneuver {
          * @brief Has failed flag.
          */
         iii_drone::utils::Atomic<bool> has_failed_ = false;
+
+        /**
+         * @brief Whether the current abort represents an already-latched gripper.
+         */
+        iii_drone::utils::Atomic<bool> abort_because_gripper_closed_ = false;
+
+        /**
+         * @brief Whether the drone was physically on the cable when the maneuver started.
+         */
+        iii_drone::utils::Atomic<bool> start_on_cable_ = false;
+
+        std::optional<std::chrono::steady_clock::time_point> started_at_;
+
+        std::optional<std::chrono::steady_clock::time_point> last_distance_improvement_at_;
+
+        double best_distance_to_target_ = std::numeric_limits<double>::infinity();
 
         /**
          * @brief Get updated target reference. 
@@ -232,6 +257,8 @@ namespace maneuver {
             const iii_drone::control::State & state,
             bool compute = false
         );
+
+        std::optional<std::chrono::steady_clock::time_point> in_flight_since_;
 
     };
 

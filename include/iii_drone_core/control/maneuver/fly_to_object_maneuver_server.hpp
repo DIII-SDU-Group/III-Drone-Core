@@ -211,12 +211,105 @@ namespace maneuver {
         iii_drone::utils::Atomic<bool> has_failed_ = false;
 
         /**
+         * @brief Last target reference actually handed to the trajectory
+         * generator after target-frame lookup, yaw normalization and optional
+         * target-position filtering.
+         */
+        iii_drone::utils::Atomic<iii_drone::control::Reference> active_target_reference_;
+
+        /**
+         * @brief Whether active_target_reference_ has been initialized for the
+         * current maneuver execution.
+         */
+        iii_drone::utils::Atomic<bool> active_target_reference_valid_ = false;
+
+        /**
+         * @brief Whether the target-position low-pass filter has been initialized.
+         */
+        bool target_position_filter_initialized_ = false;
+
+        /**
+         * @brief Filtered fly-to-object target position.
+         */
+        iii_drone::types::point_t filtered_target_position_ = iii_drone::types::point_t::Zero();
+
+        /**
+         * @brief Last time the target-position low-pass filter was updated.
+         */
+        rclcpp::Time last_target_position_filter_update_time_;
+
+        /**
+         * @brief Whether an MPC maneuver has entered its final interpolation
+         * settle phase.
+         */
+        iii_drone::utils::Atomic<bool> mpc_settle_active_ = false;
+
+        /**
+         * @brief Whether the final interpolation settle trajectory needs a
+         * reset on the next reference computation.
+         */
+        iii_drone::utils::Atomic<bool> mpc_settle_first_iteration_ = false;
+
+        /**
+         * @brief Frozen target streamed during the final post-MPC interpolation
+         * settle phase.
+         */
+        iii_drone::utils::Atomic<iii_drone::control::Reference> mpc_settle_target_reference_;
+
+        rclcpp::Time maneuver_start_time_;
+
+        bool threshold_reached_logged_ = false;
+
+        bool settle_threshold_reached_logged_ = false;
+
+        bool final_reference_streamed_logged_ = false;
+
+        bool success_timing_logged_ = false;
+
+        /**
          * @brief Get updated target reference. 
          * Sets the has_failed flag if the target is not visible.
          * 
          * @return Updated target reference.
          */
         iii_drone::control::Reference getUpdatedTargetReference(const iii_drone::control::State & state);
+
+        /**
+         * @brief Apply a low-pass filter to the target position while preserving the raw target yaw.
+         *
+         * @param raw_reference The raw reference computed from perception.
+         * @param state The current drone state.
+         *
+         * @return The reference with filtered position and raw yaw.
+         */
+        iii_drone::control::Reference filterTargetPositionReference(
+            const iii_drone::control::Reference & raw_reference,
+            const iii_drone::control::State & state
+        );
+
+        /**
+         * @brief Clamp a computed object target to the configured minimum
+         * target altitude above the current ground estimate.
+         *
+         * Fly-to-object targets are perception-derived and can move slightly
+         * below the generic fly target altitude bound as cable estimates jitter.
+         * The maneuver should keep the safety bound by clamping the target
+         * reference instead of rejecting the goal after a valid cable target was
+         * selected.
+         */
+        iii_drone::control::Reference enforceMinimumTargetAltitude(
+            const iii_drone::control::Reference & reference
+        ) const;
+
+        /**
+         * @brief True when the latest streamed interpolation reference is the
+         * final target reference used by the active trajectory. MPC maneuvers
+         * intentionally do not use this gate because their current reference is
+         * not guaranteed to terminate exactly at the target.
+         */
+        bool interpolationFinalReferenceStreamed(
+            const iii_drone::control::Reference & target_reference
+        ) const;
 
         /**
          * @brief Validates the drone awareness and maneuver parameters.

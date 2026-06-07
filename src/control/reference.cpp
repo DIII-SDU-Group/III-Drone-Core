@@ -51,7 +51,7 @@ Reference::Reference(
     yaw_ = euler(2);
 
     velocity_ = nans_velocity ? vector_t::Constant(NAN) : state.velocity();
-    yaw_rate_ = nans_velocity ? NAN : 0.0;
+    yaw_rate_ = nans_velocity ? NAN : state.angular_velocity()(2);
 
     acceleration_ = nans_acceleration ? vector_t::Constant(NAN) : vector_t::Zero();
     yaw_acceleration_ = nans_acceleration ? NAN : 0.0;

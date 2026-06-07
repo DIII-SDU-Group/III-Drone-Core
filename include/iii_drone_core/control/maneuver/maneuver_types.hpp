@@ -16,6 +16,7 @@
 // III-Drone-Interfaces:
 
 #include <iii_drone_interfaces/action/fly_to_position.hpp>
+#include <iii_drone_interfaces/action/cable_aware_fly_to_position.hpp>
 #include <iii_drone_interfaces/action/fly_to_object.hpp>
 #include <iii_drone_interfaces/action/cable_landing.hpp>
 #include <iii_drone_interfaces/action/cable_takeoff.hpp>
@@ -57,7 +58,8 @@ namespace maneuver {
         MANEUVER_TYPE_CABLE_TAKEOFF = 3,
 		MANEUVER_TYPE_HOVER = 4,
 		MANEUVER_TYPE_HOVER_BY_OBJECT = 5,
-		MANEUVER_TYPE_HOVER_ON_CABLE = 6
+		MANEUVER_TYPE_HOVER_ON_CABLE = 6,
+		MANEUVER_TYPE_CABLE_AWARE_FLY_TO_POSITION = 7
     } maneuver_type_t;
 
 	/**
@@ -67,12 +69,14 @@ namespace maneuver {
 		std::string frame_id;
 		iii_drone::types::point_t target_position;
 		float target_yaw;
+		bool blend_to_next;
 
 		fly_to_position_maneuver_params_t();
 		fly_to_position_maneuver_params_t(
 			const std::string frame_id,
 			const iii_drone::types::point_t target_position,
-			const float target_yaw
+			const float target_yaw,
+			const bool blend_to_next = false
 		);
 		fly_to_position_maneuver_params_t(std::shared_ptr<void> params);
 

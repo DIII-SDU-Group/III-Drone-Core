@@ -11,6 +11,7 @@
 #include <queue>
 #include <mutex>
 #include <chrono>
+#include <functional>
 
 /*****************************************************************************/
 // ROS2:
@@ -72,12 +73,38 @@ namespace maneuver {
          * @param vehicle_odometry_adapter_history Shared pointer to the vehicle odometry adapter history.
          * @param parameters Read-only live configuration view
          */
+        template <typename NodeT>
         ManeuverReferenceClient(
-            rclcpp_lifecycle::LifecycleNode * node,
+            NodeT * node,
             iii_drone::utils::History<iii_drone::adapters::px4::VehicleOdometryAdapter>::SharedPtr vehicle_odometry_adapter_history,
             iii_drone::configuration::Configuration::SharedPtr parameters,
             rclcpp::CallbackGroup::SharedPtr get_reference_cb_group
-        );
+        ) : get_reference_cb_group_(get_reference_cb_group),
+            logger_(node->get_logger()),
+            vehicle_odometry_adapter_history_(vehicle_odometry_adapter_history),
+            reference_mode_(reference_mode_t::PASSTHROUGH),
+            reference_(iii_drone::control::Reference()),
+            maneuver_reference_valid_(false),
+            configuration_(parameters) {
+
+            get_reference_client_ = node->template create_client<iii_drone_interfaces::srv::GetReference>(
+                "/control/maneuver_controller/get_reference",
+                rclcpp::ServicesQoS(),
+                get_reference_cb_group_
+            );
+
+            reference_mode_publisher_ = node->template create_publisher<iii_drone_interfaces::msg::StringStamped>(
+                "maneuver_reference_client/reference_mode",
+                10
+            );
+
+            create_wall_timer_ = [node](
+                std::chrono::milliseconds period,
+                std::function<void()> callback
+            ) -> rclcpp::TimerBase::SharedPtr {
+                return node->create_wall_timer(period, std::move(callback));
+            };
+        }
 
         /**
          * @brief Update the reference to the current state if the reference mode is hover or passthrough, otherwise do nothing.
@@ -109,6 +136,11 @@ namespace maneuver {
          * @return true If the maneuver is started.
          */
         bool StartManeuver();
+
+        /**
+         * @brief Returns true while the client is actively consuming maneuver references.
+         */
+        bool IsManeuverActive();
 
         /**
          * @brief Stops a maneuver. The reference will be reset to the current state and the reference mode will be set to hover.
@@ -162,14 +194,19 @@ namespace maneuver {
 
     private:
         /**
-         * @brief The node pointer.
-         */
-        rclcpp_lifecycle::LifecycleNode * node_;
-
-        /**
          * @brief Get reference callback group.
          */
         rclcpp::CallbackGroup::SharedPtr get_reference_cb_group_;
+
+        /**
+         * @brief Logger captured from the owning node.
+         */
+        rclcpp::Logger logger_;
+
+        /**
+         * @brief Timer factory captured from the owning node.
+         */
+        std::function<rclcpp::TimerBase::SharedPtr(std::chrono::milliseconds, std::function<void()>)> create_wall_timer_;
 
         /**
          * @brief Stop maneuver timer.
@@ -239,6 +276,11 @@ namespace maneuver {
         iii_drone::utils::Atomic<iii_drone::control::Reference> reference_;
 
         /**
+         * @brief True once the active maneuver has produced at least one valid reference.
+         */
+        iii_drone::utils::Atomic<bool> maneuver_reference_valid_;
+
+        /**
          * @brief The reference mutex.
          */
         std::mutex reference_mutex_;
@@ -252,10 +294,24 @@ namespace maneuver {
          * @brief Sends a request to the get reference service.
          * 
          * @param reference The reference output.
+         * @param timeout_ms Maximum time to wait for the service response.
          * 
          * @return true If the request was successful.
          */
-        bool getReferenceFromServer(Reference & reference);
+        bool getReferenceFromServer(Reference & reference, int timeout_ms);
+
+        /**
+         * @brief Returns a get-reference timeout bounded by the PX4 mode update budget.
+         *
+         * The configured timeout is an upper bound. In the mode update path a long
+         * blocking wait can make PX4 consider the mode unresponsive, so the effective
+         * timeout is capped to a fraction of the current update period.
+         *
+         * @param dt_s Time since the last mode update in seconds.
+         *
+         * @return Effective timeout in milliseconds.
+         */
+        int boundedGetReferenceTimeoutMs(double dt_s);
 
         /**
          * @brief Read-only live configuration view

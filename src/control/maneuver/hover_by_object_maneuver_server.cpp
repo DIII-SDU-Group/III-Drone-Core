@@ -4,11 +4,31 @@
 
 #include <iii_drone_core/control/maneuver/hover_by_object_maneuver_server.hpp>
 
+#include <cmath>
+
 using namespace iii_drone::control::maneuver;
 using namespace iii_drone::control;
 using namespace iii_drone::adapters;
 using namespace iii_drone::types;
 using namespace iii_drone::math;
+
+namespace {
+
+double shortestYawError(double current_yaw, double target_yaw) {
+    return std::atan2(std::sin(target_yaw - current_yaw), std::cos(target_yaw - current_yaw));
+}
+
+double shortestCableAxisYawError(double current_yaw, double target_yaw) {
+    double error = shortestYawError(current_yaw, target_yaw);
+    if (error > M_PI_2) {
+        error -= M_PI;
+    } else if (error < -M_PI_2) {
+        error += M_PI;
+    }
+    return error;
+}
+
+}  // namespace
 
 /*****************************************************************************/
 // Impementation:
@@ -60,7 +80,38 @@ bool HoverByObjectManeuverServer::CanExecuteManeuver(
         return false;
     }
 
-    return validateAwareness(drone_awareness);
+    if (!drone_awareness.offboard()) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "HoverByObjectManeuverServer::CanExecuteManeuver(): Drone is not offboard"
+        );
+        return false;
+    }
+
+    if (!drone_awareness.armed()) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "HoverByObjectManeuverServer::CanExecuteManeuver(): Drone is not armed"
+        );
+        return false;
+    }
+
+    if (!drone_awareness.in_flight()) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "HoverByObjectManeuverServer::CanExecuteManeuver(): Drone is not in flight"
+        );
+        return false;
+    }
+
+    if (!validateAwareness(drone_awareness)) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "HoverByObjectManeuverServer::CanExecuteManeuver(): Target is not currently valid; accepting maneuver with hover fallback"
+        );
+    }
+
+    return true;
 
 }
 
@@ -165,7 +216,8 @@ iii_drone::control::Reference HoverByObjectManeuverServer::GetReference(const ii
         pose_t pose = poseFromTransformMatrix(target_transform);
 
         position = pose.position;
-        yaw = quatToEul(pose.orientation)(2);
+        const double raw_yaw = quatToEul(pose.orientation)(2);
+        yaw = state.yaw() + shortestCableAxisYawError(state.yaw(), raw_yaw);
         
     } else {
 

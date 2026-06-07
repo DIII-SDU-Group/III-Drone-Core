@@ -29,6 +29,7 @@
 #include <iii_drone_interfaces/msg/trajectory_compute_time.hpp>
               
 #include <iii_drone_interfaces/srv/compute_reference_trajectory.hpp>
+#include <iii_drone_interfaces/srv/get_powerline_overview.hpp>
 
 /*****************************************************************************/
 // III-Drone-Configuration:
@@ -40,7 +41,9 @@
 
 #include <iii_drone_core/control/trajectory_generator.hpp>
 #include <iii_drone_core/control/trajectory_interpolator.hpp>
+#include <iii_drone_core/control/cable_aware_trajectory_planner.hpp>
 
+#include <iii_drone_core/adapters/powerline_adapter.hpp>
 #include <iii_drone_core/adapters/state_adapter.hpp>
 #include <iii_drone_core/adapters/reference_adapter.hpp>
 #include <iii_drone_core/adapters/reference_trajectory_adapter.hpp>
@@ -154,6 +157,8 @@ namespace trajectory_generator_node {
 
         TrajectoryInterpolator::SharedPtr trajectory_interpolator_;
 
+        CableAwareTrajectoryPlanner::SharedPtr cable_aware_trajectory_planner_;
+
 		/**
 		 * @brief The compute reference trajectory service
          */
@@ -184,8 +189,12 @@ namespace trajectory_generator_node {
 
         void publishTrajectoryPath(const iii_drone::adapters::ReferenceTrajectoryAdapter & reference_trajectory_adapter);
         void publishTargetPose(const iii_drone::adapters::ReferenceAdapter & reference_adapter);
+        iii_drone::adapters::PowerlineAdapter getStoredPowerlineOverview();
 
         rclcpp_lifecycle::LifecyclePublisher<iii_drone_interfaces::msg::TrajectoryComputeTime>::SharedPtr trajectory_compute_time_publisher_;
+
+        rclcpp::CallbackGroup::SharedPtr powerline_overview_client_cb_group_;
+        rclcpp::Client<iii_drone_interfaces::srv::GetPowerlineOverview>::SharedPtr get_powerline_overview_client_;
 
     };
 

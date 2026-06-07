@@ -18,16 +18,19 @@ fly_to_position_maneuver_params_t::fly_to_position_maneuver_params_t() {
     frame_id = "";
     target_position = point_t();
     target_yaw = 0.0;
+    blend_to_next = false;
 }
 
 fly_to_position_maneuver_params_t::fly_to_position_maneuver_params_t(
     const std::string frame_id,
     const point_t target_position,
-    const float target_yaw
+    const float target_yaw,
+    const bool blend_to_next
 ) {
     this->frame_id = frame_id;
     this->target_position = target_position;
     this->target_yaw = target_yaw;
+    this->blend_to_next = blend_to_next;
 }
 
 fly_to_position_maneuver_params_t::fly_to_position_maneuver_params_t(std::shared_ptr<void> params) {
@@ -35,6 +38,7 @@ fly_to_position_maneuver_params_t::fly_to_position_maneuver_params_t(std::shared
     frame_id = params_ptr->frame_id;
     target_position = params_ptr->target_position;
     target_yaw = params_ptr->target_yaw;
+    blend_to_next = params_ptr->blend_to_next;
 }
 
 point_t fly_to_position_maneuver_params_t::transform_target_position(

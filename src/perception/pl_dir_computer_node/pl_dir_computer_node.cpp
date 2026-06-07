@@ -28,6 +28,7 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
     configurator.DeclareParameter("/perception/pl_mapper/min_point_dist", double_t);
     configurator.DeclareParameter("/perception/pl_mapper/max_point_dist", double_t);
     configurator.DeclareParameter("/perception/pl_mapper/view_cone_slope", double_t);
+    configurator.DeclareParameter("/perception/pl_mapper/strict_view_cone_slope", double_t);
     configurator.DeclareParameter("/tf/drone_frame_id", string_t);
     configurator.DeclareParameter("/tf/world_frame_id", string_t);
     configurator.DeclareParameter("/tf/cable_gripper_frame_id", string_t);

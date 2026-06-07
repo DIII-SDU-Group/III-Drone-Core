@@ -44,12 +44,17 @@ namespace drone_frame_broadcaster_node {
 
     private:
         void odometryCallback(const std::shared_ptr<px4_msgs::msg::VehicleOdometry> msg);
+        void compensateOdometryReset(iii_drone::adapters::px4::VehicleOdometryAdapter & adapter);
         void publishIsAlive();
 
         rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr subscription_;
         std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
         iii_drone::types::rotation_matrix_t R_NED_to_body_frame;
+        iii_drone::types::point_t odometry_position_reset_offset_ = iii_drone::types::point_t::Zero();
+        iii_drone::types::point_t last_raw_odometry_position_ = iii_drone::types::point_t::Zero();
+        uint8_t last_odometry_reset_counter_ = 0;
+        bool has_last_odometry_for_reset_compensation_ = false;
 
         iii_drone::configuration::Configurator<rclcpp::Node>::SharedPtr configurator_;
 

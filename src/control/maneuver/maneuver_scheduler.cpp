@@ -155,6 +155,16 @@ void ManeuverScheduler::Start() {
         )
     );
 
+    clear_maneuver_queue_service_ = node_->create_service<iii_drone_interfaces::srv::ClearManeuverQueue>(
+        "clear_maneuver_queue",
+        std::bind(
+            &ManeuverScheduler::clearManeuverQueueServiceCallback,
+            this,
+            std::placeholders::_1,
+            std::placeholders::_2
+        )
+    );
+
     is_started_ = true;
 
 }
@@ -182,6 +192,12 @@ void ManeuverScheduler::Stop() {
     get_reference_service_->clear_on_new_request_callback();
     get_reference_service_.reset();
     get_reference_service_ = nullptr;
+
+    if (clear_maneuver_queue_service_) {
+        clear_maneuver_queue_service_->clear_on_new_request_callback();
+        clear_maneuver_queue_service_.reset();
+        clear_maneuver_queue_service_ = nullptr;
+    }
 
     maneuver_publish_timer_->cancel();
     maneuver_publish_timer_.reset();
@@ -703,6 +719,28 @@ bool ManeuverScheduler::maneuverIsExecutingOrPending() const {
 
 }
 
+uint32_t ManeuverScheduler::ClearManeuverQueue() {
+
+    if (!is_started_) {
+        RCLCPP_WARN(node_->get_logger(), "ManeuverScheduler::ClearManeuverQueue(): maneuver scheduler is not started.");
+        return 0;
+    }
+
+    std::unique_lock<std::shared_mutex> lck(maneuver_mutex_);
+
+    const uint32_t cleared_count = static_cast<uint32_t>(maneuver_queue_->size());
+    maneuver_queue_->Clear();
+
+    RCLCPP_INFO(
+        node_->get_logger(),
+        "ManeuverScheduler::ClearManeuverQueue(): Cleared %u queued maneuver(s). Current maneuver was not cancelled.",
+        cleared_count
+    );
+
+    return cleared_count;
+
+}
+
 bool ManeuverScheduler::maneuverCanExecute(
     const Maneuver & maneuver,
     const CombinedDroneAwarenessAdapter & awareness
@@ -761,9 +799,14 @@ void ManeuverScheduler::onReferenceCallbackTokenReacquired() {
 
         std::string msg = "ManeuverScheduler::onReferenceCallbackTokenReacquired(): master does not have token.";
 
-        RCLCPP_FATAL(node_->get_logger(), msg.c_str());
+        RCLCPP_ERROR(
+            node_->get_logger(),
+            "%s Current token holder: %s",
+            msg.c_str(),
+            reference_callback_token_.token_holder().c_str()
+        );
 
-        throw std::runtime_error(msg);
+        return;
 
     }
 
@@ -771,9 +814,14 @@ void ManeuverScheduler::onReferenceCallbackTokenReacquired() {
 
         std::string msg = "ManeuverScheduler::onReferenceCallbackTokenReacquired(): maneuver is not terminated.";
 
-        RCLCPP_FATAL(node_->get_logger(), msg.c_str());
+        RCLCPP_WARN(
+            node_->get_logger(),
+            "%s Current maneuver type: %d. Keeping released token with existing callback until scheduler advances.",
+            msg.c_str(),
+            current_maneuver_->maneuver_type()
+        );
 
-        throw std::runtime_error(msg);
+        return;
 
     }
 
@@ -806,7 +854,33 @@ void ManeuverScheduler::onHoveringFail() {
 
     std::unique_lock<std::shared_mutex> lck(maneuver_mutex_);
 
-    cancelAllPendingManeuvers();
+    Maneuver current_maneuver = current_maneuver_;
+
+    if (
+        current_maneuver.terminated()
+        || (
+            current_maneuver.maneuver_type() != MANEUVER_TYPE_HOVER_BY_OBJECT
+            && current_maneuver.maneuver_type() != MANEUVER_TYPE_HOVER_ON_CABLE
+        )
+    ) {
+        // Retained hover callbacks can fire after a successor has taken over; those must not clear handoff work.
+        RCLCPP_DEBUG(
+            node_->get_logger(),
+            "ManeuverScheduler::onHoveringFail(): Ignoring stale hover failure callback while current maneuver type is %d and terminated=%s.",
+            current_maneuver.maneuver_type(),
+            current_maneuver.terminated() ? "true" : "false"
+        );
+        return;
+    }
+
+    const uint32_t cleared_count = static_cast<uint32_t>(maneuver_queue_->size());
+    maneuver_queue_->Clear();
+
+    RCLCPP_WARN(
+        node_->get_logger(),
+        "ManeuverScheduler::onHoveringFail(): Active hover failed; cleared %u queued maneuver(s). Current hover maneuver was not cleared.",
+        cleared_count
+    );
 
 }
 
@@ -828,6 +902,22 @@ void ManeuverScheduler::getReferenceServiceCallback(
     reference_callback_provider_msg.stamp = rclcpp::Clock().now();
 
     reference_callback_provider_publisher_->publish(reference_callback_provider_msg);
+
+}
+
+void ManeuverScheduler::clearManeuverQueueServiceCallback(
+    const std::shared_ptr<iii_drone_interfaces::srv::ClearManeuverQueue::Request> request,
+    std::shared_ptr<iii_drone_interfaces::srv::ClearManeuverQueue::Response> response
+) {
+
+    RCLCPP_INFO(
+        node_->get_logger(),
+        "ManeuverScheduler::clearManeuverQueueServiceCallback(): Clearing maneuver queue. Reason: %s",
+        request->reason.c_str()
+    );
+
+    response->cleared_count = ClearManeuverQueue();
+    response->success = true;
 
 }
 
@@ -921,6 +1011,29 @@ void ManeuverScheduler::progressScheduler() {
 
                     break;
 
+                case MANEUVER_TYPE_FLY_TO_POSITION: {
+                    fly_to_position_maneuver_params_t maneuver_params(previous_maneuver.maneuver_params());
+
+                    if (maneuver_params.blend_to_next) {
+                        constexpr double blend_handoff_grace_s = 0.5;
+                        const int period_ms = configuration_->GetParameter("/control/maneuver_controller/maneuver_execution_period_ms").as_int();
+                        no_maneuver_idle_cnt_ = std::max(1, static_cast<int>(blend_handoff_grace_s * 1000.0 / period_ms));
+                        maneuver_server_get_reference_callback_still_registered_ = true;
+
+                        RCLCPP_DEBUG(
+                            node_->get_logger(),
+                            "ManeuverScheduler::progressScheduler(): preserving successful blended FTP reference callback for %d scheduler tick(s).",
+                            *no_maneuver_idle_cnt_
+                        );
+
+                        break;
+                    }
+
+                    set_default_no_maneuver_idle_cnt();
+
+                    break;
+                }
+
                 default:
                     set_default_no_maneuver_idle_cnt();
 
@@ -978,11 +1091,14 @@ void ManeuverScheduler::progressScheduler() {
 
                 if (elapsed_seconds > timeout_seconds) {
 
-                    std::string msg = "ManeuverScheduler::progressScheduler(): master does not have token.";
-
-                    RCLCPP_FATAL(node_->get_logger(), msg.c_str());
-
-                    throw std::runtime_error(msg);
+                    RCLCPP_ERROR_THROTTLE(
+                        node_->get_logger(),
+                        *node_->get_clock(),
+                        1000,
+                        "ManeuverScheduler::progressScheduler(): timed out waiting for master token after maneuver %d terminated. Current token holder: %s. Waiting instead of crashing.",
+                        current_maneuver_->maneuver_type(),
+                        reference_callback_token_.token_holder().c_str()
+                    );
 
                 }
 
@@ -1104,11 +1220,13 @@ void ManeuverScheduler::progressScheduler() {
 
         if (current_maneuver_->maneuver_type() != MANEUVER_TYPE_NONE) {
 
-            std::string msg = "ManeuverScheduler::progressScheduler(): maneuver is not executing or pending, but current maneuver is not MANEUVER_TYPE_NONE.";
+            RCLCPP_ERROR(
+                node_->get_logger(),
+                "ManeuverScheduler::progressScheduler(): maneuver is not executing or pending, but current maneuver is %d. Resetting scheduler current maneuver.",
+                current_maneuver_->maneuver_type()
+            );
 
-            RCLCPP_FATAL(node_->get_logger(), msg.c_str());
-
-            throw std::runtime_error(msg);
+            current_maneuver_ = Maneuver();
 
         }
 

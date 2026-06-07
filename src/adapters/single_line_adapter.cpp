@@ -133,7 +133,12 @@ void SingleLineAdapter::Transform(
 ) {
 
     geometry_msgs::msg::PoseStamped pose_stamped_msg = ToPoseStampedMsg();
-    pose_stamped_msg = tf_buffer->transform(pose_stamped_msg, target_frame_id);
+    try {
+        pose_stamped_msg = tf_buffer->transform(pose_stamped_msg, target_frame_id);
+    } catch (tf2::TransformException & ex) {
+        pose_stamped_msg.header.stamp = builtin_interfaces::msg::Time();
+        pose_stamped_msg = tf_buffer->transform(pose_stamped_msg, target_frame_id);
+    }
 
     position_ = iii_drone::types::pointFromPoseMsg(pose_stamped_msg.pose);
     quaternion_ = iii_drone::types::quaternionFromPoseMsg(pose_stamped_msg.pose);
@@ -143,7 +148,12 @@ void SingleLineAdapter::Transform(
     point_stamped_msg.header.frame_id = frame_id_;
     point_stamped_msg.point = iii_drone::types::pointMsgFromPoint(projected_position_);
 
-    point_stamped_msg = tf_buffer->transform(point_stamped_msg, target_frame_id);
+    try {
+        point_stamped_msg = tf_buffer->transform(point_stamped_msg, target_frame_id);
+    } catch (tf2::TransformException & ex) {
+        point_stamped_msg.header.stamp = builtin_interfaces::msg::Time();
+        point_stamped_msg = tf_buffer->transform(point_stamped_msg, target_frame_id);
+    }
 
     projected_position_ = iii_drone::types::pointFromPointMsg(point_stamped_msg.point);
 
