@@ -135,6 +135,7 @@ namespace maneuver {
          * @return The reference.
          */
         iii_drone::control::Reference computeReference(const iii_drone::control::State & state) override;
+        bool rebaseExecution(const State & stopped_state, std::string & reason) override;
 
         /**
          * @brief Whether the maneuver has succeeded, returns true if the drone is within the position tolerance.

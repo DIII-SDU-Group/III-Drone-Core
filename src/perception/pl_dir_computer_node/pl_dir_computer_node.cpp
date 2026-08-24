@@ -413,12 +413,23 @@ void PowerlineDirectionComputerNode::commandCallback(
 
 	uint8_t cmd = request->command;
 
-	if (cmd == iii_drone_interfaces::srv::SystemCommand::Request::SYSTEM_COMMAND_START) {
+	if (
+        cmd == iii_drone_interfaces::srv::SystemCommand::Request::SYSTEM_COMMAND_START ||
+        cmd == iii_drone_interfaces::srv::SystemCommand::Request::SYSTEM_COMMAND_START_RESET
+    ) {
 
 		RCLCPP_INFO(
 			this->get_logger(), 
 			"PowerlineDirectionComputerNode::commandCallback(): Starting pl dir computer node"
 		);
+
+		if (cmd == iii_drone_interfaces::srv::SystemCommand::Request::SYSTEM_COMMAND_START_RESET) {
+            RCLCPP_INFO(
+                this->get_logger(),
+                "PowerlineDirectionComputerNode::commandCallback(): Resetting retained powerline direction state"
+            );
+            pl_direction_->Reset();
+        }
 
 		running_ = true;
 

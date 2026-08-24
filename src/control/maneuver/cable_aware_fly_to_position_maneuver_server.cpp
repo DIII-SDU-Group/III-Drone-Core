@@ -185,6 +185,26 @@ bool CableAwareFlyToPositionManeuverServer::canCancel() {
     return true;
 }
 
+std::optional<ControlledCancellationConfig>
+CableAwareFlyToPositionManeuverServer::controlledCancellationConfig() const {
+    return controlledCancellationConfigFrom(configuration_);
+}
+
+bool CableAwareFlyToPositionManeuverServer::rebaseExecution(
+    const State &,
+    std::string & reason
+) {
+    if (trajectory_generator_client_->busy()) {
+        reason = "cable-aware trajectory generator is busy";
+        return false;
+    }
+    first_iteration_ = true;
+    waiting_for_initial_plan_ = false;
+    has_failed_ = false;
+    reason = "replanned cable-aware flight from stopped state";
+    return true;
+}
+
 Reference CableAwareFlyToPositionManeuverServer::computeReference(const State & state) {
     try {
         if (first_iteration_) {
@@ -203,7 +223,7 @@ Reference CableAwareFlyToPositionManeuverServer::computeReference(const State & 
                 node()->get_logger(),
                 "CableAwareFlyToPositionManeuverServer::computeReference(): Launched initial cable-aware A* request; holding current position until trajectory is available."
             );
-            return Reference(state, true, true);
+            return Reference(state);
         }
 
         if (waiting_for_initial_plan_) {
@@ -212,7 +232,7 @@ Reference CableAwareFlyToPositionManeuverServer::computeReference(const State & 
                     node()->get_logger(),
                     "CableAwareFlyToPositionManeuverServer::computeReference(): Waiting for initial cable-aware trajectory; holding current position."
                 );
-                return Reference(state, true, true);
+                return Reference(state);
             }
             if (!trajectory_generator_client_->lastRequestSucceeded()) {
                 throw std::runtime_error(
@@ -259,7 +279,7 @@ Reference CableAwareFlyToPositionManeuverServer::computeReference(const State & 
     } catch (std::runtime_error & e) {
         RCLCPP_ERROR(node()->get_logger(), "CableAwareFlyToPositionManeuverServer::computeReference(): %s", e.what());
         has_failed_ = true;
-        return Reference(state, true, true);
+        return Reference(state);
     }
 }
 
@@ -333,7 +353,9 @@ void CableAwareFlyToPositionManeuverServer::publishResultAndFinalize(
             break;
         case MANEUVER_RESULT_TYPE_CANCEL:
             result->success = false;
-            result->target_reference = ReferenceAdapter(target_reference_).ToMsg();
+            result->target_reference = ReferenceAdapter(
+                controlledCancellationFinalReference().value_or(target_reference_.Load())
+            ).ToMsg();
             goal_handle->canceled(result);
             break;
     }
@@ -362,6 +384,13 @@ bool CableAwareFlyToPositionManeuverServer::validateManeuverParameters(const fly
             ex.what()
         );
         return false;
+    }
+    if (maneuver_params.ignore_altitude) {
+        RCLCPP_INFO(
+            node()->get_logger(),
+            "CableAwareFlyToPositionManeuverServer::validateManeuverParameters(): Minimum target altitude check bypassed by goal"
+        );
+        return true;
     }
     bool target_position_valid = target_position_in_world_frame[2] - cda_handler->ground_altitude_estimate()
         >= configuration_->GetParameter("/control/maneuver_controller/minimum_target_altitude").as_double();

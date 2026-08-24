@@ -105,7 +105,9 @@ ReferenceTrajectory CableAwareTrajectoryPlanner::ComputeReferenceTrajectory(
         active_trajectory_ = smoothPathLeastSquares(waypoints, start_state, goal_reference);
         const bool start_requires_terminal_exception = !pointIsSafe(start_state.position(), powerline);
         const bool goal_requires_terminal_exception = false;
-        if (!trajectoryIsSafe(
+        const bool smoothing_boundary_valid = trajectoryMeetsBoundaryContract(
+            active_trajectory_, start_state, goal_reference);
+        if (!smoothing_boundary_valid || !trajectoryIsSafe(
                 active_trajectory_,
                 powerline,
                 start_state.position(),
@@ -115,7 +117,7 @@ ReferenceTrajectory CableAwareTrajectoryPlanner::ComputeReferenceTrajectory(
             )) {
             RCLCPP_WARN(
                 node_->get_logger(),
-                "CableAwareTrajectoryPlanner::ComputeReferenceTrajectory(): LLS-smoothed trajectory violates cable clearance; using piecewise-linear A* trajectory."
+                "CableAwareTrajectoryPlanner::ComputeReferenceTrajectory(): LLS-smoothed trajectory violates cable clearance or terminal constraints; using piecewise-linear A* trajectory."
             );
             active_trajectory_ = buildPiecewiseLinearTrajectory(waypoints, start_state, goal_reference);
         }
@@ -583,18 +585,39 @@ ReferenceTrajectory CableAwareTrajectoryPlanner::buildPiecewiseLinearTrajectory(
         }
         const double alpha = duration_s_ > 1.0e-6 ? std::clamp(t / duration_s_, 0.0, 1.0) : 1.0;
 
-        references.emplace_back(
-            position,
-            yawLerp(start_state.yaw(), goal_reference.yaw(), alpha),
-            (i == sample_count - 1 || t >= duration_s_) ? vector_t::Zero() : velocity,
-            0.0,
-            vector_t::Zero(),
-            0.0,
-            start_state.stamp() + rclcpp::Duration::from_seconds(t)
-        );
+        const rclcpp::Time stamp = start_state.stamp() + rclcpp::Duration::from_seconds(t);
+        if (t >= duration_s_) {
+            references.push_back(goal_reference.CopyWithNewStamp(stamp));
+        } else {
+            references.emplace_back(
+                position,
+                yawLerp(start_state.yaw(), goal_reference.yaw(), alpha),
+                i == 0 ? start_state.velocity() : velocity,
+                0.0,
+                vector_t::Zero(),
+                0.0,
+                stamp
+            );
+        }
     }
 
     return ReferenceTrajectory(references);
+}
+
+bool CableAwareTrajectoryPlanner::trajectoryMeetsBoundaryContract(
+    const ReferenceTrajectory & trajectory,
+    const State & start_state,
+    const Reference & goal_reference
+) const {
+    constexpr double tolerance = 1.0e-3;
+    const auto & references = trajectory.references();
+    return !references.empty()
+        && (references.front().position() - start_state.position()).norm() <= tolerance
+        && (references.front().velocity() - start_state.velocity()).norm() <= tolerance
+        && references.front().acceleration().norm() <= tolerance
+        && (references.back().position() - goal_reference.position()).norm() <= tolerance
+        && (references.back().velocity() - goal_reference.velocity()).norm() <= tolerance
+        && (references.back().acceleration() - goal_reference.acceleration()).norm() <= tolerance;
 }
 
 bool CableAwareTrajectoryPlanner::trajectoryIsSafe(
@@ -783,10 +806,14 @@ ReferenceTrajectory CableAwareTrajectoryPlanner::sampleActiveTrajectory(double e
 
     for (int i = 0; i < N; ++i) {
         const double t = std::min(duration_s_, elapsed_s + i * dt);
-        const double ratio = duration_s_ > 1.0e-6 ? t / duration_s_ : 1.0;
+        if (t >= duration_s_ - 1.0e-9) {
+            sampled.push_back(base.back().CopyWithNewStamp(
+                rclcpp::Clock().now() + rclcpp::Duration::from_seconds(i * dt)));
+            continue;
+        }
         const std::size_t index = std::min<std::size_t>(
             base.size() - 1,
-            static_cast<std::size_t>(std::round(ratio * (base.size() - 1)))
+            static_cast<std::size_t>(std::round(t / dt))
         );
         sampled.push_back(base[index].CopyWithNewStamp(rclcpp::Clock().now() + rclcpp::Duration::from_seconds(i * dt)));
     }

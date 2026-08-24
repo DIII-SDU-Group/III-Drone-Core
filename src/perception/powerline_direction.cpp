@@ -23,6 +23,15 @@ PowerlineDirection::PowerlineDirection(iii_drone::configuration::Configuration::
 
 PowerlineDirection::~PowerlineDirection() { }
 
+void PowerlineDirection::Reset() {
+
+    drone_quat_history_.clear();
+    pl_quat_history_.clear();
+    resetKalmanFilter();
+    stamp_.Update();
+
+}
+
 const geometry_msgs::msg::PoseStamped PowerlineDirection::ToPoseStampedMsg(const std::string & drone_frame_id) const {
 
     geometry_msgs::msg::PoseStamped msg;

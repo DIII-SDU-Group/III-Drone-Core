@@ -94,3 +94,67 @@ TEST(CableAwareTrajectoryPlannerTest, VerticalCrossingPrefersLocalAStarDetour)
   EXPECT_LT(max_lateral_distance, 2.0)
     << "The cable-aware planner should use a local A* detour, not the outside-corridor fallback.";
 }
+
+TEST(CableAwareTrajectoryPlannerTest, PlannerFallsBackWhenSmoothingMissesTerminalContract)
+{
+  iii_drone::control::CableAwareTrajectoryPlanner planner(nullptr, nullptr);
+  const rclcpp::Time stamp(100, 0, RCL_ROS_TIME);
+  const iii_drone::types::point_t start(-1.03F, -1.35F, 0.82F);
+  const iii_drone::types::point_t goal(-2.60F, -11.72F, 11.13F);
+  const iii_drone::control::State start_state(
+    start,
+    iii_drone::types::vector_t(0.12F, -0.08F, 0.03F),
+    -1.0,
+    iii_drone::types::vector_t::Zero(),
+    stamp);
+  const iii_drone::control::Reference goal_reference(goal, -1.81);
+  const std::vector<iii_drone::types::point_t> waypoints{
+    start,
+    iii_drone::types::point_t(-1.0F, -6.7F, 6.1F),
+    iii_drone::types::point_t(-2.5F, -11.6F, 11.0F),
+    goal,
+  };
+
+  const auto smoothed = planner.smoothPathLeastSquares(waypoints, start_state, goal_reference);
+  ASSERT_FALSE(planner.trajectoryMeetsBoundaryContract(smoothed, start_state, goal_reference));
+
+  const auto trajectory = planner.buildPiecewiseLinearTrajectory(waypoints, start_state, goal_reference);
+  ASSERT_TRUE(planner.trajectoryMeetsBoundaryContract(trajectory, start_state, goal_reference));
+  ASSERT_FALSE(trajectory.references().empty());
+  const auto & first = trajectory.references().front();
+  const auto & last = trajectory.references().back();
+
+  EXPECT_LT((first.position() - start).norm(), 1.0e-6);
+  EXPECT_LT((first.velocity() - start_state.velocity()).norm(), 1.0e-6);
+  EXPECT_LT(first.acceleration().norm(), 1.0e-6);
+  EXPECT_LT((last.position() - goal).norm(), 1.0e-6);
+  EXPECT_LT(last.velocity().norm(), 1.0e-6);
+  EXPECT_LT(last.acceleration().norm(), 1.0e-6);
+}
+
+TEST(CableAwareTrajectoryPlannerTest, SamplingAtFractionalDurationReturnsExactTerminalReference)
+{
+  iii_drone::control::CableAwareTrajectoryPlanner planner(nullptr, nullptr);
+  const rclcpp::Time stamp(100, 0, RCL_ROS_TIME);
+  const iii_drone::types::point_t start(0.0F, 0.0F, 0.0F);
+  const iii_drone::types::point_t goal(1.02F, 0.0F, 0.0F);
+  const iii_drone::control::State start_state(
+    start,
+    iii_drone::types::vector_t::Zero(),
+    0.0,
+    iii_drone::types::vector_t::Zero(),
+    stamp);
+  const iii_drone::control::Reference goal_reference(goal, 0.0);
+
+  planner.active_trajectory_ = planner.buildPiecewiseLinearTrajectory(
+    {start, goal}, start_state, goal_reference);
+  ASSERT_NEAR(planner.duration_s_, 2.04, 1.0e-6);
+
+  const auto sampled = planner.sampleActiveTrajectory(planner.duration_s_);
+  ASSERT_FALSE(sampled.references().empty());
+  for (const auto & reference : sampled.references()) {
+    EXPECT_LT((reference.position() - goal).norm(), 1.0e-6);
+    EXPECT_LT(reference.velocity().norm(), 1.0e-6);
+    EXPECT_LT(reference.acceleration().norm(), 1.0e-6);
+  }
+}

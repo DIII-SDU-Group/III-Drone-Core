@@ -16,6 +16,7 @@
 // III-Drone-Interfaces:
 
 #include <iii_drone_interfaces/action/fly_to_position.hpp>
+#include <iii_drone_interfaces/action/follow_waypoint_path.hpp>
 #include <iii_drone_interfaces/action/cable_aware_fly_to_position.hpp>
 #include <iii_drone_interfaces/action/fly_to_object.hpp>
 #include <iii_drone_interfaces/action/cable_landing.hpp>
@@ -59,7 +60,8 @@ namespace maneuver {
 		MANEUVER_TYPE_HOVER = 4,
 		MANEUVER_TYPE_HOVER_BY_OBJECT = 5,
 		MANEUVER_TYPE_HOVER_ON_CABLE = 6,
-		MANEUVER_TYPE_CABLE_AWARE_FLY_TO_POSITION = 7
+		MANEUVER_TYPE_CABLE_AWARE_FLY_TO_POSITION = 7,
+		MANEUVER_TYPE_FOLLOW_WAYPOINT_PATH = 8
     } maneuver_type_t;
 
 	/**
@@ -68,16 +70,20 @@ namespace maneuver {
 	struct fly_to_position_maneuver_params_t {
 		std::string frame_id;
 		iii_drone::types::point_t target_position;
-		float target_yaw;
-		bool blend_to_next;
+			float target_yaw;
+			bool blend_to_next;
+			bool ignore_altitude;
+			float completion_position_tolerance_m;
 
 		fly_to_position_maneuver_params_t();
 		fly_to_position_maneuver_params_t(
 			const std::string frame_id,
-			const iii_drone::types::point_t target_position,
-			const float target_yaw,
-			const bool blend_to_next = false
-		);
+				const iii_drone::types::point_t target_position,
+				const float target_yaw,
+				const bool blend_to_next = false,
+				const bool ignore_altitude = false,
+				const float completion_position_tolerance_m = 0.0F
+			);
 		fly_to_position_maneuver_params_t(std::shared_ptr<void> params);
 
 		iii_drone::types::point_t transform_target_position(
@@ -90,6 +96,19 @@ namespace maneuver {
 			tf2_ros::Buffer::SharedPtr tf_buffer
 		) const;
 
+	};
+
+	struct follow_waypoint_path_maneuver_params_t {
+		std::string frame_id;
+		std::vector<iii_drone_interfaces::msg::Waypoint> waypoints;
+		bool repeat = false;
+		uint32_t repeat_from_index = 0;
+		float nominal_speed_m_s = 0.0F;
+		float max_acceleration_m_s2 = 0.0F;
+		float max_jerk_m_s3 = 0.0F;
+
+		follow_waypoint_path_maneuver_params_t() = default;
+		follow_waypoint_path_maneuver_params_t(std::shared_ptr<void> params);
 	};
 
 	/**

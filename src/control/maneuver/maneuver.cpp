@@ -74,7 +74,18 @@ Maneuver Maneuver::FromGoalHandle(const std::shared_ptr<rclcpp_action::ServerGoa
 template <typename ActionT>
 void Maneuver::SetFromGoal(const std::shared_ptr<const typename ActionT::Goal> goal) {
 
-    if constexpr (std::is_same<ActionT, iii_drone_interfaces::action::FlyToPosition>::value
+    if constexpr (std::is_same<ActionT, iii_drone_interfaces::action::FollowWaypointPath>::value) {
+        maneuver_type_ = MANEUVER_TYPE_FOLLOW_WAYPOINT_PATH;
+        auto params = std::make_shared<follow_waypoint_path_maneuver_params_t>();
+        params->frame_id = goal->frame_id;
+        params->waypoints = goal->waypoints;
+        params->repeat = goal->repeat;
+        params->repeat_from_index = goal->repeat_from_index;
+        params->nominal_speed_m_s = goal->nominal_speed_m_s;
+        params->max_acceleration_m_s2 = goal->max_acceleration_m_s2;
+        params->max_jerk_m_s3 = goal->max_jerk_m_s3;
+        maneuver_params_ = params;
+    } else if constexpr (std::is_same<ActionT, iii_drone_interfaces::action::FlyToPosition>::value
         || std::is_same<ActionT, iii_drone_interfaces::action::CableAwareFlyToPosition>::value) {
 
         if constexpr (std::is_same<ActionT, iii_drone_interfaces::action::CableAwareFlyToPosition>::value) {
@@ -97,13 +108,17 @@ void Maneuver::SetFromGoal(const std::shared_ptr<const typename ActionT::Goal> g
                 goal->frame_id,
                 iii_drone::types::pointFromPointMsg(goal->target_position),
                 goal->target_yaw,
-                goal->blend_to_next
+                goal->blend_to_next,
+                goal->ignore_altitude,
+                goal->completion_position_tolerance_m
             );
         } else {
             *p = fly_to_position_maneuver_params_t(
                 goal->frame_id,
                 iii_drone::types::pointFromPointMsg(goal->target_position),
-                goal->target_yaw
+                goal->target_yaw,
+                false,
+                goal->ignore_altitude
             );
         }
 
@@ -239,6 +254,11 @@ void Maneuver::Start() {
     success_ = false;
 
     switch(maneuver_type_) {
+		case MANEUVER_TYPE_FOLLOW_WAYPOINT_PATH: {
+			auto goal_handle = std::static_pointer_cast<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::FollowWaypointPath>>(goal_handle_);
+			if (!goal_handle->is_executing() && !goal_handle->is_canceling()) goal_handle->execute();
+			break;
+		}
         case MANEUVER_TYPE_FLY_TO_POSITION: {
             auto goal_handle = std::static_pointer_cast<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::FlyToPosition>>(goal_handle_);
             if (!goal_handle->is_executing() && !goal_handle->is_canceling()) goal_handle->execute();
@@ -383,6 +403,10 @@ bool Maneuver::canceling() const {
     if (goal_handle_ == nullptr) return false;
     
     switch(maneuver_type_) {
+		case MANEUVER_TYPE_FOLLOW_WAYPOINT_PATH: {
+			auto goal_handle = std::static_pointer_cast<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::FollowWaypointPath>>(goal_handle_);
+			return goal_handle->is_canceling();
+		}
         case MANEUVER_TYPE_FLY_TO_POSITION: {
             auto goal_handle = std::static_pointer_cast<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::FlyToPosition>>(goal_handle_);
             return goal_handle->is_canceling();
@@ -438,6 +462,7 @@ bool Maneuver::canceling() const {
 /*****************************************************************************/
 
 template Maneuver Maneuver::FromGoalHandle(const std::shared_ptr<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::FlyToPosition>> goal_handle);
+template Maneuver Maneuver::FromGoalHandle(const std::shared_ptr<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::FollowWaypointPath>> goal_handle);
 template Maneuver Maneuver::FromGoalHandle(const std::shared_ptr<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::CableAwareFlyToPosition>> goal_handle);
 template Maneuver Maneuver::FromGoalHandle(const std::shared_ptr<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::FlyToObject>> goal_handle);
 template Maneuver Maneuver::FromGoalHandle(const std::shared_ptr<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::CableLanding>> goal_handle);
@@ -447,6 +472,7 @@ template Maneuver Maneuver::FromGoalHandle(const std::shared_ptr<rclcpp_action::
 template Maneuver Maneuver::FromGoalHandle(const std::shared_ptr<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::HoverOnCable>> goal_handle);
 
 template void Maneuver::SetFromGoal<iii_drone_interfaces::action::FlyToPosition>(const std::shared_ptr<const iii_drone_interfaces::action::FlyToPosition::Goal> goal);
+template void Maneuver::SetFromGoal<iii_drone_interfaces::action::FollowWaypointPath>(const std::shared_ptr<const iii_drone_interfaces::action::FollowWaypointPath::Goal> goal);
 template void Maneuver::SetFromGoal<iii_drone_interfaces::action::CableAwareFlyToPosition>(const std::shared_ptr<const iii_drone_interfaces::action::CableAwareFlyToPosition::Goal> goal);
 template void Maneuver::SetFromGoal<iii_drone_interfaces::action::FlyToObject>(const std::shared_ptr<const iii_drone_interfaces::action::FlyToObject::Goal> goal);
 template void Maneuver::SetFromGoal<iii_drone_interfaces::action::CableLanding>(const std::shared_ptr<const iii_drone_interfaces::action::CableLanding::Goal> goal);
@@ -456,6 +482,7 @@ template void Maneuver::SetFromGoal<iii_drone_interfaces::action::HoverByObject>
 template void Maneuver::SetFromGoal<iii_drone_interfaces::action::HoverOnCable>(const std::shared_ptr<const iii_drone_interfaces::action::HoverOnCable::Goal> goal);
 
 template void Maneuver::PublishFeedback<iii_drone_interfaces::action::FlyToPosition>(const std::shared_ptr<void> feedback);
+template void Maneuver::PublishFeedback<iii_drone_interfaces::action::FollowWaypointPath>(const std::shared_ptr<void> feedback);
 template void Maneuver::PublishFeedback<iii_drone_interfaces::action::CableAwareFlyToPosition>(const std::shared_ptr<void> feedback);
 template void Maneuver::PublishFeedback<iii_drone_interfaces::action::FlyToObject>(const std::shared_ptr<void> feedback);
 template void Maneuver::PublishFeedback<iii_drone_interfaces::action::CableLanding>(const std::shared_ptr<void> feedback);

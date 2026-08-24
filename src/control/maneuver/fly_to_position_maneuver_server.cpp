@@ -157,6 +157,8 @@ maneuver_type_t FlyToPositionManeuverServer::maneuver_type() const {
 
 void FlyToPositionManeuverServer::startExecution(Maneuver & maneuver) {
 
+    std::lock_guard<std::mutex> reference_generation_lock(reference_generation_mutex_);
+
     RCLCPP_INFO(
         node()->get_logger(),
         "FlyToPositionManeuverServer::startExecution(): Starting execution of maneuver."
@@ -220,6 +222,8 @@ void FlyToPositionManeuverServer::startExecution(Maneuver & maneuver) {
     mpc_settle_active_ = false;
     mpc_settle_first_iteration_ = false;
     active_blend_to_next_ = fly_to_position_maneuver_params.blend_to_next;
+    active_completion_position_tolerance_m_ =
+        fly_to_position_maneuver_params.completion_position_tolerance_m;
     maneuver_start_time_ = node()->now();
     threshold_reached_logged_ = false;
     settle_threshold_reached_logged_ = false;
@@ -263,7 +267,39 @@ bool FlyToPositionManeuverServer::canCancel() {
     return true;
 }
 
+std::optional<ControlledCancellationConfig>
+FlyToPositionManeuverServer::controlledCancellationConfig() const {
+    return controlledCancellationConfigFrom(configuration_);
+}
+
+bool FlyToPositionManeuverServer::rebaseExecution(
+    const State & stopped_state,
+    std::string & reason
+) {
+    std::lock_guard<std::mutex> generation_lock(reference_generation_mutex_);
+    if (trajectory_generator_client_->busy()) {
+        reason = "trajectory generator is busy";
+        return false;
+    }
+    const Reference anchor(stopped_state);
+    first_iteration_ = true;
+    has_failed_ = false;
+    mpc_settle_active_ = false;
+    mpc_settle_first_iteration_ = false;
+    maneuver_start_time_ = node()->now();
+    {
+        std::lock_guard<std::mutex> blend_lock(blend_mutex_);
+        initial_blend_start_reference_ = anchor;
+        latest_streamed_reference_ = anchor;
+        blend_completion_reference_.reset();
+    }
+    reason = "replanned fly-to-position from stopped state";
+    return true;
+}
+
 Reference FlyToPositionManeuverServer::computeReference(const State & state) {
+
+    std::lock_guard<std::mutex> reference_generation_lock(reference_generation_mutex_);
 
     const bool use_mpc = configuration_->GetParameter("/control/maneuver_controller/fly_to_position_use_mpc").as_bool();
     bool reset, set_reference;
@@ -378,7 +414,10 @@ bool FlyToPositionManeuverServer::hasSucceeded(Maneuver &) {
         configuration_->GetParameter("/control/maneuver_controller/reached_position_euclidean_distance_threshold").as_double();
     const double blend_radius =
         configuration_->GetParameter("/control/maneuver_controller/fly_to_position_blend_radius").as_double();
-    const double active_position_threshold = active_blend_to_next_ ? blend_radius : reached_position_threshold;
+    const double terminal_position_threshold = active_completion_position_tolerance_m_ > 0.0
+        ? active_completion_position_tolerance_m_
+        : reached_position_threshold;
+    const double active_position_threshold = active_blend_to_next_ ? blend_radius : terminal_position_threshold;
 
     const bool vehicle_reached_target =
         distance < active_position_threshold
@@ -442,7 +481,7 @@ bool FlyToPositionManeuverServer::hasSucceeded(Maneuver &) {
         const double settle_distance = (state.position() - final_target_reference.position()).norm();
         const double settle_yaw_error = std::abs(shortestYawError(state.yaw(), final_target_reference.yaw()));
         const bool vehicle_reached_settle_target =
-            settle_distance < configuration_->GetParameter("/control/maneuver_controller/reached_position_euclidean_distance_threshold").as_double()
+            settle_distance < terminal_position_threshold
             && settle_yaw_error < configuration_->GetParameter("/control/maneuver_controller/reached_yaw_error_threshold").as_double();
         final_reference_streamed = interpolationFinalReferenceStreamed(final_target_reference);
         if (vehicle_reached_settle_target && !settle_threshold_reached_logged_) {
@@ -651,7 +690,11 @@ void FlyToPositionManeuverServer::publishResultAndFinalize(
             break;
         case MANEUVER_RESULT_TYPE_CANCEL:
             result->success = false;
-            result->target_reference = ReferenceAdapter(mpc_settle_active_ ? mpc_settle_target_reference_.Load() : target_reference_.Load()).ToMsg();
+            result->target_reference = ReferenceAdapter(
+                controlledCancellationFinalReference().value_or(
+                    mpc_settle_active_ ? mpc_settle_target_reference_.Load() : target_reference_.Load()
+                )
+            ).ToMsg();
             goal_handle->canceled(result);
             break;
     }
@@ -776,6 +819,16 @@ bool FlyToPositionManeuverServer::validateManeuverParameters(const fly_to_positi
 
     auto cda_handler = awareness_handler();
 
+    if (!std::isfinite(maneuver_params.completion_position_tolerance_m)
+        || maneuver_params.completion_position_tolerance_m < 0.0F) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "FlyToPositionManeuverServer::validateManeuverParameters(): Invalid completion position tolerance %.3f m",
+            static_cast<double>(maneuver_params.completion_position_tolerance_m)
+        );
+        return false;
+    }
+
     point_t target_position_in_world_frame;
     try {
         target_position_in_world_frame = maneuver_params.transform_target_position(
@@ -790,6 +843,14 @@ bool FlyToPositionManeuverServer::validateManeuverParameters(const fly_to_positi
             ex.what()
         );
         return false;
+    }
+
+    if (maneuver_params.ignore_altitude) {
+        RCLCPP_INFO(
+            node()->get_logger(),
+            "FlyToPositionManeuverServer::validateManeuverParameters(): Minimum target altitude check bypassed by goal"
+        );
+        return true;
     }
 
     bool target_position_valid = target_position_in_world_frame[2] - cda_handler->ground_altitude_estimate() >= configuration_->GetParameter("/control/maneuver_controller/minimum_target_altitude").as_double();

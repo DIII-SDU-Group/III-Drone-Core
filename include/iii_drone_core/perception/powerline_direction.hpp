@@ -97,6 +97,11 @@ namespace perception {
         void Predict(const iii_drone::types::quaternion_t & drone_quat);
 
         /**
+         * @brief Clears retained direction and Kalman-filter state.
+         */
+        void Reset();
+
+        /**
          * @brief Updates the PowerlineAdapter object.
          * 
          * @param msg The powerline ROS2 message.

@@ -50,8 +50,12 @@ ReferenceTrajectory TrajectoryInterpolator::ComputeReferenceTrajectory(
     bool reset
 ) {
 
+    // State feedback can retain small tracking velocities after a maneuver has
+    // reached its waypoint. Treating those as multi-second endpoint
+    // constraints bends an otherwise straight point-to-point trajectory.
+    const Reference stationary_start(start_state.position(), start_state.yaw());
     return ComputeReferenceTrajectory(
-        Reference(start_state),
+        stationary_start,
         end_reference,
         set_reference,
         reset
@@ -121,11 +125,15 @@ double TrajectoryInterpolator::computeInterpolation(
     };
 
     const point_t p0 = start_reference.position();
-    const vector_t v0 = start_reference.velocity();
-    const vector_t a0 = start_reference.acceleration();
+    vector_t v0 = start_reference.velocity();
+    // A streamed acceleration is an instantaneous feed-forward value, not a
+    // constraint that should shape the entire next segment. Holding it as a
+    // quintic endpoint derivative makes longer durations amplify corner
+    // handoffs into arbitrarily large spatial excursions.
+    const vector_t a0 = vector_t::Zero();
     const double yaw0 = rescale_yaw(start_reference.yaw());
     const double yaw_rate_0 = start_reference.yaw_rate();
-    const double yaw_acceleration_0 = start_reference.yaw_acceleration();
+    const double yaw_acceleration_0 = 0.0;
 
     const point_t pT = end_reference.position();
     const vector_t vT = end_reference.velocity(); 
@@ -176,6 +184,30 @@ double TrajectoryInterpolator::computeInterpolation(
         T_yaw_acceleration,
         1.0e-3
     });
+
+    const auto limit_start_velocity_for_duration = [&]() {
+        constexpr double monotonic_slope_factor = 3.0;
+        constexpr double minimum_axis_displacement = 1.0e-4;
+        const vector_t displacement = pT - p0;
+
+        for (int axis = 0; axis < 3; ++axis) {
+            const double delta = displacement(axis);
+            if (
+                std::abs(delta) < minimum_axis_displacement ||
+                v0(axis) * delta <= 0.0
+            ) {
+                v0(axis) = 0.0;
+                continue;
+            }
+
+            const double maximum_velocity =
+                monotonic_slope_factor * std::abs(delta) / T;
+            v0(axis) = std::copysign(
+                std::min(std::abs(static_cast<double>(v0(axis))), maximum_velocity),
+                delta
+            );
+        }
+    };
 
     auto solve_quintic = [&]() {
         Eigen::Matrix<double, 6, 6> A;
@@ -232,6 +264,7 @@ double TrajectoryInterpolator::computeInterpolation(
     constexpr double duration_margin = 1.05;
 
     for (int adjustment = 0; adjustment < max_duration_adjustments; ++adjustment) {
+        limit_start_velocity_for_duration();
         solve_quintic();
 
         double observed_velocity = 0.0;
@@ -263,6 +296,7 @@ double TrajectoryInterpolator::computeInterpolation(
         T *= duration_scale * duration_margin;
     }
 
+    limit_start_velocity_for_duration();
     solve_quintic();
     return T;
 

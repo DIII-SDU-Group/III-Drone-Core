@@ -96,10 +96,12 @@ set(III_DRONE_LIBRARY_HEADERS
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/state.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/reference.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/reference_trajectory.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/kinematic_stop_trajectory.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/cable_aware_trajectory_planner.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator_client.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_interpolator.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/waypoint_path_planner.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/combined_drone_awareness_handler.hpp"
 
@@ -109,11 +111,15 @@ set(III_DRONE_LIBRARY_HEADERS
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_scheduler.hpp"
 
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_reference_safety_guard.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_reference_stream_guard.hpp"
+
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_server.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/hover_maneuver_server.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/hover_by_object_maneuver_server.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/hover_on_cable_maneuver_server.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/fly_to_position_maneuver_server.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/follow_waypoint_path_maneuver_server.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/cable_aware_fly_to_position_maneuver_server.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/fly_to_object_maneuver_server.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/cable_landing_maneuver_server.hpp"
@@ -155,10 +161,12 @@ set(III_DRONE_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/control/state.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/reference.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/reference_trajectory.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/kinematic_stop_trajectory.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/cable_aware_trajectory_planner.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator_client.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/trajectory_interpolator.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/waypoint_path_planner.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/control/combined_drone_awareness_handler.cpp"
 
@@ -168,11 +176,14 @@ set(III_DRONE_LIBRARY_SOURCES
 
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/maneuver_scheduler.cpp"
 
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver/maneuver_reference_safety_guard.cpp"
+
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/maneuver_server.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/hover_maneuver_server.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/hover_by_object_maneuver_server.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/hover_on_cable_maneuver_server.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/fly_to_position_maneuver_server.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver/follow_waypoint_path_maneuver_server.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/cable_aware_fly_to_position_maneuver_server.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/fly_to_object_maneuver_server.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/cable_landing_maneuver_server.cpp"
@@ -369,6 +380,24 @@ if (BUILD_TESTING)
     test/control/reference_test.cpp
   )
 
+  ament_add_gtest(iii_drone_core_kinematic_stop_trajectory_test
+    test/control/kinematic_stop_trajectory_test.cpp
+  )
+
+  ament_add_gtest(iii_drone_core_maneuver_reference_safety_guard_test
+    test/control/maneuver_reference_safety_guard_test.cpp
+  )
+  ament_add_gtest(iii_drone_core_maneuver_reference_stream_guard_test
+    test/control/maneuver_reference_stream_guard_test.cpp
+  )
+
+  ament_add_gtest(iii_drone_core_trajectory_interpolator_test
+    test/control/trajectory_interpolator_test.cpp
+  )
+  ament_add_gtest(iii_drone_core_waypoint_path_planner_test
+    test/control/waypoint_path_planner_test.cpp
+  )
+
   ament_add_gtest(iii_drone_core_cable_aware_trajectory_planner_test
     test/control/cable_aware_trajectory_planner_test.cpp
   )
@@ -407,6 +436,34 @@ if (BUILD_TESTING)
     target_include_directories(iii_drone_core_reference_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
     target_link_libraries(iii_drone_core_reference_test iii_drone_lib)
     ament_target_dependencies(iii_drone_core_reference_test ${dependencies})
+  endif()
+
+  if(TARGET iii_drone_core_kinematic_stop_trajectory_test)
+    target_include_directories(iii_drone_core_kinematic_stop_trajectory_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_kinematic_stop_trajectory_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_kinematic_stop_trajectory_test ${dependencies})
+  endif()
+
+  if(TARGET iii_drone_core_maneuver_reference_safety_guard_test)
+    target_include_directories(iii_drone_core_maneuver_reference_safety_guard_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_maneuver_reference_safety_guard_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_maneuver_reference_safety_guard_test ${dependencies})
+  endif()
+  if(TARGET iii_drone_core_maneuver_reference_stream_guard_test)
+    target_include_directories(iii_drone_core_maneuver_reference_stream_guard_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_maneuver_reference_stream_guard_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_maneuver_reference_stream_guard_test ${dependencies})
+  endif()
+
+  if(TARGET iii_drone_core_trajectory_interpolator_test)
+    target_include_directories(iii_drone_core_trajectory_interpolator_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_trajectory_interpolator_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_trajectory_interpolator_test ${dependencies})
+  endif()
+  if(TARGET iii_drone_core_waypoint_path_planner_test)
+    target_include_directories(iii_drone_core_waypoint_path_planner_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_waypoint_path_planner_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_waypoint_path_planner_test ${dependencies})
   endif()
 
   if(TARGET iii_drone_core_cable_aware_trajectory_planner_test)

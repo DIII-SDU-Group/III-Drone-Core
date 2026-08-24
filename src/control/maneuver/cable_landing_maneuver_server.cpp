@@ -492,6 +492,14 @@ Reference CableLandingManeuverServer::computeReference(const State & state) {
     
 }
 
+ReferenceStreamRecoveryDisposition CableLandingManeuverServer::referenceLossRecoveryDisposition(
+    const State &,
+    std::string & reason
+) {
+    reason = "cable landing aborted after bounded reference-loss stop; behavior tree must re-approach";
+    return ReferenceStreamRecoveryDisposition::ABORT_ACTION;
+}
+
 Reference CableLandingManeuverServer::computeLinePidReference(const State & state) {
 
     auto cda_handler = awareness_handler();

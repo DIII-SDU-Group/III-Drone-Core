@@ -241,6 +241,26 @@ bool CableTakeoffManeuverServer::canCancel() {
 
 }
 
+bool CableTakeoffManeuverServer::rebaseExecution(
+    const State & stopped_state,
+    std::string & reason
+) {
+    if (trajectory_generator_client_->busy()) {
+        reason = "cable-takeoff trajectory generator is busy";
+        return false;
+    }
+    first_iteration_ = true;
+    has_failed_ = false;
+    abort_because_gripper_closed_ = false;
+    in_flight_since_.reset();
+    started_at_ = std::chrono::steady_clock::now();
+    last_distance_improvement_at_ = started_at_;
+    best_distance_to_target_ =
+        (stopped_state.position() - target_reference_->position()).norm();
+    reason = "replanned remaining cable takeoff from stopped state";
+    return true;
+}
+
 Reference CableTakeoffManeuverServer::computeReference(const State & state) {
 
     Reference target_reference = getUpdatedTargetReference(
@@ -272,11 +292,7 @@ Reference CableTakeoffManeuverServer::computeReference(const State & state) {
 
         has_failed_ = true;
 
-        ref = Reference(
-            state,
-            true,
-            true
-        );
+        ref = Reference(state);
 
     }
 

@@ -61,6 +61,12 @@ namespace control {
             const Reference & goal_reference
         );
 
+        bool trajectoryMeetsBoundaryContract(
+            const ReferenceTrajectory & trajectory,
+            const State & start_state,
+            const Reference & goal_reference
+        ) const;
+
         bool trajectoryIsSafe(
             const ReferenceTrajectory & trajectory,
             const iii_drone::adapters::PowerlineAdapter & powerline,

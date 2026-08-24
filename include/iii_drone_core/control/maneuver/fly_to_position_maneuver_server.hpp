@@ -129,6 +129,9 @@ namespace maneuver {
          */
         bool canCancel() override;
 
+        std::optional<ControlledCancellationConfig> controlledCancellationConfig() const override;
+        bool rebaseExecution(const State & stopped_state, std::string & reason) override;
+
         /**
          * @brief Compute the reference.
          * 
@@ -198,6 +201,15 @@ namespace maneuver {
         iii_drone::control::TrajectoryGeneratorClient::SharedPtr trajectory_generator_client_;
 
         /**
+         * @brief Serializes maneuver initialization with reference generation.
+         *
+         * A retained blended callback may still be executing when the next
+         * goal starts. Without this guard, that stale call can consume the new
+         * goal's first-iteration reset and leave the old trajectory active.
+         */
+        std::mutex reference_generation_mutex_;
+
+        /**
          * @brief The target reference.
          */
         iii_drone::utils::Atomic<iii_drone::control::Reference> target_reference_;
@@ -256,6 +268,8 @@ namespace maneuver {
         std::optional<iii_drone::control::Reference> blend_completion_reference_;
 
         bool active_blend_to_next_ = false;
+
+        double active_completion_position_tolerance_m_ = 0.0;
 
         /**
          * @brief True when the latest streamed interpolation reference is the

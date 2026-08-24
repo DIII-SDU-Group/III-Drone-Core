@@ -10,6 +10,11 @@ using namespace iii_drone::types;
 using namespace iii_drone::math;
 using namespace iii_drone::adapters;
 
+follow_waypoint_path_maneuver_params_t::follow_waypoint_path_maneuver_params_t(std::shared_ptr<void> params) {
+    const auto * params_ptr = static_cast<follow_waypoint_path_maneuver_params_t *>(params.get());
+    *this = *params_ptr;
+}
+
 /*****************************************************************************/
 // Implementation
 /*****************************************************************************/
@@ -19,18 +24,24 @@ fly_to_position_maneuver_params_t::fly_to_position_maneuver_params_t() {
     target_position = point_t();
     target_yaw = 0.0;
     blend_to_next = false;
+    ignore_altitude = false;
+    completion_position_tolerance_m = 0.0F;
 }
 
 fly_to_position_maneuver_params_t::fly_to_position_maneuver_params_t(
     const std::string frame_id,
     const point_t target_position,
     const float target_yaw,
-    const bool blend_to_next
+    const bool blend_to_next,
+    const bool ignore_altitude,
+    const float completion_position_tolerance_m
 ) {
     this->frame_id = frame_id;
     this->target_position = target_position;
     this->target_yaw = target_yaw;
     this->blend_to_next = blend_to_next;
+    this->ignore_altitude = ignore_altitude;
+    this->completion_position_tolerance_m = completion_position_tolerance_m;
 }
 
 fly_to_position_maneuver_params_t::fly_to_position_maneuver_params_t(std::shared_ptr<void> params) {
@@ -39,6 +50,8 @@ fly_to_position_maneuver_params_t::fly_to_position_maneuver_params_t(std::shared
     target_position = params_ptr->target_position;
     target_yaw = params_ptr->target_yaw;
     blend_to_next = params_ptr->blend_to_next;
+    ignore_altitude = params_ptr->ignore_altitude;
+    completion_position_tolerance_m = params_ptr->completion_position_tolerance_m;
 }
 
 point_t fly_to_position_maneuver_params_t::transform_target_position(

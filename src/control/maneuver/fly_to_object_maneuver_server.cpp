@@ -178,6 +178,27 @@ bool FlyToObjectManeuverServer::canCancel() {
     return true;
 }
 
+bool FlyToObjectManeuverServer::rebaseExecution(
+    const State & stopped_state,
+    std::string & reason
+) {
+    if (trajectory_generator_client_->busy()) {
+        reason = "trajectory generator is busy";
+        return false;
+    }
+    first_iteration_ = true;
+    has_failed_ = false;
+    active_target_reference_valid_ = false;
+    mpc_settle_active_ = false;
+    mpc_settle_first_iteration_ = false;
+    target_position_filter_initialized_ = false;
+    filtered_target_position_ = stopped_state.position();
+    last_target_position_filter_update_time_ = node()->now();
+    maneuver_start_time_ = node()->now();
+    reason = "replanned fly-to-object from stopped state";
+    return true;
+}
+
 Reference FlyToObjectManeuverServer::computeReference(const State & state) {
 
     Reference target_reference;

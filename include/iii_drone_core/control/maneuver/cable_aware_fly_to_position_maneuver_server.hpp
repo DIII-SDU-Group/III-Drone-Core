@@ -57,6 +57,8 @@ namespace maneuver {
         maneuver_type_t maneuver_type() const override;
         void startExecution(Maneuver & maneuver) override;
         bool canCancel() override;
+        std::optional<ControlledCancellationConfig> controlledCancellationConfig() const override;
+        bool rebaseExecution(const State & stopped_state, std::string & reason) override;
         iii_drone::control::Reference computeReference(const iii_drone::control::State & state) override;
         bool hasSucceeded(Maneuver & maneuver) override;
         bool hasFailed(Maneuver & maneuver) override;

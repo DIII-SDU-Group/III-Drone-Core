@@ -10,6 +10,8 @@
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
+#include <chrono>
+#include <string>
 
 /*****************************************************************************/
 // ROS2:
@@ -25,11 +27,16 @@
 // III-Drone-Interfaces:
 
 #include <iii_drone_interfaces/msg/reference.hpp>
+#include <iii_drone_interfaces/msg/maneuver_reference_stream.hpp>
+#include <iii_drone_interfaces/msg/maneuver_reference_ack.hpp>
 #include <iii_drone_interfaces/msg/maneuver.hpp>
 #include <iii_drone_interfaces/msg/maneuver_queue.hpp>
 #include <iii_drone_interfaces/msg/string_stamped.hpp>
 
 #include <iii_drone_interfaces/srv/get_reference.hpp>
+#include <iii_drone_interfaces/srv/pause_reference_stream.hpp>
+#include <iii_drone_interfaces/srv/rebase_reference_stream.hpp>
+#include <iii_drone_interfaces/srv/commit_reference_stream.hpp>
 #include <iii_drone_interfaces/srv/clear_maneuver_queue.hpp>
 
 /*****************************************************************************/
@@ -317,6 +324,11 @@ namespace maneuver {
         rclcpp::CallbackGroup::SharedPtr maneuver_execution_callback_group_;
 
         /**
+         * @brief Dedicated serialized callback group for reference requests.
+         */
+        rclcpp::CallbackGroup::SharedPtr get_reference_callback_group_;
+
+        /**
          * @brief The maneuver queue.
          */
         iii_drone::control::maneuver::ManeuverQueue::UniquePtr maneuver_queue_;
@@ -378,6 +390,59 @@ namespace maneuver {
          * @brief ROS2 reference publisher.
          */
         rclcpp_lifecycle::LifecyclePublisher<iii_drone_interfaces::msg::Reference>::SharedPtr reference_publisher_;
+
+        rclcpp::Publisher<iii_drone_interfaces::msg::ManeuverReferenceStream>::SharedPtr
+            reference_stream_publisher_;
+        rclcpp::Subscription<iii_drone_interfaces::msg::ManeuverReferenceAck>::SharedPtr
+            reference_ack_subscription_;
+        rclcpp::Service<iii_drone_interfaces::srv::PauseReferenceStream>::SharedPtr
+            pause_reference_stream_service_;
+        rclcpp::Service<iii_drone_interfaces::srv::RebaseReferenceStream>::SharedPtr
+            rebase_reference_stream_service_;
+        rclcpp::Service<iii_drone_interfaces::srv::CommitReferenceStream>::SharedPtr
+            commit_reference_stream_service_;
+
+        struct ReferenceStreamState {
+            std::string stream_id;
+            std::string provider;
+            uint64_t generation = 0;
+            uint64_t sequence = 0;
+            uint64_t last_ack_sequence = 0;
+            uint8_t last_consumer_status = 0;
+            bool valid = false;
+            bool paused = false;
+            bool prepared = false;
+            bool committed_waiting_for_applied = false;
+            bool abort_waiting_for_consumer_ready = false;
+            bool ack_seen = false;
+            Reference prepared_reference;
+            Reference latest_reference;
+            std::chrono::steady_clock::time_point generation_started;
+            std::chrono::steady_clock::time_point last_ack;
+        };
+        ReferenceStreamState reference_stream_state_;
+        std::mutex reference_stream_mutex_;
+
+        bool pauseReferenceStreamIfRequired();
+        void publishReferenceStream();
+        void acknowledgeReferenceStream(
+            const iii_drone_interfaces::msg::ManeuverReferenceAck::SharedPtr message
+        );
+        void pauseReferenceStream(
+            const std::shared_ptr<iii_drone_interfaces::srv::PauseReferenceStream::Request> request,
+            std::shared_ptr<iii_drone_interfaces::srv::PauseReferenceStream::Response> response
+        );
+        void rebaseReferenceStream(
+            const std::shared_ptr<iii_drone_interfaces::srv::RebaseReferenceStream::Request> request,
+            std::shared_ptr<iii_drone_interfaces::srv::RebaseReferenceStream::Response> response
+        );
+        void commitReferenceStream(
+            const std::shared_ptr<iii_drone_interfaces::srv::CommitReferenceStream::Request> request,
+            std::shared_ptr<iii_drone_interfaces::srv::CommitReferenceStream::Response> response
+        );
+        ManeuverServer::SharedPtr activeManeuverServer() const;
+        bool currentReferenceValid() const;
+        std::string nextReferenceStreamId(const std::string & provider);
 
         /**
          * @brief Get reference service.
