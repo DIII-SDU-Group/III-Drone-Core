@@ -319,7 +319,7 @@ PowerlineMapperNode::on_activate(const rclcpp_lifecycle::State & state) {
     );
 
     mmwave_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-        "/sensor/mmwave/pcl", 
+        "/sensor/mmwave/points", 
         10, 
         std::bind(
             &PowerlineMapperNode::mmWaveCallback, 
@@ -510,7 +510,8 @@ void PowerlineMapperNode::plMapperCommandCallback(
 
     auto send_system_command = [this](
         bool start_nstop,
-        rclcpp::Client<iii_drone_interfaces::srv::SystemCommand>::SharedPtr command_client
+        rclcpp::Client<iii_drone_interfaces::srv::SystemCommand>::SharedPtr command_client,
+        bool reset = false
     ) {
 
         if (!command_client->wait_for_service(std::chrono::seconds(1))) {
@@ -526,26 +527,11 @@ void PowerlineMapperNode::plMapperCommandCallback(
         }
 
         auto req = std::make_shared<iii_drone_interfaces::srv::SystemCommand::Request>();
-        req->command = start_nstop ? req->SYSTEM_COMMAND_START : req->SYSTEM_COMMAND_STOP;
+        req->command = reset
+            ? req->SYSTEM_COMMAND_START_RESET
+            : (start_nstop ? req->SYSTEM_COMMAND_START : req->SYSTEM_COMMAND_STOP);
 
-        bool done = false;
-
-        auto cb = [&done](
-            rclcpp::Client<iii_drone_interfaces::srv::SystemCommand>::SharedFuture
-        ) {
-            done = true;
-        };
-
-        auto res = command_client->async_send_request(
-            req,
-            cb
-        );
-
-        rclcpp::Rate rate(10);
-
-        while (!done) {
-            rate.sleep();
-        }
+        (void) command_client->async_send_request(req);
 
         return;
 
@@ -566,7 +552,8 @@ void PowerlineMapperNode::plMapperCommandCallback(
         
         send_system_command(
             true,
-            pl_dir_computer_command_client_
+            pl_dir_computer_command_client_,
+            request->pl_mapper_cmd.reset
         );
 
         pl_mapper_state_ = pl_mapper_state_running;
@@ -734,7 +721,7 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
             -1,
             pcl_points[i],
             pl_direction_,
-            configurator_->GetParameter("/tf/mmwave_frame_id").as_string(),
+            msg->header.frame_id,
             tf_buffer_,
             configurator_->GetConfiguration("powerline")
         );
@@ -765,14 +752,11 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
         point_t transformed_point = pointFromPointMsg(pt.point);
 
-        // RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::mmWaveCallback(): Point in FOV, updating powerline");
-
-        point_t projected_point = powerline_->UpdateLine(transformed_point);
-
         transformed_points.push_back(transformed_point);
-        projected_points.push_back(projected_point);
 
     }   
+
+    projected_points = powerline_->UpdateLines(transformed_points);
 
     // RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::mmWaveCallback(): Skipped %d points", n_skipped);
 

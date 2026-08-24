@@ -230,6 +230,16 @@ iii_drone::control::Reference HoverManeuverServer::computeReference(const iii_dr
 
 }
 
+bool HoverManeuverServer::rebaseExecution(
+    const State & stopped_state,
+    std::string & reason
+) {
+    Update(stopped_state);
+    hover_start_time_ = node()->now();
+    reason = "hover anchored at stopped state";
+    return true;
+}
+
 bool HoverManeuverServer::hasSucceeded(Maneuver & ) {
 
     if (!sustain_action_ && sustain_duration_s_ <= 0.0) {

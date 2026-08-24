@@ -247,7 +247,10 @@ namespace maneuver {
          * 
          * @return bool Whether the state is valid.
          */
-        bool validateAwareness(iii_drone::adapters::CombinedDroneAwarenessAdapter drone_awareness) const;
+        bool validateAwareness(
+            iii_drone::adapters::CombinedDroneAwarenessAdapter drone_awareness,
+            int expected_target_cable_id
+        ) const;
 
         /**
          * @brief The hover duration.

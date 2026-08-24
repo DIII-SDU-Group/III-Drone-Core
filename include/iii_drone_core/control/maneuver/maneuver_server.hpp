@@ -7,7 +7,10 @@
 /*****************************************************************************/
 // Std:
 
+#include <chrono>
 #include <memory>
+#include <mutex>
+#include <optional>
 
 /*****************************************************************************/
 // ROS2:
@@ -17,10 +20,13 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 
+#include <iii_drone_configuration/configuration.hpp>
+
 /*****************************************************************************/
 // III-Drone-Interfaces:
 
 #include <iii_drone_interfaces/action/fly_to_position.hpp>
+#include <iii_drone_interfaces/action/follow_waypoint_path.hpp>
 #include <iii_drone_interfaces/action/fly_to_object.hpp>
 #include <iii_drone_interfaces/action/cable_landing.hpp>
 #include <iii_drone_interfaces/action/cable_takeoff.hpp>
@@ -35,6 +41,7 @@
 #include <iii_drone_core/utils/atomic.hpp>
 
 #include <iii_drone_core/control/combined_drone_awareness_handler.hpp>
+#include <iii_drone_core/control/kinematic_stop_trajectory.hpp>
 #include <iii_drone_core/control/reference.hpp>
 #include <iii_drone_core/control/state.hpp>
 
@@ -51,6 +58,12 @@
 namespace iii_drone {
 namespace control {
 namespace maneuver {
+
+    enum class ReferenceStreamRecoveryDisposition {
+        REBASE,
+        ABORT_ACTION,
+        REJECT
+    };
 
     /**
      * @brief Flight maneuver server abstract base class. 
@@ -186,6 +199,23 @@ namespace maneuver {
          */
         bool running() const;
 
+        /** Suspend reference generation and maneuver completion evaluation. */
+        void PauseReferenceStream();
+
+        /** Select and prepare recovery after the consumer has completed a bounded stop. */
+        ReferenceStreamRecoveryDisposition PrepareReferenceStreamRecovery(
+            const State & stopped_state,
+            std::string & reason
+        );
+
+        /** Release a successfully prepared reference generation. */
+        void CommitReferenceStreamRebase();
+
+        /** Abort the paused action after the consumer confirms hover ownership. */
+        void AbortAfterReferenceLoss();
+
+        bool referenceStreamPaused() const;
+
         /**
          * @brief Shared pointer type.
          */
@@ -249,10 +279,34 @@ namespace maneuver {
         virtual bool canCancel() = 0;
 
         /**
+         * Enables bounded, control-owning cancellation for flight maneuvers.
+         * The default keeps the legacy immediate-cancel behavior.
+         */
+        virtual std::optional<ControlledCancellationConfig> controlledCancellationConfig() const;
+
+        /**
          * @brief Compute reference callback. Must be implemented specific to the maneuver type.
          * This function takes the current state of the drone and computes the next reference.
          */
         virtual Reference computeReference(const State &) = 0;
+
+        /**
+         * Replan the remaining maneuver from a stopped state. Implementations
+         * must guarantee that their first computed sample is continuous with
+         * stopped_state. The safe default refuses transparent recovery.
+         */
+        virtual bool rebaseExecution(const State & stopped_state, std::string & reason);
+
+        /**
+         * Select recovery policy after a reference-loss stop. The default attempts
+         * transparent rebase; safety-sensitive maneuvers may abort for BT recovery.
+         */
+        virtual ReferenceStreamRecoveryDisposition referenceLossRecoveryDisposition(
+            const State & stopped_state,
+            std::string & reason
+        );
+
+        iii_drone::utils::Atomic<bool> abort_after_reference_loss_ = false;
 
         /**
          * @brief Has succeeded callback, must return whether the maneuver has successfully completed.
@@ -313,6 +367,13 @@ namespace maneuver {
          * @brief Node getter.
          */
         const rclcpp_lifecycle::LifecycleNode & node_handle() const;
+
+        /** Returns the controlled stop endpoint while a cancellation is active. */
+        std::optional<Reference> controlledCancellationFinalReference() const;
+
+        static ControlledCancellationConfig controlledCancellationConfigFrom(
+            const iii_drone::configuration::Configuration::SharedPtr & configuration
+        );
 
     private:
         /**
@@ -411,10 +472,24 @@ namespace maneuver {
          */
         iii_drone::utils::Atomic<bool> running_;
 
+        iii_drone::utils::Atomic<bool> reference_stream_paused_ = false;
+
         /**
          * @brief Action server shared void pointer
          */
         std::shared_ptr<void> server_;
+
+        Reference computeManagedReference(const State & state);
+        void resetControlledCancellation();
+        bool startControlledCancellation(const ControlledCancellationConfig & config);
+        bool controlledCancellationComplete(const ControlledCancellationConfig & config);
+
+        mutable std::mutex controlled_cancellation_mutex_;
+        std::optional<Reference> latest_managed_reference_;
+        std::optional<KinematicStopTrajectory> controlled_stop_trajectory_;
+        std::chrono::steady_clock::time_point controlled_stop_start_time_;
+        std::optional<std::chrono::steady_clock::time_point>
+            controlled_stop_below_threshold_since_;
 
         /**
          * @brief Handle goal callback.

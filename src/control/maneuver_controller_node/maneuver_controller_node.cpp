@@ -36,6 +36,7 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
     configurator.DeclareParameter("/control/maneuver_controller/maneuver_start_timeout_s", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/maneuver_queue_size", int_t);
     configurator.DeclareParameter("/control/maneuver_controller/maneuver_execution_period_ms", int_t);
+    configurator.DeclareParameter("/control/maneuver_controller/reference_stream_timeout_ms", int_t);
     configurator.DeclareParameter("/control/maneuver_controller/reference_callback_provider_publish_period_ms", int_t);
     configurator.DeclareParameter("/control/maneuver_controller/maneuver_completion_token_acquisition_timeout_s", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/use_nans_when_hovering", bool_t);
@@ -46,7 +47,16 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
     configurator.DeclareParameter("/control/maneuver_controller/maneuver_wait_for_execute_poll_ms", int_t);
     configurator.DeclareParameter("/control/maneuver_controller/maneuver_evaluate_done_poll_ms", int_t);
     configurator.DeclareParameter("/control/maneuver_controller/reached_position_euclidean_distance_threshold", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/fly_to_position_blend_radius", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/reached_yaw_error_threshold", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/minimum_target_altitude", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/controlled_cancel_max_deceleration_m_s2", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/controlled_cancel_max_jerk_m_s3", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/controlled_cancel_max_yaw_deceleration_rad_s2", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/controlled_cancel_max_yaw_jerk_rad_s3", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/controlled_cancel_velocity_threshold_m_s", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/controlled_cancel_yaw_rate_threshold_rad_s", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/controlled_cancel_settle_time_s", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_landing_min_z_distance", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_landing_max_z_distance", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_landing_max_initial_distance_error", double_t);
@@ -59,9 +69,33 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
     configurator.DeclareParameter("/control/maneuver_controller/cable_landing_safety_margin_max_negative_vertical_distance", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_landing_safety_margin_cone_slope", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_landing_safety_margin_cone_tolerance", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_gripper_v_gate_apex_z", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_gripper_v_gate_reference_z", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_gripper_v_gate_half_width_at_reference_z", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_gripper_v_gate_center_y", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_gripper_v_gate_violation_grace_s", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_landing_reference_truncate_radius", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_landing_target_upwards_velocity", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_landing_reached_position_euclidean_distance_threshold", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_controller_type", string_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_line_pid_ascent_velocity", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_line_pid_max_along_velocity", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_line_pid_max_cross_velocity", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_line_pid_max_yaw_rate", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_line_pid_max_dt_s", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_line_pid_along_kp", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_line_pid_along_ki", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_line_pid_along_kd", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_line_pid_along_integral_limit", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_line_pid_cross_kp", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_line_pid_cross_ki", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_line_pid_cross_kd", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_line_pid_cross_integral_limit", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_line_pid_yaw_kp", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_line_pid_yaw_ki", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_line_pid_yaw_kd", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_line_pid_yaw_integral_limit", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_target_lock_max_orthogonal_distance", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/use_gripper_status_condition", bool_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_takeoff_min_target_cable_distance", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_takeoff_max_target_cable_distance", double_t);
@@ -70,8 +104,13 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
     configurator.DeclareParameter("/control/maneuver_controller/generate_trajectories_timeout_ms", int_t);
     configurator.DeclareParameter("/control/maneuver_controller/fly_to_position_use_mpc", bool_t);
     configurator.DeclareParameter("/control/maneuver_controller/fly_to_object_use_mpc", bool_t);
+    configurator.DeclareParameter("/control/maneuver_controller/fly_to_object_target_low_pass_time_constant_s", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_landing_use_mpc", bool_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_takeoff_use_mpc", bool_t);
+    configurator.DeclareParameter("/control/trajectory_generator/cable_aware_clearance_m", double_t);
+    configurator.DeclareParameter("/control/trajectory_interpolator/interpolation_max_velocity_m_s", double_t);
+    configurator.DeclareParameter("/control/trajectory_interpolator/interpolation_max_acceleration_m_s2", double_t);
+    configurator.DeclareParameter("/control/trajectory_interpolator/interpolation_max_jerk_m_s3", double_t);
     configurator.DeclareParameter("/tf/cable_gripper_frame_id", string_t);
     configurator.DeclareParameter("/tf/drone_frame_id", string_t);
     configurator.DeclareParameter("/tf/world_frame_id", string_t);
@@ -99,6 +138,7 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
         ConfigurationEntry("/control/maneuver_controller/maneuver_start_timeout_s", double_t),
         ConfigurationEntry("/control/maneuver_controller/maneuver_queue_size", int_t),
         ConfigurationEntry("/control/maneuver_controller/maneuver_execution_period_ms", int_t),
+        ConfigurationEntry("/control/maneuver_controller/reference_stream_timeout_ms", int_t),
         ConfigurationEntry("/control/maneuver_controller/reference_callback_provider_publish_period_ms", int_t),
         ConfigurationEntry("/control/maneuver_controller/maneuver_completion_token_acquisition_timeout_s", double_t),
         ConfigurationEntry("/control/maneuver_controller/use_nans_when_hovering", bool_t),
@@ -117,14 +157,43 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
     });
     configurator.CreateConfiguration("fly_to_position_maneuver_server", {
         ConfigurationEntry("/control/maneuver_controller/reached_position_euclidean_distance_threshold", double_t),
+        ConfigurationEntry("/control/maneuver_controller/fly_to_position_blend_radius", double_t),
+        ConfigurationEntry("/control/maneuver_controller/reached_yaw_error_threshold", double_t),
         ConfigurationEntry("/control/maneuver_controller/minimum_target_altitude", double_t),
+        ConfigurationEntry("/control/maneuver_controller/controlled_cancel_max_deceleration_m_s2", double_t),
+        ConfigurationEntry("/control/maneuver_controller/controlled_cancel_max_jerk_m_s3", double_t),
+        ConfigurationEntry("/control/maneuver_controller/controlled_cancel_max_yaw_deceleration_rad_s2", double_t),
+        ConfigurationEntry("/control/maneuver_controller/controlled_cancel_max_yaw_jerk_rad_s3", double_t),
+        ConfigurationEntry("/control/maneuver_controller/controlled_cancel_velocity_threshold_m_s", double_t),
+        ConfigurationEntry("/control/maneuver_controller/controlled_cancel_yaw_rate_threshold_rad_s", double_t),
+        ConfigurationEntry("/control/maneuver_controller/controlled_cancel_settle_time_s", double_t),
         ConfigurationEntry("/control/maneuver_controller/fly_to_position_use_mpc", bool_t),
+        ConfigurationEntry("/control/trajectory_generator/cable_aware_clearance_m", double_t),
+        ConfigurationEntry("/tf/world_frame_id", string_t),
+    });
+    configurator.CreateConfiguration("follow_waypoint_path_maneuver_server", {
+        ConfigurationEntry("/control/maneuver_controller/reached_position_euclidean_distance_threshold", double_t),
+        ConfigurationEntry("/control/maneuver_controller/reached_yaw_error_threshold", double_t),
+        ConfigurationEntry("/control/maneuver_controller/minimum_target_altitude", double_t),
+        ConfigurationEntry("/control/maneuver_controller/controlled_cancel_max_deceleration_m_s2", double_t),
+        ConfigurationEntry("/control/maneuver_controller/controlled_cancel_max_jerk_m_s3", double_t),
+        ConfigurationEntry("/control/maneuver_controller/controlled_cancel_max_yaw_deceleration_rad_s2", double_t),
+        ConfigurationEntry("/control/maneuver_controller/controlled_cancel_max_yaw_jerk_rad_s3", double_t),
+        ConfigurationEntry("/control/maneuver_controller/controlled_cancel_velocity_threshold_m_s", double_t),
+        ConfigurationEntry("/control/maneuver_controller/controlled_cancel_yaw_rate_threshold_rad_s", double_t),
+        ConfigurationEntry("/control/maneuver_controller/controlled_cancel_settle_time_s", double_t),
+        ConfigurationEntry("/control/maneuver_controller/fly_to_position_blend_radius", double_t),
+        ConfigurationEntry("/control/trajectory_interpolator/interpolation_max_velocity_m_s", double_t),
+        ConfigurationEntry("/control/trajectory_interpolator/interpolation_max_acceleration_m_s2", double_t),
+        ConfigurationEntry("/control/trajectory_interpolator/interpolation_max_jerk_m_s3", double_t),
         ConfigurationEntry("/tf/world_frame_id", string_t),
     });
     configurator.CreateConfiguration("fly_to_object_maneuver_server", {
         ConfigurationEntry("/control/maneuver_controller/reached_position_euclidean_distance_threshold", double_t),
         ConfigurationEntry("/control/maneuver_controller/minimum_target_altitude", double_t),
         ConfigurationEntry("/control/maneuver_controller/fly_to_object_use_mpc", bool_t),
+        ConfigurationEntry("/control/maneuver_controller/fly_to_object_target_low_pass_time_constant_s", double_t),
+        ConfigurationEntry("/control/maneuver_controller/maneuver_execution_period_ms", int_t),
         ConfigurationEntry("/tf/world_frame_id", string_t),
     });
     configurator.CreateConfiguration("cable_landing_maneuver_server", {
@@ -146,8 +215,33 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
         ConfigurationEntry("/control/maneuver_controller/cable_landing_safety_margin_max_negative_vertical_distance", double_t),
         ConfigurationEntry("/control/maneuver_controller/cable_landing_safety_margin_cone_slope", double_t),
         ConfigurationEntry("/control/maneuver_controller/cable_landing_safety_margin_cone_tolerance", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_gripper_v_gate_apex_z", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_gripper_v_gate_reference_z", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_gripper_v_gate_half_width_at_reference_z", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_gripper_v_gate_center_y", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_gripper_v_gate_violation_grace_s", double_t),
         ConfigurationEntry("/control/maneuver_controller/cable_landing_reference_truncate_radius", double_t),
         ConfigurationEntry("/control/maneuver_controller/cable_landing_reached_position_euclidean_distance_threshold", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_controller_type", string_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_line_pid_ascent_velocity", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_line_pid_max_along_velocity", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_line_pid_max_cross_velocity", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_line_pid_max_yaw_rate", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_line_pid_max_dt_s", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_line_pid_along_kp", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_line_pid_along_ki", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_line_pid_along_kd", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_line_pid_along_integral_limit", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_line_pid_cross_kp", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_line_pid_cross_ki", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_line_pid_cross_kd", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_line_pid_cross_integral_limit", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_line_pid_yaw_kp", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_line_pid_yaw_ki", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_line_pid_yaw_kd", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_line_pid_yaw_integral_limit", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_target_lock_max_orthogonal_distance", double_t),
+        ConfigurationEntry("/control/maneuver_controller/maneuver_execution_period_ms", int_t),
         ConfigurationEntry("/control/maneuver_controller/use_gripper_status_condition", bool_t),
         ConfigurationEntry("/control/maneuver_controller/cable_landing_use_mpc", bool_t),
     });
@@ -542,6 +636,38 @@ void ManeuverControllerNode::registerManeuverServers() {
         std::dynamic_pointer_cast<ManeuverServer>(fly_to_position_maneuver_server_)
     );
 
+    follow_waypoint_path_maneuver_server_ = std::make_shared<FollowWaypointPathManeuverServer>(
+        this,
+        combined_drone_awareness_handler_,
+        "follow_waypoint_path",
+        configurator_->GetParameter("/control/maneuver_controller/maneuver_wait_for_execute_poll_ms").as_int(),
+        configurator_->GetParameter("/control/maneuver_controller/maneuver_evaluate_done_poll_ms").as_int(),
+        configurator_->GetConfiguration("follow_waypoint_path_maneuver_server")
+    );
+    maneuver_scheduler_->RegisterManeuverServer(
+        MANEUVER_TYPE_FOLLOW_WAYPOINT_PATH,
+        std::dynamic_pointer_cast<ManeuverServer>(follow_waypoint_path_maneuver_server_)
+    );
+
+    RCLCPP_DEBUG(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Creating cable-aware fly to position maneuver server");
+
+    cable_aware_fly_to_position_maneuver_server_ = std::make_shared<CableAwareFlyToPositionManeuverServer>(
+        this,
+        combined_drone_awareness_handler_,
+        "cable_aware_fly_to_position",
+        configurator_->GetParameter("/control/maneuver_controller/maneuver_wait_for_execute_poll_ms").as_int(),
+        configurator_->GetParameter("/control/maneuver_controller/maneuver_evaluate_done_poll_ms").as_int(),
+        configurator_->GetConfiguration("fly_to_position_maneuver_server"),
+        trajectory_generator_client_
+    );
+
+    RCLCPP_DEBUG(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Registering cable-aware fly to position maneuver server");
+
+    maneuver_scheduler_->RegisterManeuverServer(
+        MANEUVER_TYPE_CABLE_AWARE_FLY_TO_POSITION,
+        std::dynamic_pointer_cast<ManeuverServer>(cable_aware_fly_to_position_maneuver_server_)
+    );
+
     RCLCPP_DEBUG(get_logger(), "ManeuverControllerNode::registerManeuverServers(): Creating fly to object maneuver server");
 
     fly_to_object_maneuver_server_ = std::make_shared<FlyToObjectManeuverServer>(
@@ -611,6 +737,8 @@ void ManeuverControllerNode::unregisterManeuverServers() {
     maneuver_scheduler_->UnregisterManeuverServer(MANEUVER_TYPE_HOVER_BY_OBJECT);
     maneuver_scheduler_->UnregisterManeuverServer(MANEUVER_TYPE_HOVER_ON_CABLE);
     maneuver_scheduler_->UnregisterManeuverServer(MANEUVER_TYPE_FLY_TO_POSITION);
+    maneuver_scheduler_->UnregisterManeuverServer(MANEUVER_TYPE_FOLLOW_WAYPOINT_PATH);
+    maneuver_scheduler_->UnregisterManeuverServer(MANEUVER_TYPE_CABLE_AWARE_FLY_TO_POSITION);
     maneuver_scheduler_->UnregisterManeuverServer(MANEUVER_TYPE_FLY_TO_OBJECT);
     maneuver_scheduler_->UnregisterManeuverServer(MANEUVER_TYPE_CABLE_LANDING);
     maneuver_scheduler_->UnregisterManeuverServer(MANEUVER_TYPE_CABLE_TAKEOFF);
@@ -626,6 +754,12 @@ void ManeuverControllerNode::unregisterManeuverServers() {
 
     fly_to_position_maneuver_server_.reset();
     fly_to_position_maneuver_server_ = nullptr;
+
+    follow_waypoint_path_maneuver_server_.reset();
+    follow_waypoint_path_maneuver_server_ = nullptr;
+
+    cable_aware_fly_to_position_maneuver_server_.reset();
+    cable_aware_fly_to_position_maneuver_server_ = nullptr;
 
     fly_to_object_maneuver_server_.reset();
     fly_to_object_maneuver_server_ = nullptr;

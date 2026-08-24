@@ -91,6 +91,10 @@ void CombinedDroneAwarenessHandler::Start() {
     vehicle_global_position_adapter_history_ = std::make_shared<VehicleGlobalPositionAdapterHistory>(1);
     powerline_adapter_history_ = std::make_shared<PowerlineAdapterHistory>(1);
     gripper_status_adapter_history_ = std::make_shared<GripperStatusAdapterHistory>(1);
+    odometry_position_reset_offset_ = point_t::Zero();
+    last_raw_odometry_position_ = point_t::Zero();
+    last_odometry_reset_counter_ = 0;
+    has_last_odometry_for_reset_compensation_ = false;
     ground_altitude_estimate_ = std::make_shared<iii_drone::utils::Atomic<double>>(0.0);
     ground_altitude_estimate_amsl_ = std::make_shared<iii_drone::utils::Atomic<double>>(0.0);
     target_adapter_ = std::make_shared<iii_drone::utils::Atomic<TargetAdapter>>();
@@ -180,6 +184,7 @@ void CombinedDroneAwarenessHandler::Start() {
         [this](const px4_msgs::msg::VehicleOdometry::SharedPtr msg) {
             if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::vehicle_odometry_sub_: Vehicle odometry received");
             iii_drone::adapters::px4::VehicleOdometryAdapter adapter(*msg);
+            compensateOdometryReset(adapter);
             vehicle_odometry_adapter_history_->Store(adapter);
             updateCombinedDroneAwarenessFromVehicleOdometry();
         }
@@ -295,6 +300,10 @@ void CombinedDroneAwarenessHandler::Stop() {
     register_offboard_mode_srv_ = nullptr;
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Stop(): Clearing histories and atomics");
+    odometry_position_reset_offset_ = point_t::Zero();
+    last_raw_odometry_position_ = point_t::Zero();
+    last_odometry_reset_counter_ = 0;
+    has_last_odometry_for_reset_compensation_ = false;
     vehicle_status_adapter_history_->clear();
     vehicle_status_adapter_history_.reset();
     vehicle_status_adapter_history_ = nullptr;
@@ -337,6 +346,44 @@ iii_drone::control::State CombinedDroneAwarenessHandler::GetState() const {
     }
 
     return (*vehicle_odometry_adapter_history_)[0].ToState();
+
+}
+
+void CombinedDroneAwarenessHandler::compensateOdometryReset(
+    iii_drone::adapters::px4::VehicleOdometryAdapter & adapter
+) {
+
+    const point_t raw_position = adapter.position();
+    const uint8_t reset_counter = adapter.reset_counter();
+
+    if (!has_last_odometry_for_reset_compensation_) {
+        last_raw_odometry_position_ = raw_position;
+        last_odometry_reset_counter_ = reset_counter;
+        has_last_odometry_for_reset_compensation_ = true;
+        adapter.ApplyPositionOffset(odometry_position_reset_offset_);
+        return;
+    }
+
+    if (reset_counter != last_odometry_reset_counter_) {
+        const point_t previous_continuous_position =
+            last_raw_odometry_position_ + odometry_position_reset_offset_;
+        odometry_position_reset_offset_ =
+            previous_continuous_position - raw_position;
+
+        RCLCPP_WARN(
+            node_->get_logger(),
+            "CombinedDroneAwarenessHandler::compensateOdometryReset(): PX4 odometry reset counter changed %u -> %u; applying ROS-world continuity offset [%.3f, %.3f, %.3f]",
+            static_cast<unsigned>(last_odometry_reset_counter_),
+            static_cast<unsigned>(reset_counter),
+            odometry_position_reset_offset_(0),
+            odometry_position_reset_offset_(1),
+            odometry_position_reset_offset_(2)
+        );
+    }
+
+    last_raw_odometry_position_ = raw_position;
+    last_odometry_reset_counter_ = reset_counter;
+    adapter.ApplyPositionOffset(odometry_position_reset_offset_);
 
 }
 
@@ -434,22 +481,22 @@ iii_drone::types::transform_matrix_t CombinedDroneAwarenessHandler::ComputeTarge
 
         geometry_msgs::msg::PoseStamped target_object_pose_stamped_world;
 
-        rclcpp::Time now = rclcpp::Clock().now();
-
         try {
 
+            // Powerline detections can be stamped before the matching drone TF has
+            // reached this buffer. Use the latest available transform here; this
+            // function runs in the setpoint reference path and must not block.
+            target_object_pose_stamped.header.stamp = builtin_interfaces::msg::Time();
             target_object_pose_stamped_world = tf_buffer_->transform(
                 target_object_pose_stamped,
-                configuration_->GetParameter("/tf/world_frame_id").as_string(),
-                tf2::durationFromSec(1.)
+                configuration_->GetParameter("/tf/world_frame_id").as_string()
             );
 
         } catch (tf2::TransformException & e) {
 
             if (debug_) RCLCPP_DEBUG(
-                node_->get_logger(), 
-                "CombinedDroneAwarenessHandler::ComputeTargetTransform: could not transform target object pose to world frame after %f seconds: %s", 
-                (now - rclcpp::Clock().now()).seconds(),
+                node_->get_logger(),
+                "CombinedDroneAwarenessHandler::ComputeTargetTransform: could not transform target object pose to world frame: %s",
                 e.what()
             );
 
@@ -486,6 +533,26 @@ iii_drone::types::transform_matrix_t CombinedDroneAwarenessHandler::ComputeTarge
         iii_drone::types::transform_matrix_t ref_T_drone = transformMatrixFromTransformMsg(ref_T_drone_msg.transform);
         iii_drone::types::transform_matrix_t w_T_d = w_T_ref * ref_T_drone;
 
+        if (debug_) {
+            RCLCPP_DEBUG_THROTTLE(
+                node_->get_logger(),
+                *node_->get_clock(),
+                1000,
+                "CombinedDroneAwarenessHandler::ComputeTargetTransform(): target_id=%d line_world=[%.3f, %.3f, %.3f] reference_frame=%s target_transform_translation=[%.3f, %.3f, %.3f] drone_target_world=[%.3f, %.3f, %.3f]",
+                target_adapter.target_id(),
+                w_T_c(0, 3),
+                w_T_c(1, 3),
+                w_T_c(2, 3),
+                target_reference_frame_id.c_str(),
+                ref_T_c(0, 3),
+                ref_T_c(1, 3),
+                ref_T_c(2, 3),
+                w_T_d(0, 3),
+                w_T_d(1, 3),
+                w_T_d(2, 3)
+            );
+        }
+
         return w_T_d;
 
     } else {
@@ -520,10 +587,19 @@ iii_drone::types::pose_t CombinedDroneAwarenessHandler::GetPoseOfTarget(const ii
 
         geometry_msgs::msg::PoseStamped target_object_pose_stamped = target_line.ToPoseStampedMsg();
 
-        geometry_msgs::msg::PoseStamped target_object_pose_stamped_world = tf_buffer_->transform(
-            target_object_pose_stamped,
-            configuration_->GetParameter("/tf/world_frame_id").as_string()
-        );
+        geometry_msgs::msg::PoseStamped target_object_pose_stamped_world;
+        try {
+            target_object_pose_stamped_world = tf_buffer_->transform(
+                target_object_pose_stamped,
+                configuration_->GetParameter("/tf/world_frame_id").as_string()
+            );
+        } catch (tf2::TransformException & e) {
+            target_object_pose_stamped.header.stamp = builtin_interfaces::msg::Time();
+            target_object_pose_stamped_world = tf_buffer_->transform(
+                target_object_pose_stamped,
+                configuration_->GetParameter("/tf/world_frame_id").as_string()
+            );
+        }
 
         pose = poseFromPoseMsg(target_object_pose_stamped_world.pose);
 
@@ -534,6 +610,16 @@ iii_drone::types::pose_t CombinedDroneAwarenessHandler::GetPoseOfTarget(const ii
     }
 
     return pose;
+
+}
+
+iii_drone::adapters::PowerlineAdapter CombinedDroneAwarenessHandler::GetPowerlineAdapter() const {
+
+    if (powerline_adapter_history_->empty()) {
+        throw std::runtime_error("CombinedDroneAwarenessHandler::GetPowerlineAdapter(): no powerline available");
+    }
+
+    return (*powerline_adapter_history_)[0];
 
 }
 
@@ -584,7 +670,7 @@ bool CombinedDroneAwarenessHandler::target_position_known() const {
 }
 
 TargetAdapter CombinedDroneAwarenessHandler::target_adapter() const {
-    return (*combined_drone_awareness_adapter_)->target_adapter();
+    return target_adapter_->Load();
 }
 
 bool CombinedDroneAwarenessHandler::on_ground() const {
@@ -659,8 +745,8 @@ void CombinedDroneAwarenessHandler::updateCombinedDroneAwareness() {
     updateCombinedDroneAwarenessFromVehicleStatus(adapter);
     updateCombinedDroneAwarenessFromVehicleOdometry(adapter);
     updateCombinedDroneAwarenessFromPowerline(adapter);
-    updateCombinedDroneAwarenessFromGripperStatus(adapter);
     updateCombinedDroneAwarenessFromTarget(adapter);
+    updateCombinedDroneAwarenessFromGripperStatus(adapter);
 
     // Update the combined drone awareness
     *combined_drone_awareness_adapter_ = adapter;
@@ -672,6 +758,7 @@ void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromVehicleStatu
     CombinedDroneAwarenessAdapter adapter = *combined_drone_awareness_adapter_;
 
     updateCombinedDroneAwarenessFromVehicleStatus(adapter);
+    updateCombinedDroneAwarenessFromTarget(adapter);
 
     *combined_drone_awareness_adapter_ = adapter;
 
@@ -706,6 +793,7 @@ void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromVehicleOdome
     CombinedDroneAwarenessAdapter adapter = *combined_drone_awareness_adapter_;
 
     updateCombinedDroneAwarenessFromVehicleOdometry(adapter);
+    updateCombinedDroneAwarenessFromTarget(adapter);
 
     *combined_drone_awareness_adapter_ = adapter;
 
@@ -737,6 +825,7 @@ void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromPowerline() 
     CombinedDroneAwarenessAdapter adapter = *combined_drone_awareness_adapter_;
 
     updateCombinedDroneAwarenessFromPowerline(adapter);
+    updateCombinedDroneAwarenessFromTarget(adapter);
 
     *combined_drone_awareness_adapter_ = adapter;
 
@@ -763,6 +852,7 @@ void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromGripperStatu
 
     CombinedDroneAwarenessAdapter adapter = *combined_drone_awareness_adapter_;
 
+    updateCombinedDroneAwarenessFromTarget(adapter);
     updateCombinedDroneAwarenessFromGripperStatus(adapter);
 
     *combined_drone_awareness_adapter_ = adapter;
@@ -779,6 +869,8 @@ void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromGripperStatu
     } else {
         adapter.gripper_open() = (*gripper_status_adapter_history_)[0].open();
     }
+
+    updateDroneLocation(adapter);
 
 }
 
@@ -900,15 +992,45 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(CombinedDroneAwarenessAd
         return;
     }
 
+    const bool use_gripper_status_condition =
+        configuration_->GetParameter("/control/maneuver_controller/use_gripper_status_condition").as_bool();
+    const bool has_gripper_status =
+        gripper_status_adapter_history_ && !gripper_status_adapter_history_->empty();
+    const bool gripper_closed =
+        use_gripper_status_condition && has_gripper_status && !adapter.gripper_open();
+    const auto mark_on_cable = [this, &adapter](int cable_id) {
+        adapter.drone_location() = DRONE_LOCATION_ON_CABLE;
+        adapter.on_cable_id() = cable_id;
+        has_found_initial_location_ = true;
+    };
+    const auto active_target_cable_id = [&adapter]() {
+        if (
+            adapter.has_target()
+            && adapter.target_adapter().target_type() == TARGET_TYPE_CABLE
+        ) {
+            return adapter.target_adapter().target_id();
+        }
+        return -1;
+    };
+
     iii_drone::adapters::px4::VehicleOdometryAdapter vehicle_odometry_adapter = (*vehicle_odometry_adapter_history_)[0];
 
     point_t drone_position = vehicle_odometry_adapter.position();
 
-    // Check if on ground:
-    if (drone_position[2] - ground_altitude_estimate_->Load() < configuration_->GetParameter("/control/maneuver_controller/landed_altitude_threshold").as_double()) {
+    // Check if on ground. Armed vehicles must remain flight-capable from the
+    // maneuver layer even when operating close to the ground.
+    if (
+        !adapter.armed()
+        && drone_position[2] - ground_altitude_estimate_->Load() < configuration_->GetParameter("/control/maneuver_controller/landed_altitude_threshold").as_double()
+    ) {
         adapter.drone_location() = DRONE_LOCATION_ON_GROUND;
         adapter.on_cable_id() = -1;
         has_found_initial_location_ = true;
+        return;
+    }
+
+    if (gripper_closed) {
+        mark_on_cable(active_target_cable_id());
         return;
     }
 
@@ -951,12 +1073,6 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(CombinedDroneAwarenessAd
                 found_closest_line = false;
             }
 
-            if (configuration_->GetParameter("/control/maneuver_controller/use_gripper_status_condition").as_bool() && !gripper_open()) {
-                adapter.drone_location() = DRONE_LOCATION_ON_CABLE;
-                adapter.on_cable_id() = -1;
-                has_found_initial_location_ = true;
-            }
-
             if (found_closest_line) {
 
                 point_t closest_line_position = closest_line.position();
@@ -984,12 +1100,9 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(CombinedDroneAwarenessAd
 
                     float closest_line_distance = (closest_line_position - v_drone_to_gripper).norm();
 
-                    if (closest_line_distance <= configuration_->GetParameter("/control/maneuver_controller/on_cable_max_euc_distance").as_double() || (configuration_->GetParameter("/control/maneuver_controller/use_gripper_status_condition").as_bool()  && !gripper_open())) {
+                    if (closest_line_distance <= configuration_->GetParameter("/control/maneuver_controller/on_cable_max_euc_distance").as_double()) {
                         
-                        adapter.drone_location() = DRONE_LOCATION_ON_CABLE;
-                        adapter.on_cable_id() = closest_line.id();
-
-                        has_found_initial_location_ = true;
+                        mark_on_cable(closest_line.id());
 
                         return;
 

@@ -138,6 +138,12 @@ namespace maneuver {
          */
         iii_drone::control::Reference computeReference(const iii_drone::control::State & state) override;
 
+        /** Abort the landing after a reference-loss stop so the BT can re-approach. */
+        ReferenceStreamRecoveryDisposition referenceLossRecoveryDisposition(
+            const State & stopped_state,
+            std::string & reason
+        ) override;
+
         /**
          * @brief Whether the maneuver has succeeded, returns true if the drone is within the position tolerance.
          * 
@@ -212,6 +218,26 @@ namespace maneuver {
          */
         iii_drone::utils::Atomic<bool> has_failed_ = false;
 
+        struct PidState {
+            double integral = 0.0;
+            double previous_error = 0.0;
+            bool has_previous_error = false;
+        };
+
+        bool line_pid_initialized_ = false;
+        rclcpp::Time line_pid_last_stamp_;
+        iii_drone::types::point_t line_pid_anchor_point_world_ = iii_drone::types::point_t::Zero();
+        iii_drone::types::point_t line_pid_position_reference_world_ = iii_drone::types::point_t::Zero();
+        iii_drone::types::vector_t line_pid_cable_direction_world_ = iii_drone::types::vector_t::UnitX();
+        bool line_pid_target_lock_initialized_ = false;
+        bool line_pid_has_last_cable_pose_ = false;
+        iii_drone::types::pose_t line_pid_last_cable_pose_world_;
+        PidState line_pid_along_pid_;
+        PidState line_pid_cross_pid_;
+        PidState line_pid_yaw_pid_;
+        mutable bool gripper_v_gate_violation_active_ = false;
+        mutable rclcpp::Time gripper_v_gate_violation_started_;
+
         /**
          * @brief Get updated target reference. 
          * Sets the has_failed flag if the target is not visible.
@@ -225,6 +251,34 @@ namespace maneuver {
             const iii_drone::control::State & state,
             bool compute = false
         );
+
+        iii_drone::control::Reference computeLinePidReference(
+            const iii_drone::control::State & state
+        );
+
+        bool getGripperPositionInWorld(
+            iii_drone::types::point_t & gripper_position_world
+        ) const;
+
+        bool getStableCablePose(
+            iii_drone::types::pose_t & cable_pose_world
+        );
+
+        bool isCablePoseConsistentWithLock(
+            const iii_drone::types::point_t & cable_position_world,
+            double & orthogonal_distance
+        ) const;
+
+        double computePidOutput(
+            PidState & pid_state,
+            double error,
+            double dt,
+            double kp,
+            double ki,
+            double kd,
+            double integral_limit,
+            double output_limit
+        ) const;
 
         /**
          * @brief Whether the drone is within the safety zone where the safety margins apply
@@ -251,6 +305,31 @@ namespace maneuver {
         bool isWithinSafetyMargins(
             const iii_drone::control::State & state,
             const iii_drone::control::Reference & target_reference
+        ) const;
+
+        /**
+         * @brief Gets the active target conductor point in the cable gripper frame.
+         *
+         * @param target_point_gripper Target point in the cable gripper frame.
+         *
+         * @return bool Whether the target point could be computed.
+         */
+        bool getTargetPointInCableGripperFrame(
+            iii_drone::types::vector_t & target_point_gripper
+        ) const;
+
+        /**
+         * @brief Checks whether the active target conductor is inside the tuned gripper V gate.
+         *
+         * The gate is evaluated in the cable gripper YZ plane. X is ignored because it is
+         * aligned with the conductor.
+         *
+         * @param target_point_gripper Target point in the cable gripper frame.
+         *
+         * @return bool Whether the target point is inside the gate.
+         */
+        bool isTargetWithinGripperVGate(
+            const iii_drone::types::vector_t & target_point_gripper
         ) const;
 
         /**

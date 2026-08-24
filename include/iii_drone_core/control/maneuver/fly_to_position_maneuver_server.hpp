@@ -10,6 +10,9 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
 
+#include <mutex>
+#include <optional>
+
 #include <tf2/convert.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
@@ -126,6 +129,9 @@ namespace maneuver {
          */
         bool canCancel() override;
 
+        std::optional<ControlledCancellationConfig> controlledCancellationConfig() const override;
+        bool rebaseExecution(const State & stopped_state, std::string & reason) override;
+
         /**
          * @brief Compute the reference.
          * 
@@ -136,7 +142,7 @@ namespace maneuver {
         iii_drone::control::Reference computeReference(const iii_drone::control::State & state) override;
 
         /**
-         * @brief Whether the maneuver has succeeded, returns true if the drone is within the position tolerance.
+         * @brief Whether the maneuver has succeeded, returns true if the drone is within the position and yaw tolerances.
          * 
          * @param maneuver The maneuver.
          * 
@@ -195,6 +201,15 @@ namespace maneuver {
         iii_drone::control::TrajectoryGeneratorClient::SharedPtr trajectory_generator_client_;
 
         /**
+         * @brief Serializes maneuver initialization with reference generation.
+         *
+         * A retained blended callback may still be executing when the next
+         * goal starts. Without this guard, that stale call can consume the new
+         * goal's first-iteration reset and leave the old trajectory active.
+         */
+        std::mutex reference_generation_mutex_;
+
+        /**
          * @brief The target reference.
          */
         iii_drone::utils::Atomic<iii_drone::control::Reference> target_reference_;
@@ -208,6 +223,73 @@ namespace maneuver {
          * @brief has failed flag
          */
         iii_drone::utils::Atomic<bool> has_failed_ = false;
+
+        /**
+         * @brief Whether an MPC maneuver has entered its final interpolation
+         * settle phase.
+         */
+        iii_drone::utils::Atomic<bool> mpc_settle_active_ = false;
+
+        /**
+         * @brief Whether the final interpolation settle trajectory needs a
+         * reset on the next reference computation.
+         */
+        iii_drone::utils::Atomic<bool> mpc_settle_first_iteration_ = false;
+
+        /**
+         * @brief Frozen target streamed during the final post-MPC interpolation
+         * settle phase.
+         */
+        iii_drone::utils::Atomic<iii_drone::control::Reference> mpc_settle_target_reference_;
+
+        rclcpp::Time maneuver_start_time_;
+
+        bool threshold_reached_logged_ = false;
+
+        bool settle_threshold_reached_logged_ = false;
+
+        bool final_reference_streamed_logged_ = false;
+
+        bool success_timing_logged_ = false;
+
+        /**
+         * @brief Latest reference streamed by this FTP server.
+         */
+        mutable std::mutex blend_mutex_;
+
+        std::optional<iii_drone::control::Reference> latest_streamed_reference_;
+
+        std::optional<iii_drone::control::Reference> pending_blend_start_reference_;
+
+        rclcpp::Time pending_blend_start_time_;
+
+        std::optional<iii_drone::control::Reference> initial_blend_start_reference_;
+
+        std::optional<iii_drone::control::Reference> blend_completion_reference_;
+
+        bool active_blend_to_next_ = false;
+
+        double active_completion_position_tolerance_m_ = 0.0;
+
+        /**
+         * @brief True when the latest streamed interpolation reference is the
+         * final target reference.
+         */
+        bool interpolationFinalReferenceStreamed(
+            const iii_drone::control::Reference & target_reference
+        ) const;
+
+        bool consumePendingBlendStartReference(iii_drone::control::Reference & start_reference);
+
+        iii_drone::control::Reference latestStreamedReferenceOrState(const iii_drone::control::State & state) const;
+
+        void storeLatestStreamedReference(const iii_drone::control::Reference & reference);
+
+        void prepareBlendCompletionReference(const iii_drone::control::State & state);
+
+        iii_drone::control::Reference successReferenceForResult() const;
+
+        iii_drone::control::State stateFromReference(const iii_drone::control::Reference & reference) const;
 
         /**
          * @brief Validates the maneuver parameters.

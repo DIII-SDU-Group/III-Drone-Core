@@ -29,7 +29,10 @@ HoverOnCableManeuverServer::HoverOnCableManeuverServer(
         evaluate_done_poll_ms
     ),
     configuration_(parameters),
-    has_on_fail_callback_(false) {
+    has_on_fail_callback_(false),
+    target_cable_id_(-1),
+    target_z_velocity_(0.0),
+    target_yaw_rate_(0.0) {
 
     createServer<HoverOnCable>();
 
@@ -71,27 +74,42 @@ bool HoverOnCableManeuverServer::CanExecuteManeuver(
     }
 
     if (!drone_awareness.target_adapter().target_transform().isApprox(transform_matrix_t::Identity())) {
-        RCLCPP_WARN(
+        RCLCPP_DEBUG(
             node()->get_logger(),
-            "HoverOnCableManeuverServer::CanExecuteManeuver(): target_transform gripper to cable must be identity."
+            "HoverOnCableManeuverServer::CanExecuteManeuver(): target_transform gripper to cable is not identity; accepting because on-cable/gripper state is authoritative."
         );
-        return false;
     }
 
-    if (drone_awareness.target_adapter().target_id() != params.target_cable_id) {
-        RCLCPP_WARN(
-            node()->get_logger(),
-            "HoverOnCableManeuverServer::CanExecuteManeuver(): target_cable_id must be target id of target adapter."
-        );
-        return false;
+    int effective_target_cable_id = params.target_cable_id;
+    if (!validateAwareness(drone_awareness, effective_target_cable_id)) {
+        const int awareness_target_id = drone_awareness.target_adapter().target_id();
+        if (
+            awareness_target_id != params.target_cable_id &&
+            validateAwareness(drone_awareness, awareness_target_id)
+        ) {
+            effective_target_cable_id = awareness_target_id;
+            RCLCPP_WARN(
+                node()->get_logger(),
+                "HoverOnCableManeuverServer::CanExecuteManeuver(): accepting active on-cable target id %d instead of requested id %d after cable reacquisition.",
+                effective_target_cable_id,
+                params.target_cable_id
+            );
+        } else {
+            RCLCPP_WARN(
+                node()->get_logger(),
+                "HoverOnCableManeuverServer::CanExecuteManeuver(): validateAwareness failed."
+            );
+            return false;
+        }
     }
 
-    if (!validateAwareness(drone_awareness)) {
+    if (effective_target_cable_id != params.target_cable_id) {
         RCLCPP_WARN(
             node()->get_logger(),
-            "HoverOnCableManeuverServer::CanExecuteManeuver(): validateAwareness failed."
+            "HoverOnCableManeuverServer::CanExecuteManeuver(): maneuver requested stale target id %d; active target id %d will be used by execution.",
+            params.target_cable_id,
+            effective_target_cable_id
         );
-        return false;
     }
 
     return true;
@@ -102,23 +120,48 @@ iii_drone::adapters::CombinedDroneAwarenessAdapter HoverOnCableManeuverServer::E
 
     hover_on_cable_maneuver_params_t params(maneuver.maneuver_params());
 
+    int effective_target_cable_id = params.target_cable_id;
+    auto current_awareness = awareness_handler()->adapter();
+    if (
+        current_awareness.on_cable() &&
+        current_awareness.has_target() &&
+        current_awareness.target_adapter().target_type() == TARGET_TYPE_CABLE &&
+        current_awareness.target_adapter().reference_frame_id() == configuration_->GetParameter("/tf/cable_gripper_frame_id").as_string() &&
+        current_awareness.target_adapter().target_id() != params.target_cable_id
+    ) {
+        effective_target_cable_id = current_awareness.target_adapter().target_id();
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "HoverOnCableManeuverServer::ExpectedAwarenessAfterExecution(): using active on-cable target id %d instead of requested id %d.",
+            effective_target_cable_id,
+            params.target_cable_id
+        );
+    }
+
     TargetAdapter target_adapter = iii_drone::adapters::TargetAdapter(
         iii_drone::adapters::TARGET_TYPE_CABLE,
-        params.target_cable_id,
+        effective_target_cable_id,
         configuration_->GetParameter("/tf/cable_gripper_frame_id").as_string(),
         iii_drone::types::transform_matrix_t::Identity()
     );
-
-    State target_state = awareness_handler()->ComputeTargetState(target_adapter);
 
     iii_drone::adapters::CombinedDroneAwarenessAdapter awareness_after = awareness_handler()->adapter();
 
     awareness_after.armed() = true;
     awareness_after.offboard() = true;
     awareness_after.target_adapter() = target_adapter;
-    awareness_after.target_position_known() = true;
     awareness_after.drone_location() = DRONE_LOCATION_ON_CABLE;
-    awareness_after.state() = target_state;
+
+    try {
+        awareness_after.state() = awareness_handler()->ComputeTargetState(target_adapter);
+        awareness_after.target_position_known() = true;
+    } catch (const std::runtime_error & e) {
+        RCLCPP_DEBUG(
+            node()->get_logger(),
+            "HoverOnCableManeuverServer::ExpectedAwarenessAfterExecution(): Target state unavailable, preserving current state for on-cable projection: %s",
+            e.what()
+        );
+    }
 
     return awareness_after;
 
@@ -141,23 +184,37 @@ bool HoverOnCableManeuverServer::Update(
         return false;
     }
 
-    int prev_target_cable_id = target_cable_id_;
-    target_cable_id_ = target_cable_id;
+    auto current_awareness = awareness_handler()->adapter();
+    int effective_target_cable_id = target_cable_id;
 
-    if(!validateAwareness(awareness_handler()->adapter())) {
-        target_cable_id_ = prev_target_cable_id;
-        return false;
+    if(!validateAwareness(current_awareness, effective_target_cable_id)) {
+        const int awareness_target_id = current_awareness.target_adapter().target_id();
+        if (
+            awareness_target_id != target_cable_id &&
+            validateAwareness(current_awareness, awareness_target_id)
+        ) {
+            effective_target_cable_id = awareness_target_id;
+            RCLCPP_WARN(
+                node()->get_logger(),
+                "HoverOnCableManeuverServer::Update(): using active on-cable target id %d instead of requested id %d after cable reacquisition.",
+                effective_target_cable_id,
+                target_cable_id
+            );
+        } else {
+            return false;
+        }
     }
 
     TargetAdapter target_adapter = iii_drone::adapters::TargetAdapter(
         iii_drone::adapters::TARGET_TYPE_CABLE,
-        target_cable_id,
+        effective_target_cable_id,
         configuration_->GetParameter("/tf/cable_gripper_frame_id").as_string(),
         iii_drone::types::transform_matrix_t::Identity()
     );
 
     awareness_handler()->SetTarget(target_adapter);
     
+    target_cable_id_ = effective_target_cable_id;
     target_z_velocity_ = target_z_velocity;
     target_yaw_rate_ = target_yaw_rate;
 
@@ -167,7 +224,7 @@ bool HoverOnCableManeuverServer::Update(
 
 Reference HoverOnCableManeuverServer::GetReference(const State &) {
     
-    if (!validateAwareness(awareness_handler()->adapter())) {
+    if (!validateAwareness(awareness_handler()->adapter(), target_cable_id_)) {
 
         on_fail_callback_();
 
@@ -176,7 +233,7 @@ Reference HoverOnCableManeuverServer::GetReference(const State &) {
     return Reference(
         {NAN,NAN,NAN},
         NAN,
-        vector_t(NAN,NAN,target_z_velocity_),
+        vector_t(0.0, 0.0, target_z_velocity_),
         target_yaw_rate_,
         {NAN,NAN,NAN},
         NAN
@@ -291,44 +348,57 @@ void HoverOnCableManeuverServer::registerReferenceCallbackOnSuccess(const Maneuv
 
 }
 
-bool HoverOnCableManeuverServer::validateAwareness(iii_drone::adapters::CombinedDroneAwarenessAdapter drone_awareness) const {
+bool HoverOnCableManeuverServer::validateAwareness(
+    iii_drone::adapters::CombinedDroneAwarenessAdapter drone_awareness,
+    int expected_target_cable_id
+) const {
 
     if (!drone_awareness.offboard()) {
+        RCLCPP_WARN(node()->get_logger(), "HoverOnCableManeuverServer::validateAwareness(): Drone is not offboard.");
         return false;
     }
 
     if (!drone_awareness.armed()) {
+        RCLCPP_WARN(node()->get_logger(), "HoverOnCableManeuverServer::validateAwareness(): Drone is not armed.");
         return false;
     }
 
     if (!drone_awareness.on_cable()) {
-        RCLCPP_WARN(node()->get_logger(), "HoverByObjectManeuverServer::validateAwareness(): Drone is not on cable.");
+        RCLCPP_DEBUG(node()->get_logger(), "HoverOnCableManeuverServer::validateAwareness(): Drone is not on cable.");
         return false;
     }
 
     if (!drone_awareness.has_target()) {
-        RCLCPP_WARN(node()->get_logger(), "HoverByObjectManeuverServer::validateAwareness(): Drone does not have target.");
+        RCLCPP_WARN(node()->get_logger(), "HoverOnCableManeuverServer::validateAwareness(): Drone does not have target.");
         return false;
     }
 
     if (drone_awareness.target_adapter().target_type() != TARGET_TYPE_CABLE) {
-        RCLCPP_WARN(node()->get_logger(), "HoverByObjectManeuverServer::validateAwareness(): Target type is not cable.");
+        RCLCPP_WARN(node()->get_logger(), "HoverOnCableManeuverServer::validateAwareness(): Target type is not cable.");
         return false;
     }
 
-    if (drone_awareness.target_adapter().target_id() != target_cable_id_) {
-        RCLCPP_WARN(node()->get_logger(), "HoverByObjectManeuverServer::validateAwareness(): Target id is not stored target id.");
+    if (drone_awareness.target_adapter().target_id() != expected_target_cable_id) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "HoverOnCableManeuverServer::validateAwareness(): Target id does not match expected target id. awareness_target_id=%d expected_target_id=%d stored_target_id=%d",
+            drone_awareness.target_adapter().target_id(),
+            expected_target_cable_id,
+            target_cable_id_
+        );
         return false;
     }
 
     if (drone_awareness.target_adapter().reference_frame_id() != configuration_->GetParameter("/tf/cable_gripper_frame_id").as_string()) {
-        RCLCPP_WARN(node()->get_logger(), "HoverByObjectManeuverServer::validateAwareness(): Reference frame id is not gripper.");
+        RCLCPP_WARN(node()->get_logger(), "HoverOnCableManeuverServer::validateAwareness(): Reference frame id is not gripper.");
         return false;
     }
 
     if (!drone_awareness.target_position_known()) {
-        RCLCPP_WARN(node()->get_logger(), "HoverByObjectManeuverServer::validateAwareness(): Target position is not known.");
-        return false;
+        RCLCPP_DEBUG(
+            node()->get_logger(),
+            "HoverOnCableManeuverServer::validateAwareness(): Target position is not known, but on-cable gripper state is sufficient for hover-on-cable."
+        );
     }
 
     return true;

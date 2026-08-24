@@ -13,7 +13,8 @@ namespace control {
 	enum trajectory_mode_t {
 		positional = 0,
 		cable_landing = 1,
-		cable_takeoff = 2
+		cable_takeoff = 2,
+		cable_aware = 3
 	};
 
 }

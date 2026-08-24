@@ -20,7 +20,7 @@ CombinedDroneAwarenessAdapter::CombinedDroneAwarenessAdapter() :
     on_cable_id_(0),
     ground_altitude_estimate_(0.0),
     ground_altitude_estimate_amsl_(0.0),
-    gripper_open_(false) {}
+    gripper_open_(true) {}
 
 CombinedDroneAwarenessAdapter::CombinedDroneAwarenessAdapter(const iii_drone_interfaces::msg::CombinedDroneAwareness & msg) {
 

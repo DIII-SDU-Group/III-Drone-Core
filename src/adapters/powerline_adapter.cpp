@@ -48,6 +48,8 @@ PowerlineAdapter::PowerlineAdapter(
 
 void PowerlineAdapter::UpdateFromMsg(const iii_drone_interfaces::msg::Powerline & msg) {
 
+    single_line_adapters_.clear();
+
     rclcpp::Time stamp;
     bool first_stamp = true;
 
@@ -72,7 +74,7 @@ void PowerlineAdapter::UpdateFromMsg(const iii_drone_interfaces::msg::Powerline 
         }
     }
 
-    stamp_ = stamp;
+    stamp_ = first_stamp ? rclcpp::Time(msg.stamp) : stamp;
 
     projection_plane_ = ProjectionPlaneAdapter(msg.projection_plane).projection_plane();
 
@@ -190,7 +192,12 @@ bool PowerlineAdapter::Transform(
     try {
         plane_normal_msg = tf_buffer->transform(plane_normal_msg, target_frame_id);
     } catch (tf2::TransformException & ex) {
-        return false;
+        try {
+            plane_normal_msg.header.stamp = builtin_interfaces::msg::Time();
+            plane_normal_msg = tf_buffer->transform(plane_normal_msg, target_frame_id);
+        } catch (tf2::TransformException & ex) {
+            return false;
+        }
     }
 
     new_projection_plane.normal = vectorFromVectorMsg(plane_normal_msg.vector);
@@ -202,7 +209,12 @@ bool PowerlineAdapter::Transform(
     try {
         plane_origin_msg = tf_buffer->transform(plane_origin_msg, target_frame_id);
     } catch (tf2::TransformException & ex) {
-        return false;
+        try {
+            plane_origin_msg.header.stamp = builtin_interfaces::msg::Time();
+            plane_origin_msg = tf_buffer->transform(plane_origin_msg, target_frame_id);
+        } catch (tf2::TransformException & ex) {
+            return false;
+        }
     }
 
     new_projection_plane.p = pointFromPointMsg(plane_origin_msg.point);

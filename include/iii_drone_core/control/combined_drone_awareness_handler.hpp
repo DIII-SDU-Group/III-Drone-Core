@@ -166,6 +166,13 @@ namespace control {
         iii_drone::types::pose_t GetPoseOfTarget(const iii_drone::adapters::TargetAdapter & target_adapter) const;
 
         /**
+         * @brief Gets the latest powerline adapter.
+         *
+         * @return The latest powerline adapter.
+         */
+        iii_drone::adapters::PowerlineAdapter GetPowerlineAdapter() const;
+
+        /**
          * @brief Sets the current target.
          * 
          * @param target_adapter The target adapter.
@@ -428,6 +435,13 @@ namespace control {
          * @brief Vehicle odometry adapter history.
         */
         VehicleOdometryAdapterHistory::SharedPtr vehicle_odometry_adapter_history_;
+
+        iii_drone::types::point_t odometry_position_reset_offset_;
+        iii_drone::types::point_t last_raw_odometry_position_;
+        uint8_t last_odometry_reset_counter_ = 0;
+        bool has_last_odometry_for_reset_compensation_ = false;
+
+        void compensateOdometryReset(iii_drone::adapters::px4::VehicleOdometryAdapter & adapter);
 
         /**
          * @brief Updates the combined drone awareness from the vehicle odometry.

@@ -69,10 +69,10 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        hough_transformer_log_level_arg,
+        pl_dir_computer_log_level_arg,
+        pl_mapper_log_level_arg,
         hough,
         pl_dir_computer,
         pl_mapper,
-        hough_transformer_log_level_arg,
-        pl_dir_computer_log_level_arg,
-        pl_mapper_log_level_arg
     ])

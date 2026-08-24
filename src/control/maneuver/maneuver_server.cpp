@@ -12,7 +12,87 @@ using namespace iii_drone::utils;
 // Implementation
 /*****************************************************************************/
 
+#include <algorithm>
+#include <cmath>
 #include <iostream>
+
+namespace {
+
+enum class GoalTerminalState {
+    Abort,
+    Cancel
+};
+
+template <typename ActionT>
+bool finalizeGoalSafely(
+    rclcpp_lifecycle::LifecycleNode * node,
+    const std::string & action_name,
+    const std::shared_ptr<rclcpp_action::ServerGoalHandle<ActionT>> & goal_handle,
+    GoalTerminalState terminal_state,
+    const char * context
+) {
+    auto result = std::make_shared<typename ActionT::Result>();
+
+    try {
+        const bool was_executing = goal_handle->is_executing();
+        const bool was_canceling = goal_handle->is_canceling();
+
+        if (!was_executing && !was_canceling) {
+            // Deferred action goals must be executing before ROS accepts a terminal transition.
+            RCLCPP_WARN(
+                node->get_logger(),
+                "ManeuverServer::finalizeGoalSafely(): %s: Goal was accepted but not executing during %s; executing before terminal transition",
+                action_name.c_str(),
+                context
+            );
+            goal_handle->execute();
+        }
+
+        if (terminal_state == GoalTerminalState::Cancel || goal_handle->is_canceling()) {
+            RCLCPP_WARN(
+                node->get_logger(),
+                "ManeuverServer::finalizeGoalSafely(): %s: Finalizing goal as canceled during %s (was_executing=%s, was_canceling=%s)",
+                action_name.c_str(),
+                context,
+                was_executing ? "true" : "false",
+                was_canceling ? "true" : "false"
+            );
+            goal_handle->canceled(result);
+        } else {
+            RCLCPP_WARN(
+                node->get_logger(),
+                "ManeuverServer::finalizeGoalSafely(): %s: Finalizing goal as aborted during %s (was_executing=%s, was_canceling=%s)",
+                action_name.c_str(),
+                context,
+                was_executing ? "true" : "false",
+                was_canceling ? "true" : "false"
+            );
+            goal_handle->abort(result);
+        }
+
+        return true;
+    } catch (const rclcpp::exceptions::RCLError & e) {
+        RCLCPP_ERROR(
+            node->get_logger(),
+            "ManeuverServer::finalizeGoalSafely(): %s: ROS action transition failed during %s: %s",
+            action_name.c_str(),
+            context,
+            e.what()
+        );
+    } catch (const std::exception & e) {
+        RCLCPP_ERROR(
+            node->get_logger(),
+            "ManeuverServer::finalizeGoalSafely(): %s: Goal finalization failed during %s: %s",
+            action_name.c_str(),
+            context,
+            e.what()
+        );
+    }
+
+    return false;
+}
+
+} // namespace
 
 ManeuverServer::ManeuverServer(
     rclcpp_lifecycle::LifecycleNode * node,
@@ -85,6 +165,56 @@ bool ManeuverServer::running() const {
     return running_;
 }
 
+void ManeuverServer::PauseReferenceStream() {
+    reference_stream_paused_.Store(true);
+}
+
+ReferenceStreamRecoveryDisposition ManeuverServer::PrepareReferenceStreamRecovery(
+    const State & stopped_state,
+    std::string & reason
+) {
+    if (!reference_stream_paused_.Load()) {
+        reason = "reference stream must be paused before rebase";
+        return ReferenceStreamRecoveryDisposition::REJECT;
+    }
+    const Maneuver maneuver = current_maneuver_;
+    if (!running_ || !verify_maneuver_active_ || !verify_maneuver_active_(maneuver)) {
+        // Scheduler state is authoritative. This private copy is reconstructed
+        // after action execution begins, so its local started flag is stale.
+        reason = "maneuver is no longer active in the scheduler";
+        return ReferenceStreamRecoveryDisposition::REJECT;
+    }
+    resetControlledCancellation();
+    return referenceLossRecoveryDisposition(stopped_state, reason);
+}
+
+void ManeuverServer::CommitReferenceStreamRebase() {
+    reference_stream_paused_.Store(false);
+}
+
+void ManeuverServer::AbortAfterReferenceLoss() {
+    abort_after_reference_loss_.Store(true);
+    reference_stream_paused_.Store(false);
+}
+
+bool ManeuverServer::referenceStreamPaused() const {
+    return reference_stream_paused_.Load();
+}
+
+bool ManeuverServer::rebaseExecution(const State &, std::string & reason) {
+    reason = action_name_ + " does not support safe transparent rebase";
+    return false;
+}
+
+ReferenceStreamRecoveryDisposition ManeuverServer::referenceLossRecoveryDisposition(
+    const State & stopped_state,
+    std::string & reason
+) {
+    return rebaseExecution(stopped_state, reason)
+        ? ReferenceStreamRecoveryDisposition::REBASE
+        : ReferenceStreamRecoveryDisposition::REJECT;
+}
+
 std::string ManeuverServer::action_name() const {
     return action_name_;
 }
@@ -108,6 +238,181 @@ rclcpp_lifecycle::LifecycleNode * ManeuverServer::node() const {
 std::shared_ptr<void> ManeuverServer::getFeedback(Maneuver &) {
     
     return nullptr;
+}
+
+std::optional<ControlledCancellationConfig> ManeuverServer::controlledCancellationConfig() const {
+    return std::nullopt;
+}
+
+ControlledCancellationConfig ManeuverServer::controlledCancellationConfigFrom(
+    const iii_drone::configuration::Configuration::SharedPtr & configuration
+) {
+    ControlledCancellationConfig config;
+    config.limits.max_acceleration_m_s2 = configuration->GetParameter(
+        "/control/maneuver_controller/controlled_cancel_max_deceleration_m_s2"
+    ).as_double();
+    config.limits.max_jerk_m_s3 = configuration->GetParameter(
+        "/control/maneuver_controller/controlled_cancel_max_jerk_m_s3"
+    ).as_double();
+    config.limits.max_yaw_acceleration_rad_s2 = configuration->GetParameter(
+        "/control/maneuver_controller/controlled_cancel_max_yaw_deceleration_rad_s2"
+    ).as_double();
+    config.limits.max_yaw_jerk_rad_s3 = configuration->GetParameter(
+        "/control/maneuver_controller/controlled_cancel_max_yaw_jerk_rad_s3"
+    ).as_double();
+    config.velocity_threshold_m_s = configuration->GetParameter(
+        "/control/maneuver_controller/controlled_cancel_velocity_threshold_m_s"
+    ).as_double();
+    config.yaw_rate_threshold_rad_s = configuration->GetParameter(
+        "/control/maneuver_controller/controlled_cancel_yaw_rate_threshold_rad_s"
+    ).as_double();
+    config.settle_time_s = configuration->GetParameter(
+        "/control/maneuver_controller/controlled_cancel_settle_time_s"
+    ).as_double();
+    return config;
+}
+
+Reference ManeuverServer::computeManagedReference(const State & state) {
+    {
+        std::lock_guard<std::mutex> lock(controlled_cancellation_mutex_);
+        if (controlled_stop_trajectory_.has_value()) {
+            const double elapsed_s = std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - controlled_stop_start_time_
+            ).count();
+            return controlled_stop_trajectory_->sample(
+                elapsed_s,
+                node_->now()
+            );
+        }
+    }
+
+    Reference reference = computeReference(state);
+    {
+        std::lock_guard<std::mutex> lock(controlled_cancellation_mutex_);
+        // Cancellation may have started while the derived callback was running.
+        if (controlled_stop_trajectory_.has_value()) {
+            const double elapsed_s = std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - controlled_stop_start_time_
+            ).count();
+            return controlled_stop_trajectory_->sample(
+                elapsed_s,
+                node_->now()
+            );
+        }
+        latest_managed_reference_ = reference;
+    }
+    return reference;
+}
+
+void ManeuverServer::resetControlledCancellation() {
+    std::lock_guard<std::mutex> lock(controlled_cancellation_mutex_);
+    latest_managed_reference_.reset();
+    controlled_stop_trajectory_.reset();
+    controlled_stop_below_threshold_since_.reset();
+}
+
+bool ManeuverServer::startControlledCancellation(const ControlledCancellationConfig & config) {
+    std::lock_guard<std::mutex> lock(controlled_cancellation_mutex_);
+    if (controlled_stop_trajectory_.has_value()) {
+        return true;
+    }
+
+    const State state = awareness_handler_->GetState();
+    Reference initial = latest_managed_reference_.value_or(Reference(state));
+    const auto finite_or = [](double value, double fallback) {
+        return std::isfinite(value) ? value : fallback;
+    };
+    const auto finite_vector_or = [](const iii_drone::types::vector_t & value,
+                                     const iii_drone::types::vector_t & fallback) {
+        return value.allFinite() ? value : fallback;
+    };
+    iii_drone::types::vector_t initial_acceleration = finite_vector_or(
+        initial.acceleration(), iii_drone::types::vector_t::Zero()
+    );
+    double initial_yaw_acceleration = finite_or(initial.yaw_acceleration(), 0.0);
+    initial = Reference(
+        finite_vector_or(initial.position(), state.position()),
+        finite_or(initial.yaw(), state.yaw()),
+        finite_vector_or(initial.velocity(), state.velocity()),
+        finite_or(initial.yaw_rate(), state.angular_velocity()(2)),
+        initial_acceleration,
+        initial_yaw_acceleration,
+        node_->now()
+    );
+
+    try {
+        controlled_stop_trajectory_.emplace(initial, config.limits);
+    } catch (const std::exception & error) {
+        RCLCPP_ERROR(
+            node_->get_logger(),
+            "ManeuverServer::startControlledCancellation(): %s: Cannot construct bounded stop: %s",
+            action_name_.c_str(),
+            error.what()
+        );
+        return false;
+    }
+    controlled_stop_start_time_ = std::chrono::steady_clock::now();
+    controlled_stop_below_threshold_since_.reset();
+    RCLCPP_INFO(
+        node_->get_logger(),
+        "ManeuverServer::startControlledCancellation(): %s: Retaining control for %.3f s bounded stop from speed %.3f m/s",
+        action_name_.c_str(),
+        controlled_stop_trajectory_->durationS(),
+        initial.velocity().norm()
+    );
+    return true;
+}
+
+bool ManeuverServer::controlledCancellationComplete(const ControlledCancellationConfig & config) {
+    std::lock_guard<std::mutex> lock(controlled_cancellation_mutex_);
+    if (!controlled_stop_trajectory_.has_value()) {
+        return false;
+    }
+    const auto now = std::chrono::steady_clock::now();
+    if (
+        std::chrono::duration<double>(now - controlled_stop_start_time_).count() <
+        controlled_stop_trajectory_->durationS()
+    ) {
+        controlled_stop_below_threshold_since_.reset();
+        return false;
+    }
+
+    const State state = awareness_handler_->GetState();
+    const bool below_threshold =
+        state.velocity().allFinite() &&
+        state.angular_velocity().allFinite() &&
+        state.velocity().norm() <= config.velocity_threshold_m_s &&
+        std::abs(state.angular_velocity()(2)) <= config.yaw_rate_threshold_rad_s;
+    if (!below_threshold) {
+        RCLCPP_WARN_THROTTLE(
+            node_->get_logger(),
+            *node_->get_clock(),
+            5000,
+            "ManeuverServer::controlledCancellationComplete(): %s: Holding terminal stop; measured speed %.3f m/s (limit %.3f), yaw rate %.3f rad/s (limit %.3f)",
+            action_name_.c_str(),
+            state.velocity().norm(),
+            config.velocity_threshold_m_s,
+            std::abs(state.angular_velocity()(2)),
+            config.yaw_rate_threshold_rad_s
+        );
+        controlled_stop_below_threshold_since_.reset();
+        return false;
+    }
+    if (!controlled_stop_below_threshold_since_.has_value()) {
+        controlled_stop_below_threshold_since_ = now;
+        return config.settle_time_s <= 0.0;
+    }
+    return std::chrono::duration<double>(
+        now - controlled_stop_below_threshold_since_.value()
+    ).count() >= config.settle_time_s;
+}
+
+std::optional<Reference> ManeuverServer::controlledCancellationFinalReference() const {
+    std::lock_guard<std::mutex> lock(controlled_cancellation_mutex_);
+    if (!controlled_stop_trajectory_.has_value()) {
+        return std::nullopt;
+    }
+    return controlled_stop_trajectory_->terminalReference(node_->now());
 }
 
 template <typename ActionT>
@@ -189,7 +494,13 @@ void ManeuverServer::handleAccepted(
 
     if (!update_maneuver_(maneuver)) {
         RCLCPP_WARN(node_->get_logger(), "ManeuverServer::handleAccepted(): %s: Could not update maneuver, aborting accepted", action_name_.c_str());
-        goal_handle->abort(std::make_shared<typename ActionT::Result>());
+        finalizeGoalSafely<ActionT>(
+            node_,
+            action_name_,
+            goal_handle,
+            GoalTerminalState::Abort,
+            "accepted-goal scheduler update failure"
+        );
         return;
     }
 
@@ -220,16 +531,26 @@ void ManeuverServer::asyncExecute(
     rclcpp::Rate rate = rclcpp::Rate(std::chrono::milliseconds(wait_for_execute_poll_ms_));
 
     auto abort_maneuver = [this, &maneuver, &goal_handle]() {
-        if (!goal_handle->is_canceling())
-            goal_handle->abort(std::make_shared<typename ActionT::Result>());
+        finalizeGoalSafely<ActionT>(
+            node_,
+            action_name(),
+            goal_handle,
+            GoalTerminalState::Abort,
+            "pre-execution abort"
+        );
         maneuver.Terminate(false);
         cancel_maneuver_(maneuver);
         current_maneuver_ = Maneuver();
     };
 
     auto cancel_maneuver = [this, &maneuver, &goal_handle]() {
-        if (!goal_handle->is_canceling())
-            goal_handle->canceled(std::make_shared<typename ActionT::Result>());
+        finalizeGoalSafely<ActionT>(
+            node_,
+            action_name(),
+            goal_handle,
+            GoalTerminalState::Cancel,
+            "pre-execution cancel"
+        );
         maneuver.Terminate(false);
         cancel_maneuver_(maneuver);
         current_maneuver_ = Maneuver();
@@ -280,6 +601,10 @@ void ManeuverServer::asyncExecute(
 
     current_maneuver_ = maneuver;
 
+    resetControlledCancellation();
+    reference_stream_paused_.Store(false);
+    abort_after_reference_loss_.Store(false);
+
     if (!reference_callback_token_->Acquire()) {
         RCLCPP_ERROR(
             node_->get_logger(), 
@@ -291,6 +616,20 @@ void ManeuverServer::asyncExecute(
         return;
     }
 
+    // Maneuver initialization may perform synchronous planning. Publish a
+    // current-pose hold under this maneuver's provider identity immediately
+    // after acquiring the token, then replace it with computeReference below.
+    // This prevents clients from seeing either the previous maneuver's
+    // callback or an invalid reference while initialization is in progress.
+    const Reference initialization_hold =
+        Reference(awareness_handler_->GetState()).CopyWithNans();
+    reference_callback_token_->resource().set(
+        [initialization_hold](const State &) {
+            return initialization_hold.CopyWithNewStamp();
+        },
+        action_name()
+    );
+
     startExecution(maneuver);
 
     RCLCPP_DEBUG(
@@ -301,7 +640,7 @@ void ManeuverServer::asyncExecute(
 
     reference_callback_token_->resource().set(
         std::bind(
-            &ManeuverServer::computeReference, 
+            &ManeuverServer::computeManagedReference,
             this, 
             std::placeholders::_1
         ),
@@ -310,6 +649,7 @@ void ManeuverServer::asyncExecute(
 
     bool success = false;
     bool canceling = false;
+    bool controlled_cancel_started = false;
 
     while(true) {
 
@@ -324,15 +664,69 @@ void ManeuverServer::asyncExecute(
                 maneuver,
                 MANEUVER_RESULT_TYPE_CANCEL
             );
+            maneuver.Terminate(false);
             cancel_maneuver_(maneuver);
             current_maneuver_ = Maneuver();
+            reference_callback_token_->Release();
 
             return;
         }
 
         if (goal_handle->is_canceling()) {
             success = false;
-            canceling = true;
+            const auto cancel_config = controlledCancellationConfig();
+            if (!cancel_config.has_value()) {
+                canceling = true;
+                break;
+            }
+            if (!controlled_cancel_started) {
+                controlled_cancel_started = startControlledCancellation(cancel_config.value());
+                if (!controlled_cancel_started) {
+                    RCLCPP_ERROR(
+                        node_->get_logger(),
+                        "ManeuverServer::asyncExecute(): %s: Rejecting unsafe immediate control release after stop generation failure",
+                        action_name_.c_str()
+                    );
+                }
+            }
+            if (
+                controlled_cancel_started &&
+                controlledCancellationComplete(cancel_config.value())
+            ) {
+                canceling = true;
+                break;
+            }
+
+            auto feedback = getFeedback(maneuver);
+            if (feedback == nullptr) {
+                feedback = std::static_pointer_cast<void>(
+                    std::make_shared<typename ActionT::Feedback>()
+                );
+            }
+            maneuver.PublishFeedback<ActionT>(feedback);
+            rate.sleep();
+            continue;
+        }
+
+        if (reference_stream_paused_.Load()) {
+            auto feedback = getFeedback(maneuver);
+            if (feedback == nullptr) {
+                feedback = std::static_pointer_cast<void>(
+                    std::make_shared<typename ActionT::Feedback>()
+                );
+            }
+            maneuver.PublishFeedback<ActionT>(feedback);
+            rate.sleep();
+            continue;
+        }
+
+        if (abort_after_reference_loss_.Load()) {
+            RCLCPP_WARN(
+                node_->get_logger(),
+                "ManeuverServer::asyncExecute(): %s: Aborting after bounded reference-loss stop",
+                action_name_.c_str()
+            );
+            success = false;
             break;
         }
 
@@ -364,6 +758,8 @@ void ManeuverServer::asyncExecute(
 
     }
 
+    maneuver_result_type_t maneuver_result_type = MANEUVER_RESULT_TYPE_ABORT;
+
     if (canceling) {
 
         RCLCPP_WARN(
@@ -371,11 +767,7 @@ void ManeuverServer::asyncExecute(
             "ManeuverServer::asyncExecute(): %s: Goal is canceling, cancelling maneuver",
             action_name_.c_str()
         );
-        
-        publishResultAndFinalize(
-            maneuver,
-            MANEUVER_RESULT_TYPE_CANCEL
-        );
+        maneuver_result_type = MANEUVER_RESULT_TYPE_CANCEL;
 
     } else if (success) {
 
@@ -399,10 +791,15 @@ void ManeuverServer::asyncExecute(
             "ManeuverServer::asyncExecute(): %s: Maneuver failed",
             action_name_.c_str()
         );
-        
+        maneuver_result_type = MANEUVER_RESULT_TYPE_ABORT;
+
+    }
+
+    if (!success) {
+
         publishResultAndFinalize(
             maneuver,
-            MANEUVER_RESULT_TYPE_ABORT
+            maneuver_result_type
         );
 
     }
@@ -419,13 +816,13 @@ void ManeuverServer::asyncExecute(
 
     current_maneuver_ = Maneuver();
 
+    reference_callback_token_->Release();
+
     RCLCPP_DEBUG(
         node_->get_logger(), 
-        "ManeuverServer::asyncExecute(): %s: Releasing reference callback token",
+        "ManeuverServer::asyncExecute(): %s: Released reference callback token",
         action_name_.c_str()
     );
-
-    reference_callback_token_->Release();
 
     RCLCPP_INFO(
         node_->get_logger(), 
@@ -485,6 +882,14 @@ template rclcpp_action::GoalResponse iii_drone::control::maneuver::ManeuverServe
     const rclcpp_action::GoalUUID &,
     std::shared_ptr<const iii_drone_interfaces::action::FlyToPosition::Goal>
 );
+template rclcpp_action::GoalResponse iii_drone::control::maneuver::ManeuverServer::handleGoal<iii_drone_interfaces::action::FollowWaypointPath>(
+    const rclcpp_action::GoalUUID &,
+    std::shared_ptr<const iii_drone_interfaces::action::FollowWaypointPath::Goal>
+);
+template rclcpp_action::GoalResponse iii_drone::control::maneuver::ManeuverServer::handleGoal<iii_drone_interfaces::action::CableAwareFlyToPosition>(
+    const rclcpp_action::GoalUUID &,
+    std::shared_ptr<const iii_drone_interfaces::action::CableAwareFlyToPosition::Goal>
+);
 template rclcpp_action::GoalResponse iii_drone::control::maneuver::ManeuverServer::handleGoal<iii_drone_interfaces::action::FlyToObject>(
     const rclcpp_action::GoalUUID &,
     std::shared_ptr<const iii_drone_interfaces::action::FlyToObject::Goal>
@@ -513,6 +918,12 @@ template rclcpp_action::GoalResponse iii_drone::control::maneuver::ManeuverServe
 template rclcpp_action::CancelResponse iii_drone::control::maneuver::ManeuverServer::handleCancel<iii_drone_interfaces::action::FlyToPosition>(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::FlyToPosition>>
 );
+template rclcpp_action::CancelResponse iii_drone::control::maneuver::ManeuverServer::handleCancel<iii_drone_interfaces::action::FollowWaypointPath>(
+    const std::shared_ptr<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::FollowWaypointPath>>
+);
+template rclcpp_action::CancelResponse iii_drone::control::maneuver::ManeuverServer::handleCancel<iii_drone_interfaces::action::CableAwareFlyToPosition>(
+    const std::shared_ptr<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::CableAwareFlyToPosition>>
+);
 template rclcpp_action::CancelResponse iii_drone::control::maneuver::ManeuverServer::handleCancel<iii_drone_interfaces::action::FlyToObject>(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::FlyToObject>>
 );
@@ -534,6 +945,12 @@ template rclcpp_action::CancelResponse iii_drone::control::maneuver::ManeuverSer
 
 template void iii_drone::control::maneuver::ManeuverServer::handleAccepted<iii_drone_interfaces::action::FlyToPosition>(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::FlyToPosition>>
+);
+template void iii_drone::control::maneuver::ManeuverServer::handleAccepted<iii_drone_interfaces::action::FollowWaypointPath>(
+    const std::shared_ptr<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::FollowWaypointPath>>
+);
+template void iii_drone::control::maneuver::ManeuverServer::handleAccepted<iii_drone_interfaces::action::CableAwareFlyToPosition>(
+    const std::shared_ptr<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::CableAwareFlyToPosition>>
 );
 template void iii_drone::control::maneuver::ManeuverServer::handleAccepted<iii_drone_interfaces::action::FlyToObject>(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::FlyToObject>>
@@ -557,6 +974,12 @@ template void iii_drone::control::maneuver::ManeuverServer::handleAccepted<iii_d
 template void iii_drone::control::maneuver::ManeuverServer::asyncExecute<iii_drone_interfaces::action::FlyToPosition>(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::FlyToPosition>>
 );
+template void iii_drone::control::maneuver::ManeuverServer::asyncExecute<iii_drone_interfaces::action::FollowWaypointPath>(
+    const std::shared_ptr<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::FollowWaypointPath>>
+);
+template void iii_drone::control::maneuver::ManeuverServer::asyncExecute<iii_drone_interfaces::action::CableAwareFlyToPosition>(
+    const std::shared_ptr<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::CableAwareFlyToPosition>>
+);
 template void iii_drone::control::maneuver::ManeuverServer::asyncExecute<iii_drone_interfaces::action::FlyToObject>(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<iii_drone_interfaces::action::FlyToObject>>
 );
@@ -577,6 +1000,8 @@ template void iii_drone::control::maneuver::ManeuverServer::asyncExecute<iii_dro
 );
 
 template void iii_drone::control::maneuver::ManeuverServer::createServer<iii_drone_interfaces::action::FlyToPosition>();
+template void iii_drone::control::maneuver::ManeuverServer::createServer<iii_drone_interfaces::action::FollowWaypointPath>();
+template void iii_drone::control::maneuver::ManeuverServer::createServer<iii_drone_interfaces::action::CableAwareFlyToPosition>();
 template void iii_drone::control::maneuver::ManeuverServer::createServer<iii_drone_interfaces::action::FlyToObject>();
 template void iii_drone::control::maneuver::ManeuverServer::createServer<iii_drone_interfaces::action::CableLanding>();
 template void iii_drone::control::maneuver::ManeuverServer::createServer<iii_drone_interfaces::action::CableTakeoff>();

@@ -4,6 +4,11 @@
 
 #include <iii_drone_core/control/maneuver/maneuver_scheduler.hpp>
 
+#include <iii_drone_core/adapters/state_adapter.hpp>
+
+#include <algorithm>
+#include <cctype>
+
 using namespace iii_drone::control;
 using namespace iii_drone::control::maneuver;
 using namespace iii_drone::types;
@@ -42,10 +47,45 @@ ManeuverScheduler::ManeuverScheduler(
         "passthrough"
     );
 
+    get_reference_callback_group_ = node_->create_callback_group(
+        rclcpp::CallbackGroupType::MutuallyExclusive
+    );
+
     reference_publisher_ = node_->create_publisher<iii_drone_interfaces::msg::Reference>(
         "reference",
         10 // Fix QoS
     );
+
+    const auto stream_period = std::chrono::milliseconds(
+        configuration_->GetParameter(
+            "/control/maneuver_controller/maneuver_execution_period_ms"
+        ).as_int()
+    );
+    const auto stream_timeout = std::chrono::milliseconds(
+        configuration_->GetParameter(
+            "/control/maneuver_controller/reference_stream_timeout_ms"
+        ).as_int()
+    );
+    rclcpp::QoS stream_qos(rclcpp::KeepLast(1));
+    stream_qos.best_effort().durability_volatile();
+    stream_qos.deadline(stream_period * 2);
+    stream_qos.lifespan(stream_timeout);
+    reference_stream_publisher_ =
+        node_->create_publisher<iii_drone_interfaces::msg::ManeuverReferenceStream>(
+            "reference_stream", stream_qos
+        );
+
+    rclcpp::QoS ack_qos(rclcpp::KeepLast(10));
+    ack_qos.reliable().durability_volatile();
+    rclcpp::SubscriptionOptions ack_options;
+    ack_options.callback_group = get_reference_callback_group_;
+    reference_ack_subscription_ =
+        node_->create_subscription<iii_drone_interfaces::msg::ManeuverReferenceAck>(
+            "reference_ack",
+            ack_qos,
+            std::bind(&ManeuverScheduler::acknowledgeReferenceStream, this, std::placeholders::_1),
+            ack_options
+        );
 
     current_maneuver_publisher_ = node_->create_publisher<iii_drone_interfaces::msg::Maneuver>(
         "current_maneuver",
@@ -122,7 +162,11 @@ void ManeuverScheduler::Start() {
     );
 
     maneuver_execution_timer_ = node_->create_wall_timer(
-        std::chrono::milliseconds(configuration_->GetParameter("/control/maneuver_controller/maneuver_execution_period_ms").as_int()),
+        std::chrono::milliseconds(
+            configuration_->GetParameter(
+                "/control/maneuver_controller/maneuver_execution_period_ms"
+            ).as_int()
+        ),
         std::bind(
             &ManeuverScheduler::maneuverExecutionTimerCallback,
             this
@@ -149,6 +193,55 @@ void ManeuverScheduler::Start() {
         "get_reference",
         std::bind(
             &ManeuverScheduler::getReferenceServiceCallback,
+            this,
+            std::placeholders::_1,
+            std::placeholders::_2
+        ),
+        rclcpp::ServicesQoS(),
+        get_reference_callback_group_
+    );
+
+    pause_reference_stream_service_ =
+        node_->create_service<iii_drone_interfaces::srv::PauseReferenceStream>(
+            "pause_reference_stream",
+            std::bind(
+                &ManeuverScheduler::pauseReferenceStream,
+                this,
+                std::placeholders::_1,
+                std::placeholders::_2
+            ),
+            rclcpp::ServicesQoS(),
+            get_reference_callback_group_
+        );
+    rebase_reference_stream_service_ =
+        node_->create_service<iii_drone_interfaces::srv::RebaseReferenceStream>(
+            "rebase_reference_stream",
+            std::bind(
+                &ManeuverScheduler::rebaseReferenceStream,
+                this,
+                std::placeholders::_1,
+                std::placeholders::_2
+            ),
+            rclcpp::ServicesQoS(),
+            get_reference_callback_group_
+        );
+    commit_reference_stream_service_ =
+        node_->create_service<iii_drone_interfaces::srv::CommitReferenceStream>(
+            "commit_reference_stream",
+            std::bind(
+                &ManeuverScheduler::commitReferenceStream,
+                this,
+                std::placeholders::_1,
+                std::placeholders::_2
+            ),
+            rclcpp::ServicesQoS(),
+            get_reference_callback_group_
+        );
+
+    clear_maneuver_queue_service_ = node_->create_service<iii_drone_interfaces::srv::ClearManeuverQueue>(
+        "clear_maneuver_queue",
+        std::bind(
+            &ManeuverScheduler::clearManeuverQueueServiceCallback,
             this,
             std::placeholders::_1,
             std::placeholders::_2
@@ -182,6 +275,12 @@ void ManeuverScheduler::Stop() {
     get_reference_service_->clear_on_new_request_callback();
     get_reference_service_.reset();
     get_reference_service_ = nullptr;
+
+    if (clear_maneuver_queue_service_) {
+        clear_maneuver_queue_service_->clear_on_new_request_callback();
+        clear_maneuver_queue_service_.reset();
+        clear_maneuver_queue_service_ = nullptr;
+    }
 
     maneuver_publish_timer_->cancel();
     maneuver_publish_timer_.reset();
@@ -703,6 +802,28 @@ bool ManeuverScheduler::maneuverIsExecutingOrPending() const {
 
 }
 
+uint32_t ManeuverScheduler::ClearManeuverQueue() {
+
+    if (!is_started_) {
+        RCLCPP_WARN(node_->get_logger(), "ManeuverScheduler::ClearManeuverQueue(): maneuver scheduler is not started.");
+        return 0;
+    }
+
+    std::unique_lock<std::shared_mutex> lck(maneuver_mutex_);
+
+    const uint32_t cleared_count = static_cast<uint32_t>(maneuver_queue_->size());
+    maneuver_queue_->Clear();
+
+    RCLCPP_INFO(
+        node_->get_logger(),
+        "ManeuverScheduler::ClearManeuverQueue(): Cleared %u queued maneuver(s). Current maneuver was not cancelled.",
+        cleared_count
+    );
+
+    return cleared_count;
+
+}
+
 bool ManeuverScheduler::maneuverCanExecute(
     const Maneuver & maneuver,
     const CombinedDroneAwarenessAdapter & awareness
@@ -761,9 +882,14 @@ void ManeuverScheduler::onReferenceCallbackTokenReacquired() {
 
         std::string msg = "ManeuverScheduler::onReferenceCallbackTokenReacquired(): master does not have token.";
 
-        RCLCPP_FATAL(node_->get_logger(), msg.c_str());
+        RCLCPP_ERROR(
+            node_->get_logger(),
+            "%s Current token holder: %s",
+            msg.c_str(),
+            reference_callback_token_.token_holder().c_str()
+        );
 
-        throw std::runtime_error(msg);
+        return;
 
     }
 
@@ -771,9 +897,14 @@ void ManeuverScheduler::onReferenceCallbackTokenReacquired() {
 
         std::string msg = "ManeuverScheduler::onReferenceCallbackTokenReacquired(): maneuver is not terminated.";
 
-        RCLCPP_FATAL(node_->get_logger(), msg.c_str());
+        RCLCPP_WARN(
+            node_->get_logger(),
+            "%s Current maneuver type: %d. Keeping released token with existing callback until scheduler advances.",
+            msg.c_str(),
+            current_maneuver_->maneuver_type()
+        );
 
-        throw std::runtime_error(msg);
+        return;
 
     }
 
@@ -782,6 +913,11 @@ void ManeuverScheduler::onReferenceCallbackTokenReacquired() {
         auto registered_maneuver = registered_maneuvers_.find(MANEUVER_TYPE_HOVER);
 
         std::shared_ptr<HoverManeuverServer> maneuver_server = std::static_pointer_cast<HoverManeuverServer>(registered_maneuver->second);
+
+        // A canceled maneuver may have inherited an old hover target from a
+        // previous successful maneuver. Refresh it before exposing the
+        // fallback callback so a mode handoff cannot command that stale pose.
+        maneuver_server->Update(Reference(combined_drone_awareness_handler_->GetState()));
 
         reference_callback_token_.resource().set(
             std::bind(
@@ -806,7 +942,33 @@ void ManeuverScheduler::onHoveringFail() {
 
     std::unique_lock<std::shared_mutex> lck(maneuver_mutex_);
 
-    cancelAllPendingManeuvers();
+    Maneuver current_maneuver = current_maneuver_;
+
+    if (
+        current_maneuver.terminated()
+        || (
+            current_maneuver.maneuver_type() != MANEUVER_TYPE_HOVER_BY_OBJECT
+            && current_maneuver.maneuver_type() != MANEUVER_TYPE_HOVER_ON_CABLE
+        )
+    ) {
+        // Retained hover callbacks can fire after a successor has taken over; those must not clear handoff work.
+        RCLCPP_DEBUG(
+            node_->get_logger(),
+            "ManeuverScheduler::onHoveringFail(): Ignoring stale hover failure callback while current maneuver type is %d and terminated=%s.",
+            current_maneuver.maneuver_type(),
+            current_maneuver.terminated() ? "true" : "false"
+        );
+        return;
+    }
+
+    const uint32_t cleared_count = static_cast<uint32_t>(maneuver_queue_->size());
+    maneuver_queue_->Clear();
+
+    RCLCPP_WARN(
+        node_->get_logger(),
+        "ManeuverScheduler::onHoveringFail(): Active hover failed; cleared %u queued maneuver(s). Current hover maneuver was not cleared.",
+        cleared_count
+    );
 
 }
 
@@ -818,9 +980,30 @@ void ManeuverScheduler::getReferenceServiceCallback(
     iii_drone_interfaces::msg::Reference ref_msg = fetchNextReferenceAndPublish();
 
     response->reference = ref_msg;
-    bool is_valid = maneuverIsExecutingOrPending() || maneuver_server_get_reference_callback_still_registered_;
 
-    response->is_valid = is_valid;
+    // RegisterManeuver() makes a goal pending before its server has acquired
+    // the callback token. During that gap the callback can still belong to a
+    // previous maneuver. Keep the response invalid until the current
+    // maneuver's provider is installed; the client will hold its live hover
+    // reference while waiting.
+    bool current_maneuver_reference_ready = false;
+    const Maneuver current_maneuver = current_maneuver_;
+    if (
+        current_maneuver.maneuver_type() != MANEUVER_TYPE_NONE &&
+        current_maneuver.started() &&
+        !current_maneuver.terminated()
+    ) {
+        const auto registered_maneuver = registered_maneuvers_.find(current_maneuver.maneuver_type());
+        if (registered_maneuver != registered_maneuvers_.end()) {
+            current_maneuver_reference_ready =
+                reference_callback_struct_->reference_provider_name.Load() ==
+                registered_maneuver->second->action_name();
+        }
+    }
+
+    response->is_valid =
+        current_maneuver_reference_ready ||
+        maneuver_server_get_reference_callback_still_registered_;
 
     iii_drone_interfaces::msg::StringStamped reference_callback_provider_msg;
 
@@ -831,10 +1014,426 @@ void ManeuverScheduler::getReferenceServiceCallback(
 
 }
 
+void ManeuverScheduler::clearManeuverQueueServiceCallback(
+    const std::shared_ptr<iii_drone_interfaces::srv::ClearManeuverQueue::Request> request,
+    std::shared_ptr<iii_drone_interfaces::srv::ClearManeuverQueue::Response> response
+) {
+
+    RCLCPP_INFO(
+        node_->get_logger(),
+        "ManeuverScheduler::clearManeuverQueueServiceCallback(): Clearing maneuver queue. Reason: %s",
+        request->reason.c_str()
+    );
+
+    response->cleared_count = ClearManeuverQueue();
+    response->success = true;
+
+}
+
 void ManeuverScheduler::maneuverExecutionTimerCallback() {
 
-    progressScheduler();
+    // This check must precede every scheduler transition. After executor
+    // congestion, queued timer callbacks may otherwise evaluate an old
+    // trajectory at a much later time and retire the maneuver before the
+    // consumer can stop and rebase it.
+    if (!pauseReferenceStreamIfRequired()) {
+        progressScheduler();
+    }
+    publishReferenceStream();
 
+}
+
+ManeuverServer::SharedPtr ManeuverScheduler::activeManeuverServer() const {
+    const Maneuver maneuver = current_maneuver_;
+    if (
+        maneuver.maneuver_type() == MANEUVER_TYPE_NONE ||
+        !maneuver.started() || maneuver.terminated()
+    ) {
+        return nullptr;
+    }
+    const auto entry = registered_maneuvers_.find(maneuver.maneuver_type());
+    return entry == registered_maneuvers_.end() ? nullptr : entry->second;
+}
+
+bool ManeuverScheduler::currentReferenceValid() const {
+    const Maneuver maneuver = current_maneuver_;
+    if (
+        maneuver.maneuver_type() != MANEUVER_TYPE_NONE && maneuver.started() &&
+        !maneuver.terminated()
+    ) {
+        const auto server = registered_maneuvers_.find(maneuver.maneuver_type());
+        return server != registered_maneuvers_.end() &&
+            reference_callback_struct_->reference_provider_name.Load() ==
+                server->second->action_name();
+    }
+    return maneuver_server_get_reference_callback_still_registered_;
+}
+
+std::string ManeuverScheduler::nextReferenceStreamId(const std::string & provider) {
+    std::string safe_provider = provider;
+    std::replace_if(
+        safe_provider.begin(), safe_provider.end(),
+        [](unsigned char value) { return !std::isalnum(value); }, '_'
+    );
+    return safe_provider + ":" + std::to_string(node_->now().nanoseconds()) + ":" +
+        std::to_string(++reference_stream_state_.generation);
+}
+
+bool ManeuverScheduler::pauseReferenceStreamIfRequired() {
+    const auto steady_now = std::chrono::steady_clock::now();
+    ManeuverServer::SharedPtr server;
+    bool newly_paused = false;
+    bool progression_blocked = false;
+
+    {
+        std::lock_guard<std::mutex> lock(reference_stream_mutex_);
+        if (!reference_stream_state_.valid) {
+            return false;
+        }
+
+        server = activeManeuverServer();
+        if (!server) {
+            return false;
+        }
+
+        if (!reference_stream_state_.paused) {
+            const auto acknowledgement_timeout = std::chrono::milliseconds(
+                configuration_->GetParameter(
+                    "/control/maneuver_controller/reference_stream_timeout_ms"
+                ).as_int()
+            );
+            const auto acknowledgement_age = reference_stream_state_.ack_seen
+                ? steady_now - reference_stream_state_.last_ack
+                : steady_now - reference_stream_state_.generation_started;
+            if (acknowledgement_age > acknowledgement_timeout) {
+                reference_stream_state_.paused = true;
+                newly_paused = true;
+                RCLCPP_ERROR(
+                    node_->get_logger(),
+                    "Reference stream %s missed consumer acknowledgements; blocking scheduler "
+                    "progression and pausing producer at sequence %lu.",
+                    reference_stream_state_.stream_id.c_str(),
+                    static_cast<unsigned long>(reference_stream_state_.sequence)
+                );
+            }
+        }
+        progression_blocked = reference_stream_state_.paused;
+    }
+
+    if (newly_paused) {
+        server->PauseReferenceStream();
+    }
+    return progression_blocked;
+}
+
+void ManeuverScheduler::publishReferenceStream() {
+    const bool valid = currentReferenceValid();
+    const std::string provider = reference_callback_struct_->reference_provider_name.Load();
+    const auto steady_now = std::chrono::steady_clock::now();
+    ManeuverServer::SharedPtr server_to_pause;
+    std::string stream_id;
+    bool prepared = false;
+    bool paused = false;
+    bool committed_waiting_for_applied = false;
+    Reference reference;
+
+    {
+        std::lock_guard<std::mutex> lock(reference_stream_mutex_);
+        if (!valid) {
+            reference_stream_state_.valid = false;
+            reference_stream_state_.abort_waiting_for_consumer_ready = false;
+            return;
+        }
+        if (!reference_stream_state_.valid || reference_stream_state_.provider != provider) {
+            reference_stream_state_.stream_id = nextReferenceStreamId(provider);
+            reference_stream_state_.provider = provider;
+            reference_stream_state_.sequence = 0;
+            reference_stream_state_.last_ack_sequence = 0;
+            reference_stream_state_.valid = true;
+            reference_stream_state_.paused = false;
+            reference_stream_state_.prepared = false;
+            reference_stream_state_.committed_waiting_for_applied = false;
+            reference_stream_state_.abort_waiting_for_consumer_ready = false;
+            reference_stream_state_.ack_seen = false;
+            reference_stream_state_.generation_started = steady_now;
+        }
+        const auto ack_timeout = std::chrono::milliseconds(
+            configuration_->GetParameter(
+                "/control/maneuver_controller/reference_stream_timeout_ms"
+            ).as_int()
+        );
+        const auto acknowledgement_age = reference_stream_state_.ack_seen
+            ? steady_now - reference_stream_state_.last_ack
+            : steady_now - reference_stream_state_.generation_started;
+        if (
+            !reference_stream_state_.paused && acknowledgement_age > ack_timeout
+        ) {
+            reference_stream_state_.paused = true;
+            server_to_pause = activeManeuverServer();
+            RCLCPP_ERROR(
+                node_->get_logger(),
+                "Reference stream %s missed consumer acknowledgements; pausing producer at sequence %lu.",
+                reference_stream_state_.stream_id.c_str(),
+                static_cast<unsigned long>(reference_stream_state_.sequence)
+            );
+        }
+        stream_id = reference_stream_state_.stream_id;
+        prepared = reference_stream_state_.prepared;
+        paused = reference_stream_state_.paused;
+        committed_waiting_for_applied =
+            reference_stream_state_.committed_waiting_for_applied;
+        if (prepared || committed_waiting_for_applied) {
+            reference = reference_stream_state_.prepared_reference.CopyWithNewStamp(node_->now());
+        } else if (paused) {
+            reference = reference_stream_state_.latest_reference.CopyWithNewStamp(node_->now());
+        }
+    }
+
+    if (server_to_pause) {
+        server_to_pause->PauseReferenceStream();
+    }
+    if (!prepared && !paused && !committed_waiting_for_applied) {
+        reference = (*reference_callback_struct_)(combined_drone_awareness_handler_->GetState());
+    }
+
+    iii_drone_interfaces::msg::ManeuverReferenceStream message;
+    {
+        std::lock_guard<std::mutex> lock(reference_stream_mutex_);
+        if (!reference_stream_state_.valid || reference_stream_state_.stream_id != stream_id) {
+            return;
+        }
+        if (!prepared && !paused && reference_stream_state_.paused) {
+            return;
+        }
+        reference_stream_state_.latest_reference = reference;
+        message.stream_id = stream_id;
+        message.sequence = ++reference_stream_state_.sequence;
+        const auto now = node_->now();
+        message.produced_at = now;
+        message.valid_until = now + rclcpp::Duration::from_nanoseconds(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::milliseconds(configuration_->GetParameter(
+                    "/control/maneuver_controller/reference_stream_timeout_ms"
+                ).as_int())
+            ).count()
+        );
+        message.trajectory_time_s = std::chrono::duration<double>(
+            steady_now - reference_stream_state_.generation_started
+        ).count();
+        message.provider = provider;
+        message.state = reference_stream_state_.prepared
+            ? iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_PREPARED
+            : (reference_stream_state_.committed_waiting_for_applied
+                ? iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_ACTIVE
+            : (reference_stream_state_.paused
+                ? iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_PAUSED
+                : iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_ACTIVE));
+        message.is_valid = true;
+        message.reference = ReferenceAdapter(reference).ToMsg();
+    }
+    reference_stream_publisher_->publish(message);
+    reference_publisher_->publish(message.reference);
+}
+
+void ManeuverScheduler::acknowledgeReferenceStream(
+    const iii_drone_interfaces::msg::ManeuverReferenceAck::SharedPtr message
+) {
+    ManeuverServer::SharedPtr server_to_pause;
+    ManeuverServer::SharedPtr server_to_abort;
+    {
+        std::lock_guard<std::mutex> lock(reference_stream_mutex_);
+        if (
+            !reference_stream_state_.valid ||
+            message->stream_id != reference_stream_state_.stream_id ||
+            message->last_applied_sequence > reference_stream_state_.sequence ||
+            (reference_stream_state_.ack_seen &&
+                message->last_applied_sequence < reference_stream_state_.last_ack_sequence)
+        ) {
+            return;
+        }
+        reference_stream_state_.ack_seen = true;
+        reference_stream_state_.last_ack_sequence = message->last_applied_sequence;
+        reference_stream_state_.last_consumer_status = message->consumer_status;
+        reference_stream_state_.last_ack = std::chrono::steady_clock::now();
+        if (
+            reference_stream_state_.abort_waiting_for_consumer_ready &&
+            message->consumer_status ==
+                iii_drone_interfaces::msg::ManeuverReferenceAck::STATUS_ACTION_ABORT_READY
+        ) {
+            reference_stream_state_.abort_waiting_for_consumer_ready = false;
+            reference_stream_state_.paused = false;
+            server_to_abort = activeManeuverServer();
+        }
+        if (reference_stream_state_.committed_waiting_for_applied) {
+            if (
+                message->consumer_status ==
+                    iii_drone_interfaces::msg::ManeuverReferenceAck::STATUS_APPLIED
+            ) {
+                const ManeuverServer::SharedPtr server = activeManeuverServer();
+                if (server) {
+                    server->CommitReferenceStreamRebase();
+                    reference_stream_state_.committed_waiting_for_applied = false;
+                    reference_stream_state_.paused = false;
+                    reference_stream_state_.generation_started =
+                        std::chrono::steady_clock::now();
+                    RCLCPP_INFO(
+                        node_->get_logger(),
+                        "Reference stream %s received first applied acknowledgement at "
+                        "sequence %lu; releasing rebased maneuver.",
+                        reference_stream_state_.stream_id.c_str(),
+                        static_cast<unsigned long>(message->last_applied_sequence)
+                    );
+                }
+            }
+            return;
+        }
+        if (
+            !server_to_abort &&
+            message->consumer_status !=
+                iii_drone_interfaces::msg::ManeuverReferenceAck::STATUS_APPLIED &&
+            !reference_stream_state_.paused
+        ) {
+            reference_stream_state_.paused = true;
+            server_to_pause = activeManeuverServer();
+        }
+    }
+    if (server_to_pause) {
+        server_to_pause->PauseReferenceStream();
+    }
+    if (server_to_abort) {
+        server_to_abort->AbortAfterReferenceLoss();
+    }
+}
+
+void ManeuverScheduler::pauseReferenceStream(
+    const std::shared_ptr<iii_drone_interfaces::srv::PauseReferenceStream::Request> request,
+    std::shared_ptr<iii_drone_interfaces::srv::PauseReferenceStream::Response> response
+) {
+    ManeuverServer::SharedPtr server;
+    {
+        std::lock_guard<std::mutex> lock(reference_stream_mutex_);
+        if (
+            !reference_stream_state_.valid || request->stream_id != reference_stream_state_.stream_id ||
+            request->last_applied_sequence > reference_stream_state_.sequence
+        ) {
+            response->accepted = false;
+            response->reason = "unknown stream or invalid applied sequence";
+            return;
+        }
+        reference_stream_state_.paused = true;
+        server = activeManeuverServer();
+    }
+    if (server) {
+        server->PauseReferenceStream();
+    }
+    response->accepted = true;
+    response->reason = "producer paused";
+}
+
+void ManeuverScheduler::rebaseReferenceStream(
+    const std::shared_ptr<iii_drone_interfaces::srv::RebaseReferenceStream::Request> request,
+    std::shared_ptr<iii_drone_interfaces::srv::RebaseReferenceStream::Response> response
+) {
+    ManeuverServer::SharedPtr server;
+    {
+        std::lock_guard<std::mutex> lock(reference_stream_mutex_);
+        if (
+            !reference_stream_state_.valid || !reference_stream_state_.paused ||
+            request->stream_id != reference_stream_state_.stream_id ||
+            request->last_applied_sequence > reference_stream_state_.sequence
+        ) {
+            response->accepted = false;
+            response->reason = "stream is not the active paused generation";
+            return;
+        }
+        server = activeManeuverServer();
+    }
+    if (!server) {
+        response->accepted = false;
+        response->reason = "no active maneuver server";
+        return;
+    }
+
+    const State stopped_state = StateAdapter(request->stopped_state).state();
+    std::string reason;
+    const auto disposition = server->PrepareReferenceStreamRecovery(stopped_state, reason);
+    if (disposition == ReferenceStreamRecoveryDisposition::REJECT) {
+        response->accepted = false;
+        response->abort_action = false;
+        response->reason = reason;
+        return;
+    }
+
+    if (disposition == ReferenceStreamRecoveryDisposition::ABORT_ACTION) {
+        {
+            std::lock_guard<std::mutex> lock(reference_stream_mutex_);
+            reference_stream_state_.abort_waiting_for_consumer_ready = true;
+        }
+        response->accepted = true;
+        response->abort_action = true;
+        response->reason = reason;
+        return;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(reference_stream_mutex_);
+        if (request->stream_id != reference_stream_state_.stream_id) {
+            response->accepted = false;
+            response->reason = "stream changed during rebase";
+            return;
+        }
+        reference_stream_state_.stream_id = nextReferenceStreamId(reference_stream_state_.provider);
+        reference_stream_state_.sequence = 0;
+        reference_stream_state_.last_ack_sequence = 0;
+        reference_stream_state_.ack_seen = false;
+        reference_stream_state_.paused = true;
+        reference_stream_state_.prepared = true;
+        reference_stream_state_.committed_waiting_for_applied = false;
+        reference_stream_state_.prepared_reference = Reference(stopped_state);
+        reference_stream_state_.latest_reference = reference_stream_state_.prepared_reference;
+        reference_stream_state_.generation_started = std::chrono::steady_clock::now();
+        response->accepted = true;
+        response->abort_action = false;
+        response->prepared_stream_id = reference_stream_state_.stream_id;
+        response->reason = reason;
+    }
+}
+
+void ManeuverScheduler::commitReferenceStream(
+    const std::shared_ptr<iii_drone_interfaces::srv::CommitReferenceStream::Request> request,
+    std::shared_ptr<iii_drone_interfaces::srv::CommitReferenceStream::Response> response
+) {
+    {
+        std::lock_guard<std::mutex> lock(reference_stream_mutex_);
+        if (
+            !reference_stream_state_.valid || !reference_stream_state_.prepared ||
+            request->stream_id != reference_stream_state_.stream_id
+        ) {
+            response->accepted = false;
+            response->reason = "stream is not a prepared generation";
+            return;
+        }
+        if (
+            request->prepared_sequence == 0 ||
+            request->prepared_sequence > reference_stream_state_.sequence
+        ) {
+            response->accepted = false;
+            response->reason = "commit does not identify a published prepared reference";
+            return;
+        }
+        if (!activeManeuverServer()) {
+            response->accepted = false;
+            response->reason = "no active maneuver server";
+            return;
+        }
+        reference_stream_state_.prepared = false;
+        reference_stream_state_.paused = true;
+        reference_stream_state_.committed_waiting_for_applied = true;
+        reference_stream_state_.ack_seen = false;
+        reference_stream_state_.generation_started = std::chrono::steady_clock::now();
+    }
+    response->accepted = true;
+    response->reason = "prepared generation committed; awaiting first applied acknowledgement";
 }
 
 void ManeuverScheduler::progressScheduler() {
@@ -921,6 +1520,29 @@ void ManeuverScheduler::progressScheduler() {
 
                     break;
 
+                case MANEUVER_TYPE_FLY_TO_POSITION: {
+                    fly_to_position_maneuver_params_t maneuver_params(previous_maneuver.maneuver_params());
+
+                    if (maneuver_params.blend_to_next) {
+                        constexpr double blend_handoff_grace_s = 0.5;
+                        const int period_ms = configuration_->GetParameter("/control/maneuver_controller/maneuver_execution_period_ms").as_int();
+                        no_maneuver_idle_cnt_ = std::max(1, static_cast<int>(blend_handoff_grace_s * 1000.0 / period_ms));
+                        maneuver_server_get_reference_callback_still_registered_ = true;
+
+                        RCLCPP_DEBUG(
+                            node_->get_logger(),
+                            "ManeuverScheduler::progressScheduler(): preserving successful blended FTP reference callback for %d scheduler tick(s).",
+                            *no_maneuver_idle_cnt_
+                        );
+
+                        break;
+                    }
+
+                    set_default_no_maneuver_idle_cnt();
+
+                    break;
+                }
+
                 default:
                     set_default_no_maneuver_idle_cnt();
 
@@ -978,11 +1600,14 @@ void ManeuverScheduler::progressScheduler() {
 
                 if (elapsed_seconds > timeout_seconds) {
 
-                    std::string msg = "ManeuverScheduler::progressScheduler(): master does not have token.";
-
-                    RCLCPP_FATAL(node_->get_logger(), msg.c_str());
-
-                    throw std::runtime_error(msg);
+                    RCLCPP_ERROR_THROTTLE(
+                        node_->get_logger(),
+                        *node_->get_clock(),
+                        1000,
+                        "ManeuverScheduler::progressScheduler(): timed out waiting for master token after maneuver %d terminated. Current token holder: %s. Waiting instead of crashing.",
+                        current_maneuver_->maneuver_type(),
+                        reference_callback_token_.token_holder().c_str()
+                    );
 
                 }
 
@@ -1104,11 +1729,13 @@ void ManeuverScheduler::progressScheduler() {
 
         if (current_maneuver_->maneuver_type() != MANEUVER_TYPE_NONE) {
 
-            std::string msg = "ManeuverScheduler::progressScheduler(): maneuver is not executing or pending, but current maneuver is not MANEUVER_TYPE_NONE.";
+            RCLCPP_ERROR(
+                node_->get_logger(),
+                "ManeuverScheduler::progressScheduler(): maneuver is not executing or pending, but current maneuver is %d. Resetting scheduler current maneuver.",
+                current_maneuver_->maneuver_type()
+            );
 
-            RCLCPP_FATAL(node_->get_logger(), msg.c_str());
-
-            throw std::runtime_error(msg);
+            current_maneuver_ = Maneuver();
 
         }
 

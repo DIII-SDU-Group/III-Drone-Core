@@ -28,6 +28,7 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
     configurator.DeclareParameter("/perception/pl_mapper/min_point_dist", double_t);
     configurator.DeclareParameter("/perception/pl_mapper/max_point_dist", double_t);
     configurator.DeclareParameter("/perception/pl_mapper/view_cone_slope", double_t);
+    configurator.DeclareParameter("/perception/pl_mapper/strict_view_cone_slope", double_t);
     configurator.DeclareParameter("/tf/drone_frame_id", string_t);
     configurator.DeclareParameter("/tf/world_frame_id", string_t);
     configurator.DeclareParameter("/tf/cable_gripper_frame_id", string_t);
@@ -412,12 +413,23 @@ void PowerlineDirectionComputerNode::commandCallback(
 
 	uint8_t cmd = request->command;
 
-	if (cmd == iii_drone_interfaces::srv::SystemCommand::Request::SYSTEM_COMMAND_START) {
+	if (
+        cmd == iii_drone_interfaces::srv::SystemCommand::Request::SYSTEM_COMMAND_START ||
+        cmd == iii_drone_interfaces::srv::SystemCommand::Request::SYSTEM_COMMAND_START_RESET
+    ) {
 
 		RCLCPP_INFO(
 			this->get_logger(), 
 			"PowerlineDirectionComputerNode::commandCallback(): Starting pl dir computer node"
 		);
+
+		if (cmd == iii_drone_interfaces::srv::SystemCommand::Request::SYSTEM_COMMAND_START_RESET) {
+            RCLCPP_INFO(
+                this->get_logger(),
+                "PowerlineDirectionComputerNode::commandCallback(): Resetting retained powerline direction state"
+            );
+            pl_direction_->Reset();
+        }
 
 		running_ = true;
 

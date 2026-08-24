@@ -74,6 +74,11 @@ ReferenceTrajectory TrajectoryGenerator::ComputeReferenceTrajectory(
         case trajectory_mode_t::cable_takeoff:
             mpc_params = cable_takeoff_mpc_params_;
             break;
+        case trajectory_mode_t::cable_aware:
+            // Planner hook: until the cable-aware planner is implemented, keep
+            // the control behavior identical to positional flight.
+            mpc_params = positional_mpc_params_;
+            break;
     }
 
 	static bool first = true;

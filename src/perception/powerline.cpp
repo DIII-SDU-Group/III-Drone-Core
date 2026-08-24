@@ -4,6 +4,8 @@
 
 #include "iii_drone_core/perception/powerline.hpp"
 
+#include <algorithm>
+
 using namespace iii_drone::perception;
 using namespace iii_drone::types;
 using namespace iii_drone::math;
@@ -165,6 +167,86 @@ point_t Powerline::UpdateLine(const point_t & point) {
     stamp_.Update();
 
     return projected_point;
+
+}
+
+std::vector<point_t> Powerline::UpdateLines(const std::vector<point_t> & points) {
+
+    std::vector<point_t> projected_points;
+    projected_points.reserve(points.size());
+
+    if (!pl_dir_history_.full() || !drone_pose_history_.full()) {
+        return points;
+    }
+
+    for (const auto & point : points) {
+        projected_points.push_back(projectPoint(point));
+    }
+
+    struct candidate_t {
+        size_t point_index;
+        size_t line_index;
+        double distance;
+    };
+
+    std::vector<candidate_t> candidates;
+    const double matching_line_max_dist = configuration_->GetParameter(
+        "/perception/pl_mapper/matching_line_max_dist"
+    ).as_double();
+
+    {
+        std::unique_lock<std::shared_mutex> lines_lock(lines_mutex_);
+
+        for (size_t point_index = 0; point_index < projected_points.size(); point_index++) {
+            for (size_t line_index = 0; line_index < lines_.size(); line_index++) {
+                const vector_t difference = projected_points[point_index] - lines_[line_index].position();
+                const double distance = difference.norm();
+                if (distance < matching_line_max_dist) {
+                    candidates.push_back(candidate_t{point_index, line_index, distance});
+                }
+            }
+        }
+
+        std::sort(
+            candidates.begin(),
+            candidates.end(),
+            [](const candidate_t & lhs, const candidate_t & rhs) {
+                return lhs.distance < rhs.distance;
+            }
+        );
+
+        std::vector<bool> point_assigned(projected_points.size(), false);
+        std::vector<bool> line_assigned(lines_.size(), false);
+
+        for (const auto & candidate : candidates) {
+            if (candidate.line_index >= line_assigned.size()) {
+                continue;
+            }
+            if (point_assigned[candidate.point_index] || line_assigned[candidate.line_index]) {
+                continue;
+            }
+
+            lines_[candidate.line_index].Update(projected_points[candidate.point_index]);
+            point_assigned[candidate.point_index] = true;
+            line_assigned[candidate.line_index] = true;
+        }
+
+        for (size_t point_index = 0; point_index < projected_points.size(); point_index++) {
+            if (point_assigned[point_index]) {
+                continue;
+            }
+            if (lines_.size() >= static_cast<size_t>(
+                    configuration_->GetParameter("/perception/pl_mapper/max_lines").as_int()
+                )) {
+                continue;
+            }
+            registerNewLineLocked(projected_points[point_index]);
+        }
+    }
+
+    stamp_.Update();
+
+    return projected_points;
 
 }
 
@@ -614,6 +696,14 @@ int Powerline::findMatchingLine(const point_t & point) const {
 
 void Powerline::registerNewLine(const point_t & point) {
 
+    std::unique_lock<std::shared_mutex> lines_lock(lines_mutex_);
+
+    registerNewLineLocked(point);
+
+}
+
+void Powerline::registerNewLineLocked(const point_t & point) {
+
     quaternion_t pl_quat = pl_dir_history_[0];
 
     int new_id = id_cnt_ + 1;
@@ -626,8 +716,6 @@ void Powerline::registerNewLine(const point_t & point) {
         tf_buffer_,
         configuration_
     );
-
-    std::unique_lock<std::shared_mutex> lines_lock(lines_mutex_);
 
     for (unsigned int i = 0; i < lines_.size(); i++) {
 

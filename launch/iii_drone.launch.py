@@ -95,9 +95,9 @@ def generate_launch_description():
             parameters=_parameter_sources(profile_name),
         )
     
-        sensors = IncludeLaunchDescription(
+        sim_assets = IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
-                PathJoinSubstitution([FindPackageShare('iii_drone_simulation'), 'launch', 'sensors_sim.launch.py'])
+                PathJoinSubstitution([FindPackageShare('iii_drone_simulation'), 'launch', 'sim_assets.launch.py'])
             ),
             launch_arguments={"mmwave_log_level": mmwave_log_level}.items()
         )
@@ -148,7 +148,7 @@ def generate_launch_description():
         }.items()
     )
     
-    launch_list = [micro_ros_agent, sensors, tf, perception]#, control]
+    launch_list = [micro_ros_agent, sim_assets if simulation else sensors, tf, perception]#, control]
 
     cmd = "ros2 node list"
     running_nodes = os.popen(cmd).read().split("\n")

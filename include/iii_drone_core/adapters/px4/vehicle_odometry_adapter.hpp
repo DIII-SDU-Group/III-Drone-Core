@@ -140,6 +140,23 @@ namespace px4 {
         const iii_drone::types::point_t & position() const;
 
         /**
+         * @brief Applies an additive offset to the converted ROS-frame position.
+         *
+         * This is used by consumers that preserve a continuous ROS world frame
+         * across PX4 local-position estimator resets.
+         *
+         * @param offset Position offset in the ROS world frame.
+         */
+        void ApplyPositionOffset(const iii_drone::types::point_t & offset);
+
+        /**
+         * @brief PX4 odometry reset counter getter.
+         *
+         * @return Reset counter.
+         */
+        uint8_t reset_counter() const;
+
+        /**
          * @brief Quaternion getter
          *
          * @return Quaternion
@@ -203,6 +220,7 @@ namespace px4 {
          * @brief PX4 odometry position
          */
         iii_drone::types::point_t position_;
+        uint8_t reset_counter_;
 
         /**
          * @brief PX4 odometry quaternion

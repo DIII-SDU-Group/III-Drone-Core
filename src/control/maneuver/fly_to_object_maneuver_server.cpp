@@ -4,11 +4,51 @@
 
 #include <iii_drone_core/control/maneuver/fly_to_object_maneuver_server.hpp>
 
+#include <algorithm>
+#include <cmath>
+
 using namespace iii_drone::control::maneuver;
 using namespace iii_drone::control;
 using namespace iii_drone::types;
 using namespace iii_drone::math;
 using namespace iii_drone::adapters;
+
+namespace {
+
+double shortestYawError(double current_yaw, double target_yaw) {
+    return std::atan2(std::sin(target_yaw - current_yaw), std::cos(target_yaw - current_yaw));
+}
+
+double shortestCableAxisYawError(double current_yaw, double target_yaw) {
+    double error = shortestYawError(current_yaw, target_yaw);
+    if (error > M_PI_2) {
+        error -= M_PI;
+    } else if (error < -M_PI_2) {
+        error += M_PI;
+    }
+    return error;
+}
+
+Reference referenceWithCableAxisYawClosestTo(const Reference & reference, double current_yaw) {
+    return Reference(
+        reference.position(),
+        current_yaw + shortestCableAxisYawError(current_yaw, reference.yaw()),
+        reference.velocity(),
+        reference.yaw_rate(),
+        reference.acceleration(),
+        reference.yaw_acceleration(),
+        reference.stamp()
+    );
+}
+
+constexpr double kFinalReferencePositionToleranceM = 1.0e-3;
+constexpr double kFinalReferenceYawToleranceRad = 1.0e-3;
+constexpr double kFinalReferenceVelocityToleranceMps = 1.0e-3;
+constexpr double kFinalReferenceYawRateToleranceRadps = 1.0e-3;
+constexpr double kFinalReferenceAccelerationToleranceMps2 = 1.0e-3;
+constexpr double kFinalReferenceYawAccelerationToleranceRadps2 = 1.0e-3;
+
+}  // namespace
 
 /*****************************************************************************/
 // Implementation
@@ -94,12 +134,16 @@ void FlyToObjectManeuverServer::startExecution(Maneuver & maneuver) {
 
     target_adapter_ = params.target_adapter;
 
+    const auto target_transform = target_adapter_->target_transform();
     RCLCPP_DEBUG(
         node()->get_logger(), 
-        "FlyToObjectManeuverServer::startExecution(): Starting execution of maneuver with target type %d, target id %d, and target frame id %s.",
+        "FlyToObjectManeuverServer::startExecution(): target_type=%d target_id=%d reference_frame=%s target_transform_translation=[%.3f, %.3f, %.3f]",
         target_adapter_->target_type(),
         target_adapter_->target_id(),
-        target_adapter_->reference_frame_id().c_str()
+        target_adapter_->reference_frame_id().c_str(),
+        target_transform(0, 3),
+        target_transform(1, 3),
+        target_transform(2, 3)
     );
 
     if (trajectory_generator_client_->busy()) {
@@ -114,6 +158,17 @@ void FlyToObjectManeuverServer::startExecution(Maneuver & maneuver) {
 
     first_iteration_ = true;
     has_failed_ = false;
+    active_target_reference_valid_ = false;
+    mpc_settle_active_ = false;
+    mpc_settle_first_iteration_ = false;
+    target_position_filter_initialized_ = false;
+    filtered_target_position_ = point_t::Zero();
+    last_target_position_filter_update_time_ = node()->now();
+    maneuver_start_time_ = node()->now();
+    threshold_reached_logged_ = false;
+    settle_threshold_reached_logged_ = false;
+    final_reference_streamed_logged_ = false;
+    success_timing_logged_ = false;
 
     cda_handler->SetTarget(target_adapter_);
 
@@ -123,23 +178,62 @@ bool FlyToObjectManeuverServer::canCancel() {
     return true;
 }
 
+bool FlyToObjectManeuverServer::rebaseExecution(
+    const State & stopped_state,
+    std::string & reason
+) {
+    if (trajectory_generator_client_->busy()) {
+        reason = "trajectory generator is busy";
+        return false;
+    }
+    first_iteration_ = true;
+    has_failed_ = false;
+    active_target_reference_valid_ = false;
+    mpc_settle_active_ = false;
+    mpc_settle_first_iteration_ = false;
+    target_position_filter_initialized_ = false;
+    filtered_target_position_ = stopped_state.position();
+    last_target_position_filter_update_time_ = node()->now();
+    maneuver_start_time_ = node()->now();
+    reason = "replanned fly-to-object from stopped state";
+    return true;
+}
+
 Reference FlyToObjectManeuverServer::computeReference(const State & state) {
 
     Reference target_reference;
-    
-    try {
-
-        target_reference = getUpdatedTargetReference(state);
-
-    } catch (const std::runtime_error &e) {
-
-        has_failed_ = true;
-        return Reference(state);
-
-    }
-
+    const bool use_mpc = configuration_->GetParameter("/control/maneuver_controller/fly_to_object_use_mpc").as_bool();
     bool reset = first_iteration_;
     bool set_reference = true;
+    bool compute_with_mpc = use_mpc;
+
+    if (mpc_settle_active_) {
+        target_reference = mpc_settle_target_reference_;
+        reset = set_reference = mpc_settle_first_iteration_;
+        compute_with_mpc = false;
+        RCLCPP_DEBUG_THROTTLE(
+            node()->get_logger(),
+            *node()->get_clock(),
+            1000,
+            "FlyToObjectManeuverServer::computeReference(): Using post-MPC interpolation settle"
+        );
+    } else {
+        try {
+
+            target_reference = filterTargetPositionReference(
+                getUpdatedTargetReference(state),
+                state
+            );
+            active_target_reference_ = target_reference;
+            active_target_reference_valid_ = true;
+
+        } catch (const std::runtime_error &e) {
+
+            has_failed_ = true;
+            return Reference(state);
+
+        }
+    }
 
     Reference ref;
     
@@ -151,7 +245,7 @@ Reference FlyToObjectManeuverServer::computeReference(const State & state) {
             set_reference,
             reset,
             trajectory_mode_t::positional,
-            configuration_->GetParameter("/control/maneuver_controller/fly_to_object_use_mpc").as_bool()
+            compute_with_mpc
         );
 
     } catch (const std::runtime_error &e) {
@@ -168,6 +262,12 @@ Reference FlyToObjectManeuverServer::computeReference(const State & state) {
 
     }
 
+    if (mpc_settle_first_iteration_) {
+
+        mpc_settle_first_iteration_ = false;
+
+    }
+
     return ref;
 
 }
@@ -178,37 +278,156 @@ bool FlyToObjectManeuverServer::hasSucceeded(Maneuver & maneuver) {
 
     State state = cda_handler->GetState();
 
-    Reference target_reference;
-    
-    try {
-        target_reference = getUpdatedTargetReference(state);
-    } catch (const std::runtime_error &e) {
-        RCLCPP_ERROR(node()->get_logger(), "FlyToObjectManeuverServer::hasSucceeded(): Failed to get updated target reference, exception: %s", e.what());
-        has_failed_ = true;
+    if (!active_target_reference_valid_) {
         return false;
     }
+
+    Reference target_reference = active_target_reference_.Load();
 
     if (hasFailed(maneuver)) {
         return false;
     }
 
-    Eigen::Vector4d euc_pos = {
-        state.position()[0], 
-        state.position()[1], 
-        state.position()[2], 
-        state.yaw()
-    };
+    const double position_distance = (state.position() - target_reference.position()).norm();
+    const double yaw_error = std::abs(shortestCableAxisYawError(state.yaw(), target_reference.yaw()));
+    const double distance = std::hypot(position_distance, yaw_error);
 
-    Eigen::Vector4d target_euc_pos = {
-        target_reference.position()[0], 
-        target_reference.position()[1], 
-        target_reference.position()[2], 
-        target_reference.yaw()
-    };
+    const bool use_mpc = configuration_->GetParameter("/control/maneuver_controller/fly_to_object_use_mpc").as_bool();
+    const bool vehicle_reached_target = distance < configuration_->GetParameter("/control/maneuver_controller/reached_position_euclidean_distance_threshold").as_double();
+    bool succeeded = vehicle_reached_target;
+    bool final_reference_streamed = false;
 
-    double distance = (euc_pos - target_euc_pos).norm();
+    if (vehicle_reached_target && !threshold_reached_logged_) {
+        threshold_reached_logged_ = true;
+        RCLCPP_INFO(
+            node()->get_logger(),
+            "FlyToObjectManeuverServer::hasSucceeded(): timing: vehicle reached threshold after %.3f s. target_id=%d distance=%.3f position_distance=%.3f yaw_error=%.3f",
+            (node()->now() - maneuver_start_time_).seconds(),
+            target_adapter_->target_id(),
+            distance,
+            position_distance,
+            yaw_error
+        );
+    }
 
-    return distance < configuration_->GetParameter("/control/maneuver_controller/reached_position_euclidean_distance_threshold").as_double();
+    if (use_mpc) {
+        if (!mpc_settle_active_) {
+            if (!vehicle_reached_target) {
+                return false;
+            }
+
+            try {
+                target_reference = getUpdatedTargetReference(state);
+            } catch (const std::runtime_error & e) {
+                RCLCPP_WARN(
+                    node()->get_logger(),
+                    "FlyToObjectManeuverServer::hasSucceeded(): MPC reached threshold but final raw target reference is unavailable: %s",
+                    e.what()
+                );
+                return false;
+            }
+
+            mpc_settle_target_reference_ = target_reference;
+            mpc_settle_active_ = true;
+            mpc_settle_first_iteration_ = true;
+            RCLCPP_INFO(
+                node()->get_logger(),
+                "FlyToObjectManeuverServer::hasSucceeded(): MPC reached threshold; entering final interpolation settle to target_id=%d position=[%.3f, %.3f, %.3f], yaw=%.3f",
+                target_adapter_->target_id(),
+                target_reference.position()(0),
+                target_reference.position()(1),
+                target_reference.position()(2),
+                target_reference.yaw()
+            );
+            return false;
+        }
+
+        target_reference = mpc_settle_target_reference_;
+        const double settle_position_distance = (state.position() - target_reference.position()).norm();
+        const double settle_yaw_error = std::abs(shortestCableAxisYawError(state.yaw(), target_reference.yaw()));
+        const double settle_distance = std::hypot(settle_position_distance, settle_yaw_error);
+        const bool vehicle_reached_settle_target =
+            settle_distance < configuration_->GetParameter("/control/maneuver_controller/reached_position_euclidean_distance_threshold").as_double();
+        final_reference_streamed = interpolationFinalReferenceStreamed(target_reference);
+        if (vehicle_reached_settle_target && !settle_threshold_reached_logged_) {
+            settle_threshold_reached_logged_ = true;
+            RCLCPP_INFO(
+                node()->get_logger(),
+                "FlyToObjectManeuverServer::hasSucceeded(): timing: post-MPC settle reached threshold after %.3f s. target_id=%d distance=%.3f position_distance=%.3f yaw_error=%.3f final_reference_streamed=%s",
+                (node()->now() - maneuver_start_time_).seconds(),
+                target_adapter_->target_id(),
+                settle_distance,
+                settle_position_distance,
+                settle_yaw_error,
+                final_reference_streamed ? "true" : "false"
+            );
+        }
+        if (final_reference_streamed && !final_reference_streamed_logged_) {
+            final_reference_streamed_logged_ = true;
+            RCLCPP_INFO(
+                node()->get_logger(),
+                "FlyToObjectManeuverServer::hasSucceeded(): timing: interpolation final reference streamed after %.3f s. target_id=%d distance=%.3f position_distance=%.3f yaw_error=%.3f vehicle_reached_threshold=%s",
+                (node()->now() - maneuver_start_time_).seconds(),
+                target_adapter_->target_id(),
+                settle_distance,
+                settle_position_distance,
+                settle_yaw_error,
+                vehicle_reached_settle_target ? "true" : "false"
+            );
+        }
+        succeeded = vehicle_reached_settle_target && final_reference_streamed;
+        if (!succeeded) {
+            RCLCPP_DEBUG_THROTTLE(
+                node()->get_logger(),
+                *node()->get_clock(),
+                1000,
+                "FlyToObjectManeuverServer::hasSucceeded(): waiting for post-MPC interpolation settle. distance=%.3f position_distance=%.3f yaw_error=%.3f",
+                settle_distance,
+                settle_position_distance,
+                settle_yaw_error
+            );
+        }
+    } else {
+        final_reference_streamed = interpolationFinalReferenceStreamed(target_reference);
+        if (final_reference_streamed && !final_reference_streamed_logged_) {
+            final_reference_streamed_logged_ = true;
+            RCLCPP_INFO(
+                node()->get_logger(),
+                "FlyToObjectManeuverServer::hasSucceeded(): timing: interpolation final reference streamed after %.3f s. target_id=%d distance=%.3f position_distance=%.3f yaw_error=%.3f vehicle_reached_threshold=%s",
+                (node()->now() - maneuver_start_time_).seconds(),
+                target_adapter_->target_id(),
+                distance,
+                position_distance,
+                yaw_error,
+                vehicle_reached_target ? "true" : "false"
+            );
+        }
+        succeeded = vehicle_reached_target && final_reference_streamed;
+        if (vehicle_reached_target && !succeeded) {
+            RCLCPP_DEBUG_THROTTLE(
+                node()->get_logger(),
+                *node()->get_clock(),
+                1000,
+                "FlyToObjectManeuverServer::hasSucceeded(): vehicle is within threshold, waiting for interpolation final reference to stream."
+            );
+        }
+    }
+
+    if (succeeded && !success_timing_logged_) {
+        success_timing_logged_ = true;
+        RCLCPP_INFO(
+            node()->get_logger(),
+            "FlyToObjectManeuverServer::hasSucceeded(): timing: succeeded after %.3f s. target_id=%d distance=%.3f position_distance=%.3f yaw_error=%.3f final_reference_streamed=%s",
+            (node()->now() - maneuver_start_time_).seconds(),
+            target_adapter_->target_id(),
+            distance,
+            position_distance,
+            yaw_error,
+            final_reference_streamed ? "true" : "false"
+        );
+    }
+
+    return succeeded;
 
 }
 
@@ -237,13 +456,29 @@ bool FlyToObjectManeuverServer::hasFailed(Maneuver &) {
         return true;
     }
 
-    if (cda_handler->target_adapter() != *target_adapter_) {
-        RCLCPP_WARN(node()->get_logger(), "FlyToObjectManeuverServer::hasFailed(): Target adapter has changed, returning true.");
+    TargetAdapter active_target_adapter = cda_handler->target_adapter();
+    if (active_target_adapter != *target_adapter_) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "FlyToObjectManeuverServer::hasFailed(): Target adapter has changed, returning true. expected(type=%d,id=%d,frame=%s) active(type=%d,id=%d,frame=%s)",
+            target_adapter_->target_type(),
+            target_adapter_->target_id(),
+            target_adapter_->reference_frame_id().c_str(),
+            active_target_adapter.target_type(),
+            active_target_adapter.target_id(),
+            active_target_adapter.reference_frame_id().c_str()
+        );
         return true;
     }
 
-    if (!cda_handler->target_position_known()) {
-        RCLCPP_WARN(node()->get_logger(), "FlyToObjectManeuverServer::hasFailed(): Target position is not known, returning true.");
+    try {
+        (void)cda_handler->ComputeTargetTransform(*target_adapter_);
+    } catch (const std::runtime_error & e) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "FlyToObjectManeuverServer::hasFailed(): Target transform is not currently computable, returning true: %s",
+            e.what()
+        );
         return true;
     }
 
@@ -297,30 +532,57 @@ void FlyToObjectManeuverServer::publishResultAndFinalize(
 
     auto result = std::make_shared<iii_drone_interfaces::action::FlyToObject::Result>();
     auto goal_handle = std::static_pointer_cast<GoalHandleFlyToObject>(maneuver.goal_handle());
-
-    Reference target_reference;
-
-    try {
-        target_reference = getUpdatedTargetReference(awareness_handler()->GetState());
-    } catch (const std::runtime_error &e) {
-        RCLCPP_ERROR(node()->get_logger(), "FlyToObjectManeuverServer::publishResultAndFinalize(): Failed to get updated target reference, exception: %s", e.what());
-        maneuver_result_type = MANEUVER_RESULT_TYPE_ABORT;
-    }
-
+    auto set_best_known_target_reference = [&]() {
+        if (mpc_settle_active_) {
+            result->target_reference = ReferenceAdapter(mpc_settle_target_reference_.Load()).ToMsg();
+            return;
+        }
+        if (active_target_reference_valid_) {
+            result->target_reference = ReferenceAdapter(active_target_reference_.Load()).ToMsg();
+            return;
+        }
+        try {
+            result->target_reference = ReferenceAdapter(getUpdatedTargetReference(awareness_handler()->GetState())).ToMsg();
+        } catch (const std::runtime_error &e) {
+            RCLCPP_WARN(
+                node()->get_logger(),
+                "FlyToObjectManeuverServer::publishResultAndFinalize(): Could not set target_reference for failed result, exception: %s",
+                e.what()
+            );
+        }
+    };
 
     switch (maneuver_result_type) {
         case MANEUVER_RESULT_TYPE_SUCCEED:
             result->success = true;
-            result->target_reference = ReferenceAdapter(target_reference).ToMsg();
+            if (mpc_settle_active_) {
+                result->target_reference = ReferenceAdapter(mpc_settle_target_reference_).ToMsg();
+            } else if (active_target_reference_valid_) {
+                result->target_reference = ReferenceAdapter(active_target_reference_.Load()).ToMsg();
+            } else {
+                Reference target_reference;
+                try {
+                    target_reference = getUpdatedTargetReference(awareness_handler()->GetState());
+                } catch (const std::runtime_error &e) {
+                    RCLCPP_ERROR(node()->get_logger(), "FlyToObjectManeuverServer::publishResultAndFinalize(): Failed to get updated target reference, exception: %s", e.what());
+                    result->success = false;
+                    goal_handle->abort(result);
+                    awareness_handler()->ClearTarget();
+                    break;
+                }
+                result->target_reference = ReferenceAdapter(target_reference).ToMsg();
+            }
             goal_handle->succeed(result);
             break;
         case MANEUVER_RESULT_TYPE_ABORT:
             result->success = false;
+            set_best_known_target_reference();
             goal_handle->abort(result);
             awareness_handler()->ClearTarget();
             break;
         case MANEUVER_RESULT_TYPE_CANCEL:
             result->success = false;
+            set_best_known_target_reference();
             goal_handle->canceled(result);
             awareness_handler()->ClearTarget();
             break;
@@ -366,11 +628,186 @@ void FlyToObjectManeuverServer::registerReferenceCallbackOnSuccess(const Maneuve
 
 }
 
-Reference FlyToObjectManeuverServer::getUpdatedTargetReference(const iii_drone::control::State &) {
+Reference FlyToObjectManeuverServer::getUpdatedTargetReference(const iii_drone::control::State & state) {
 
     auto cda_handler = awareness_handler();
 
-    return Reference(cda_handler->ComputeTargetState(target_adapter_));
+    Reference reference = enforceMinimumTargetAltitude(referenceWithCableAxisYawClosestTo(
+        Reference(cda_handler->ComputeTargetState(target_adapter_)),
+        state.yaw()
+    ));
+
+    RCLCPP_DEBUG_THROTTLE(
+        node()->get_logger(),
+        *node()->get_clock(),
+        1000,
+        "FlyToObjectManeuverServer::getUpdatedTargetReference(): target_id=%d reference=[%.3f, %.3f, %.3f, yaw=%.3f]",
+        target_adapter_->target_id(),
+        reference.position()(0),
+        reference.position()(1),
+        reference.position()(2),
+        reference.yaw()
+    );
+
+    return reference;
+
+}
+
+Reference FlyToObjectManeuverServer::enforceMinimumTargetAltitude(
+    const iii_drone::control::Reference & reference
+) const {
+
+    const double minimum_z = awareness_handler()->ground_altitude_estimate()
+        + configuration_->GetParameter("/control/maneuver_controller/minimum_target_altitude").as_double();
+
+    point_t position = reference.position();
+    if (position(2) >= minimum_z) {
+        return reference;
+    }
+
+    RCLCPP_WARN(
+        node()->get_logger(),
+        "FlyToObjectManeuverServer::enforceMinimumTargetAltitude(): Clamping fly-to-object target z from %.3f to %.3f",
+        position(2),
+        minimum_z
+    );
+    position(2) = minimum_z;
+
+    return Reference(
+        position,
+        reference.yaw(),
+        reference.velocity(),
+        reference.yaw_rate(),
+        reference.acceleration(),
+        reference.yaw_acceleration(),
+        reference.stamp()
+    );
+
+}
+
+Reference FlyToObjectManeuverServer::filterTargetPositionReference(
+    const iii_drone::control::Reference & raw_reference,
+    const iii_drone::control::State & state
+) {
+
+    const double time_constant_s = configuration_->GetParameter(
+        "/control/maneuver_controller/fly_to_object_target_low_pass_time_constant_s"
+    ).as_double();
+
+    if (time_constant_s <= 0.0) {
+        target_position_filter_initialized_ = false;
+        return raw_reference;
+    }
+
+    const rclcpp::Time now = node()->now();
+
+    double dt_s = 0.0;
+    if (!target_position_filter_initialized_) {
+        filtered_target_position_ = state.position();
+        target_position_filter_initialized_ = true;
+    } else {
+        dt_s = (now - last_target_position_filter_update_time_).seconds();
+    }
+
+    if (!std::isfinite(dt_s) || dt_s <= 0.0 || dt_s > 1.0) {
+        dt_s = static_cast<double>(
+            configuration_->GetParameter("/control/maneuver_controller/maneuver_execution_period_ms").as_int()
+        ) / 1000.0;
+    }
+
+    last_target_position_filter_update_time_ = now;
+
+    const double alpha = std::clamp(dt_s / (time_constant_s + dt_s), 0.0, 1.0);
+    const point_t previous_filtered_position = filtered_target_position_;
+    const point_t raw_position = raw_reference.position();
+    filtered_target_position_ = previous_filtered_position + alpha * (raw_position - previous_filtered_position);
+
+    RCLCPP_DEBUG_THROTTLE(
+        node()->get_logger(),
+        *node()->get_clock(),
+        1000,
+        "FlyToObjectManeuverServer::filterTargetPositionReference(): target_id=%d raw=[%.3f, %.3f, %.3f] filtered=[%.3f, %.3f, %.3f] alpha=%.3f tau=%.3f dt=%.3f",
+        target_adapter_->target_id(),
+        raw_position(0),
+        raw_position(1),
+        raw_position(2),
+        filtered_target_position_(0),
+        filtered_target_position_(1),
+        filtered_target_position_(2),
+        alpha,
+        time_constant_s,
+        dt_s
+    );
+
+    return Reference(
+        filtered_target_position_,
+        raw_reference.yaw(),
+        raw_reference.velocity(),
+        raw_reference.yaw_rate(),
+        raw_reference.acceleration(),
+        raw_reference.yaw_acceleration(),
+        raw_reference.stamp()
+    );
+
+}
+
+bool FlyToObjectManeuverServer::interpolationFinalReferenceStreamed(
+    const iii_drone::control::Reference & target_reference
+) const {
+
+    ReferenceTrajectory trajectory;
+    try {
+        trajectory = trajectory_generator_client_->GetReferenceTrajectory();
+    } catch (const std::runtime_error & e) {
+        RCLCPP_DEBUG_THROTTLE(
+            node()->get_logger(),
+            *node()->get_clock(),
+            1000,
+            "FlyToObjectManeuverServer::interpolationFinalReferenceStreamed(): No trajectory available yet: %s",
+            e.what()
+        );
+        return false;
+    }
+
+    if (trajectory.references().empty()) {
+        return false;
+    }
+
+    const Reference streamed_reference = trajectory.references().front();
+
+    const double position_error = (streamed_reference.position() - target_reference.position()).norm();
+    const double yaw_error = std::abs(shortestCableAxisYawError(streamed_reference.yaw(), target_reference.yaw()));
+    const double velocity_norm = streamed_reference.velocity().norm();
+    const double yaw_rate_abs = std::abs(streamed_reference.yaw_rate());
+    const double acceleration_norm = streamed_reference.acceleration().norm();
+    const double yaw_acceleration_abs = std::abs(streamed_reference.yaw_acceleration());
+
+    const bool final_reference_streamed =
+        position_error <= kFinalReferencePositionToleranceM &&
+        yaw_error <= kFinalReferenceYawToleranceRad &&
+        velocity_norm <= kFinalReferenceVelocityToleranceMps &&
+        yaw_rate_abs <= kFinalReferenceYawRateToleranceRadps &&
+        acceleration_norm <= kFinalReferenceAccelerationToleranceMps2 &&
+        yaw_acceleration_abs <= kFinalReferenceYawAccelerationToleranceRadps2;
+
+    if (!final_reference_streamed) {
+        const TargetAdapter target_adapter = target_adapter_.Load();
+        RCLCPP_DEBUG_THROTTLE(
+            node()->get_logger(),
+            *node()->get_clock(),
+            1000,
+            "FlyToObjectManeuverServer::interpolationFinalReferenceStreamed(): target_id=%d position_error=%.4f yaw_error=%.4f velocity_norm=%.4f yaw_rate=%.4f acceleration_norm=%.4f yaw_acceleration=%.4f",
+            target_adapter.target_id(),
+            position_error,
+            yaw_error,
+            velocity_norm,
+            yaw_rate_abs,
+            acceleration_norm,
+            yaw_acceleration_abs
+        );
+    }
+
+    return final_reference_streamed;
 
 }
 
@@ -426,12 +863,24 @@ bool FlyToObjectManeuverServer::validateAwarenessAndParameters(
 
     }
 
-    point_t target_position_in_world_frame = target_transform.block<3, 1>(0, 3);
+    Reference target_reference = enforceMinimumTargetAltitude(Reference(State(
+        target_transform.block<3, 1>(0, 3),
+        vector_t::Zero(),
+        matToQuat(target_transform.block<3, 3>(0, 0)),
+        vector_t::Zero()
+    )));
+    point_t target_position_in_world_frame = target_reference.position();
 
     bool target_position_valid = target_position_in_world_frame[2] - cda_handler->ground_altitude_estimate() >= configuration_->GetParameter("/control/maneuver_controller/minimum_target_altitude").as_double();
 
     if (!target_position_valid) {
-        RCLCPP_WARN(node()->get_logger(), "FlyToObjectManeuverServer::validateAwarenessAndParameters(): Target position is not valid, returning false.");
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "FlyToObjectManeuverServer::validateAwarenessAndParameters(): Target position is not valid after minimum-altitude clamp, target_z=%.3f ground=%.3f min_altitude=%.3f, returning false.",
+            target_position_in_world_frame[2],
+            cda_handler->ground_altitude_estimate(),
+            configuration_->GetParameter("/control/maneuver_controller/minimum_target_altitude").as_double()
+        );
         return false;
     }
 
