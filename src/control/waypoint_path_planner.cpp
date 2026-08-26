@@ -6,6 +6,8 @@
 #include <limits>
 #include <stdexcept>
 
+#include <eigen3/Eigen/Geometry>
+
 #include <iii_drone_core/utils/math.hpp>
 
 using iii_drone::types::point_t;
