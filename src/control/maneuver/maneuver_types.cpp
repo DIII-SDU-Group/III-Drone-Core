@@ -21,7 +21,7 @@ follow_waypoint_path_maneuver_params_t::follow_waypoint_path_maneuver_params_t(s
 
 fly_to_position_maneuver_params_t::fly_to_position_maneuver_params_t() {
     frame_id = "";
-    target_position = point_t();
+    target_position = point_t::Zero();
     target_yaw = 0.0;
     blend_to_next = false;
     ignore_altitude = false;
