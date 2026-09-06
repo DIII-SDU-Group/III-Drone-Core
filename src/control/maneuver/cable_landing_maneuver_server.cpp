@@ -1672,7 +1672,12 @@ Reference CableLandingManeuverServer::truncateReferenceWithinSafetyZone(
 
     return Reference(
         point_t::Constant(NAN),
-        NAN,
+        // The near-cable controller intentionally drops absolute position so
+        // PX4 follows its velocity channels.  Keep the trajectory yaw,
+        // however: the MPC output commonly has no yaw-rate, and clearing both
+        // yaw and yaw-rate creates an invalid Reference that the mission-side
+        // safety guard must reject.
+        reference.yaw(),
         reference.velocity(),
         reference.yaw_rate(),
         reference.acceleration(),
