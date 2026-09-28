@@ -115,7 +115,7 @@ ReferenceTrajectory CableAwareTrajectoryPlanner::ComputeReferenceTrajectory(
                 start_requires_terminal_exception,
                 goal_requires_terminal_exception
             )) {
-            RCLCPP_WARN(
+            RCLCPP_INFO(
                 node_->get_logger(),
                 "CableAwareTrajectoryPlanner::ComputeReferenceTrajectory(): LLS-smoothed trajectory violates cable clearance or terminal constraints; using piecewise-linear A* trajectory."
             );
@@ -162,7 +162,7 @@ std::vector<point_t> CableAwareTrajectoryPlanner::planAStarPath(
         throw std::runtime_error("CableAwareTrajectoryPlanner: goal position violates cable clearance.");
     }
     if (start_requires_terminal_exception) {
-        RCLCPP_WARN(
+        RCLCPP_INFO(
             node_->get_logger(),
             "CableAwareTrajectoryPlanner::planAStarPath(): Start position violates cable clearance; allowing bounded terminal exception while planning escape path."
         );

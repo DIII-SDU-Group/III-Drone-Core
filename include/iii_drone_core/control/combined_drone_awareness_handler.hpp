@@ -586,6 +586,9 @@ namespace control {
             const rclcpp::Time & receipt) const;
         bool isolatedLocalStampRegression(const LocalResetMetadata & metadata) const;
         uint64_t discarded_stamp_regressions_ = 0;
+        void logResetClassification(bool heading_only, const char * context,
+            uint8_t from_counter, uint8_t to_counter, uint64_t odometry_source_us,
+            uint64_t local_source_us, uint64_t prior_local_source_us) const;
 
         /**
          * @brief Updates the combined drone awareness from the vehicle odometry.

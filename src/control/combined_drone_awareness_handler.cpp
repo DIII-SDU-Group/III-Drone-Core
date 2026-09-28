@@ -3,6 +3,8 @@
 /*****************************************************************************/
 
 #include <iii_drone_core/control/combined_drone_awareness_handler.hpp>
+
+#include <cstdio>
 #include <algorithm>
 #include <cmath>
 #include <utility>
@@ -562,6 +564,27 @@ bool CombinedDroneAwarenessHandler::metadataMatches(
         std::abs((receipt - metadata.receipt).seconds()) <= 0.25;
 }
 
+void CombinedDroneAwarenessHandler::logResetClassification(
+    bool heading_only, const char * context, uint8_t from_counter, uint8_t to_counter,
+    uint64_t odometry_source_us, uint64_t local_source_us,
+    uint64_t prior_local_source_us) const {
+    // A qualified heading-only reset is a normal PX4 event that Core handles
+    // continuously; only a position-continuity fault is a warning.
+    char text[256];
+    std::snprintf(text, sizeof(text),
+        "PX4 odometry reset %u->%u classified %s%s (odometry_source_us=%llu local_source_us=%llu prior_local_source_us=%llu)",
+        static_cast<unsigned>(from_counter), static_cast<unsigned>(to_counter),
+        heading_only ? "heading-only position-continuous" : "position-continuity fault",
+        context, static_cast<unsigned long long>(odometry_source_us),
+        static_cast<unsigned long long>(local_source_us),
+        static_cast<unsigned long long>(prior_local_source_us));
+    if (heading_only) {
+        RCLCPP_INFO(node_->get_logger(), "%s", text);
+    } else {
+        RCLCPP_WARN(node_->get_logger(), "%s", text);
+    }
+}
+
 bool CombinedDroneAwarenessHandler::isolatedOdometryStampRegression(
     const MeasuredOdometrySnapshot & previous,
     const px4_msgs::msg::VehicleOdometry & message,
@@ -719,14 +742,9 @@ void CombinedDroneAwarenessHandler::ingestVehicleOdometry(
         metadataMatches(*latest_local_reset_, message, receipt)) {
         const bool heading_only = headingOnly(*verified_local_reset_, *latest_local_reset_) &&
             message.reset_counter == static_cast<uint8_t>(previous->reset_counter + 1);
-        RCLCPP_WARN(node_->get_logger(),
-            "PX4 odometry reset %u->%u classified %s (odometry_source_us=%llu local_source_us=%llu prior_local_source_us=%llu)",
-            static_cast<unsigned>(previous->reset_counter),
-            static_cast<unsigned>(message.reset_counter),
-            heading_only ? "heading-only position-continuous" : "position-continuity fault",
-            static_cast<unsigned long long>(message.timestamp_sample),
-            static_cast<unsigned long long>(latest_local_reset_->source_sample_us),
-            static_cast<unsigned long long>(verified_local_reset_->source_sample_us));
+        logResetClassification(heading_only, "",
+            previous->reset_counter, message.reset_counter, message.timestamp_sample,
+            latest_local_reset_->source_sample_us, verified_local_reset_->source_sample_us);
         acceptMeasuredOdometry(message, receipt, heading_only, !heading_only);
         verified_local_reset_ = latest_local_reset_;
         pending_odometry_.reset();
@@ -735,7 +753,9 @@ void CombinedDroneAwarenessHandler::ingestVehicleOdometry(
     // Wait for reordered metadata without refreshing the accepted sample.
     // If none arrives, its original receipt expires under the existing guard.
     if (!pending_odometry_) {
-        RCLCPP_WARN(node_->get_logger(),
+        // Transient: the matching local-position record normally follows
+        // within one DDS reorder window; expiry is fenced by freshness.
+        RCLCPP_INFO(node_->get_logger(),
             "PX4 odometry reset %u->%u awaiting source-qualified local-position metadata (odometry_source_us=%llu prior_source_us=%llu)",
             static_cast<unsigned>(previous->reset_counter),
             static_cast<unsigned>(message.reset_counter),
@@ -846,15 +866,11 @@ void CombinedDroneAwarenessHandler::ingestVehicleLocalPosition(
             headingOnly(*verified_local_reset_, metadata) &&
             pending_odometry_->message.reset_counter ==
                 static_cast<uint8_t>(previous->reset_counter + 1);
-        RCLCPP_WARN(node_->get_logger(),
-            "PX4 odometry reset %u->%u classified %s after DDS reorder (odometry_source_us=%llu local_source_us=%llu prior_local_source_us=%llu)",
-            previous ? static_cast<unsigned>(previous->reset_counter) : 0U,
-            static_cast<unsigned>(pending_odometry_->message.reset_counter),
-            heading_only ? "heading-only position-continuous" : "position-continuity fault",
-            static_cast<unsigned long long>(pending_odometry_->message.timestamp_sample),
-            static_cast<unsigned long long>(metadata.source_sample_us),
-            static_cast<unsigned long long>(verified_local_reset_
-                ? verified_local_reset_->source_sample_us : 0));
+        logResetClassification(heading_only, " after DDS reorder",
+            previous ? previous->reset_counter : 0U,
+            pending_odometry_->message.reset_counter,
+            pending_odometry_->message.timestamp_sample, metadata.source_sample_us,
+            verified_local_reset_ ? verified_local_reset_->source_sample_us : 0);
         acceptMeasuredOdometry(pending_odometry_->message,
             pending_odometry_->receipt, heading_only, !heading_only);
         verified_local_reset_ = metadata;

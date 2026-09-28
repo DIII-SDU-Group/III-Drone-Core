@@ -1037,7 +1037,7 @@ void ManeuverServer::asyncExecute(
 
     if (canceling) {
 
-        RCLCPP_WARN(
+        RCLCPP_INFO(
             node_->get_logger(), 
             "ManeuverServer::asyncExecute(): %s: Goal is canceling, cancelling maneuver",
             action_name_.c_str()

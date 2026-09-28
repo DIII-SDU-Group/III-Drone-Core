@@ -1494,7 +1494,7 @@ bool CableLandingManeuverServer::isWithinSafetyMargins(
         const double threshold = configuration_->GetParameter(
             "/control/maneuver_controller/cable_landing_safety_zone_radius"
         ).as_double();
-        RCLCPP_WARN_THROTTLE(
+        RCLCPP_INFO_THROTTLE(
             node()->get_logger(),
             *node()->get_clock(),
             1000,

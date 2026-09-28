@@ -180,7 +180,9 @@ ManeuverReferenceClient::readReferenceStream(Reference & reference) {
             auto event = iii_drone::diagnostics::HilTrace::event("reference_stream_read");
             event.text("decision", "unavailable_no_sample");
             event.commit();
-            RCLCPP_WARN_THROTTLE(
+            // Expected until the first sample of a new generation arrives;
+            // sustained loss is reported by the reference-loss paths.
+            RCLCPP_DEBUG_THROTTLE(
                 logger_, *clock_, 1000,
                 "ManeuverReferenceClient::readReferenceStream(): no stream sample is available"
             );
