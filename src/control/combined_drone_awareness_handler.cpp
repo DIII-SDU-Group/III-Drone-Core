@@ -562,6 +562,38 @@ bool CombinedDroneAwarenessHandler::metadataMatches(
         std::abs((receipt - metadata.receipt).seconds()) <= 0.25;
 }
 
+bool CombinedDroneAwarenessHandler::isolatedOdometryStampRegression(
+    const MeasuredOdometrySnapshot & previous,
+    const px4_msgs::msg::VehicleOdometry & message,
+    const rclcpp::Time & receipt) const {
+    if (message.reset_counter != previous.reset_counter ||
+        !previous.position_continuity.source_qualified ||
+        pending_odometry_ || local_provenance_invalid_ ||
+        !latest_local_reset_ || !verified_local_reset_ ||
+        latest_local_reset_->aggregate() != previous.reset_counter ||
+        !samePositionBasis(*verified_local_reset_, *latest_local_reset_) ||
+        receipt.get_clock_type() != previous.receipt_stamp.get_clock_type() ||
+        receipt.get_clock_type() != latest_local_reset_->receipt.get_clock_type()) return false;
+    const double since_accepted = (receipt - previous.receipt_stamp).seconds();
+    const double since_metadata = (receipt - latest_local_reset_->receipt).seconds();
+    return since_accepted >= 0.0 && since_accepted <= 0.25 &&
+        since_metadata >= 0.0 && since_metadata <= 0.25;
+}
+
+bool CombinedDroneAwarenessHandler::isolatedLocalStampRegression(
+    const LocalResetMetadata & metadata) const {
+    const auto current = measured_odometry_.Load();
+    if (!current || !latest_local_reset_ || pending_odometry_ ||
+        !current->position_continuity.source_qualified ||
+        current->reset_counter != metadata.aggregate() ||
+        metadata.aggregate() != latest_local_reset_->aggregate() ||
+        metadata.heading != latest_local_reset_->heading ||
+        !samePositionBasis(*latest_local_reset_, metadata) ||
+        metadata.receipt.get_clock_type() != latest_local_reset_->receipt.get_clock_type()) return false;
+    const double since_metadata = (metadata.receipt - latest_local_reset_->receipt).seconds();
+    return since_metadata >= 0.0 && since_metadata <= 0.25;
+}
+
 void CombinedDroneAwarenessHandler::acceptMeasuredOdometry(
     const px4_msgs::msg::VehicleOdometry & message,
     const rclcpp::Time & receipt, bool qualified, bool new_position_epoch,
@@ -625,6 +657,17 @@ void CombinedDroneAwarenessHandler::ingestVehicleOdometry(
         verified_local_reset_.reset();
         pending_odometry_.reset();
         acceptMeasuredOdometry(message, receipt, false, false, true);
+        return;
+    }
+    if (previous && message.timestamp_sample < previous->source_sample_timestamp_us &&
+        isolatedOdometryStampRegression(*previous, message, receipt)) {
+        ++discarded_stamp_regressions_;
+        RCLCPP_WARN_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000,
+            "Discarded isolated PX4 odometry timestamp regression (raw_reset=%u odometry_source_us=%llu retained_source_us=%llu discarded_total=%llu)",
+            static_cast<unsigned>(message.reset_counter),
+            static_cast<unsigned long long>(message.timestamp_sample),
+            static_cast<unsigned long long>(previous->source_sample_timestamp_us),
+            static_cast<unsigned long long>(discarded_stamp_regressions_));
         return;
     }
     if (previous && message.timestamp_sample < previous->source_sample_timestamp_us) {
@@ -753,6 +796,16 @@ void CombinedDroneAwarenessHandler::ingestVehicleLocalPosition(
         if (metadata.source_sample_us < latest_local_reset_->source_sample_us) {
             if (latest_local_reset_->source_sample_us - metadata.source_sample_us <= 250'000)
                 return; // DDS reorder, never refresh provenance.
+            if (isolatedLocalStampRegression(metadata)) {
+                ++discarded_stamp_regressions_;
+                RCLCPP_WARN_THROTTLE(node_->get_logger(), *node_->get_clock(), 1000,
+                    "Discarded isolated PX4 local-position timestamp regression (aggregate_reset=%u local_source_us=%llu retained_source_us=%llu discarded_total=%llu)",
+                    static_cast<unsigned>(metadata.aggregate()),
+                    static_cast<unsigned long long>(metadata.source_sample_us),
+                    static_cast<unsigned long long>(latest_local_reset_->source_sample_us),
+                    static_cast<unsigned long long>(discarded_stamp_regressions_));
+                return; // Trusted metadata and its original receipt stay authoritative.
+            }
             ++odometry_source_epoch_;
             ++position_epoch_;
             verified_local_reset_.reset();

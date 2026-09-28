@@ -574,6 +574,18 @@ namespace control {
             const LocalResetMetadata & after);
         static bool samePositionBasis(const LocalResetMetadata & before,
             const LocalResetMetadata & after);
+        // A PX4 timesync filter reset publishes a few samples with a zero
+        // offset (boot-relative stamps between agent-clock stamps). These
+        // report whether a regressing sample is such an isolated stamp-only
+        // anomaly on an unchanged, source-qualified, fresh position basis.
+        // Discarding it never refreshes a receipt; sustained regressions age
+        // past the 250 ms bound and fence as before.
+        bool isolatedOdometryStampRegression(
+            const MeasuredOdometrySnapshot & previous,
+            const px4_msgs::msg::VehicleOdometry & message,
+            const rclcpp::Time & receipt) const;
+        bool isolatedLocalStampRegression(const LocalResetMetadata & metadata) const;
+        uint64_t discarded_stamp_regressions_ = 0;
 
         /**
          * @brief Updates the combined drone awareness from the vehicle odometry.

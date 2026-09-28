@@ -2716,6 +2716,68 @@ TEST(ManeuverReferenceClientTransaction, IsolatedOldLocalMetadataPreservesQualif
     }
 }
 
+TEST(ManeuverReferenceClientTransaction, SustainedOrChangedOldStampsStillFencePositionEpoch) {
+    RclcppContext context;
+    // 0: old odometry beyond the 250 ms bound, 1: old odometry with a changed
+    // raw reset, 2: old local metadata with a changed basis, 3: old local
+    // metadata beyond the 250 ms bound. None is an isolated stamp anomaly.
+    for (int variant = 0; variant < 4; ++variant) {
+        TerminalCompletionFixture fixture("terminal_old_stamp_fence_" + std::to_string(variant));
+        auto * clock = fixture.node.get_clock()->get_clock_handle();
+        ASSERT_EQ(rcl_enable_ros_time_override(clock), RCL_RET_OK);
+        ASSERT_EQ(rcl_set_ros_time_override(clock, 10'000'000'000LL), RCL_RET_OK);
+        fixture.awareness->vehicle_odometry_adapter_history_ = std::make_shared<
+            iii_drone::utils::History<VehicleOdometryAdapter>>(2);
+        fixture.awareness->measured_odometry_.Store(std::nullopt);
+        constexpr uint64_t before_us = 1'790'578'918'314'347ULL;
+        constexpr uint64_t old_us = 973'848'000ULL;
+        px4_msgs::msg::VehicleLocalPosition local;
+        local.xy_valid = local.z_valid = local.v_xy_valid = local.v_z_valid = true;
+        local.xy_global = local.z_global = true;
+        local.ref_timestamp = 900'000;
+        local.ref_lat = 55.0;
+        local.ref_lon = 10.0;
+        local.ref_alt = 20.0F;
+        local.xy_reset_counter = 4;
+        local.z_reset_counter = 3;
+        local.vxy_reset_counter = 3;
+        local.vz_reset_counter = 2;
+        local.heading_reset_counter = 2;
+        local.timestamp_sample = before_us;
+        fixture.awareness->ingestVehicleLocalPosition(local, fixture.node.now());
+        px4_msgs::msg::VehicleOdometry raw;
+        raw.pose_frame = iii_drone::adapters::px4::POSE_FRAME_LOCAL_NED;
+        raw.velocity_frame = iii_drone::adapters::px4::VELOCITY_FRAME_LOCAL_NED;
+        raw.q[0] = 1.0F;
+        raw.reset_counter = 14;
+        raw.timestamp_sample = before_us;
+        raw.timestamp = before_us;
+        fixture.awareness->ingestVehicleOdometry(raw, fixture.node.now());
+        const auto accepted = fixture.awareness->GetMeasuredOdometry();
+        ASSERT_TRUE(accepted);
+        ASSERT_TRUE(accepted->position_continuity.source_qualified);
+
+        const bool late = variant == 0 || variant == 3;
+        ASSERT_EQ(rcl_set_ros_time_override(clock,
+            late ? 10'300'000'000LL : 10'012'090'000LL), RCL_RET_OK);
+        if (variant <= 1) {
+            if (variant == 1) raw.reset_counter = 15;
+            raw.timestamp_sample = old_us;
+            raw.timestamp = old_us;
+            fixture.awareness->ingestVehicleOdometry(raw, fixture.node.now());
+        } else {
+            if (variant == 2) ++local.xy_reset_counter;
+            local.timestamp_sample = old_us;
+            fixture.awareness->ingestVehicleLocalPosition(local, fixture.node.now());
+        }
+        const auto after = fixture.awareness->GetMeasuredOdometry();
+        ASSERT_TRUE(after) << "variant=" << variant;
+        EXPECT_NE(after->position_continuity.source_epoch,
+            accepted->position_continuity.source_epoch) << "variant=" << variant;
+        EXPECT_FALSE(after->position_continuity.source_qualified) << "variant=" << variant;
+    }
+}
+
 TEST(ManeuverReferenceClientTransaction, ObjectIntegratorUsesOnlyQualifiedHeadingContinuity) {
     RclcppContext context;
     TerminalCompletionFixture fixture("object_heading_position_epoch");
