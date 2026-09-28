@@ -2,6 +2,7 @@
 // Includes
 /*****************************************************************************/
 
+#include <cstdio>
 #include <iii_drone_core/control/maneuver/cable_landing_maneuver_server.hpp>
 
 #include <algorithm>
@@ -865,12 +866,38 @@ bool CableLandingManeuverServer::isCablePoseConsistentWithLock(
 
 }
 
+bool CableLandingManeuverServer::nearLockedConductor() const {
+    if (!line_pid_has_last_cable_pose_) {
+        return false;
+    }
+    try {
+        const double radius = configuration_->GetParameter(
+            "/control/maneuver_controller/cable_landing_safety_zone_radius"
+        ).as_double();
+        const auto position = awareness_handler()->GetState().position();
+        return (line_pid_last_cable_pose_world_.position - position).norm() <= radius;
+    } catch (const std::runtime_error &) {
+        return false;  // Unknown zone: keep the warning level.
+    }
+}
+
 bool CableLandingManeuverServer::getStableCablePose(
     iii_drone::types::pose_t & cable_pose_world
 ) {
 
     auto cda_handler = awareness_handler();
     double orthogonal_distance = 0.0;
+    // Within the near-cable zone the mmWave is effectively at the conductor and
+    // below its useful range, so perception disagreeing with the lock is the
+    // expected physics the lock fallback exists for; elsewhere it is a warning.
+    const bool near_contact = nearLockedConductor();
+    auto log_lock_event = [&](const std::string & text) {
+        if (near_contact) {
+            RCLCPP_INFO_THROTTLE(node()->get_logger(), *node()->get_clock(), 1000, "%s", text.c_str());
+        } else {
+            RCLCPP_WARN_THROTTLE(node()->get_logger(), *node()->get_clock(), 1000, "%s", text.c_str());
+        }
+    };
 
     try {
         pose_t candidate_pose = cda_handler->GetPoseOfTarget(target_adapter_);
@@ -881,14 +908,12 @@ bool CableLandingManeuverServer::getStableCablePose(
             return true;
         }
 
-        RCLCPP_WARN_THROTTLE(
-            node()->get_logger(),
-            *node()->get_clock(),
-            1000,
+        char text[256];
+        std::snprintf(text, sizeof(text),
             "CableLandingManeuverServer::getStableCablePose(): target id %d jumped %.3f m from locked conductor; attempting physical-line reacquisition.",
             target_adapter_->target_id(),
-            orthogonal_distance
-        );
+            orthogonal_distance);
+        log_lock_event(text);
     } catch (const std::runtime_error & e) {
         RCLCPP_WARN_THROTTLE(
             node()->get_logger(),
@@ -955,13 +980,11 @@ bool CableLandingManeuverServer::getStableCablePose(
                 return true;
             }
 
-            RCLCPP_WARN_THROTTLE(
-                node()->get_logger(),
-                *node()->get_clock(),
-                1000,
+            char text[256];
+            std::snprintf(text, sizeof(text),
                 "CableLandingManeuverServer::getStableCablePose(): No detected line matched locked conductor; best orthogonal distance %.3f m.",
-                best_distance
-            );
+                best_distance);
+            log_lock_event(text);
         } catch (const std::runtime_error & e) {
             RCLCPP_WARN_THROTTLE(
                 node()->get_logger(),
@@ -975,12 +998,8 @@ bool CableLandingManeuverServer::getStableCablePose(
 
     if (line_pid_has_last_cable_pose_) {
         cable_pose_world = line_pid_last_cable_pose_world_;
-        RCLCPP_WARN_THROTTLE(
-            node()->get_logger(),
-            *node()->get_clock(),
-            1000,
-            "CableLandingManeuverServer::getStableCablePose(): Continuing with last locked cable pose while perception target is unavailable or inconsistent."
-        );
+        log_lock_event(
+            "CableLandingManeuverServer::getStableCablePose(): Continuing with last locked cable pose while perception target is unavailable or inconsistent.");
         return true;
     }
 

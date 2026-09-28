@@ -329,6 +329,8 @@ namespace maneuver {
             iii_drone::types::point_t & gripper_position_world
         ) const;
 
+        bool nearLockedConductor() const;
+
         bool getStableCablePose(
             iii_drone::types::pose_t & cable_pose_world
         );
