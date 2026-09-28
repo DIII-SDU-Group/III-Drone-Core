@@ -2,12 +2,16 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <cstdarg>
+#include <cstdio>
 #include <future>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <thread>
 #include <vector>
 #include <rclcpp_action/rclcpp_action.hpp>
+#include <rcutils/logging.h>
 
 #include <gtest/gtest.h>
 
@@ -6767,6 +6771,284 @@ TEST(ManeuverReferenceClientTransaction, StaleExternalEvidenceStillRaisesRepeate
         px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_EXTERNAL2);
     fixture.observeNativeHold(6000000, 6000000);
     EXPECT_TRUE(fixture.scheduler.retireCompletedTerminalHoldAfterNativeHold());
+}
+
+// Captures formatted rcutils log lines for the scope of one test.
+class ScopedLogCapture {
+public:
+    ScopedLogCapture() : previous_(rcutils_logging_get_output_handler()) {
+        std::lock_guard<std::mutex> lock(mutex());
+        entries().clear();
+        rcutils_logging_set_output_handler(&ScopedLogCapture::handler);
+    }
+
+    ~ScopedLogCapture() {
+        rcutils_logging_set_output_handler(previous_);
+    }
+
+    size_t count(int severity, const std::string & needle) const {
+        std::lock_guard<std::mutex> lock(mutex());
+        return static_cast<size_t>(std::count_if(entries().begin(), entries().end(),
+            [severity, &needle](const auto & entry) {
+                return entry.first == severity &&
+                    entry.second.find(needle) != std::string::npos;
+            }));
+    }
+
+private:
+    static void handler(const rcutils_log_location_t *, int severity, const char *,
+                        rcutils_time_point_value_t, const char * format, va_list * args) {
+        va_list copy;
+        va_copy(copy, *args);
+        char buffer[4096];
+        std::vsnprintf(buffer, sizeof(buffer), format, copy);
+        va_end(copy);
+        std::lock_guard<std::mutex> lock(mutex());
+        entries().emplace_back(severity, buffer);
+    }
+
+    static std::mutex & mutex() {
+        static std::mutex value;
+        return value;
+    }
+
+    static std::vector<std::pair<int, std::string>> & entries() {
+        static std::vector<std::pair<int, std::string>> value;
+        return value;
+    }
+
+    rcutils_logging_output_handler_t previous_;
+};
+
+struct HoverOnCableIdleHarness {
+    explicit HoverOnCableIdleHarness(TerminalCompletionFixture & fixture_in)
+    : fixture(fixture_in),
+      server(std::make_shared<iii_drone::control::maneuver::HoverOnCableManeuverServer>(
+          &fixture.node, fixture.awareness, "hover_on_cable_idle", 1, 1, fixture.config)),
+      maneuver(iii_drone::control::maneuver::MANEUVER_TYPE_HOVER_ON_CABLE,
+          rclcpp_action::GoalUUID{}) {
+        fixture.hover->ClearTerminalHold();
+        fixture.scheduler.Start();
+        fixture.scheduler.maneuver_execution_timer_->cancel();
+        server->RegisterOnFailCallback([this] { ++hover_failures; });
+        fixture.scheduler.registered_maneuvers_[
+            iii_drone::control::maneuver::MANEUVER_TYPE_HOVER_ON_CABLE] = server;
+        // The Reach Cable external mode owns the goal (non-sustained, 10 s).
+        fixture.observeSourceExternal();
+        maneuver.request_identity_ = kRequestA;
+        maneuver.maneuver_params_ = std::make_shared<
+            iii_drone::control::maneuver::hover_on_cable_maneuver_params_t>(
+                1, 0.0, 0.0, 10.0, false);
+        maneuver.started_ = true;
+        fixture.scheduler.current_maneuver_ = maneuver;
+        fixture.scheduler.beginReferenceExecution(server->action_name(), kRequestA);
+        execution = fixture.scheduler.current_reference_execution_id_.Load();
+        const auto hover_on_cable = server;
+        fixture.scheduler.reference_callback_struct_->set(
+            [hover_on_cable](const iii_drone::control::State & state) {
+                return hover_on_cable->GetReference(state);
+            }, server->action_name(), execution, kRequestA);
+        fixture.scheduler.publishReferenceStream();
+        applyLatest();
+    }
+
+    ~HoverOnCableIdleHarness() {
+        fixture.scheduler.registered_maneuvers_.erase(
+            iii_drone::control::maneuver::MANEUVER_TYPE_HOVER_ON_CABLE);
+    }
+
+    void applyLatest() {
+        auto ack = std::make_shared<Ack>();
+        ack->stream_id = fixture.scheduler.reference_stream_state_.stream_id;
+        ack->last_applied_sequence = fixture.scheduler.reference_stream_state_.sequence;
+        ack->consumer_status = Ack::STATUS_APPLIED;
+        fixture.scheduler.acknowledgeReferenceStream(ack);
+    }
+
+    void complete() {
+        maneuver.Terminate(true);
+        fixture.scheduler.current_maneuver_ = maneuver;
+        fixture.scheduler.maneuver_execution_timer_->reset();
+        fixture.scheduler.maneuverExecutionTimerCallback();
+    }
+
+    TerminalCompletionFixture & fixture;
+    std::shared_ptr<iii_drone::control::maneuver::HoverOnCableManeuverServer> server;
+    iii_drone::control::maneuver::Maneuver maneuver;
+    uint64_t execution = 0;
+    int hover_failures = 0;
+};
+
+TEST(ManeuverReferenceClientTransaction, NativeLandRetiresCompletedHoverOnCableIdleCallbackQuietly) {
+    RclcppContext context;
+    ScopedLogCapture logs;
+    TerminalCompletionFixture fixture("native_land_hover_on_cable_idle", 500, "", 1.0, 1.0, 50);
+    HoverOnCableIdleHarness harness(fixture);
+    auto & stream = fixture.scheduler.reference_stream_state_;
+    ASSERT_TRUE(stream.valid);
+    ASSERT_NE(fixture.scheduler.retained_native_hold_epoch_.external_status_timestamp_us, 0U);
+
+    // Completed non-sustained HoverOnCable keeps its callback for duration_s.
+    harness.complete();
+    ASSERT_EQ(fixture.scheduler.current_maneuver_.Load().maneuver_type(),
+        iii_drone::control::maneuver::MANEUVER_TYPE_NONE);
+    ASSERT_TRUE(fixture.scheduler.maneuver_server_get_reference_callback_still_registered_.Load());
+    const auto stream_id = stream.stream_id;
+    harness.applyLatest();
+    fixture.scheduler.maneuverExecutionTimerCallback();
+    ASSERT_TRUE(stream.valid);
+    EXPECT_EQ(stream.stream_id, stream_id);
+    harness.applyLatest();
+
+    // Mission schedules PX4 native Land and stops consuming (StopControls).
+    fixture.observeNavigation(2000000, 2000000,
+        px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_AUTO_LAND);
+    fixture.scheduler.maneuverExecutionTimerCallback();
+    EXPECT_FALSE(stream.valid);
+    EXPECT_FALSE(fixture.scheduler.reference_callback_struct_->snapshot().callback);
+    EXPECT_FALSE(fixture.scheduler.maneuver_server_get_reference_callback_still_registered_.Load());
+
+    // Consumer silence beyond the unchanged ACK timeout finds no live owner.
+    std::this_thread::sleep_for(std::chrono::milliseconds(600));
+    fixture.scheduler.maneuverExecutionTimerCallback();
+    EXPECT_FALSE(stream.valid);
+    EXPECT_FALSE(stream.paused);
+    EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_ERROR, ""), 0U);
+    EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_WARN, "Drone is not offboard"), 0U);
+    EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_INFO,
+        "idle hover callback owner retired after fresh PX4 native navigation state 18"), 1U);
+    EXPECT_EQ(harness.hover_failures, 0);
+}
+
+TEST(ManeuverReferenceClientTransaction, NativeLandCannotRetireActiveHoverOnCableAckLoss) {
+    RclcppContext context;
+    ScopedLogCapture logs;
+    TerminalCompletionFixture fixture("native_land_hover_on_cable_active", 500, "", 1.0, 1.0, 50);
+    HoverOnCableIdleHarness harness(fixture);
+    auto & stream = fixture.scheduler.reference_stream_state_;
+    ASSERT_TRUE(stream.valid);
+    fixture.observeNavigation(2000000, 2000000,
+        px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_AUTO_LAND);
+    EXPECT_FALSE(fixture.scheduler.retireCompletedTerminalHoldAfterNativeHold());
+    fixture.scheduler.publishReferenceStream();
+    EXPECT_TRUE(stream.valid);
+    EXPECT_FALSE(stream.paused);
+
+    // The executing maneuver's ACK loss still pauses the producer and blocks
+    // scheduler progression exactly as before.
+    std::this_thread::sleep_for(std::chrono::milliseconds(600));
+    fixture.scheduler.maneuverExecutionTimerCallback();
+    EXPECT_TRUE(stream.valid);
+    EXPECT_TRUE(stream.paused);
+    EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_ERROR, "missed consumer acknowledgements"), 1U);
+    const auto binding = fixture.scheduler.reference_callback_struct_->snapshot();
+    EXPECT_TRUE(binding.callback);
+    EXPECT_EQ(binding.request_identity, kRequestA);
+    EXPECT_EQ(binding.execution_id, harness.execution);
+    EXPECT_FALSE(fixture.scheduler.retireCompletedTerminalHoldAfterNativeHold());
+}
+
+TEST(ManeuverReferenceClientTransaction, HoverOnCableValidatesAwarenessOnlyForItsExecutingGoal) {
+    RclcppContext context;
+    ScopedLogCapture logs;
+    TerminalCompletionFixture fixture("hover_on_cable_awareness_owner");
+    int failures = 0;
+    auto server = std::make_shared<iii_drone::control::maneuver::HoverOnCableManeuverServer>(
+        &fixture.node, fixture.awareness, "hover_on_cable_awareness", 1, 1, fixture.config);
+    server->RegisterOnFailCallback([&failures] { ++failures; });
+    // Retained after completion: no executing goal owns the on-cable check.
+    (void)server->GetReference(fixture.awareness->GetState());
+    EXPECT_EQ(failures, 0);
+    EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_WARN, "Drone is not offboard"), 0U);
+    server->current_maneuver_ = iii_drone::control::maneuver::Maneuver(
+        iii_drone::control::maneuver::MANEUVER_TYPE_HOVER_ON_CABLE, rclcpp_action::GoalUUID{});
+    (void)server->GetReference(fixture.awareness->GetState());
+    EXPECT_EQ(failures, 1);
+    EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_WARN, "Drone is not offboard"), 1U);
+}
+
+TEST(ManeuverReferenceClientTransaction, ClaimantTransitionSeenBeforeClaimArmsNativeRetirement) {
+    RclcppContext context;
+    using Transfer = iii_drone_interfaces::srv::TerminalHoldTransfer;
+    for (const uint8_t native_state : {
+             px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_AUTO_LOITER,
+             px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_AUTO_LAND}) {
+        ScopedLogCapture logs;
+        TerminalCompletionFixture fixture(
+            native_state == px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_AUTO_LAND
+                ? "claimed_terminal_native_land" : "claimed_terminal_native_hold", 500);
+        // FollowWaypointPath completes under Leave Cable (EXTERNAL5).
+        fixture.observeSourceExternal();
+        fixture.finishWithoutSchedulerTick(
+            iii_drone::control::maneuver::MANEUVER_TYPE_FOLLOW_WAYPOINT_PATH,
+            "follow_waypoint_path", true);
+        // PX4 activates Inspection Demo, which then claims the retained hold.
+        fixture.observeNavigation(1500000, 1500000,
+            px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_EXTERNAL1);
+        auto query = std::make_shared<Transfer::Request>();
+        query->operation = Transfer::Request::OP_QUERY;
+        query->consumer_identity = kRequestB;
+        auto offer = std::make_shared<Transfer::Response>();
+        fixture.scheduler.terminalHoldTransfer(query, offer);
+        ASSERT_TRUE(offer->accepted) << offer->reason;
+        auto claim = std::make_shared<Transfer::Request>();
+        claim->operation = Transfer::Request::OP_CLAIM;
+        claim->consumer_identity = kRequestB;
+        claim->source_request_identity = offer->source_request_identity;
+        claim->source_stream_id = offer->source_stream_id;
+        claim->source_ack_sequence = offer->source_ack_sequence;
+        auto claimed = std::make_shared<Transfer::Response>();
+        fixture.scheduler.terminalHoldTransfer(claim, claimed);
+        ASSERT_TRUE(claimed->accepted) << claimed->reason;
+        auto & stream = fixture.scheduler.reference_stream_state_;
+        stream.sequence = 2;
+        stream.recent_references.emplace_back(2, fixture.hold->lastCommand());
+        auto applied = std::make_shared<Ack>();
+        applied->stream_id = stream.stream_id;
+        applied->consumer_identity = kRequestB;
+        applied->last_applied_sequence = 2;
+        applied->consumer_status = Ack::STATUS_APPLIED;
+        fixture.scheduler.acknowledgeReferenceStream(applied);
+        ASSERT_TRUE(fixture.scheduler.retained_native_hold_epoch_.claimed_applied);
+        EXPECT_EQ(fixture.scheduler.retained_native_hold_epoch_.external_nav_transition_us,
+            1500000U);
+        EXPECT_FALSE(fixture.scheduler.retireCompletedTerminalHoldAfterNativeHold());
+
+        // px4.hold (or Land) deactivates Inspection Demo; the consumer stops.
+        fixture.observeNavigation(2000000, 2000000, native_state);
+        EXPECT_TRUE(fixture.scheduler.retireCompletedTerminalHoldAfterNativeHold());
+        EXPECT_EQ(fixture.query()->reason, "no retained terminal hold");
+        std::this_thread::sleep_for(std::chrono::milliseconds(550));
+        auto measured = fixture.awareness->measured_odometry_.Load();
+        ASSERT_TRUE(measured);
+        measured->receipt_stamp = fixture.node.now();
+        measured->source_sample_timestamp_us += 550000;
+        fixture.awareness->measured_odometry_.Store(measured);
+        fixture.scheduler.publishReferenceStream();
+        EXPECT_EQ(fixture.hold->phase(),
+            iii_drone::control::maneuver::TerminalTrackingHold::Phase::Tracking);
+        EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_ERROR, ""), 0U);
+        EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_INFO,
+            "terminal hold owner retired after fresh PX4 native navigation state"), 1U);
+    }
+}
+
+TEST(ManeuverReferenceClientTransaction, NativeLandRetiresUnclaimedCompletedTerminalOwner) {
+    RclcppContext context;
+    TerminalCompletionFixture fixture("unclaimed_terminal_native_land");
+    fixture.observeSourceExternal();
+    fixture.finishWithoutSchedulerTick(
+        iii_drone::control::maneuver::MANEUVER_TYPE_FOLLOW_WAYPOINT_PATH,
+        "follow_waypoint_path", true);
+    // Offboard is a Core-command consumer, never native evidence.
+    fixture.observeNavigation(1500000, 1500000,
+        px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_OFFBOARD);
+    EXPECT_FALSE(fixture.scheduler.retireCompletedTerminalHoldAfterNativeHold());
+    EXPECT_TRUE(fixture.hover->terminalHold());
+    fixture.observeNavigation(2000000, 2000000,
+        px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_AUTO_LAND);
+    EXPECT_TRUE(fixture.scheduler.retireCompletedTerminalHoldAfterNativeHold());
+    EXPECT_FALSE(fixture.hover->terminalHold());
 }
 
 TEST(ManeuverReferenceClientTransaction, CompletionTransferRejectsWrongOwnerAndGeneration) {

@@ -223,8 +223,12 @@ bool HoverOnCableManeuverServer::Update(
 }
 
 Reference HoverOnCableManeuverServer::GetReference(const State &) {
-    
-    if (!validateAwareness(awareness_handler()->adapter(), target_cable_id_)) {
+
+    // Only an executing HoverOnCable goal owns the on-cable failure check. A
+    // callback retained after completion (or installed by CableLanding) has
+    // no active hover to fail, and the scheduler ignores such stale failures.
+    if (current_maneuver().Load().maneuver_type() == MANEUVER_TYPE_HOVER_ON_CABLE &&
+        !validateAwareness(awareness_handler()->adapter(), target_cable_id_)) {
 
         on_fail_callback_();
 

@@ -32,6 +32,23 @@ bool freshNavigationSample(
     return sample && sample->source_timestamp_us != 0 &&
         sample->receipt <= now && now - sample->receipt <= kNativeHoldStatusFreshness;
 }
+
+// PX4 applies Core commands only in OFFBOARD or an external mode. Any other
+// fresh navigation state (Hold, Land, RTL, manual, ...) is PX4-native control.
+bool freshNativeNavigation(
+    const VehicleNavigationEvidence & navigation,
+    std::chrono::steady_clock::time_point now
+) {
+    if (!freshNavigationSample(navigation.latest, now) ||
+        navigation.latest->nav_state_timestamp_us == 0 ||
+        (navigation.last_external &&
+         navigation.last_external->source_timestamp_us ==
+            navigation.latest->source_timestamp_us)) return false;
+    const auto nav_state = navigation.latest->nav_state;
+    return nav_state != px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_OFFBOARD &&
+        (nav_state < px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_EXTERNAL1 ||
+         nav_state > px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_EXTERNAL8);
+}
 }
 
 /*****************************************************************************/
@@ -2246,12 +2263,12 @@ bool ManeuverScheduler::retireCompletedTerminalHoldAfterNativeHold() {
     // stream -> Hover -> callback matches the established ACK/publish order.
     // The lock also excludes a concurrent QUERY/CLAIM while the offer is
     // withdrawn. No measured fallback or replacement command is emitted.
+    // Any fresh PX4-native navigation state (Hold, Land, ...) ends external
+    // command authority; an active maneuver is never retired here.
     std::lock_guard<std::mutex> lock(reference_stream_mutex_);
     const auto navigation = combined_drone_awareness_handler_->GetVehicleNavigationEvidence();
     const auto now = std::chrono::steady_clock::now();
-    if (!freshNavigationSample(navigation.latest, now) ||
-        navigation.latest->nav_state !=
-            px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_AUTO_LOITER) return false;
+    if (!freshNativeNavigation(navigation, now)) return false;
     const Maneuver maneuver = current_maneuver_;
     if (maneuver.started() && !maneuver.terminated()) return false;
     const auto & epoch = retained_native_hold_epoch_;
@@ -2270,7 +2287,12 @@ bool ManeuverScheduler::retireCompletedTerminalHoldAfterNativeHold() {
         std::static_pointer_cast<HoverByObjectManeuverServer>(object_entry->second)
             ->RetainsTrackedSource(binding) &&
         stream.provider == binding.reference_provider_name;
-    if (!epoch.completed || (!terminal_owner && !object_owner) ||
+    // A completed non-sustained hover callback has no successor transfer; a
+    // pending successor keeps it until that successor begins.
+    const bool idle_owner = !terminal_owner && !object_owner &&
+        epoch.idle_callback && maneuver.maneuver_type() == MANEUVER_TYPE_NONE &&
+        stream.provider == binding.reference_provider_name;
+    if (!epoch.completed || (!terminal_owner && !object_owner && !idle_owner) ||
         !isValidManeuverRequestIdentity(epoch.request_identity) ||
         binding.request_identity != epoch.request_identity || !binding.callback ||
         binding.execution_id == 0 || binding.execution_id != epoch.execution_id ||
@@ -2292,12 +2314,19 @@ bool ManeuverScheduler::retireCompletedTerminalHoldAfterNativeHold() {
     uint64_t external_transition = epoch.external_nav_transition_us;
     if (!epoch.claimed_consumer_identity.empty()) {
         // A consumer CLAIM is a new owner epoch. Old external status cannot
-        // arm it. A positive newer PX4 external nav transition is required.
-        if (!navigation.last_external ||
-            navigation.last_external->nav_state_timestamp_us <=
-                epoch.minimum_external_transition_us) return false;
-        external_stamp = navigation.last_external->source_timestamp_us;
-        external_transition = navigation.last_external->nav_state_timestamp_us;
+        // arm it. A positive PX4 external nav transition newer than every
+        // earlier owner's is required: either observed after the claim, or
+        // the claimant's own transition already observed fresh at CLAIM time.
+        if (navigation.last_external &&
+            navigation.last_external->nav_state_timestamp_us >
+                epoch.minimum_external_transition_us) {
+            external_stamp = navigation.last_external->source_timestamp_us;
+            external_transition = navigation.last_external->nav_state_timestamp_us;
+        } else if (!navigation.last_external ||
+            navigation.last_external->nav_state_timestamp_us !=
+                epoch.external_nav_transition_us) {
+            return false;
+        }
     } else if (navigation.last_external &&
         navigation.last_external->nav_state_timestamp_us > external_transition) {
         // A newer external mode took control before native Hold. The old
@@ -2317,9 +2346,11 @@ bool ManeuverScheduler::retireCompletedTerminalHoldAfterNativeHold() {
     const uint64_t execution_id = epoch.execution_id;
     const bool succeeded = epoch.succeeded;
     const std::string consumer_identity = epoch.claimed_consumer_identity;
+    const char * owner_label = terminal_owner ? "terminal hold" :
+        (object_owner ? "object session" : "idle hover callback");
     if (terminal_owner) {
         hover->ClearTerminalHold();
-    } else {
+    } else if (object_owner) {
         std::static_pointer_cast<HoverByObjectManeuverServer>(object_entry->second)
             ->RetireTrackedSource(binding);
     }
@@ -2337,10 +2368,10 @@ bool ManeuverScheduler::retireCompletedTerminalHoldAfterNativeHold() {
     retained_native_hold_epoch_ = RetainedNativeHoldEpoch{};
 
     RCLCPP_INFO(node_->get_logger(),
-        "Completed %s owner retired after fresh PX4 native Hold "
+        "Completed %s owner retired after fresh PX4 native navigation state %u "
         "(request=%s execution=%lu stream=%s consumer=%s prior_phase=%u "
         "prior_success=%d prior_reason=%s source_us=%lu nav_transition_us=%lu status_epoch=%lu)",
-        terminal_owner ? "terminal hold" : "object session",
+        owner_label, static_cast<unsigned>(navigation.latest->nav_state),
         request_identity.c_str(), static_cast<unsigned long>(execution_id),
         stream_id.c_str(), consumer_identity.c_str(), static_cast<unsigned>(phase),
         succeeded, failure_reason.c_str(),
@@ -2349,7 +2380,9 @@ bool ManeuverScheduler::retireCompletedTerminalHoldAfterNativeHold() {
         static_cast<unsigned long>(navigation.source_epoch));
     auto event = iii_drone::diagnostics::HilTrace::event("terminal_hold_retired_native_hold");
     event.text("request_identity", request_identity);
-    event.text("owner_type", terminal_owner ? "terminal_hold" : "object_session");
+    event.text("owner_type", terminal_owner ? "terminal_hold" :
+        (object_owner ? "object_session" : "idle_hover_callback"));
+    event.number("nav_state", navigation.latest->nav_state);
     event.text("stream_id", stream_id);
     event.text("consumer_identity", consumer_identity);
     event.number("execution_id", execution_id);
@@ -2607,9 +2640,10 @@ void ManeuverScheduler::terminalHoldTransfer(
             native_epoch.execution_id == stream.execution_id) {
             const auto navigation =
                 combined_drone_awareness_handler_->GetVehicleNavigationEvidence();
-            uint64_t watermark = std::max(
+            const uint64_t prior_watermark = std::max(
                 native_epoch.minimum_external_transition_us,
                 native_epoch.external_nav_transition_us);
+            uint64_t watermark = prior_watermark;
             if (navigation.source_epoch == native_epoch.status_source_epoch &&
                 navigation.last_external) {
                 // A previously observed successor transition remains a
@@ -2618,9 +2652,22 @@ void ManeuverScheduler::terminalHoldTransfer(
                 watermark = std::max(watermark,
                     navigation.last_external->nav_state_timestamp_us);
             }
+            // PX4 activates the claimant before it can claim. A fresh latest
+            // external status whose transition is newer than every earlier
+            // owner's is the claimant's epoch, armed as at execution begin.
+            // Predecessor-era or stale external status never arms a claim.
+            const bool claimant_external = navigation.source_epoch ==
+                    native_epoch.status_source_epoch &&
+                freshNavigationSample(navigation.latest, now) &&
+                navigation.last_external &&
+                navigation.latest->source_timestamp_us ==
+                    navigation.last_external->source_timestamp_us &&
+                navigation.last_external->nav_state_timestamp_us > prior_watermark;
             native_epoch.minimum_external_transition_us = watermark;
-            native_epoch.external_status_timestamp_us = 0;
-            native_epoch.external_nav_transition_us = 0;
+            native_epoch.external_status_timestamp_us = claimant_external
+                ? navigation.last_external->source_timestamp_us : 0;
+            native_epoch.external_nav_transition_us = claimant_external
+                ? navigation.last_external->nav_state_timestamp_us : 0;
             native_epoch.owner_started = now;
             native_epoch.claimed_consumer_identity = request->consumer_identity;
             native_epoch.claimed_applied = false;
@@ -2966,6 +3013,31 @@ void ManeuverScheduler::progressScheduler() {
 
         };
 
+        // The idle count keeps a completed non-sustained hover callback live
+        // for its duration. Record that exact generation so evidenced PX4
+        // native control can retire it before intentional consumer silence
+        // (e.g. a native Land handoff) reaches the ACK guard.
+        auto mark_idle_callback_owner = [this]() {
+            const auto binding = reference_callback_struct_->snapshot();
+            std::lock_guard<std::mutex> stream_lock(reference_stream_mutex_);
+            auto & epoch = retained_native_hold_epoch_;
+            const auto & stream = reference_stream_state_;
+            if (!binding.callback ||
+                !isValidManeuverRequestIdentity(binding.request_identity) ||
+                binding.execution_id == 0 ||
+                binding.execution_id != current_reference_execution_id_.Load() ||
+                epoch.request_identity != binding.request_identity ||
+                epoch.execution_id != binding.execution_id ||
+                !stream.valid || stream.stream_id.empty() ||
+                stream.provider != binding.reference_provider_name ||
+                stream.request_identity != binding.request_identity ||
+                stream.execution_id != binding.execution_id) return;
+            epoch.stream_id = stream.stream_id;
+            epoch.completed = true;
+            epoch.succeeded = true;
+            epoch.idle_callback = true;
+        };
+
 
         if (!previous_maneuver.success()) {
 
@@ -2990,6 +3062,8 @@ void ManeuverScheduler::progressScheduler() {
 
                     maneuver_server_get_reference_callback_still_registered_ = true;
 
+                    mark_idle_callback_owner();
+
                     break;
                 }
                 case MANEUVER_TYPE_HOVER_BY_OBJECT: {
@@ -3007,6 +3081,8 @@ void ManeuverScheduler::progressScheduler() {
 
                     maneuver_server_get_reference_callback_still_registered_ = true;
 
+                    mark_idle_callback_owner();
+
                     break;
                 }
                 case MANEUVER_TYPE_HOVER_ON_CABLE: {
@@ -3023,6 +3099,8 @@ void ManeuverScheduler::progressScheduler() {
                     no_maneuver_idle_cnt_ = maneuver_params.duration_s * 1000 / configuration_->GetParameter("/control/maneuver_controller/maneuver_execution_period_ms").as_int();
 
                     maneuver_server_get_reference_callback_still_registered_ = true;
+
+                    mark_idle_callback_owner();
 
                     break;
                 }

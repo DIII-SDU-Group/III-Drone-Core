@@ -458,6 +458,8 @@ namespace maneuver {
             bool claimed_applied = true;
             bool completed = false;
             bool succeeded = false;
+            // Completed non-sustained hover callback kept by the idle count.
+            bool idle_callback = false;
         };
         RetainedNativeHoldEpoch retained_native_hold_epoch_;
         std::mutex reference_stream_mutex_;
