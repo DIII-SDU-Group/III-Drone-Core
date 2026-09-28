@@ -4,6 +4,8 @@
 
 #include <iii_drone_core/control/maneuver/cable_takeoff_maneuver_server.hpp>
 
+#include <cmath>
+
 using namespace iii_drone::control::maneuver;
 using namespace iii_drone::control;
 using namespace iii_drone::types;
@@ -22,6 +24,16 @@ double CableTakeoffPoseNorm(const State & state, const Reference & reference) {
     };
     return (state_position_and_yaw - target_position_and_yaw).norm();
 }
+
+// A retry of an aborted airborne takeoff follows the Delay decorator within
+// about a second; a stale target from an earlier cycle is never resumed.
+constexpr auto kDepartureRetryWindow = std::chrono::seconds(10);
+
+// The streamed takeoff command has settled on the frozen target.
+constexpr double kFinalReferencePositionToleranceM = 1.0e-2;
+constexpr double kFinalReferenceYawToleranceRad = 1.0e-2;
+constexpr double kFinalReferenceVelocityToleranceMps = 1.0e-2;
+constexpr double kFinalReferenceAccelerationToleranceMps2 = 5.0e-2;
 
 }  // namespace
 
@@ -105,7 +117,14 @@ bool CableTakeoffManeuverServer::CanExecuteManeuver(
         return false;
     }
 
-    if (!drone_awareness.has_target()) {
+    // An aborted airborne takeoff cleared its cable target. Its immediate
+    // retry may resume the same frozen departure target; nothing else may.
+    const bool departure_retry = !drone_awareness.has_target() &&
+        drone_awareness.in_flight() &&
+        retryDepartureTarget(
+            cable_takeoff_maneuver_params.target_cable_id, drone_awareness.state()).has_value();
+
+    if (!drone_awareness.has_target() && !departure_retry) {
         RCLCPP_DEBUG(
             node()->get_logger(),
             "CableTakeoffManeuverServer::CanExecuteManeuver(): Drone does not have a target."
@@ -113,7 +132,12 @@ bool CableTakeoffManeuverServer::CanExecuteManeuver(
         return false;
     }
 
-    if (drone_awareness.target_adapter().target_type() != TARGET_TYPE_CABLE) {
+    if (departure_retry) {
+        RCLCPP_DEBUG(
+            node()->get_logger(),
+            "CableTakeoffManeuverServer::CanExecuteManeuver(): Accepting airborne retry of the aborted departure target."
+        );
+    } else if (drone_awareness.target_adapter().target_type() != TARGET_TYPE_CABLE) {
         RCLCPP_DEBUG(
             node()->get_logger(),
             "CableTakeoffManeuverServer::CanExecuteManeuver(): Target type is not TARGET_TYPE_CABLE."
@@ -229,6 +253,10 @@ void CableTakeoffManeuverServer::startExecution(Maneuver & maneuver) {
     first_iteration_ = true;
     has_failed_ = false;
     abort_because_gripper_closed_ = false;
+    {
+        std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+        terminal_hold_.reset();
+    }
     start_on_cable_ = cda_handler->on_cable();
     in_flight_since_.reset();
     started_at_ = std::chrono::steady_clock::now();
@@ -241,6 +269,26 @@ void CableTakeoffManeuverServer::startExecution(Maneuver & maneuver) {
         start_state_->position() - vector_t(0, 0, cable_takeoff_maneuver_params.target_cable_distance),
         start_state_->yaw()
     );
+
+    // After an aborted airborne attempt the vehicle has already departed; a
+    // new target below its current position would descend another full
+    // clearance distance. Resume the original frozen departure target.
+    const auto resumed_target = start_on_cable_.Load() ? std::nullopt :
+        retryDepartureTarget(cable_takeoff_maneuver_params.target_cable_id, start_state_.Load());
+    {
+        std::lock_guard<std::mutex> lock(departure_target_mutex_);
+        departure_target_.reset();
+        if (resumed_target) target_reference_ = *resumed_target;
+        execution_departure_target_ = DepartureTarget{
+            target_reference_.Load(), cable_takeoff_maneuver_params.target_cable_id,
+            cable_takeoff_maneuver_params.target_cable_distance, {}};
+    }
+    if (resumed_target) {
+        RCLCPP_INFO(
+            node()->get_logger(),
+            "CableTakeoffManeuverServer::startExecution(): Retrying airborne departure toward the previous frozen clearance target."
+        );
+    }
 
     const Reference frozen_target_reference = target_reference_;
 
@@ -283,6 +331,8 @@ bool CableTakeoffManeuverServer::rebaseExecution(
 }
 
 Reference CableTakeoffManeuverServer::computeReference(const State & state) {
+
+    if (const auto hold = terminalHold()) return hold->GetReference();
 
     Reference target_reference = getUpdatedTargetReference(
         state,
@@ -332,6 +382,45 @@ Reference CableTakeoffManeuverServer::computeReference(const State & state) {
         first_iteration_ = false;
     }
 
+    // Once the airborne command has settled on the frozen target, a bounded
+    // terminal correction removes PX4's steady position offset (the same
+    // mechanism FlyToPosition uses). Its offset stays well clear of the cable.
+    const double yaw_error = std::abs(std::atan2(
+        std::sin(ref.yaw() - target_reference.yaw()),
+        std::cos(ref.yaw() - target_reference.yaw())));
+    if (!has_failed_ && awareness_handler()->in_flight() &&
+        (ref.position() - target_reference.position()).norm() <= kFinalReferencePositionToleranceM &&
+        yaw_error <= kFinalReferenceYawToleranceRad &&
+        ref.velocity().allFinite() &&
+        ref.velocity().norm() <= kFinalReferenceVelocityToleranceMps &&
+        ref.acceleration().allFinite() &&
+        ref.acceleration().norm() <= kFinalReferenceAccelerationToleranceMps2) {
+        auto limits = TerminalPositionTrackingController::Limits{};
+        limits.arrival_tolerance_m = configuration_->GetParameter(
+            "/control/maneuver_controller/cable_takeoff_reached_pose_norm_threshold").as_double();
+        {
+            std::lock_guard<std::mutex> lock(departure_target_mutex_);
+            if (execution_departure_target_) {
+                limits.max_offset_m = std::min(limits.max_offset_m,
+                    0.5 * execution_departure_target_->target_cable_distance);
+            }
+        }
+        auto hold = std::make_shared<TerminalTrackingHold>(
+            target_reference, awareness_handler(), node()->get_clock(),
+            TerminalTrackingHold::Clearance{}, 0.0, limits);
+        {
+            std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+            terminal_hold_ = hold;
+        }
+        auto hover = std::static_pointer_cast<HoverManeuverServer>(
+            registered_maneuvers().at(MANEUVER_TYPE_HOVER));
+        hover->AdoptTerminalHold(hold, current_maneuver().Load().requestIdentity());
+        RCLCPP_INFO(node()->get_logger(),
+            "CableTakeoff terminal tracking started: pose error %.3f, correction authority %.3f m",
+            CableTakeoffPoseNorm(state, target_reference), limits.max_offset_m);
+        return hold->GetReference();
+    }
+
     return ref;
 
 }
@@ -369,6 +458,12 @@ bool CableTakeoffManeuverServer::hasSucceeded(Maneuver &) {
         return false;
     }
 
+    if (const auto hold = terminalHold();
+        hold && hold->phase() != TerminalTrackingHold::Phase::Tracking) {
+        in_flight_since_.reset();
+        return false;
+    }
+
     const auto now = std::chrono::steady_clock::now();
     if (!in_flight_since_.has_value()) {
         in_flight_since_ = now;
@@ -395,6 +490,14 @@ bool CableTakeoffManeuverServer::hasSucceeded(Maneuver &) {
 bool CableTakeoffManeuverServer::hasFailed(Maneuver &) {
 
     auto cda_handler = awareness_handler();
+
+    const auto hold = terminalHold();
+    if (hold && (hold->phase() == TerminalTrackingHold::Phase::Degraded ||
+                 hold->phase() == TerminalTrackingHold::Phase::Unrecoverable)) {
+        RCLCPP_ERROR(node()->get_logger(),
+            "CableTakeoff terminal tracking failed: %s", hold->failureReason().c_str());
+        return true;
+    }
 
     if (has_failed_) {
         RCLCPP_WARN(
@@ -435,7 +538,9 @@ bool CableTakeoffManeuverServer::hasFailed(Maneuver &) {
     }
 
     const auto now = std::chrono::steady_clock::now();
-    if (started_at_.has_value() && last_distance_improvement_at_.has_value()) {
+    // An active terminal correction has its own bounded convergence and
+    // authority-exhaustion failures; the nominal stall rule does not apply.
+    if (!hold && started_at_.has_value() && last_distance_improvement_at_.has_value()) {
         const auto elapsed = now - started_at_.value();
         const auto since_improvement = now - last_distance_improvement_at_.value();
         if (
@@ -491,6 +596,20 @@ void CableTakeoffManeuverServer::publishResultAndFinalize(
     maneuver_result_type_t maneuver_result_type
 ) {
 
+    {
+        // Only a started airborne attempt that aborted may be resumed, and
+        // only by an immediate retry (see retryDepartureTarget()).
+        std::lock_guard<std::mutex> lock(departure_target_mutex_);
+        departure_target_.reset();
+        if (maneuver_result_type == MANEUVER_RESULT_TYPE_ABORT &&
+            execution_departure_target_ && !abort_because_gripper_closed_.Load() &&
+            awareness_handler()->in_flight()) {
+            departure_target_ = execution_departure_target_;
+            departure_target_->aborted_at = std::chrono::steady_clock::now();
+        }
+        execution_departure_target_.reset();
+    }
+
     auto result = std::make_shared<iii_drone_interfaces::action::CableTakeoff::Result>();
     auto goal_handle = std::static_pointer_cast<GoalHandleCableTakeoff>(maneuver.goal_handle());
 
@@ -520,13 +639,17 @@ void CableTakeoffManeuverServer::publishResultAndFinalize(
 
 }
 
-void CableTakeoffManeuverServer::registerReferenceCallbackOnSuccess(const Maneuver &) {
+void CableTakeoffManeuverServer::registerReferenceCallbackOnSuccess(const Maneuver & maneuver) {
 
     auto registered_hover_maneuver = registered_maneuvers().find(MANEUVER_TYPE_HOVER);
 
     std::shared_ptr<HoverManeuverServer> hover_maneuver_server = std::static_pointer_cast<HoverManeuverServer>(registered_hover_maneuver->second);
 
-    hover_maneuver_server->Update(target_reference_);
+    if (const auto hold = terminalHold()) {
+        hover_maneuver_server->AdoptTerminalHold(hold, maneuver.requestIdentity());
+    } else {
+        hover_maneuver_server->Update(target_reference_);
+    }
 
     registerCallback(
         std::bind(
@@ -547,4 +670,24 @@ Reference CableTakeoffManeuverServer::getUpdatedTargetReference(
 
     return target_reference_;
 
+}
+
+std::shared_ptr<TerminalTrackingHold> CableTakeoffManeuverServer::terminalHold() const {
+    std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+    return terminal_hold_;
+}
+
+std::optional<Reference> CableTakeoffManeuverServer::retryDepartureTarget(
+    int target_cable_id,
+    const State & state
+) const {
+    std::lock_guard<std::mutex> lock(departure_target_mutex_);
+    if (!departure_target_ || departure_target_->target_cable_id != target_cable_id ||
+        std::chrono::steady_clock::now() - departure_target_->aborted_at > kDepartureRetryWindow ||
+        !state.position().allFinite() ||
+        (state.position() - departure_target_->reference.position()).norm() >
+            departure_target_->target_cable_distance) {
+        return std::nullopt;
+    }
+    return departure_target_->reference;
 }

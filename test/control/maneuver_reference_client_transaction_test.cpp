@@ -27,6 +27,7 @@
 #include <iii_drone_core/control/maneuver/fly_to_position_maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/fly_to_object_maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/cable_landing_maneuver_server.hpp>
+#include <iii_drone_core/control/maneuver/cable_takeoff_maneuver_server.hpp>
 #undef protected
 #undef private
 #include <iii_drone_core/control/trajectory_interpolator.hpp>
@@ -117,6 +118,11 @@ Configuration::SharedPtr makeConfiguration(
         {"/control/maneuver_controller/fly_to_object_target_low_pass_time_constant_s", rclcpp::ParameterType::PARAMETER_DOUBLE},
         {"/control/maneuver_controller/cable_landing_target_upwards_velocity", rclcpp::ParameterType::PARAMETER_DOUBLE},
         {"/control/maneuver_controller/cable_landing_max_initial_distance_error", rclcpp::ParameterType::PARAMETER_DOUBLE},
+        {"/control/maneuver_controller/cable_takeoff_use_mpc", rclcpp::ParameterType::PARAMETER_BOOL},
+        {"/control/maneuver_controller/generate_trajectories_asynchronously_with_delay", rclcpp::ParameterType::PARAMETER_BOOL},
+        {"/control/maneuver_controller/cable_takeoff_reached_pose_norm_threshold", rclcpp::ParameterType::PARAMETER_DOUBLE},
+        {"/control/maneuver_controller/cable_takeoff_min_target_cable_distance", rclcpp::ParameterType::PARAMETER_DOUBLE},
+        {"/control/maneuver_controller/cable_takeoff_max_target_cable_distance", rclcpp::ParameterType::PARAMETER_DOUBLE},
         {"/control/maneuver_controller/cable_landing_max_initial_yaw_error", rclcpp::ParameterType::PARAMETER_DOUBLE},
         {"/control/maneuver_controller/cable_landing_line_pid_max_dt_s", rclcpp::ParameterType::PARAMETER_DOUBLE},
         {"/control/maneuver_controller/cable_landing_line_pid_ascent_velocity", rclcpp::ParameterType::PARAMETER_DOUBLE},
@@ -165,6 +171,19 @@ Configuration::SharedPtr makeConfiguration(
             }
             if (name == "/control/maneuver_controller/cable_landing_controller_type") {
                 return rclcpp::Parameter(name, "line_pid");
+            }
+            if (name == "/control/maneuver_controller/cable_takeoff_use_mpc" ||
+                name == "/control/maneuver_controller/generate_trajectories_asynchronously_with_delay") {
+                return rclcpp::Parameter(name, true);
+            }
+            if (name == "/control/maneuver_controller/cable_takeoff_reached_pose_norm_threshold") {
+                return rclcpp::Parameter(name, 0.15);
+            }
+            if (name == "/control/maneuver_controller/cable_takeoff_min_target_cable_distance") {
+                return rclcpp::Parameter(name, 0.5);
+            }
+            if (name == "/control/maneuver_controller/cable_takeoff_max_target_cable_distance") {
+                return rclcpp::Parameter(name, 2.0);
             }
             if (name == "/tf/world_frame_id") return rclcpp::Parameter(name, "world");
             if (name == "/tf/drone_frame_id") return rclcpp::Parameter(name, "drone");
@@ -7163,6 +7182,264 @@ TEST(ManeuverReferenceClientTransaction, AbortedCableLandingLockSeedsOnlyItsRetr
     EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_INFO, "Preserving locked cable pose for retry"), 1U);
 }
 
+struct CableTakeoffHarness {
+    using Action = iii_drone_interfaces::action::CableTakeoff;
+    using GoalHandle = rclcpp_action::ServerGoalHandle<Action>;
+
+    explicit CableTakeoffHarness(const std::string & name)
+    : fixture(name),
+      goal_server_node(std::make_shared<rclcpp::Node>(name + "_goal_server")),
+      goal_client_node(std::make_shared<rclcpp::Node>(name + "_goal_client")) {
+        fixture.hover->ClearTerminalHold();
+        fixture.awareness->powerline_adapter_history_ = std::make_shared<
+            iii_drone::utils::History<iii_drone::adapters::PowerlineAdapter>>(1);
+        fixture.awareness->vehicle_odometry_adapter_history_ = std::make_shared<
+            iii_drone::utils::History<VehicleOdometryAdapter>>(2);
+        fixture.awareness->measured_odometry_.Store(std::nullopt);
+        fixture.awareness->vehicle_status_adapter_history_ = std::make_shared<
+            iii_drone::utils::History<iii_drone::adapters::px4::VehicleStatusAdapter>>(1);
+        fixture.awareness->vehicle_status_adapter_history_->Store(
+            iii_drone::adapters::px4::VehicleStatusAdapter(px4_msgs::msg::VehicleStatus{}));
+        generator_service = fixture.node.create_service<
+            iii_drone_interfaces::srv::ComputeReferenceTrajectory>(
+                "/control/trajectory_generator/compute_reference_trajectory",
+                [](const std::shared_ptr<iii_drone_interfaces::srv::ComputeReferenceTrajectory::Request>,
+                   std::shared_ptr<iii_drone_interfaces::srv::ComputeReferenceTrajectory::Response>) {});
+        generator_client = std::make_shared<iii_drone::control::TrajectoryGeneratorClient>(
+            &fixture.node, fixture.config,
+            fixture.node.create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive));
+        takeoff = std::make_shared<iii_drone::control::maneuver::CableTakeoffManeuverServer>(
+            &fixture.node, fixture.awareness, name + "_cable_takeoff", 1, 1,
+            fixture.config, generator_client);
+        fixture.scheduler.Start();
+        fixture.scheduler.maneuver_execution_timer_->cancel();
+        fixture.scheduler.RegisterManeuverServer(
+            iii_drone::control::maneuver::MANEUVER_TYPE_CABLE_TAKEOFF, takeoff);
+        const std::string action_name = "/" + name + "/accepted_cable_takeoff";
+        goal_server = rclcpp_action::create_server<Action>(goal_server_node, action_name,
+            [](const rclcpp_action::GoalUUID &, std::shared_ptr<const Action::Goal>) {
+                return rclcpp_action::GoalResponse::ACCEPT_AND_DEFER;
+            },
+            [](const std::shared_ptr<GoalHandle>) {
+                return rclcpp_action::CancelResponse::ACCEPT;
+            },
+            [this](const std::shared_ptr<GoalHandle> accepted) { handle = accepted; });
+        goal_client = rclcpp_action::create_client<Action>(goal_client_node, action_name);
+        executor.add_node(goal_server_node);
+        executor.add_node(goal_client_node);
+        target = iii_drone::adapters::TargetAdapter(iii_drone::adapters::TARGET_TYPE_CABLE, 3,
+            "gripper", iii_drone::control::maneuver::cable_takeoff_maneuver_params_t(3, 1.5)
+                .get_target_transform());
+        setAirborne(true);
+    }
+
+    ~CableTakeoffHarness() {
+        executor.remove_node(goal_client_node);
+        executor.remove_node(goal_server_node);
+        // Start() gave the server a map that contains itself; Stop() breaks
+        // that cycle so its node entities are gone before rclcpp shutdown.
+        takeoff->Stop();
+        fixture.scheduler.registered_maneuvers_.erase(
+            iii_drone::control::maneuver::MANEUVER_TYPE_CABLE_TAKEOFF);
+    }
+
+    // Airborne just after the gripper released: armed, offboard, gripper open.
+    void setAirborne(bool with_target) {
+        iii_drone::adapters::CombinedDroneAwarenessAdapter adapter;
+        adapter.armed() = true;
+        adapter.offboard() = true;
+        adapter.gripper_open() = true;
+        adapter.drone_location() = iii_drone::adapters::DRONE_LOCATION_IN_FLIGHT;
+        if (with_target) adapter.target_adapter() = target;
+        adapter.state() = fixture.awareness->GetState();
+        fixture.awareness->combined_drone_awareness_adapter_->Store(adapter);
+        fixture.awareness->target_adapter_->Store(
+            with_target ? target : iii_drone::adapters::TargetAdapter());
+    }
+
+    // One PX4 NED odometry sample; returns the resulting world state.
+    iii_drone::control::State observe(float north, float east, float down) {
+        px4_msgs::msg::VehicleOdometry raw;
+        raw.pose_frame = iii_drone::adapters::px4::POSE_FRAME_LOCAL_NED;
+        raw.velocity_frame = iii_drone::adapters::px4::VELOCITY_FRAME_LOCAL_NED;
+        raw.q[0] = 1.0F;
+        raw.position[0] = north;
+        raw.position[1] = east;
+        raw.position[2] = down;
+        raw.reset_counter = 5;
+        sample_us += 20000;
+        raw.timestamp_sample = sample_us;
+        fixture.awareness->ingestVehicleOdometry(raw, fixture.node.now());
+        auto adapter = fixture.awareness->adapter();
+        adapter.state() = fixture.awareness->GetState();
+        fixture.awareness->combined_drone_awareness_adapter_->Store(adapter);
+        return fixture.awareness->GetState();
+    }
+
+    iii_drone::control::maneuver::Maneuver acceptGoal(const std::string & request_identity) {
+        handle.reset();
+        EXPECT_TRUE(goal_client->wait_for_action_server(std::chrono::seconds(2)));
+        Action::Goal goal;
+        goal.request_identity = request_identity;
+        goal.target_cable_id = 3;
+        goal.target_cable_distance = 1.5F;
+        const auto future = goal_client->async_send_goal(goal);
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+        while (std::chrono::steady_clock::now() < deadline &&
+               (future.wait_for(std::chrono::milliseconds(0)) != std::future_status::ready ||
+                !handle)) {
+            executor.spin_some();
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        }
+        EXPECT_TRUE(handle);
+        handle->execute();
+        return iii_drone::control::maneuver::Maneuver::FromGoalHandle<Action>(handle);
+    }
+
+    TerminalCompletionFixture fixture;
+    rclcpp::Node::SharedPtr goal_server_node;
+    rclcpp::Node::SharedPtr goal_client_node;
+    rclcpp::Service<iii_drone_interfaces::srv::ComputeReferenceTrajectory>::SharedPtr
+        generator_service;
+    iii_drone::control::TrajectoryGeneratorClient::SharedPtr generator_client;
+    std::shared_ptr<iii_drone::control::maneuver::CableTakeoffManeuverServer> takeoff;
+    rclcpp_action::Server<Action>::SharedPtr goal_server;
+    rclcpp_action::Client<Action>::SharedPtr goal_client;
+    rclcpp::executors::SingleThreadedExecutor executor;
+    std::shared_ptr<GoalHandle> handle;
+    iii_drone::adapters::TargetAdapter target;
+    uint64_t sample_us = 1'000'000;
+};
+
+TEST(ManeuverReferenceClientTransaction, CableTakeoffCorrectsSettledPx4OffsetInsteadOfStalling) {
+    RclcppContext context;
+    CableTakeoffHarness harness("cable_takeoff_settled_offset");
+    // HIL A51: the takeoff command settled on the frozen target while PX4's
+    // position loop held the vehicle 0.18 m away (EKF vertical-velocity bias).
+    const auto state = harness.observe(1.869F, 0.103F, -2.183F);
+    const Reference frozen(state.position() - vector_t(0.0, 0.0, 0.18), state.yaw());
+    iii_drone::control::maneuver::Maneuver maneuver(
+        iii_drone::control::maneuver::MANEUVER_TYPE_CABLE_TAKEOFF, rclcpp_action::GoalUUID{});
+    maneuver.request_identity_ = kRequestA;
+    maneuver.maneuver_params_ = std::make_shared<
+        iii_drone::control::maneuver::cable_takeoff_maneuver_params_t>(3, 1.5);
+    harness.takeoff->current_maneuver_ = maneuver;
+    harness.takeoff->target_adapter_ = harness.target;
+    harness.takeoff->target_reference_ = frozen;
+    harness.takeoff->first_iteration_ = false;
+    harness.takeoff->has_failed_ = false;
+    harness.takeoff->started_at_ = std::chrono::steady_clock::now() - std::chrono::milliseconds(10540);
+    harness.takeoff->last_distance_improvement_at_ =
+        std::chrono::steady_clock::now() - std::chrono::milliseconds(5000);
+    harness.takeoff->best_distance_to_target_ = 0.185;
+    // The generator's cached MPC plan has converged onto the frozen target.
+    {
+        auto history = std::make_shared<
+            iii_drone::utils::History<iii_drone::adapters::ReferenceTrajectoryAdapter>>(1);
+        history->Store(iii_drone::adapters::ReferenceTrajectoryAdapter(
+            iii_drone::control::ReferenceTrajectory({frozen, frozen})));
+        std::lock_guard<std::mutex> lock(harness.generator_client->trajectory_state_mutex_);
+        harness.generator_client->reference_trajectory_adapter_history_ = history;
+        harness.generator_client->initial_plan_ready_ = true;
+        harness.generator_client->last_request_success_ = true;
+        harness.generator_client->busy_ = true;
+    }
+
+    (void)harness.takeoff->computeReference(state);
+    EXPECT_FALSE(harness.takeoff->hasFailed(maneuver))
+        << "the nominal stall rule must not abort an active terminal correction";
+    ASSERT_TRUE(harness.fixture.hover->terminalHold())
+        << "a settled takeoff command must hand over to bounded terminal correction";
+    EXPECT_EQ(harness.fixture.hover->terminalHoldBinding().request_identity, kRequestA);
+
+    // The correction integrates the persistent offset and commands below the
+    // nominal target so that PX4's biased loop settles onto it.
+    Reference command;
+    const auto until = std::chrono::steady_clock::now() + std::chrono::milliseconds(2500);
+    while (std::chrono::steady_clock::now() < until) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(40));
+        (void)harness.observe(1.869F, 0.103F, -2.183F);
+        command = harness.takeoff->computeReference(harness.fixture.awareness->GetState());
+    }
+    EXPECT_EQ(harness.fixture.hover->terminalHold()->phase(),
+        iii_drone::control::maneuver::TerminalTrackingHold::Phase::Tracking)
+        << harness.fixture.hover->terminalHold()->failureReason();
+    EXPECT_LT(command.position().z(), frozen.position().z() - 0.02);
+    EXPECT_LE((command.position() - frozen.position()).norm(), 0.4 + 1.0e-6);
+    EXPECT_FALSE(harness.takeoff->hasFailed(maneuver));
+}
+
+TEST(ManeuverReferenceClientTransaction, AbortedAirborneCableTakeoffRetryResumesFrozenTarget) {
+    RclcppContext context;
+    CableTakeoffHarness harness("cable_takeoff_airborne_retry");
+    const auto released = harness.observe(1.869F, 0.103F, -3.503F);
+    harness.setAirborne(true);
+    auto first = harness.acceptGoal(kRequestA);
+    ASSERT_TRUE(harness.takeoff->CanExecuteManeuver(first, harness.fixture.awareness->adapter()));
+    harness.takeoff->startExecution(first);
+    const Reference frozen = harness.takeoff->target_reference_.Load();
+    EXPECT_LT((frozen.position() - (released.position() - vector_t(0.0, 0.0, 1.5))).norm(), 1.0e-4);
+
+    // The vehicle departed and stalled 0.18 m short; the attempt aborts and
+    // the cable target is cleared.
+    (void)harness.observe(1.869F, 0.103F, -2.183F);
+    harness.takeoff->publishResultAndFinalize(
+        first, iii_drone::control::maneuver::ManeuverServer::MANEUVER_RESULT_TYPE_ABORT);
+    harness.executor.spin_some();
+    harness.setAirborne(false);
+
+    auto retry = harness.acceptGoal(kRequestB);
+    EXPECT_TRUE(harness.takeoff->CanExecuteManeuver(retry, harness.fixture.awareness->adapter()))
+        << "the leave_cable retry of an airborne takeoff could never register";
+    harness.takeoff->startExecution(retry);
+    EXPECT_LT((harness.takeoff->target_reference_.Load().position() - frozen.position()).norm(), 1.0e-4)
+        << "a retry must not freeze a new target a further clearance distance below";
+    EXPECT_EQ(harness.fixture.awareness->target_adapter(), harness.target);
+
+    // Success ends the departure; a later airborne takeoff has no target.
+    harness.takeoff->publishResultAndFinalize(
+        retry, iii_drone::control::maneuver::ManeuverServer::MANEUVER_RESULT_TYPE_SUCCEED);
+    harness.executor.spin_some();
+    harness.setAirborne(false);
+    auto later = harness.acceptGoal(kRequestC);
+    EXPECT_FALSE(harness.takeoff->CanExecuteManeuver(later, harness.fixture.awareness->adapter()));
+}
+
+TEST(ManeuverReferenceClientTransaction, AirborneCableTakeoffRetryIsBoundedToTheImmediateRetry) {
+    RclcppContext context;
+    using ManeuverServer = iii_drone::control::maneuver::ManeuverServer;
+    CableTakeoffHarness harness("cable_takeoff_bounded_retry");
+    const auto released = harness.observe(1.869F, 0.103F, -3.503F);
+    (void)released;
+    const auto abort_attempt = [&harness](const std::string & request,
+                                          ManeuverServer::maneuver_result_type_t result) {
+        harness.setAirborne(true);
+        auto attempt = harness.acceptGoal(request);
+        harness.takeoff->startExecution(attempt);
+        harness.takeoff->publishResultAndFinalize(attempt, result);
+        harness.executor.spin_some();
+        harness.setAirborne(false);
+    };
+
+    // A retry arriving after the bounded window may not resume the target.
+    abort_attempt(kRequestA, ManeuverServer::MANEUVER_RESULT_TYPE_ABORT);
+    {
+        std::lock_guard<std::mutex> lock(harness.takeoff->departure_target_mutex_);
+        ASSERT_TRUE(harness.takeoff->departure_target_);
+        harness.takeoff->departure_target_->aborted_at -= std::chrono::seconds(11);
+    }
+    auto late = harness.acceptGoal(kRequestB);
+    EXPECT_FALSE(harness.takeoff->CanExecuteManeuver(late, harness.fixture.awareness->adapter()));
+
+    // A vehicle far from the departure target (outside one clearance
+    // distance) cannot resume it either.
+    abort_attempt(kRequestA, ManeuverServer::MANEUVER_RESULT_TYPE_ABORT);
+    (void)harness.observe(1.869F, 0.103F, -6.0F);
+    harness.setAirborne(false);
+    auto far = harness.acceptGoal(kRequestB);
+    EXPECT_FALSE(harness.takeoff->CanExecuteManeuver(far, harness.fixture.awareness->adapter()));
+}
+
 TEST(ManeuverReferenceClientTransaction, HoverOnCableValidatesAwarenessOnlyForItsExecutingGoal) {
     RclcppContext context;
     ScopedLogCapture logs;
@@ -8548,10 +8825,12 @@ TEST(ManeuverReferenceClientTransaction, MissionExitAdmissionKeepsNotOffboardWar
     fixture.completion.awareness->vehicle_navigation_evidence_.Store(navigationSample(
         Status::NAVIGATION_STATE_AUTO_LOITER, false, std::chrono::steady_clock::now()));
     // Real CanExecuteManeuver during goal admission: the vehicle is not offboard.
+    // A raw pointer: capturing the shared_ptr in the server's own callback
+    // would keep the server and its node entities alive past rclcpp shutdown.
     hover->register_maneuver_ =
-        [hover](iii_drone::control::maneuver::Maneuver maneuver, bool & executing_instantly) {
+        [server = hover.get()](iii_drone::control::maneuver::Maneuver maneuver, bool & executing_instantly) {
             executing_instantly = false;
-            return hover->CanExecuteManeuver(maneuver, iii_drone::adapters::CombinedDroneAwarenessAdapter());
+            return server->CanExecuteManeuver(maneuver, iii_drone::adapters::CombinedDroneAwarenessAdapter());
         };
     rclcpp_action::GoalUUID uuid{};
     uuid[0] = 9;
