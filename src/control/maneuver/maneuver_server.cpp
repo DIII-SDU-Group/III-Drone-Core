@@ -293,6 +293,47 @@ const CombinedDroneAwarenessHandler::SharedPtr &ManeuverServer::awareness_handle
     return awareness_handler_;
 }
 
+void ManeuverServer::ReleaseConsumerScope(const ManeuverRequestScope & scope) {
+    std::lock_guard<std::mutex> lock(released_consumer_mutex_);
+    released_consumer_scope_ = scope;
+}
+
+bool ManeuverServer::consumerReleased(const std::string & request_identity) const {
+    std::lock_guard<std::mutex> lock(released_consumer_mutex_);
+    return released_consumer_scope_.has_value() &&
+        released_consumer_scope_->contains(request_identity);
+}
+
+namespace {
+// Set on the thread admitting a goal (handleGoal -> scheduler -> CanExecute).
+thread_local bool goal_admission_in_progress = false;
+}  // namespace
+
+ManeuverServer::GoalAdmissionScope::GoalAdmissionScope()
+: previous_(goal_admission_in_progress) {
+    goal_admission_in_progress = true;
+}
+
+ManeuverServer::GoalAdmissionScope::~GoalAdmissionScope() {
+    goal_admission_in_progress = previous_;
+}
+
+bool ManeuverServer::operatorNativeControl() const {
+    // Goal admission keeps its original classification; only maneuvers that
+    // are already running are reclassified under operator native control.
+    return !goal_admission_in_progress &&
+        awareness_handler_ != nullptr && awareness_handler_->OperatorNativeControl();
+}
+
+void ManeuverServer::logNotOffboard(const char * message) const {
+    if (operatorNativeControl()) {
+        RCLCPP_INFO(node_->get_logger(),
+            "%s (operator selected a PX4-native mode)", message);
+    } else {
+        RCLCPP_WARN(node_->get_logger(), "%s", message);
+    }
+}
+
 const iii_drone::utils::Atomic<iii_drone::control::maneuver::Maneuver> & ManeuverServer::current_maneuver() const {
     return current_maneuver_;
 }
@@ -555,7 +596,13 @@ rclcpp_action::GoalResponse ManeuverServer::handleGoal(
     maneuver.SetFromGoal<ActionT>(goal);
 
     bool executing_instantly;
-    bool success = register_maneuver_(maneuver, executing_instantly);
+    bool success = false;
+    {
+        // Admission keeps its rejection semantics and log levels in every
+        // PX4 state; the Mission client withholds goals at a handover.
+        GoalAdmissionScope admission;
+        success = register_maneuver_(maneuver, executing_instantly);
+    }
 
     if (!success) {
 
@@ -704,6 +751,16 @@ void ManeuverServer::asyncExecute(
     while(!goal_handle->is_executing()) {
         // RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::asyncExecute(): Waiting for goal to start executing");
         rate.sleep();
+        const bool released = consumerReleased(maneuver.requestIdentity());
+        if (released) {
+            RCLCPP_INFO(
+                node_->get_logger(),
+                "ManeuverServer::asyncExecute(): %s: Consumer released (Mission Exit) before execution, %s goal",
+                action_name_.c_str(), maneuver.canceling() ? "canceling" : "aborting"
+            );
+            if (maneuver.canceling()) cancel_maneuver(); else abort_maneuver();
+            return;
+        }
         if (!verify_maneuver_in_queue_(maneuver)) {
             RCLCPP_WARN(
                 node_->get_logger(), 
@@ -863,11 +920,19 @@ void ManeuverServer::asyncExecute(
             drain_managed();
             if (managed_lease) managed_lease->retire();
 
-            RCLCPP_WARN(
-                node_->get_logger(), 
-                "ManeuverServer::asyncExecute(): %s: Goal was removed from active maneuvers, cancelling goal",
-                action_name_.c_str()
-            );
+            if (consumerReleased(maneuver.requestIdentity())) {
+                RCLCPP_INFO(
+                    node_->get_logger(),
+                    "ManeuverServer::asyncExecute(): %s: Released goal was removed from active maneuvers, cancelling goal",
+                    action_name_.c_str()
+                );
+            } else {
+                RCLCPP_WARN(
+                    node_->get_logger(), 
+                    "ManeuverServer::asyncExecute(): %s: Goal was removed from active maneuvers, cancelling goal",
+                    action_name_.c_str()
+                );
+            }
             publishResultAndFinalize(
                 maneuver,
                 MANEUVER_RESULT_TYPE_CANCEL
@@ -886,6 +951,16 @@ void ManeuverServer::asyncExecute(
             terminal.commit();
 
             return;
+        }
+
+        // Mission Exit: the consumer released its command authority. PX4 is
+        // no longer applying Core's commands, so no controlled stop or ACK
+        // proof can complete; end the goal now (as requested cancel, if any).
+        if (consumerReleased(maneuver.requestIdentity())) {
+            success = false;
+            canceling = goal_handle->is_canceling();
+            terminal_reason = "CONSUMER_RELEASED";
+            break;
         }
 
         if (goal_handle->is_canceling()) {
@@ -1074,11 +1149,25 @@ void ManeuverServer::asyncExecute(
 
     } else {
 
-        RCLCPP_WARN(
-            node_->get_logger(), 
-            "ManeuverServer::asyncExecute(): %s: Maneuver failed",
-            action_name_.c_str()
-        );
+        if (terminal_reason == "CONSUMER_RELEASED") {
+            RCLCPP_INFO(
+                node_->get_logger(),
+                "ManeuverServer::asyncExecute(): %s: Maneuver ended: consumer released (Mission Exit)",
+                action_name_.c_str()
+            );
+        } else if (terminal_reason == "MANEUVER_HAS_FAILED" && operatorNativeControl()) {
+            RCLCPP_INFO(
+                node_->get_logger(),
+                "ManeuverServer::asyncExecute(): %s: Maneuver ended: operator selected a PX4-native mode",
+                action_name_.c_str()
+            );
+        } else {
+            RCLCPP_WARN(
+                node_->get_logger(), 
+                "ManeuverServer::asyncExecute(): %s: Maneuver failed",
+                action_name_.c_str()
+            );
+        }
         maneuver_result_type = MANEUVER_RESULT_TYPE_ABORT;
 
     }

@@ -60,6 +60,7 @@
 #include <iii_drone_interfaces/srv/rebase_reference_stream.hpp>
 #include <iii_drone_interfaces/srv/commit_reference_stream.hpp>
 #include <iii_drone_interfaces/srv/terminal_hold_transfer.hpp>
+#include <iii_drone_interfaces/srv/release_consumer_control.hpp>
 
 /*****************************************************************************/
 // Class:
@@ -166,6 +167,11 @@ namespace maneuver {
                     "/control/maneuver_controller/terminal_hold_transfer",
                     rclcpp::ServicesQoS(), get_reference_cb_group_
                 );
+            release_consumer_control_client_ =
+                node->template create_client<iii_drone_interfaces::srv::ReleaseConsumerControl>(
+                    "/control/maneuver_controller/release_consumer_control",
+                    rclcpp::ServicesQoS(), get_reference_cb_group_
+                );
 
             reference_mode_publisher_ = node->template create_publisher<iii_drone_interfaces::msg::StringStamped>(
                 "maneuver_reference_client/reference_mode",
@@ -248,6 +254,18 @@ namespace maneuver {
 
         /** Retire reference state only if this external mode still owns it. */
         bool ReleaseReferenceControl(uint64_t owner_generation);
+
+        /**
+         * @brief Mission Exit: this consumer intentionally ends its PX4 command
+         * authority. Locally the client hovers, drops any pending goal handoff
+         * and mode ownership; Core is asked (asynchronously, never blocking the
+         * caller) to end every owner minted by this process up to now.
+         *
+         * @param reason iii_drone_interfaces::srv::ReleaseConsumerControl REASON_*
+         * @param px4_nav_state PX4 navigation state that ended the mission.
+         * @return true if the Core release request was sent.
+         */
+        bool ReleaseConsumerControl(uint8_t reason, uint8_t px4_nav_state);
 
         /**
          * @brief Starts a maneuver. References will be consumed from the reference topic.
@@ -529,6 +547,8 @@ namespace maneuver {
             commit_reference_stream_client_;
         rclcpp::Client<iii_drone_interfaces::srv::TerminalHoldTransfer>::SharedPtr
             terminal_hold_transfer_client_;
+        rclcpp::Client<iii_drone_interfaces::srv::ReleaseConsumerControl>::SharedPtr
+            release_consumer_control_client_;
         std::shared_ptr<iii_drone_interfaces::srv::TerminalHoldTransfer::Response>
         requestTerminalHoldTransfer(
             const iii_drone_interfaces::srv::TerminalHoldTransfer::Request & request,

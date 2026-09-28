@@ -37,6 +37,16 @@ public:
         return format(epoch_, counter_.fetch_add(1) + 1);
     }
 
+    /** "mri1-" plus the 32 hex digit epoch shared by every identity minted here. */
+    std::string epochLabel() const {
+        return format(epoch_, 0).substr(0, 37);
+    }
+
+    /** Counter of the most recently minted identity; zero before the first. */
+    std::uint64_t lastIssuedCounter() const {
+        return counter_.load();
+    }
+
     static std::string format(const Epoch & epoch, std::uint64_t counter) {
         std::ostringstream identity;
         identity << "mri1-" << std::hex << std::setfill('0')
@@ -77,6 +87,23 @@ private:
  */
 std::string nextProcessManeuverRequestIdentity();
 
+/**
+ * Identities minted by one producer up to (and including) one counter.
+ *
+ * Mission Exit releases exactly this set: a later run of the same process
+ * mints larger counters and is never affected by an earlier release.
+ */
+struct ManeuverRequestScope {
+    std::string epoch;
+    std::uint64_t last_counter = 0;
+
+    bool valid() const;
+    bool contains(const std::string & request_identity) const;
+};
+
+/** The epoch of this process' generator and its latest minted counter. */
+ManeuverRequestScope processManeuverRequestScope();
+
 inline bool isValidManeuverRequestIdentity(const std::string & identity) {
     constexpr std::size_t kLength = 54;
     constexpr std::size_t kEpochCounterSeparator = 37;
@@ -100,6 +127,36 @@ inline bool isValidManeuverRequestIdentity(const std::string & identity) {
         }
     }
     return true;
+}
+
+/** "mri1-<32 hex>" prefix of a valid identity, empty otherwise. */
+inline std::string maneuverRequestIdentityEpoch(const std::string & identity) {
+    return isValidManeuverRequestIdentity(identity) ? identity.substr(0, 37) : std::string();
+}
+
+/** Monotonic counter suffix of a valid identity, zero otherwise. */
+inline std::uint64_t maneuverRequestIdentityCounter(const std::string & identity) {
+    if (!isValidManeuverRequestIdentity(identity)) {
+        return 0;
+    }
+    return std::stoull(identity.substr(38), nullptr, 16);
+}
+
+inline bool isValidManeuverRequestEpoch(const std::string & epoch) {
+    return epoch.size() == 37 &&
+        isValidManeuverRequestIdentity(epoch + "-0000000000000001");
+}
+
+inline bool ManeuverRequestScope::valid() const {
+    return last_counter != 0 && isValidManeuverRequestEpoch(epoch);
+}
+
+inline bool ManeuverRequestScope::contains(const std::string & request_identity) const {
+    if (!valid() || maneuverRequestIdentityEpoch(request_identity) != epoch) {
+        return false;
+    }
+    const std::uint64_t counter = maneuverRequestIdentityCounter(request_identity);
+    return counter != 0 && counter <= last_counter;
 }
 
 }  // namespace maneuver

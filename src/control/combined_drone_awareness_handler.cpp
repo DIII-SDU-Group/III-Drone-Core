@@ -460,6 +460,28 @@ CombinedDroneAwarenessHandler::GetVehicleNavigationEvidence() const {
     return vehicle_navigation_evidence_.Load();
 }
 
+bool iii_drone::control::IsOperatorNativeControl(
+    const VehicleNavigationEvidence & navigation,
+    std::chrono::steady_clock::time_point now
+) {
+    if (!navigation.latest) return false;
+    const auto & latest = *navigation.latest;
+    if (latest.source_timestamp_us == 0 || latest.nav_state_timestamp_us == 0 ||
+        latest.receipt > now || now - latest.receipt > kVehicleNavigationFreshness ||
+        latest.failsafe) return false;
+    if (navigation.last_external &&
+        navigation.last_external->source_timestamp_us == latest.source_timestamp_us) return false;
+    const auto nav_state = latest.nav_state;
+    return nav_state != px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_OFFBOARD &&
+        (nav_state < px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_EXTERNAL1 ||
+         nav_state > px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_EXTERNAL8);
+}
+
+bool CombinedDroneAwarenessHandler::OperatorNativeControl() const {
+    return IsOperatorNativeControl(
+        vehicle_navigation_evidence_.Load(), std::chrono::steady_clock::now());
+}
+
 VehicleNavigationEvidence CombinedDroneAwarenessHandler::AdvanceVehicleNavigation(
     VehicleNavigationEvidence previous,
     const px4_msgs::msg::VehicleStatus & status,
@@ -491,7 +513,8 @@ VehicleNavigationEvidence CombinedDroneAwarenessHandler::AdvanceVehicleNavigatio
         }
     }
     VehicleNavigationSample sample{
-        status.timestamp, status.nav_state_timestamp, status.nav_state, receipt};
+        status.timestamp, status.nav_state_timestamp, status.nav_state,
+        status.failsafe, receipt};
     previous.latest = sample;
     if (external_mode) previous.last_external = sample;
     return previous;

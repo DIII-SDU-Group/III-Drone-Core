@@ -17,6 +17,7 @@
 // III-Drone-Core:
 
 #include <iii_drone_core/control/maneuver/maneuver.hpp>
+#include <iii_drone_core/control/maneuver/maneuver_request_identity.hpp>
 
 /*****************************************************************************/
 // Class
@@ -89,6 +90,9 @@ namespace maneuver {
          * @return Number of queued maneuvers removed.
          */
         uint32_t ClearRequestIdentity(const std::string & request_identity);
+
+        /** Removes queued maneuvers whose request identity is in scope (Mission Exit). */
+        uint32_t ClearRequestScope(const ManeuverRequestScope & scope);
 
         /**
          * @brief Clears the queue from a specific maneuver.

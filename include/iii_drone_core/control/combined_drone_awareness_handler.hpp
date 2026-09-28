@@ -129,6 +129,8 @@ namespace control {
         uint64_t source_timestamp_us = 0;
         uint64_t nav_state_timestamp_us = 0;
         uint8_t nav_state = 0;
+        // PX4 vehicle_status.failsafe of this exact sample.
+        bool failsafe = false;
         std::chrono::steady_clock::time_point receipt;
     };
 
@@ -138,6 +140,21 @@ namespace control {
         // A raw PX4 clock regression invalidates all earlier owner epochs.
         uint64_t source_epoch = 0;
     };
+
+    /** Freshness bound of PX4 navigation evidence (vehicle_status cadence plus jitter). */
+    constexpr std::chrono::milliseconds kVehicleNavigationFreshness{1500};
+
+    /**
+     * Operator native control: the latest fresh PX4 sample is a PX4-native
+     * navigation state (not OFFBOARD and not an external mode) and PX4 is not
+     * in failsafe. This is how an operator (or test driver) ends a mission by
+     * selecting Hold/Position/... . Stale, missing or failsafe evidence is not
+     * operator control and keeps fault classification loud.
+     */
+    bool IsOperatorNativeControl(
+        const VehicleNavigationEvidence & navigation,
+        std::chrono::steady_clock::time_point now
+    );
 
     /**
      * @brief Class which subscribes to various topics related to the drone awareness and keeps track of the current combined awareness.
@@ -208,6 +225,8 @@ namespace control {
             const rclcpp::Time & receipt_stamp
         );
         VehicleNavigationEvidence GetVehicleNavigationEvidence() const;
+        /** IsOperatorNativeControl() on the latest navigation evidence. */
+        bool OperatorNativeControl() const;
         static VehicleNavigationEvidence AdvanceVehicleNavigation(
             VehicleNavigationEvidence previous,
             const px4_msgs::msg::VehicleStatus & status,

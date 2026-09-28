@@ -563,8 +563,13 @@ ReferenceTrajectory CableAwareTrajectoryPlanner::buildPiecewiseLinearTrajectory(
     // total arc length can place one reference before a waypoint and the next
     // after it; the segment joining those references then cuts the corner and
     // may cross a conductor clearance volume even though both A* edges are
-    // safe.  Retaining each waypoint makes every consecutive reference remain
-    // on one already-validated edge.
+    // safe.  Every step therefore ends on the current edge or exactly on its
+    // end waypoint.
+    //
+    // The speed along the path is rate limited from the start state's
+    // along-path speed, through each corner and down to rest at the goal.  A
+    // cruise-speed step directly after the (measured) start velocity is a
+    // velocity discontinuity that the consumer's continuity guard rejects.
     std::vector<Reference> references;
     references.emplace_back(
         start_state.position(),
@@ -576,28 +581,75 @@ ReferenceTrajectory CableAwareTrajectoryPlanner::buildPiecewiseLinearTrajectory(
         start_state.stamp()
     );
 
+    const double max_acceleration = std::max(getDouble(configuration_,
+        "/control/trajectory_interpolator/interpolation_max_acceleration_m_s2", 0.5), 1.0e-3);
+    const double cruise_speed = std::max(avg_velocity, 1.0e-3);
+    const double speed_step = max_acceleration * dt;
+
+    // Admissible speed at each waypoint: a corner may change the velocity
+    // direction by at most one acceleration step; the goal is reached at rest.
+    std::vector<double> waypoint_speed(waypoints.size(), cruise_speed);
+    waypoint_speed.back() = 0.0;
+    for (std::size_t i = 1; i + 1 < waypoints.size(); ++i) {
+        const vector_t in = waypoints[i] - waypoints[i - 1];
+        const vector_t out = waypoints[i + 1] - waypoints[i];
+        if (in.norm() < 1.0e-6 || out.norm() < 1.0e-6) continue;
+        const double cos_turn = std::clamp(
+            static_cast<double>(in.normalized().dot(out.normalized())), -1.0, 1.0);
+        const double half_turn_sin = std::sin(0.5 * std::acos(cos_turn));
+        if (half_turn_sin > 1.0e-6) {
+            waypoint_speed[i] = std::min(cruise_speed, speed_step / (2.0 * half_turn_sin));
+        }
+    }
+    for (std::size_t i = waypoints.size() - 1; i-- > 1;) {
+        const double edge = (waypoints[i + 1] - waypoints[i]).norm();
+        waypoint_speed[i] = std::min(waypoint_speed[i],
+            std::sqrt(waypoint_speed[i + 1] * waypoint_speed[i + 1] +
+                2.0 * max_acceleration * edge));
+    }
+
+    double speed = 0.0;
+    {
+        const vector_t first_edge = waypoints[1] - waypoints[0];
+        if (first_edge.norm() > 1.0e-6) {
+            speed = std::clamp(
+                static_cast<double>(start_state.velocity().dot(first_edge.normalized())),
+                0.0, cruise_speed);
+        }
+    }
+
     double distance_travelled = 0.0;
-    const double nominal_step = std::max(avg_velocity, 1.0e-3) * dt;
+    std::size_t max_steps = 100000;
     for (std::size_t segment = 1; segment < waypoints.size(); ++segment) {
         const vector_t segment_delta = waypoints[segment] - waypoints[segment - 1];
         const double segment_length = segment_delta.norm();
-        const int segment_steps = std::max(1, static_cast<int>(std::ceil(segment_length / nominal_step)));
-        vector_t segment_velocity = vector_t::Zero();
-        if (segment_length > 1.0e-6) {
-            segment_velocity = segment_delta / (segment_steps * dt);
-        }
+        if (segment_length <= 1.0e-6) continue;
+        const vector_t direction = segment_delta / segment_length;
+        double along = 0.0;
+        while (along < segment_length) {
+            if (max_steps-- == 0) {
+                throw std::runtime_error(
+                    "CableAwareTrajectoryPlanner: piecewise-linear speed profile did not converge.");
+            }
+            const double remaining = segment_length - along;
+            double step_speed = std::min({cruise_speed, speed + speed_step,
+                std::sqrt(waypoint_speed[segment] * waypoint_speed[segment] +
+                    2.0 * max_acceleration * remaining)});
+            step_speed = std::max(step_speed, 1.0e-3);
+            const double step_length = std::min(step_speed * dt, remaining);
+            along = step_length >= remaining ? segment_length : along + step_length;
+            // A shortened step that lands on a waypoint keeps the planned
+            // speed; its position lag (< one step) stays within tolerance.
+            speed = step_speed;
 
-        for (int step = 1; step <= segment_steps; ++step) {
-            const double segment_alpha = static_cast<double>(step) / segment_steps;
-            const point_t position = waypoints[segment - 1] + segment_alpha * segment_delta;
             const double global_alpha = path_length > 1.0e-6
-                ? std::clamp((distance_travelled + segment_alpha * segment_length) / path_length, 0.0, 1.0)
+                ? std::clamp((distance_travelled + along) / path_length, 0.0, 1.0)
                 : 1.0;
             const double t = references.size() * dt;
             references.emplace_back(
-                position,
+                waypoints[segment - 1] + along * direction,
                 yawLerp(start_state.yaw(), goal_reference.yaw(), global_alpha),
-                segment_velocity,
+                direction * speed,
                 0.0,
                 vector_t::Zero(),
                 0.0,

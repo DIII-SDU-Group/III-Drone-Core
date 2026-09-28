@@ -4,9 +4,24 @@ namespace iii_drone {
 namespace control {
 namespace maneuver {
 
-std::string nextProcessManeuverRequestIdentity() {
+namespace {
+
+ManeuverRequestIdentityGenerator & processGenerator() {
     static ManeuverRequestIdentityGenerator generator;
-    return generator.next();
+    return generator;
+}
+
+}  // namespace
+
+std::string nextProcessManeuverRequestIdentity() {
+    return processGenerator().next();
+}
+
+ManeuverRequestScope processManeuverRequestScope() {
+    ManeuverRequestScope scope;
+    scope.epoch = processGenerator().epochLabel();
+    scope.last_counter = processGenerator().lastIssuedCounter();
+    return scope;
 }
 
 }  // namespace maneuver

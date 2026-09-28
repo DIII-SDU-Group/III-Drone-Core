@@ -358,7 +358,7 @@ bool HoverOnCableManeuverServer::validateAwareness(
 ) const {
 
     if (!drone_awareness.offboard()) {
-        RCLCPP_WARN(node()->get_logger(), "HoverOnCableManeuverServer::validateAwareness(): Drone is not offboard.");
+        logNotOffboard("HoverOnCableManeuverServer::validateAwareness(): Drone is not offboard.");
         return false;
     }
 

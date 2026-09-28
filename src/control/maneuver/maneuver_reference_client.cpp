@@ -1455,6 +1455,64 @@ bool ManeuverReferenceClient::ReleaseReferenceControl(uint64_t owner_generation)
     return true;
 }
 
+bool ManeuverReferenceClient::ReleaseConsumerControl(uint8_t reason, uint8_t px4_nav_state) {
+    {
+        std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+        // Hover also drops any pending goal handoff and its stream guard; a
+        // late acceptance of that goal can no longer adopt a generation.
+        SetReferenceModeHover(true);
+        reference_control_owner_ = 0;
+        if (*stop_maneuver_timer_ != nullptr) {
+            (*stop_maneuver_timer_)->cancel();
+            stop_maneuver_timer_.Store(nullptr);
+        }
+        ++stop_maneuver_timer_generation_;
+    }
+
+    const ManeuverRequestScope scope = processManeuverRequestScope();
+    if (!scope.valid()) {
+        RCLCPP_INFO(logger_,
+            "ManeuverReferenceClient::ReleaseConsumerControl(): No maneuver request was issued; nothing to release in Core");
+        return false;
+    }
+    if (!release_consumer_control_client_ ||
+        !release_consumer_control_client_->service_is_ready()) {
+        RCLCPP_WARN(logger_,
+            "ManeuverReferenceClient::ReleaseConsumerControl(): Core release service unavailable; "
+            "Core falls back to PX4 native-navigation retirement");
+        return false;
+    }
+    auto request = std::make_shared<iii_drone_interfaces::srv::ReleaseConsumerControl::Request>();
+    request->producer_epoch = scope.epoch;
+    request->last_request_counter = scope.last_counter;
+    request->reason = reason;
+    request->px4_nav_state = px4_nav_state;
+    auto logger = logger_;
+    release_consumer_control_client_->async_send_request(
+        request,
+        [logger](rclcpp::Client<iii_drone_interfaces::srv::ReleaseConsumerControl>::SharedFuture future) {
+            const auto response = future.get();
+            if (response->accepted) {
+                RCLCPP_INFO(logger,
+                    "ManeuverReferenceClient::ReleaseConsumerControl(): Core released consumer: "
+                    "%u queued cleared, %u executing released, %u retained owner retired",
+                    response->cleared_queued_count, response->released_active_count,
+                    response->retired_owner_count);
+            } else {
+                RCLCPP_WARN(logger,
+                    "ManeuverReferenceClient::ReleaseConsumerControl(): Core refused release: %s",
+                    response->reason.c_str());
+            }
+        });
+    auto event = iii_drone::diagnostics::HilTrace::event("consumer_control_release_requested");
+    event.text("producer_epoch", scope.epoch);
+    event.number("last_request_counter", scope.last_counter);
+    event.number("reason", reason);
+    event.number("px4_nav_state", px4_nav_state);
+    event.commit();
+    return true;
+}
+
 bool ManeuverReferenceClient::hoverIfFailureEpochUnchanged(uint64_t observed_epoch) {
     std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
     if (maneuver_failure_epoch_ != observed_epoch) {

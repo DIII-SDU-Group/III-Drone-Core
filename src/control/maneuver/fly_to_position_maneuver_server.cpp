@@ -94,10 +94,7 @@ bool FlyToPositionManeuverServer::CanExecuteManeuver(
     }
 
     if (!drone_awareness.offboard()) {
-        RCLCPP_WARN(
-            node()->get_logger(),
-            "FlyToPositionManeuverServer::CanExecuteManeuver(): Drone is not in offboard mode"
-        );
+        logNotOffboard("FlyToPositionManeuverServer::CanExecuteManeuver(): Drone is not in offboard mode");
         return false;
     }
 
@@ -728,10 +725,7 @@ bool FlyToPositionManeuverServer::hasFailed(Maneuver &) {
     }
 
     if (!cda_handler->offboard()) {
-        RCLCPP_WARN(
-            node()->get_logger(),
-            "FlyToPositionManeuverServer::hasFailed(): Drone is not in offboard mode"
-        );
+        logNotOffboard("FlyToPositionManeuverServer::hasFailed(): Drone is not in offboard mode");
         return true;
     }
 

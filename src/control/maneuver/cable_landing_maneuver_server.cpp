@@ -84,7 +84,7 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
     }
 
     if (!drone_awareness.offboard()) {
-        RCLCPP_WARN(node()->get_logger(), "CableLandingManeuverServer::CanExecuteManeuver(): Drone is not offboard.");
+        logNotOffboard("CableLandingManeuverServer::CanExecuteManeuver(): Drone is not offboard.");
         return false;
     }
 
@@ -1090,10 +1090,7 @@ bool CableLandingManeuverServer::hasFailed(Maneuver &) {
     }
 
     if (!cda_handler->offboard()) {
-        RCLCPP_WARN(
-            node()->get_logger(),
-            "CableLandingManeuverServer::hasFailed(): Drone is not offboard."
-        );
+        logNotOffboard("CableLandingManeuverServer::hasFailed(): Drone is not offboard.");
         return true;
     }
 

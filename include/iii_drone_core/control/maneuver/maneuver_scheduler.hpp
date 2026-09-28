@@ -43,6 +43,7 @@
 #include <iii_drone_interfaces/srv/commit_reference_stream.hpp>
 #include <iii_drone_interfaces/srv/terminal_hold_transfer.hpp>
 #include <iii_drone_interfaces/srv/clear_maneuver_queue.hpp>
+#include <iii_drone_interfaces/srv/release_consumer_control.hpp>
 
 /*****************************************************************************/
 // III-Drone-Configuration:
@@ -410,6 +411,11 @@ namespace maneuver {
             commit_reference_stream_service_;
         rclcpp::Service<iii_drone_interfaces::srv::TerminalHoldTransfer>::SharedPtr
             terminal_hold_transfer_service_;
+        rclcpp::Service<iii_drone_interfaces::srv::ReleaseConsumerControl>::SharedPtr
+            release_consumer_control_service_;
+        // Mission Exit scope; guarded by reference_stream_mutex_. Sticky so an
+        // owner retained after an in-scope goal ends is retired on the next tick.
+        std::optional<ManeuverRequestScope> released_consumer_scope_;
 
         struct ReferenceStreamState {
             std::string stream_id;
@@ -486,6 +492,16 @@ namespace maneuver {
         );
         std::shared_ptr<TerminalTrackingHold> retainedTerminalHold() const;
         bool retireCompletedTerminalHoldAfterNativeHold();
+        /** Mission Exit: retire the retained owner of a released consumer scope. */
+        bool retireReleasedConsumerOwner();
+        /** Clears an exact retained owner binding and its stream (reference_stream_mutex_ held). */
+        void clearRetainedOwnerLocked(
+            const char * provider_label, uint64_t execution_id,
+            const std::string & request_identity);
+        void releaseConsumerControl(
+            const std::shared_ptr<iii_drone_interfaces::srv::ReleaseConsumerControl::Request> request,
+            std::shared_ptr<iii_drone_interfaces::srv::ReleaseConsumerControl::Response> response
+        );
         bool blendedReferenceApplied(const std::string & request_identity);
         bool firstObjectReferenceApplied(const std::string & request_identity);
         bool firstTerminalHoverReferenceApplied(const std::string & request_identity);

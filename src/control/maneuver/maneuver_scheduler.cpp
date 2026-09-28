@@ -258,6 +258,13 @@ void ManeuverScheduler::Start() {
             rclcpp::ServicesQoS(), get_reference_callback_group_
         );
 
+    release_consumer_control_service_ =
+        node_->create_service<iii_drone_interfaces::srv::ReleaseConsumerControl>(
+            "release_consumer_control",
+            std::bind(&ManeuverScheduler::releaseConsumerControl, this,
+                std::placeholders::_1, std::placeholders::_2)
+        );
+
     clear_maneuver_queue_service_ = node_->create_service<iii_drone_interfaces::srv::ClearManeuverQueue>(
         "clear_maneuver_queue",
         std::bind(
@@ -320,6 +327,7 @@ void ManeuverScheduler::Stop() {
     get_reference_service_.reset();
     get_reference_service_ = nullptr;
     terminal_hold_transfer_service_.reset();
+    release_consumer_control_service_.reset();
 
     if (clear_maneuver_queue_service_) {
         clear_maneuver_queue_service_->clear_on_new_request_callback();
@@ -2354,18 +2362,7 @@ bool ManeuverScheduler::retireCompletedTerminalHoldAfterNativeHold() {
         std::static_pointer_cast<HoverByObjectManeuverServer>(object_entry->second)
             ->RetireTrackedSource(binding);
     }
-    reference_callback_struct_->set(nullptr, "native_hold_retired",
-        execution_id, request_identity);
-    maneuver_server_get_reference_callback_still_registered_ = false;
-    reference_stream_state_.valid = false;
-    reference_stream_state_.offer_consumer_identity.clear();
-    reference_stream_state_.offer_ack_sequence = 0;
-    reference_stream_state_.claim_ack_pending = false;
-    reference_stream_state_.claimed_consumer_identity.clear();
-    reference_stream_state_.ack_seen = false;
-    reference_stream_state_.last_ack_reference_valid = false;
-    reference_stream_state_.recent_references.clear();
-    retained_native_hold_epoch_ = RetainedNativeHoldEpoch{};
+    clearRetainedOwnerLocked("native_hold_retired", execution_id, request_identity);
 
     RCLCPP_INFO(node_->get_logger(),
         "Completed %s owner retired after fresh PX4 native navigation state %u "
@@ -2393,6 +2390,139 @@ bool ManeuverScheduler::retireCompletedTerminalHoldAfterNativeHold() {
     event.number("nav_state_timestamp_us", navigation.latest->nav_state_timestamp_us);
     event.commit();
     return true;
+}
+
+void ManeuverScheduler::clearRetainedOwnerLocked(
+    const char * provider_label, uint64_t execution_id,
+    const std::string & request_identity
+) {
+    reference_callback_struct_->set(nullptr, provider_label,
+        execution_id, request_identity);
+    maneuver_server_get_reference_callback_still_registered_ = false;
+    reference_stream_state_.valid = false;
+    reference_stream_state_.offer_consumer_identity.clear();
+    reference_stream_state_.offer_ack_sequence = 0;
+    reference_stream_state_.claim_ack_pending = false;
+    reference_stream_state_.claimed_consumer_identity.clear();
+    reference_stream_state_.ack_seen = false;
+    reference_stream_state_.last_ack_reference_valid = false;
+    reference_stream_state_.recent_references.clear();
+    retained_native_hold_epoch_ = RetainedNativeHoldEpoch{};
+}
+
+bool ManeuverScheduler::retireReleasedConsumerOwner() {
+    const auto hover_entry = registered_maneuvers_.find(MANEUVER_TYPE_HOVER);
+    if (hover_entry == registered_maneuvers_.end()) return false;
+    const auto hover = std::static_pointer_cast<HoverManeuverServer>(hover_entry->second);
+
+    // Same stream -> Hover -> callback order as native-Hold retirement. No
+    // navigation evidence is needed: the consumer explicitly released.
+    std::lock_guard<std::mutex> lock(reference_stream_mutex_);
+    if (!released_consumer_scope_) return false;
+    const ManeuverRequestScope scope = *released_consumer_scope_;
+    const Maneuver maneuver = current_maneuver_;
+    // An executing goal ends through its own server (CONSUMER_RELEASED); its
+    // retained successor state, if any, is retired on a later tick.
+    if (maneuver.started() && !maneuver.terminated()) return false;
+    const auto binding = reference_callback_struct_->snapshot();
+    if (!binding.callback || binding.execution_id == 0 ||
+        !scope.contains(binding.request_identity) ||
+        binding.execution_id != current_reference_execution_id_.Load() ||
+        !reference_callback_token_.master_has_token()) return false;
+
+    const auto owner = hover->terminalHoldBinding();
+    const auto object_entry = registered_maneuvers_.find(MANEUVER_TYPE_HOVER_BY_OBJECT);
+    const auto fly_entry = registered_maneuvers_.find(MANEUVER_TYPE_FLY_TO_OBJECT);
+    const bool terminal_owner = owner.hold &&
+        owner.request_identity == binding.request_identity;
+    const bool object_owner = !terminal_owner &&
+        object_entry != registered_maneuvers_.end() &&
+        ((binding.reference_provider_name == object_entry->second->action_name()) ||
+         (fly_entry != registered_maneuvers_.end() &&
+          binding.reference_provider_name == fly_entry->second->action_name())) &&
+        std::static_pointer_cast<HoverByObjectManeuverServer>(object_entry->second)
+            ->RetainsTrackedSource(binding);
+    const char * owner_label = terminal_owner ? "terminal hold" :
+        (object_owner ? "object session" : "retained callback");
+    if (terminal_owner) {
+        hover->ClearTerminalHold();
+    } else if (object_owner) {
+        std::static_pointer_cast<HoverByObjectManeuverServer>(object_entry->second)
+            ->RetireTrackedSource(binding);
+    }
+    const std::string stream_id = reference_stream_state_.stream_id;
+    clearRetainedOwnerLocked("consumer_released", binding.execution_id,
+        binding.request_identity);
+
+    RCLCPP_INFO(node_->get_logger(),
+        "Mission Exit: retired released %s owner (request=%s execution=%lu stream=%s provider=%s)",
+        owner_label, binding.request_identity.c_str(),
+        static_cast<unsigned long>(binding.execution_id), stream_id.c_str(),
+        binding.reference_provider_name.c_str());
+    auto event = iii_drone::diagnostics::HilTrace::event("retained_owner_retired_consumer_release");
+    event.text("request_identity", binding.request_identity);
+    event.text("owner_type", terminal_owner ? "terminal_hold" :
+        (object_owner ? "object_session" : "retained_callback"));
+    event.text("provider", binding.reference_provider_name);
+    event.text("stream_id", stream_id);
+    event.number("execution_id", binding.execution_id);
+    event.commit();
+    return true;
+}
+
+void ManeuverScheduler::releaseConsumerControl(
+    const std::shared_ptr<iii_drone_interfaces::srv::ReleaseConsumerControl::Request> request,
+    std::shared_ptr<iii_drone_interfaces::srv::ReleaseConsumerControl::Response> response
+) {
+    using Release = iii_drone_interfaces::srv::ReleaseConsumerControl;
+    ManeuverRequestScope scope;
+    scope.epoch = request->producer_epoch;
+    scope.last_counter = request->last_request_counter;
+    if (!scope.valid()) {
+        response->accepted = false;
+        response->reason = "malformed consumer scope";
+        RCLCPP_WARN(node_->get_logger(),
+            "ManeuverScheduler::releaseConsumerControl(): Refusing malformed consumer scope");
+        return;
+    }
+    std::unique_lock<std::shared_mutex> lck(maneuver_mutex_);
+    {
+        std::lock_guard<std::mutex> lock(reference_stream_mutex_);
+        released_consumer_scope_ = scope;
+    }
+    for (auto & entry : registered_maneuvers_) {
+        entry.second->ReleaseConsumerScope(scope);
+    }
+    response->cleared_queued_count =
+        maneuver_queue_ ? maneuver_queue_->ClearRequestScope(scope) : 0U;
+    const Maneuver current = current_maneuver_;
+    response->released_active_count =
+        current.started() && !current.terminated() &&
+        scope.contains(current.requestIdentity()) ? 1U : 0U;
+    response->retired_owner_count = retireReleasedConsumerOwner() ? 1U : 0U;
+    response->accepted = true;
+    response->reason = "consumer released";
+
+    const char * reason_label =
+        request->reason == Release::Request::REASON_OPERATOR_MODE_CHANGE ? "operator mode change" :
+        request->reason == Release::Request::REASON_OPERATOR_STICK_OVERRIDE ? "operator stick override" :
+        request->reason == Release::Request::REASON_FAILSAFE ? "failsafe" : "other";
+    RCLCPP_INFO(node_->get_logger(),
+        "Mission Exit: consumer %s released control up to request %lu (%s, PX4 nav_state %u): "
+        "%u queued cleared, %u executing released, %u retained owner retired",
+        scope.epoch.c_str(), static_cast<unsigned long>(scope.last_counter), reason_label,
+        static_cast<unsigned>(request->px4_nav_state),
+        response->cleared_queued_count, response->released_active_count,
+        response->retired_owner_count);
+    auto event = iii_drone::diagnostics::HilTrace::event("consumer_control_released");
+    event.text("producer_epoch", scope.epoch);
+    event.number("last_request_counter", scope.last_counter);
+    event.text("reason", reason_label);
+    event.number("px4_nav_state", request->px4_nav_state);
+    event.number("cleared_queued_count", response->cleared_queued_count);
+    event.number("released_active_count", response->released_active_count);
+    event.number("retired_owner_count", response->retired_owner_count);
+    event.commit();
 }
 
 void ManeuverScheduler::terminalHoldTransfer(
@@ -2871,6 +3001,7 @@ void ManeuverScheduler::progressScheduler() {
     std::unique_lock<std::shared_mutex> lck(maneuver_mutex_);
 
     (void)retireCompletedTerminalHoldAfterNativeHold();
+    (void)retireReleasedConsumerOwner();
 
     // Verified on-ground disarm retires the airborne owner before a later
     // takeoff or mode can discover this hold as a transfer offer.

@@ -414,10 +414,7 @@ bool CableTakeoffManeuverServer::hasFailed(Maneuver &) {
     }
 
     if (!cda_handler->offboard()) {
-        RCLCPP_WARN(
-            node()->get_logger(),
-            "CableTakeoffManeuverServer::hasFailed(): Drone is not offboard."
-        );
+        logNotOffboard("CableTakeoffManeuverServer::hasFailed(): Drone is not offboard.");
         return true;
     }
 

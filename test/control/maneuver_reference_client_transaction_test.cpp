@@ -8294,3 +8294,371 @@ TEST(ManeuverReferenceClientTransaction, CompletionRejectsWrongRequestAndUnstart
     EXPECT_EQ(current.requestIdentity(), kRequestA);
     EXPECT_EQ(current.start_time().nanoseconds(), started.start_time().nanoseconds());
 }
+
+// ---------------------------------------------------------------------------
+// Mission Exit: explicit consumer release and operator native control.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+iii_drone::control::maneuver::ManeuverRequestScope scopeOf(
+    const std::string & identity, uint64_t last_counter = 0) {
+    iii_drone::control::maneuver::ManeuverRequestScope scope;
+    scope.epoch = iii_drone::control::maneuver::maneuverRequestIdentityEpoch(identity);
+    scope.last_counter = last_counter != 0 ? last_counter :
+        iii_drone::control::maneuver::maneuverRequestIdentityCounter(identity);
+    return scope;
+}
+
+std::shared_ptr<iii_drone_interfaces::srv::ReleaseConsumerControl::Response> releaseConsumer(
+    iii_drone::control::maneuver::ManeuverScheduler & scheduler,
+    const iii_drone::control::maneuver::ManeuverRequestScope & scope) {
+    using Release = iii_drone_interfaces::srv::ReleaseConsumerControl;
+    auto request = std::make_shared<Release::Request>();
+    request->producer_epoch = scope.epoch;
+    request->last_request_counter = scope.last_counter;
+    request->reason = Release::Request::REASON_OPERATOR_MODE_CHANGE;
+    request->px4_nav_state = px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_AUTO_LOITER;
+    auto response = std::make_shared<Release::Response>();
+    scheduler.releaseConsumerControl(request, response);
+    return response;
+}
+
+iii_drone::control::VehicleNavigationEvidence navigationSample(
+    uint8_t nav_state, bool failsafe, std::chrono::steady_clock::time_point receipt,
+    uint64_t source_us = 2000000) {
+    px4_msgs::msg::VehicleStatus status;
+    status.timestamp = source_us;
+    status.nav_state_timestamp = source_us;
+    status.nav_state = nav_state;
+    status.failsafe = failsafe;
+    const bool external = nav_state >= status.NAVIGATION_STATE_EXTERNAL1 &&
+        nav_state <= status.NAVIGATION_STATE_EXTERNAL8;
+    return iii_drone::control::CombinedDroneAwarenessHandler::AdvanceVehicleNavigation(
+        iii_drone::control::VehicleNavigationEvidence{}, status, receipt, external);
+}
+
+}  // namespace
+
+TEST(ManeuverReferenceClientTransaction, MissionExitOperatorNativeControlRequiresFreshNonFailsafeNativeSample) {
+    using Status = px4_msgs::msg::VehicleStatus;
+    const auto now = std::chrono::steady_clock::now();
+    EXPECT_TRUE(iii_drone::control::IsOperatorNativeControl(
+        navigationSample(Status::NAVIGATION_STATE_AUTO_LOITER, false, now), now));
+    EXPECT_TRUE(iii_drone::control::IsOperatorNativeControl(
+        navigationSample(Status::NAVIGATION_STATE_POSCTL, false, now), now));
+    // PX4 failsafe is never an operator exit.
+    EXPECT_FALSE(iii_drone::control::IsOperatorNativeControl(
+        navigationSample(Status::NAVIGATION_STATE_AUTO_LOITER, true, now), now));
+    // Stale evidence is unknown, not operator control.
+    EXPECT_FALSE(iii_drone::control::IsOperatorNativeControl(
+        navigationSample(Status::NAVIGATION_STATE_AUTO_LOITER, false,
+            now - std::chrono::seconds(3)), now));
+    // Offboard and external modes are external control.
+    EXPECT_FALSE(iii_drone::control::IsOperatorNativeControl(
+        navigationSample(Status::NAVIGATION_STATE_OFFBOARD, false, now), now));
+    EXPECT_FALSE(iii_drone::control::IsOperatorNativeControl(
+        navigationSample(Status::NAVIGATION_STATE_EXTERNAL3, false, now), now));
+    EXPECT_FALSE(iii_drone::control::IsOperatorNativeControl(
+        iii_drone::control::VehicleNavigationEvidence{}, now));
+}
+
+TEST(ManeuverReferenceClientTransaction, MissionExitScopeContainsOnlyItsProducerUpToItsCounter) {
+    using iii_drone::control::maneuver::ManeuverRequestIdentityGenerator;
+    ManeuverRequestIdentityGenerator generator({0x1234U, 0xabcdU});
+    EXPECT_EQ(generator.lastIssuedCounter(), 0U);
+    const std::string first = generator.next();
+    const std::string second = generator.next();
+    iii_drone::control::maneuver::ManeuverRequestScope scope;
+    scope.epoch = generator.epochLabel();
+    scope.last_counter = generator.lastIssuedCounter();
+    ASSERT_TRUE(scope.valid());
+    EXPECT_TRUE(scope.contains(first));
+    EXPECT_TRUE(scope.contains(second));
+    // A later run of the same process is outside an earlier release.
+    EXPECT_FALSE(scope.contains(generator.next()));
+    EXPECT_FALSE(scope.contains(kRequestA));
+    EXPECT_FALSE(scope.contains("malformed"));
+    iii_drone::control::maneuver::ManeuverRequestScope malformed{"mri1-xyz", 3};
+    EXPECT_FALSE(malformed.valid());
+    EXPECT_FALSE(malformed.contains(first));
+
+    iii_drone::control::maneuver::ManeuverQueue queue(8);
+    const auto push = [&queue](const std::string & identity) {
+        iii_drone::control::maneuver::Maneuver maneuver(
+            iii_drone::control::maneuver::MANEUVER_TYPE_HOVER, rclcpp_action::GoalUUID{});
+        maneuver.request_identity_ = identity;
+        ASSERT_TRUE(queue.Push(maneuver));
+    };
+    push(first);
+    push(kRequestA);
+    push(second);
+    EXPECT_EQ(queue.ClearRequestScope(scope), 2U);
+    EXPECT_EQ(queue.size(), 1);
+}
+
+TEST(ManeuverReferenceClientTransaction, MissionExitReleaseRetiresCompletedOwnerWithoutNativeEvidence) {
+    RclcppContext context;
+    TerminalCompletionFixture fixture("mission_exit_release_completed_owner");
+    fixture.observeSourceExternal();
+    fixture.finishWithoutSchedulerTick(
+        iii_drone::control::maneuver::MANEUVER_TYPE_CABLE_AWARE_FLY_TO_POSITION,
+        "cable_aware_fly_to_position", true);
+    ASSERT_TRUE(fixture.query()->accepted);
+    // No PX4-native status was observed: without the explicit release the
+    // owner would stay until native-navigation inference or ACK timeouts.
+    EXPECT_FALSE(fixture.scheduler.retireCompletedTerminalHoldAfterNativeHold());
+    ASSERT_TRUE(fixture.hover->terminalHold());
+
+    const auto response = releaseConsumer(fixture.scheduler, scopeOf(kRequestA));
+    ASSERT_TRUE(response->accepted);
+    EXPECT_EQ(response->retired_owner_count, 1U);
+    EXPECT_EQ(response->released_active_count, 0U);
+    EXPECT_FALSE(fixture.hover->terminalHold());
+    EXPECT_FALSE(fixture.scheduler.reference_stream_state_.valid);
+    EXPECT_FALSE(fixture.scheduler.reference_callback_struct_->snapshot().callback);
+    EXPECT_EQ(fixture.query()->reason, "no retained terminal hold");
+    EXPECT_TRUE(fixture.hover->consumerReleased(kRequestA));
+}
+
+TEST(ManeuverReferenceClientTransaction, MissionExitReleaseScopeExcludesOtherProducersNewerRequestsAndMalformed) {
+    RclcppContext context;
+    TerminalCompletionFixture fixture("mission_exit_release_scope");
+    fixture.observeSourceExternal();
+    fixture.finishWithoutSchedulerTick(
+        iii_drone::control::maneuver::MANEUVER_TYPE_CABLE_AWARE_FLY_TO_POSITION,
+        "cable_aware_fly_to_position", true);
+    ASSERT_TRUE(fixture.query()->accepted);
+
+    iii_drone::control::maneuver::ManeuverRequestScope malformed;
+    malformed.epoch = "mri1-not-an-epoch";
+    malformed.last_counter = 1;
+    EXPECT_FALSE(releaseConsumer(fixture.scheduler, malformed)->accepted);
+
+    const auto other = releaseConsumer(fixture.scheduler, scopeOf(kRequestB));
+    ASSERT_TRUE(other->accepted);
+    EXPECT_EQ(other->retired_owner_count, 0U);
+    EXPECT_TRUE(fixture.hover->terminalHold());
+    EXPECT_FALSE(fixture.hover->consumerReleased(kRequestA));
+    EXPECT_TRUE(fixture.query()->accepted);
+}
+
+TEST(ManeuverReferenceClientTransaction, MissionExitReleaseRetiresOwnerRetainedAfterReleasedGoalEnds) {
+    RclcppContext context;
+    TerminalCompletionFixture fixture("mission_exit_release_sticky");
+    fixture.observeSourceExternal();
+    fixture.finishWithoutSchedulerTick(
+        iii_drone::control::maneuver::MANEUVER_TYPE_CABLE_AWARE_FLY_TO_POSITION,
+        "cable_aware_fly_to_position", true);
+    const iii_drone::control::maneuver::Maneuver completed = fixture.scheduler.current_maneuver_;
+    // Race: the release arrives while the goal is still executing. Its own
+    // server ends it; the scheduler must not retire the active binding.
+    iii_drone::control::maneuver::Maneuver executing(
+        iii_drone::control::maneuver::MANEUVER_TYPE_CABLE_AWARE_FLY_TO_POSITION,
+        rclcpp_action::GoalUUID{});
+    executing.request_identity_ = kRequestA;
+    executing.started_ = true;
+    fixture.scheduler.current_maneuver_ = executing;
+    const auto response = releaseConsumer(fixture.scheduler, scopeOf(kRequestA));
+    ASSERT_TRUE(response->accepted);
+    EXPECT_EQ(response->released_active_count, 1U);
+    EXPECT_EQ(response->retired_owner_count, 0U);
+    EXPECT_TRUE(fixture.hover->terminalHold());
+    EXPECT_TRUE(fixture.source_server->consumerReleased(kRequestA));
+
+    // The goal terminates; the next scheduler tick retires what it left.
+    fixture.scheduler.current_maneuver_ = completed;
+    EXPECT_TRUE(fixture.scheduler.retireReleasedConsumerOwner());
+    EXPECT_FALSE(fixture.hover->terminalHold());
+    EXPECT_EQ(fixture.query()->reason, "no retained terminal hold");
+    EXPECT_FALSE(fixture.scheduler.retireReleasedConsumerOwner());
+}
+
+namespace {
+
+struct MissionExitGoalFixture {
+    explicit MissionExitGoalFixture(const std::string & name)
+    : completion(name, 10000, "/" + name) {
+        completion.hover->running_ = true;
+        completion.hover->register_maneuver_ =
+            [this](iii_drone::control::maneuver::Maneuver, bool & executing_instantly) {
+                ++register_calls;
+                executing_instantly = false;
+                return register_succeeds;
+            };
+    }
+
+    rclcpp_action::GoalResponse handleGoal(const std::string & identity,
+                                           const rclcpp_action::GoalUUID & uuid) {
+        auto goal = std::make_shared<iii_drone_interfaces::action::Hover::Goal>();
+        goal->request_identity = identity;
+        goal->duration_s = 1.0F;
+        return completion.hover->handleGoal<iii_drone_interfaces::action::Hover>(uuid, goal);
+    }
+
+    TerminalCompletionFixture completion;
+    int register_calls = 0;
+    bool register_succeeds = true;
+};
+
+}  // namespace
+
+TEST(ManeuverReferenceClientTransaction, MissionExitCoreStillRejectsUnregistrableGoalsInEveryPx4State) {
+    // The handover is the client's job: Core keeps the existing admission
+    // semantics and log level for a goal that cannot register, whatever the
+    // PX4 state or a consumer release says.
+    RclcppContext context;
+    using Status = px4_msgs::msg::VehicleStatus;
+    ScopedLogCapture logs;
+    MissionExitGoalFixture fixture("mission_exit_core_still_rejects");
+    fixture.register_succeeds = false;  // CanExecuteManeuver: not offboard
+    struct Case {
+        uint8_t nav_state;
+        bool failsafe;
+        std::chrono::seconds age;
+    };
+    uint8_t id = 1;
+    for (const Case state : {
+             Case{Status::NAVIGATION_STATE_AUTO_LOITER, false, std::chrono::seconds(0)},
+             Case{Status::NAVIGATION_STATE_POSCTL, false, std::chrono::seconds(0)},
+             Case{Status::NAVIGATION_STATE_AUTO_LOITER, true, std::chrono::seconds(0)},
+             Case{Status::NAVIGATION_STATE_AUTO_LOITER, false, std::chrono::seconds(5)}}) {
+        fixture.completion.awareness->vehicle_navigation_evidence_.Store(navigationSample(
+            state.nav_state, state.failsafe, std::chrono::steady_clock::now() - state.age,
+            1000000ULL * id));
+        rclcpp_action::GoalUUID uuid{};
+        uuid[0] = id++;
+        EXPECT_EQ(fixture.handleGoal(kRequestA, uuid), rclcpp_action::GoalResponse::REJECT);
+    }
+    // A released consumer's late goal is rejected the same way.
+    fixture.completion.hover->ReleaseConsumerScope(scopeOf(kRequestA));
+    rclcpp_action::GoalUUID released{};
+    released[0] = id;
+    EXPECT_EQ(fixture.handleGoal(kRequestA, released), rclcpp_action::GoalResponse::REJECT);
+    EXPECT_EQ(fixture.register_calls, 5);
+    EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_WARN, "Could not register maneuver, rejecting goal"), 5U);
+}
+
+TEST(ManeuverReferenceClientTransaction, MissionExitAdmissionKeepsNotOffboardWarnUnderOperatorNativeControl) {
+    RclcppContext context;
+    using Status = px4_msgs::msg::VehicleStatus;
+    ScopedLogCapture logs;
+    MissionExitGoalFixture fixture("mission_exit_admission_log_level");
+    auto hover = fixture.completion.hover;
+    fixture.completion.awareness->vehicle_navigation_evidence_.Store(navigationSample(
+        Status::NAVIGATION_STATE_AUTO_LOITER, false, std::chrono::steady_clock::now()));
+    // Real CanExecuteManeuver during goal admission: the vehicle is not offboard.
+    hover->register_maneuver_ =
+        [hover](iii_drone::control::maneuver::Maneuver maneuver, bool & executing_instantly) {
+            executing_instantly = false;
+            return hover->CanExecuteManeuver(maneuver, iii_drone::adapters::CombinedDroneAwarenessAdapter());
+        };
+    rclcpp_action::GoalUUID uuid{};
+    uuid[0] = 9;
+    EXPECT_EQ(fixture.handleGoal(kRequestA, uuid), rclcpp_action::GoalResponse::REJECT);
+    EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_WARN, "Drone is not in offboard mode"), 1U);
+    EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_INFO, "operator selected a PX4-native mode"), 0U);
+}
+
+TEST(ManeuverReferenceClientTransaction, MissionExitReleasedGoalThatRegistersNeverExecutes) {
+    RclcppContext context;
+    MissionExitGoalFixture fixture("mission_exit_released_registered");
+    fixture.completion.hover->ReleaseConsumerScope(scopeOf(kRequestA));
+    rclcpp_action::GoalUUID uuid{};
+    uuid[0] = 7;
+    // Admission is unchanged (e.g. PX4 in another external mode) ...
+    EXPECT_EQ(fixture.handleGoal(kRequestA, uuid), rclcpp_action::GoalResponse::ACCEPT_AND_DEFER);
+    EXPECT_EQ(fixture.register_calls, 1);
+    // ... but the released goal is ended before it can execute.
+    EXPECT_TRUE(fixture.completion.hover->consumerReleased(kRequestA));
+    EXPECT_FALSE(fixture.completion.hover->consumerReleased(kRequestB));
+}
+
+TEST(ManeuverReferenceClientTransaction, MissionExitReleaseEndsExecutingGoalWithoutControlledStopWait) {
+    RclcppContext context;
+    TerminalCompletionFixture fixture("mission_exit_release_executing", 1000,
+        "/control/maneuver_controller");
+    fixture.hover->Update(Reference(fixture.hold->lastCommand().position(), 0.0));
+    fixture.scheduler.Start();
+    fixture.scheduler.maneuver_execution_timer_->cancel();
+    auto ftp = std::make_shared<BlendedCompletionLeaseServer>(
+        &fixture.node, fixture.awareness, "fly_to_position", 1, 1,
+        fixture.config, nullptr);
+    fixture.scheduler.RegisterManeuverServer(
+        iii_drone::control::maneuver::MANEUVER_TYPE_FLY_TO_POSITION, ftp);
+    AcceptedPositionGoal goal("mission_exit_release_executing_goal");
+    const auto handle = goal.accept(kRequestB);
+    ASSERT_TRUE(handle);
+    fixture.scheduler.current_maneuver_ =
+        iii_drone::control::maneuver::Maneuver::FromGoalHandle<
+            AcceptedPositionGoal::Action>(handle);
+    fixture.scheduler.current_maneuver_->Start();
+    fixture.scheduler.beginReferenceExecution(
+        ftp->action_name(), kRequestB, Reference(point_t(0.4F, 0.0F, 1.0F), 0.0));
+    std::promise<bool> completed;
+    auto completed_future = completed.get_future();
+    std::thread worker([&] {
+        try {
+            ftp->asyncExecute<AcceptedPositionGoal::Action>(handle);
+            completed.set_value(true);
+        } catch (...) {
+            completed.set_value(false);
+        }
+    });
+    for (int attempt = 0; attempt < 200 &&
+         !fixture.scheduler.reference_callback_token_.has_requested_token(
+             ftp->action_name()); ++attempt) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    const bool requested = fixture.scheduler.reference_callback_token_.has_requested_token(
+        ftp->action_name());
+    if (requested) fixture.scheduler.reference_callback_token_.Give(ftp->action_name());
+    // The goal is executing and would never succeed on its own.
+    const bool still_running = completed_future.wait_for(std::chrono::milliseconds(50)) !=
+        std::future_status::ready;
+
+    // Race R3: the consumer released while this goal was executing.
+    const auto response = releaseConsumer(fixture.scheduler, scopeOf(kRequestB));
+    const bool finished = completed_future.wait_for(std::chrono::seconds(2)) ==
+        std::future_status::ready;
+    if (!finished) ftp->running_.Store(false);
+    worker.join();
+    ASSERT_TRUE(requested);
+    EXPECT_TRUE(still_running);
+    ASSERT_TRUE(response->accepted);
+    EXPECT_EQ(response->released_active_count, 1U);
+    ASSERT_TRUE(finished) << "a released goal must not wait for controlled-stop proofs";
+    EXPECT_TRUE(completed_future.get());
+    EXPECT_FALSE(handle->is_active());
+    const auto current = fixture.scheduler.current_maneuver_.Load();
+    EXPECT_TRUE(current.terminated());
+    EXPECT_FALSE(current.success());
+    ftp->Stop();
+    fixture.scheduler.registered_maneuvers_.erase(
+        iii_drone::control::maneuver::MANEUVER_TYPE_FLY_TO_POSITION);
+}
+
+TEST(ManeuverReferenceClientTransaction, MissionExitNotOffboardIsInfoOnlyUnderOperatorNativeControl) {
+    RclcppContext context;
+    using Status = px4_msgs::msg::VehicleStatus;
+    for (const bool failsafe : {false, true}) {
+        ScopedLogCapture logs;
+        TerminalCompletionFixture fixture(failsafe
+            ? "not_offboard_failsafe_is_loud" : "not_offboard_operator_is_quiet");
+        auto server = std::make_shared<iii_drone::control::maneuver::HoverOnCableManeuverServer>(
+            &fixture.node, fixture.awareness, "hover_on_cable_not_offboard", 1, 1, fixture.config);
+        int failures = 0;
+        server->RegisterOnFailCallback([&failures] { ++failures; });
+        fixture.awareness->vehicle_navigation_evidence_.Store(navigationSample(
+            Status::NAVIGATION_STATE_AUTO_LOITER, failsafe, std::chrono::steady_clock::now()));
+        server->current_maneuver_ = iii_drone::control::maneuver::Maneuver(
+            iii_drone::control::maneuver::MANEUVER_TYPE_HOVER_ON_CABLE, rclcpp_action::GoalUUID{});
+        (void)server->GetReference(fixture.awareness->GetState());
+        // Fail-closed either way; only the classification differs.
+        EXPECT_EQ(failures, 1);
+        EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_WARN, "Drone is not offboard"),
+            failsafe ? 1U : 0U);
+        EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_INFO, "operator selected a PX4-native mode"),
+            failsafe ? 0U : 1U);
+    }
+}

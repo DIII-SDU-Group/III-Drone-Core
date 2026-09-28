@@ -84,10 +84,7 @@ bool HoverByObjectManeuverServer::CanExecuteManeuver(
     }
 
     if (!drone_awareness.offboard()) {
-        RCLCPP_WARN(
-            node()->get_logger(),
-            "HoverByObjectManeuverServer::CanExecuteManeuver(): Drone is not offboard"
-        );
+        logNotOffboard("HoverByObjectManeuverServer::CanExecuteManeuver(): Drone is not offboard");
         return false;
     }
 
@@ -791,9 +788,15 @@ bool HoverByObjectManeuverServer::validateAwareness(
 ) const {
 
     if (!drone_awareness.offboard()) {
-        RCLCPP_WARN_THROTTLE(node()->get_logger(), *node()->get_clock(), 1000,
-            "HoverByObjectManeuverServer::validateAwareness(): target_id=%d offboard=false",
-            target_adapter.target_id());
+        if (operatorNativeControl()) {
+            RCLCPP_INFO_THROTTLE(node()->get_logger(), *node()->get_clock(), 1000,
+                "HoverByObjectManeuverServer::validateAwareness(): target_id=%d offboard=false (operator native control)",
+                target_adapter.target_id());
+        } else {
+            RCLCPP_WARN_THROTTLE(node()->get_logger(), *node()->get_clock(), 1000,
+                "HoverByObjectManeuverServer::validateAwareness(): target_id=%d offboard=false",
+                target_adapter.target_id());
+        }
         return false;
     }
 

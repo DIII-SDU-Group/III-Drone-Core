@@ -47,6 +47,7 @@
 
 #include <iii_drone_core/control/maneuver/maneuver.hpp>
 #include <iii_drone_core/control/maneuver/maneuver_types.hpp>
+#include <iii_drone_core/control/maneuver/maneuver_request_identity.hpp>
 #include <iii_drone_core/control/maneuver/reference_callback_token.hpp>
 
 #include <iii_drone_core/adapters/combined_drone_awareness_adapter.hpp>
@@ -225,11 +226,36 @@ namespace maneuver {
         );
 
         /**
+         * @brief Mission Exit: the consumer that minted this scope released its
+         * command authority. Goals in scope end without executing further and
+         * without controlled-cancel ACK waits; late goals in scope are accepted
+         * and aborted. The scope is sticky until replaced by a newer release.
+         */
+        void ReleaseConsumerScope(const ManeuverRequestScope & scope);
+
+        /** True when request_identity belongs to a released consumer scope. */
+        bool consumerReleased(const std::string & request_identity) const;
+
+        /**
          * @brief Shared pointer type.
          */
         typedef std::shared_ptr<ManeuverServer> SharedPtr;
 
     protected:
+        /**
+         * @brief Fresh PX4-native navigation without PX4 failsafe: an operator
+         * (or test driver) ended external control. Used only to classify logs
+         * of maneuvers that are already running; always false while a goal is
+         * being admitted (admission keeps its rejection and log levels).
+         */
+        bool operatorNativeControl() const;
+
+        /**
+         * @brief Log that the vehicle is not in an offboard/external mode:
+         * INFO under operator native control, WARN otherwise (same text).
+         */
+        void logNotOffboard(const char * message) const;
+
         /**
          * @brief Combined drone awareness handler, accessible to derived classes through the protected method.
          */
@@ -430,6 +456,18 @@ namespace maneuver {
          * @brief Mutex for restricting execution to one goal at a time.
          */
         std::mutex mutex_;
+
+        mutable std::mutex released_consumer_mutex_;
+        std::optional<ManeuverRequestScope> released_consumer_scope_;
+
+        /** Marks goal admission on this thread (see operatorNativeControl()). */
+        class GoalAdmissionScope {
+        public:
+            GoalAdmissionScope();
+            ~GoalAdmissionScope();
+        private:
+            bool previous_;
+        };
 
         /**
          * @brief Action name

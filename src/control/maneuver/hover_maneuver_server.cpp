@@ -46,7 +46,7 @@ bool HoverManeuverServer::CanExecuteManeuver(
 
     if (!drone_awareness.offboard()) {
 
-        RCLCPP_WARN(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Drone is not in offboard mode, cannot execute");
+        logNotOffboard("HoverManeuverServer::CanExecuteManeuver(): Drone is not in offboard mode, cannot execute");
 
         return false;
 
