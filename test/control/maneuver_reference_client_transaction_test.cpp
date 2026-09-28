@@ -18,6 +18,7 @@
 #include <iii_drone_configuration/configuration.hpp>
 
 #define private public
+#define protected public
 #include <iii_drone_core/control/maneuver/maneuver_reference_client.hpp>
 #include <iii_drone_core/control/maneuver/maneuver_scheduler.hpp>
 #include <iii_drone_core/control/maneuver/hover_maneuver_server.hpp>
@@ -26,6 +27,7 @@
 #include <iii_drone_core/control/maneuver/fly_to_position_maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/fly_to_object_maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/cable_landing_maneuver_server.hpp>
+#undef protected
 #undef private
 #include <iii_drone_core/control/trajectory_interpolator.hpp>
 #include <iii_drone_core/control/maneuver/object_tracking_session.hpp>
@@ -114,6 +116,8 @@ Configuration::SharedPtr makeConfiguration(
         {"/control/maneuver_controller/reached_position_euclidean_distance_threshold", rclcpp::ParameterType::PARAMETER_DOUBLE},
         {"/control/maneuver_controller/fly_to_object_target_low_pass_time_constant_s", rclcpp::ParameterType::PARAMETER_DOUBLE},
         {"/control/maneuver_controller/cable_landing_target_upwards_velocity", rclcpp::ParameterType::PARAMETER_DOUBLE},
+        {"/control/maneuver_controller/cable_landing_max_initial_distance_error", rclcpp::ParameterType::PARAMETER_DOUBLE},
+        {"/control/maneuver_controller/cable_landing_max_initial_yaw_error", rclcpp::ParameterType::PARAMETER_DOUBLE},
         {"/control/maneuver_controller/cable_landing_line_pid_max_dt_s", rclcpp::ParameterType::PARAMETER_DOUBLE},
         {"/control/maneuver_controller/cable_landing_line_pid_ascent_velocity", rclcpp::ParameterType::PARAMETER_DOUBLE},
         {"/control/maneuver_controller/cable_landing_gripper_v_gate_center_y", rclcpp::ParameterType::PARAMETER_DOUBLE},
@@ -248,6 +252,8 @@ Configuration::SharedPtr makeConfiguration(
                 || name == "/control/maneuver_controller/maneuver_start_timeout_s"
                 || name == "/control/maneuver_controller/maneuver_completion_token_acquisition_timeout_s"
                 || name == "/control/maneuver_controller/no_maneuver_idle_cnt_s"
+                || name == "/control/maneuver_controller/cable_landing_max_initial_distance_error"
+                || name == "/control/maneuver_controller/cable_landing_max_initial_yaw_error"
             ) {
                 if (name == "/mission/reference_continuity_velocity_tolerance_m_s") {
                     return rclcpp::Parameter(name, reference_continuity_velocity_tolerance_m_s);
@@ -7011,6 +7017,150 @@ TEST(ManeuverReferenceClientTransaction, NativeLandCannotRetireActiveHoverOnCabl
     EXPECT_EQ(binding.request_identity, kRequestA);
     EXPECT_EQ(binding.execution_id, harness.execution);
     EXPECT_FALSE(fixture.scheduler.retireCompletedTerminalHoldAfterNativeHold());
+}
+
+struct CableLandingLockHarness {
+    using Action = iii_drone_interfaces::action::CableLanding;
+    using GoalHandle = rclcpp_action::ServerGoalHandle<Action>;
+
+    explicit CableLandingLockHarness(const std::string & name)
+    : fixture(name),
+      goal_server_node(std::make_shared<rclcpp::Node>(name + "_goal_server")),
+      goal_client_node(std::make_shared<rclcpp::Node>(name + "_goal_client")) {
+        fixture.awareness->powerline_adapter_history_ = std::make_shared<
+            iii_drone::utils::History<iii_drone::adapters::PowerlineAdapter>>(1);
+        generator_service = fixture.node.create_service<
+            iii_drone_interfaces::srv::ComputeReferenceTrajectory>(
+                "/control/trajectory_generator/compute_reference_trajectory",
+                [](const std::shared_ptr<iii_drone_interfaces::srv::ComputeReferenceTrajectory::Request>,
+                   std::shared_ptr<iii_drone_interfaces::srv::ComputeReferenceTrajectory::Response>) {});
+        generator_client = std::make_shared<iii_drone::control::TrajectoryGeneratorClient>(
+            &fixture.node, fixture.config,
+            fixture.node.create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive));
+        landing = std::make_shared<iii_drone::control::maneuver::CableLandingManeuverServer>(
+            &fixture.node, fixture.awareness, name + "_cable_landing", 1, 1,
+            fixture.config, generator_client);
+        const std::string action_name = "/" + name + "/accepted_cable_landing";
+        goal_server = rclcpp_action::create_server<Action>(goal_server_node, action_name,
+            [](const rclcpp_action::GoalUUID &, std::shared_ptr<const Action::Goal>) {
+                return rclcpp_action::GoalResponse::ACCEPT_AND_DEFER;
+            },
+            [](const std::shared_ptr<GoalHandle>) {
+                return rclcpp_action::CancelResponse::ACCEPT;
+            },
+            [this](const std::shared_ptr<GoalHandle> accepted) { handle = accepted; });
+        goal_client = rclcpp_action::create_client<Action>(goal_client_node, action_name);
+        executor.add_node(goal_server_node);
+        executor.add_node(goal_client_node);
+        lock.position = point_t(0.1F, 0.0F, 0.0F);
+        lock.orientation = iii_drone::math::eulToQuat(iii_drone::types::euler_angles_t::Zero());
+    }
+
+    ~CableLandingLockHarness() {
+        executor.remove_node(goal_client_node);
+        executor.remove_node(goal_server_node);
+    }
+
+    iii_drone::control::maneuver::Maneuver acceptGoal(const std::string & request_identity) {
+        handle.reset();
+        EXPECT_TRUE(goal_client->wait_for_action_server(std::chrono::seconds(2)));
+        Action::Goal goal;
+        goal.request_identity = request_identity;
+        goal.target_cable_id = 1;
+        const auto future = goal_client->async_send_goal(goal);
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+        while (std::chrono::steady_clock::now() < deadline &&
+               (future.wait_for(std::chrono::milliseconds(0)) != std::future_status::ready ||
+                !handle)) {
+            executor.spin_some();
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        }
+        EXPECT_TRUE(handle);
+        handle->execute();
+        return iii_drone::control::maneuver::Maneuver::FromGoalHandle<Action>(handle);
+    }
+
+    // One executed landing that locked the conductor pose, then its result.
+    void landAndFinish(const std::string & request_identity,
+                       iii_drone::control::maneuver::ManeuverServer::maneuver_result_type_t result) {
+        auto maneuver = acceptGoal(request_identity);
+        landing->startExecution(maneuver);
+        landing->line_pid_last_cable_pose_world_ = lock;
+        landing->line_pid_has_last_cable_pose_ = true;
+        landing->publishResultAndFinalize(maneuver, result);
+        executor.spin_some();
+    }
+
+    // Target not currently perceived; the drone is near the locked pose.
+    iii_drone::adapters::CombinedDroneAwarenessAdapter unseenTargetAwareness() const {
+        iii_drone::adapters::CombinedDroneAwarenessAdapter awareness;
+        awareness.armed() = true;
+        awareness.offboard() = true;
+        awareness.drone_location() = iii_drone::adapters::DRONE_LOCATION_IN_FLIGHT;
+        awareness.target_adapter() = iii_drone::adapters::TargetAdapter(
+            iii_drone::adapters::TARGET_TYPE_CABLE, 1, "gripper",
+            iii_drone::types::transform_matrix_t::Identity());
+        awareness.target_position_known() = false;
+        awareness.state() = iii_drone::control::State(
+            point_t::Zero(), vector_t::Zero(), 0.0, vector_t::Zero(), rclcpp::Time(0));
+        return awareness;
+    }
+
+    TerminalCompletionFixture fixture;
+    rclcpp::Node::SharedPtr goal_server_node;
+    rclcpp::Node::SharedPtr goal_client_node;
+    rclcpp::Service<iii_drone_interfaces::srv::ComputeReferenceTrajectory>::SharedPtr
+        generator_service;
+    iii_drone::control::TrajectoryGeneratorClient::SharedPtr generator_client;
+    std::shared_ptr<iii_drone::control::maneuver::CableLandingManeuverServer> landing;
+    rclcpp_action::Server<Action>::SharedPtr goal_server;
+    rclcpp_action::Client<Action>::SharedPtr goal_client;
+    rclcpp::executors::SingleThreadedExecutor executor;
+    std::shared_ptr<GoalHandle> handle;
+    iii_drone::types::pose_t lock;
+};
+
+TEST(ManeuverReferenceClientTransaction, SuccessfulCableLandingLockDoesNotSeedNextCycle) {
+    RclcppContext context;
+    ScopedLogCapture logs;
+    CableLandingLockHarness harness("cable_landing_success_lock");
+    harness.landAndFinish(kRequestA, iii_drone::control::maneuver::ManeuverServer::MANEUVER_RESULT_TYPE_SUCCEED);
+    // The successful landing keeps its own lock for any still-running use.
+    EXPECT_TRUE(harness.landing->line_pid_has_last_cable_pose_);
+
+    auto next = harness.acceptGoal(kRequestB);
+    EXPECT_FALSE(harness.landing->CanExecuteManeuver(next, harness.unseenTargetAwareness()))
+        << "a later cycle accepted a landing on a pose locked by a successful landing";
+    harness.landing->startExecution(next);
+    EXPECT_FALSE(harness.landing->line_pid_has_last_cable_pose_);
+    EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_WARN, "Preserving locked cable pose"), 0U);
+    EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_INFO, "Preserving locked cable pose"), 0U);
+}
+
+TEST(ManeuverReferenceClientTransaction, AbortedCableLandingLockSeedsOnlyItsRetry) {
+    RclcppContext context;
+    ScopedLogCapture logs;
+    CableLandingLockHarness harness("cable_landing_abort_lock");
+    harness.landAndFinish(kRequestA, iii_drone::control::maneuver::ManeuverServer::MANEUVER_RESULT_TYPE_ABORT);
+
+    auto retry = harness.acceptGoal(kRequestB);
+    EXPECT_TRUE(harness.landing->CanExecuteManeuver(retry, harness.unseenTargetAwareness()));
+    harness.landing->startExecution(retry);
+    EXPECT_TRUE(harness.landing->line_pid_has_last_cable_pose_);
+    EXPECT_LT((harness.landing->line_pid_last_cable_pose_world_.position -
+        harness.lock.position).norm(), 1.0e-6);
+    EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_INFO, "Preserving locked cable pose for retry"), 1U);
+    EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_WARN, "Preserving locked cable pose"), 0U);
+
+    // The retry succeeds; the next cycle's landing starts fresh.
+    harness.landing->publishResultAndFinalize(
+        retry, iii_drone::control::maneuver::ManeuverServer::MANEUVER_RESULT_TYPE_SUCCEED);
+    auto next_cycle = harness.acceptGoal(kRequestC);
+    EXPECT_FALSE(harness.landing->CanExecuteManeuver(
+        next_cycle, harness.unseenTargetAwareness()));
+    harness.landing->startExecution(next_cycle);
+    EXPECT_FALSE(harness.landing->line_pid_has_last_cable_pose_);
+    EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_INFO, "Preserving locked cable pose for retry"), 1U);
 }
 
 TEST(ManeuverReferenceClientTransaction, HoverOnCableValidatesAwarenessOnlyForItsExecutingGoal) {

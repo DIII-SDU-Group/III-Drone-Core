@@ -113,7 +113,7 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
     }
 
     if (!drone_awareness.target_position_known()) {
-        if (line_pid_has_last_cable_pose_) {
+        if (line_pid_has_last_cable_pose_ && line_pid_lock_retry_eligible_.Load()) {
             const vector_t delta_to_locked_target = line_pid_last_cable_pose_world_.position - drone_awareness.state().position();
             const quaternion_t target_quat_world = line_pid_last_cable_pose_world_.orientation;
             const quaternion_t quat_drone_to_target = quatMultiply(
@@ -129,7 +129,7 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
             ).as_double();
 
             if (delta_to_locked_target.norm() <= max_initial_distance && std::abs(axis_yaw_error) <= max_initial_yaw) {
-                RCLCPP_WARN(
+                RCLCPP_INFO(
                     node()->get_logger(),
                     "CableLandingManeuverServer::CanExecuteManeuver(): Target position is not currently known; accepting retry using locked cable pose. distance=%.3f axis_yaw_error=%.3f",
                     delta_to_locked_target.norm(),
@@ -339,6 +339,12 @@ void CableLandingManeuverServer::startExecution(Maneuver & maneuver) {
         "CableLandingManeuverServer::startExecution(): Starting execution of maneuver."
     );
 
+    // Only a lock left by an aborted execution seeds this one. Clear the
+    // eligibility first so a startup rejection cannot promote an old lock.
+    const bool retry_after_abort = line_pid_lock_retry_eligible_.Load();
+    line_pid_lock_retry_eligible_ = false;
+    line_pid_lock_owned_by_execution_ = false;
+
     auto cda_handler = awareness_handler();
     object_transition_start_reference_ = consumeTerminalStartReference(
         maneuver.requestIdentity());
@@ -388,7 +394,7 @@ void CableLandingManeuverServer::startExecution(Maneuver & maneuver) {
 
     }
 
-    const bool had_locked_pose = line_pid_has_last_cable_pose_;
+    const bool had_locked_pose = retry_after_abort && line_pid_has_last_cable_pose_;
     const pose_t previous_locked_pose = line_pid_last_cable_pose_world_;
 
     first_iteration_ = true;
@@ -405,7 +411,7 @@ void CableLandingManeuverServer::startExecution(Maneuver & maneuver) {
     if (had_locked_pose) {
         line_pid_last_cable_pose_world_ = previous_locked_pose;
         line_pid_has_last_cable_pose_ = true;
-        RCLCPP_WARN(
+        RCLCPP_INFO(
             node()->get_logger(),
             "CableLandingManeuverServer::startExecution(): Preserving locked cable pose for retry: [%.3f, %.3f, %.3f]",
             previous_locked_pose.position(0),
@@ -413,6 +419,7 @@ void CableLandingManeuverServer::startExecution(Maneuver & maneuver) {
             previous_locked_pose.position(2)
         );
     }
+    line_pid_lock_owned_by_execution_ = true;
 
     cda_handler->SetTarget(target_adapter_);
 
@@ -1178,6 +1185,13 @@ void CableLandingManeuverServer::publishResultAndFinalize(
     Maneuver & maneuver,
     maneuver_result_type_t maneuver_result_type
 ) {
+
+    // The reach_cable tree retries CableLanding only after ACTION_ABORTED.
+    // Success or cancellation must not let a later cycle reuse this lock.
+    line_pid_lock_retry_eligible_ =
+        maneuver_result_type == MANEUVER_RESULT_TYPE_ABORT &&
+        line_pid_lock_owned_by_execution_.Load() && line_pid_has_last_cable_pose_;
+    line_pid_lock_owned_by_execution_ = false;
 
     auto result = std::make_shared<iii_drone_interfaces::action::CableLanding::Result>();
     auto goal_handle = std::static_pointer_cast<GoalHandleCableLanding>(maneuver.goal_handle());

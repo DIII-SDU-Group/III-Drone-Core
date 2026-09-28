@@ -297,6 +297,10 @@ namespace maneuver {
         bool line_pid_target_lock_initialized_ = false;
         bool line_pid_has_last_cable_pose_ = false;
         iii_drone::types::pose_t line_pid_last_cable_pose_world_;
+        // The locked pose may seed only the retry of an aborted execution;
+        // a successful or canceled landing leaves it for its own callbacks.
+        iii_drone::utils::Atomic<bool> line_pid_lock_retry_eligible_ = false;
+        iii_drone::utils::Atomic<bool> line_pid_lock_owned_by_execution_ = false;
         PidState line_pid_along_pid_;
         PidState line_pid_cross_pid_;
         PidState line_pid_yaw_pid_;
