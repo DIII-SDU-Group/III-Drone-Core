@@ -601,8 +601,15 @@ void CombinedDroneAwarenessHandler::logResetClassification(
         context, static_cast<unsigned long long>(odometry_source_us),
         static_cast<unsigned long long>(local_source_us),
         static_cast<unsigned long long>(prior_local_source_us));
-    if (heading_only) {
-        RCLCPP_INFO(node_->get_logger(), "%s", text);
+    // PX4 re-initialises its position estimate on touchdown/disarm; with the
+    // vehicle disarmed no command depends on the fenced epoch, so that is a
+    // normal event too. Airborne position faults stay warnings.
+    const bool disarmed = vehicle_status_adapter_history_ &&
+        !vehicle_status_adapter_history_->empty() &&
+        (*vehicle_status_adapter_history_)[0].arming_state() !=
+            iii_drone::adapters::px4::ARMING_STATE_ARMED;
+    if (heading_only || disarmed) {
+        RCLCPP_INFO(node_->get_logger(), "%s%s", text, disarmed && !heading_only ? " while disarmed" : "");
     } else {
         RCLCPP_WARN(node_->get_logger(), "%s", text);
     }

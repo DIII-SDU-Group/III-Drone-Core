@@ -874,8 +874,11 @@ bool CableLandingManeuverServer::nearLockedConductor() const {
         const double radius = configuration_->GetParameter(
             "/control/maneuver_controller/cable_landing_safety_zone_radius"
         ).as_double();
-        const auto position = awareness_handler()->GetState().position();
-        return (line_pid_last_cable_pose_world_.position - position).norm() <= radius;
+        // Measured at the gripper, the part that meets the conductor (the
+        // body sits ~0.4 m below it), consistent with the landing's own zone.
+        iii_drone::types::vector_t lock_in_gripper;
+        return getTargetPointInCableGripperFrame(lock_in_gripper) &&
+            lock_in_gripper.norm() <= radius;
     } catch (const std::runtime_error &) {
         return false;  // Unknown zone: keep the warning level.
     }

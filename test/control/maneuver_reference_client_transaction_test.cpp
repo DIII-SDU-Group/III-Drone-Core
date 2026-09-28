@@ -8662,3 +8662,31 @@ TEST(ManeuverReferenceClientTransaction, MissionExitNotOffboardIsInfoOnlyUnderOp
             failsafe ? 0U : 1U);
     }
 }
+
+TEST(ManeuverReferenceClientTransaction, PositionResetOnDisarmedVehicleLogsInfoAirborneWarns) {
+    RclcppContext context;
+    TerminalCompletionFixture fixture("reset_classification_arming");
+    fixture.awareness->vehicle_status_adapter_history_ = std::make_shared<
+        iii_drone::utils::History<iii_drone::adapters::px4::VehicleStatusAdapter>>(1);
+    px4_msgs::msg::VehicleStatus status;
+    status.arming_state = px4_msgs::msg::VehicleStatus::ARMING_STATE_DISARMED;
+    fixture.awareness->vehicle_status_adapter_history_->Store(
+        iii_drone::adapters::px4::VehicleStatusAdapter(status));
+    {
+        ScopedLogCapture logs;
+        fixture.awareness->logResetClassification(false, "", 17, 20, 1, 1, 0);
+        EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_INFO, "position-continuity fault"), 1U);
+        EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_INFO, "while disarmed"), 1U);
+        EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_WARN, "position-continuity fault"), 0U);
+    }
+    status.arming_state = px4_msgs::msg::VehicleStatus::ARMING_STATE_ARMED;
+    fixture.awareness->vehicle_status_adapter_history_->Store(
+        iii_drone::adapters::px4::VehicleStatusAdapter(status));
+    {
+        ScopedLogCapture logs;
+        fixture.awareness->logResetClassification(false, "", 17, 20, 1, 1, 0);
+        EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_WARN, "position-continuity fault"), 1U);
+        fixture.awareness->logResetClassification(true, "", 13, 14, 1, 1, 0);
+        EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_INFO, "heading-only position-continuous"), 1U);
+    }
+}
