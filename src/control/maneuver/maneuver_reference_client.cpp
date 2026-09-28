@@ -2753,11 +2753,23 @@ Reference ManeuverReferenceClient::GetReference(
                     reference_mode_msg.data = "reference_loss_stopping";
                     break;
                 }
-                RCLCPP_WARN(
-                    logger_,
-                    "ManeuverReferenceClient::GetReference(): WAIT_FOR_MANEUVER_STOP: Failed to acquire valid reference for %d consecutive attempt(s). Holding last valid maneuver reference within delivery deadline.",
-                    failed_attempts_
-                );
+                // A single miss inside the delivery deadline is the normal gap
+                // while a just-completed maneuver's stream is being created;
+                // repeated misses are worth a warning (the safety guard above
+                // still owns the stop decision either way).
+                if (failed_attempts_ > 1) {
+                    RCLCPP_WARN(
+                        logger_,
+                        "ManeuverReferenceClient::GetReference(): WAIT_FOR_MANEUVER_STOP: Failed to acquire valid reference for %d consecutive attempt(s). Holding last valid maneuver reference within delivery deadline.",
+                        failed_attempts_
+                    );
+                } else {
+                    RCLCPP_DEBUG(
+                        logger_,
+                        "ManeuverReferenceClient::GetReference(): WAIT_FOR_MANEUVER_STOP: Failed to acquire valid reference for %d consecutive attempt(s). Holding last valid maneuver reference within delivery deadline.",
+                        failed_attempts_
+                    );
+                }
                 {
                     std::lock_guard<std::mutex> lock(reference_mutex_);
                     reference = reference_;

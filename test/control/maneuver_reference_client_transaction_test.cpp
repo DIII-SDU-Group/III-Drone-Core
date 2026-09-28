@@ -6821,7 +6821,11 @@ private:
 };
 
 struct HoverOnCableIdleHarness {
-    explicit HoverOnCableIdleHarness(TerminalCompletionFixture & fixture_in)
+    // instant_after_cable_landing reproduces the live SIM order: CableLanding
+    // succeeds and installs the HoverOnCable callback under its own request,
+    // then a non-sustained HoverOnCable succeeds before any active sample.
+    explicit HoverOnCableIdleHarness(TerminalCompletionFixture & fixture_in,
+                                     bool instant_after_cable_landing = false)
     : fixture(fixture_in),
       server(std::make_shared<iii_drone::control::maneuver::HoverOnCableManeuverServer>(
           &fixture.node, fixture.awareness, "hover_on_cable_idle", 1, 1, fixture.config)),
@@ -6835,6 +6839,31 @@ struct HoverOnCableIdleHarness {
             iii_drone::control::maneuver::MANEUVER_TYPE_HOVER_ON_CABLE] = server;
         // The Reach Cable external mode owns the goal (non-sustained, 10 s).
         fixture.observeSourceExternal();
+        const auto hover_on_cable = server;
+        if (instant_after_cable_landing) {
+            iii_drone::control::maneuver::Maneuver landing(
+                iii_drone::control::maneuver::MANEUVER_TYPE_CABLE_LANDING,
+                rclcpp_action::GoalUUID{});
+            landing.request_identity_ = kRequestB;
+            landing.started_ = true;
+            fixture.scheduler.current_maneuver_ = landing;
+            fixture.scheduler.beginReferenceExecution("cable_landing", kRequestB);
+            const auto landing_execution =
+                fixture.scheduler.current_reference_execution_id_.Load();
+            fixture.scheduler.reference_callback_struct_->set(
+                [](const iii_drone::control::State & state) { return Reference(state); },
+                "cable_landing", landing_execution, kRequestB);
+            fixture.scheduler.publishReferenceStream();
+            applyLatest();
+            fixture.scheduler.reference_callback_struct_->set(
+                [hover_on_cable](const iii_drone::control::State & state) {
+                    return hover_on_cable->GetReference(state);
+                }, server->action_name(), landing_execution, kRequestB);
+            landing.Terminate(true);
+            fixture.scheduler.current_maneuver_ = landing;
+            fixture.scheduler.maneuver_execution_timer_->reset();
+            fixture.scheduler.maneuverExecutionTimerCallback();
+        }
         maneuver.request_identity_ = kRequestA;
         maneuver.maneuver_params_ = std::make_shared<
             iii_drone::control::maneuver::hover_on_cable_maneuver_params_t>(
@@ -6843,13 +6872,14 @@ struct HoverOnCableIdleHarness {
         fixture.scheduler.current_maneuver_ = maneuver;
         fixture.scheduler.beginReferenceExecution(server->action_name(), kRequestA);
         execution = fixture.scheduler.current_reference_execution_id_.Load();
-        const auto hover_on_cable = server;
         fixture.scheduler.reference_callback_struct_->set(
             [hover_on_cable](const iii_drone::control::State & state) {
                 return hover_on_cable->GetReference(state);
             }, server->action_name(), execution, kRequestA);
-        fixture.scheduler.publishReferenceStream();
-        applyLatest();
+        if (!instant_after_cable_landing) {
+            fixture.scheduler.publishReferenceStream();
+            applyLatest();
+        }
     }
 
     ~HoverOnCableIdleHarness() {
@@ -6918,6 +6948,41 @@ TEST(ManeuverReferenceClientTransaction, NativeLandRetiresCompletedHoverOnCableI
     EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_INFO,
         "idle hover callback owner retired after fresh PX4 native navigation state 18"), 1U);
     EXPECT_EQ(harness.hover_failures, 0);
+}
+
+TEST(ManeuverReferenceClientTransaction, NativeLandRetiresInstantHoverOnCableAfterCableLanding) {
+    RclcppContext context;
+    ScopedLogCapture logs;
+    TerminalCompletionFixture fixture("native_land_instant_hover_on_cable", 500, "", 1.0, 1.0, 50);
+    HoverOnCableIdleHarness harness(fixture, true);
+    auto & stream = fixture.scheduler.reference_stream_state_;
+    // The 68 ms HoverOnCable never published while active.
+    ASSERT_FALSE(stream.valid);
+
+    // Completion tick: idle retention begins, then the first sample of this
+    // execution is published in the same tick.
+    harness.complete();
+    ASSERT_EQ(fixture.scheduler.current_maneuver_.Load().maneuver_type(),
+        iii_drone::control::maneuver::MANEUVER_TYPE_NONE);
+    ASSERT_TRUE(stream.valid);
+    ASSERT_EQ(stream.execution_id, harness.execution);
+    harness.applyLatest();
+    fixture.scheduler.maneuverExecutionTimerCallback();
+    harness.applyLatest();
+
+    fixture.observeNavigation(2000000, 2000000,
+        px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_AUTO_LAND);
+    fixture.scheduler.maneuverExecutionTimerCallback();
+    EXPECT_FALSE(stream.valid);
+    EXPECT_FALSE(fixture.scheduler.reference_callback_struct_->snapshot().callback);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(600));
+    fixture.scheduler.maneuverExecutionTimerCallback();
+    EXPECT_FALSE(stream.valid);
+    EXPECT_FALSE(stream.paused);
+    EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_ERROR, ""), 0U);
+    EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_INFO,
+        "idle hover callback owner retired after fresh PX4 native navigation state 18"), 1U);
 }
 
 TEST(ManeuverReferenceClientTransaction, NativeLandCannotRetireActiveHoverOnCableAckLoss) {

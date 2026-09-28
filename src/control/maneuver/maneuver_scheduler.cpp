@@ -2299,7 +2299,7 @@ bool ManeuverScheduler::retireCompletedTerminalHoldAfterNativeHold() {
         current_reference_execution_id_.Load() != epoch.execution_id ||
         !maneuver_server_get_reference_callback_still_registered_.Load() ||
         !stream.valid || stream.stream_id.empty() ||
-        stream.stream_id != epoch.stream_id ||
+        (!idle_owner && stream.stream_id != epoch.stream_id) ||
         stream.execution_id != epoch.execution_id ||
         stream.request_identity != epoch.request_identity ||
         stream.claim_ack_pending ||
@@ -2342,7 +2342,7 @@ bool ManeuverScheduler::retireCompletedTerminalHoldAfterNativeHold() {
         TerminalTrackingHold::Phase::Tracking;
     const std::string failure_reason = terminal_owner ? owner.hold->failureReason() : "";
     const std::string request_identity = epoch.request_identity;
-    const std::string stream_id = epoch.stream_id;
+    const std::string stream_id = stream.stream_id;
     const uint64_t execution_id = epoch.execution_id;
     const bool succeeded = epoch.succeeded;
     const std::string consumer_identity = epoch.claimed_consumer_identity;
@@ -3017,22 +3017,19 @@ void ManeuverScheduler::progressScheduler() {
         // for its duration. Record that exact generation so evidenced PX4
         // native control can retire it before intentional consumer silence
         // (e.g. a native Land handoff) reaches the ACK guard.
+        // A goal can succeed before its first sample is published (e.g. a
+        // 68 ms HoverOnCable), so the stream of this execution may only be
+        // created after this tick; retirement matches it by execution.
         auto mark_idle_callback_owner = [this]() {
             const auto binding = reference_callback_struct_->snapshot();
             std::lock_guard<std::mutex> stream_lock(reference_stream_mutex_);
             auto & epoch = retained_native_hold_epoch_;
-            const auto & stream = reference_stream_state_;
             if (!binding.callback ||
                 !isValidManeuverRequestIdentity(binding.request_identity) ||
                 binding.execution_id == 0 ||
                 binding.execution_id != current_reference_execution_id_.Load() ||
                 epoch.request_identity != binding.request_identity ||
-                epoch.execution_id != binding.execution_id ||
-                !stream.valid || stream.stream_id.empty() ||
-                stream.provider != binding.reference_provider_name ||
-                stream.request_identity != binding.request_identity ||
-                stream.execution_id != binding.execution_id) return;
-            epoch.stream_id = stream.stream_id;
+                epoch.execution_id != binding.execution_id) return;
             epoch.completed = true;
             epoch.succeeded = true;
             epoch.idle_callback = true;
