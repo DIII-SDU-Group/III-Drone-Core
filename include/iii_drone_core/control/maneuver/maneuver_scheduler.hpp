@@ -1,4 +1,6 @@
 #pragma once
+#include <deque>
+#include <utility>
 
 /*****************************************************************************/
 // Includes
@@ -11,6 +13,8 @@
 #include <mutex>
 #include <shared_mutex>
 #include <chrono>
+#include <functional>
+#include <optional>
 #include <string>
 
 /*****************************************************************************/
@@ -37,6 +41,7 @@
 #include <iii_drone_interfaces/srv/pause_reference_stream.hpp>
 #include <iii_drone_interfaces/srv/rebase_reference_stream.hpp>
 #include <iii_drone_interfaces/srv/commit_reference_stream.hpp>
+#include <iii_drone_interfaces/srv/terminal_hold_transfer.hpp>
 #include <iii_drone_interfaces/srv/clear_maneuver_queue.hpp>
 
 /*****************************************************************************/
@@ -248,7 +253,7 @@ namespace maneuver {
          *
          * @return Number of queued maneuvers that were cleared.
          */
-        uint32_t ClearManeuverQueue();
+        uint32_t ClearManeuverQueue(const std::string & request_identity = "");
 
         /**
          * @brief Shared pointer type.
@@ -261,6 +266,8 @@ namespace maneuver {
         typedef std::unique_ptr<ManeuverScheduler> UniquePtr;
 
     private:
+        void publishManeuverStatus();
+
         /**
          * @brief Is started flag.
          */
@@ -401,10 +408,14 @@ namespace maneuver {
             rebase_reference_stream_service_;
         rclcpp::Service<iii_drone_interfaces::srv::CommitReferenceStream>::SharedPtr
             commit_reference_stream_service_;
+        rclcpp::Service<iii_drone_interfaces::srv::TerminalHoldTransfer>::SharedPtr
+            terminal_hold_transfer_service_;
 
         struct ReferenceStreamState {
             std::string stream_id;
             std::string provider;
+            std::string request_identity;
+            uint64_t execution_id = 0;
             uint64_t generation = 0;
             uint64_t sequence = 0;
             uint64_t last_ack_sequence = 0;
@@ -415,19 +426,71 @@ namespace maneuver {
             bool committed_waiting_for_applied = false;
             bool abort_waiting_for_consumer_ready = false;
             bool ack_seen = false;
+            std::string claimed_consumer_identity;
+            bool claim_ack_pending = false;
+            uint64_t claim_source_ack_sequence = 0;
+            std::chrono::steady_clock::time_point claim_deadline;
+            std::string offer_consumer_identity;
+            uint64_t offer_ack_sequence = 0;
+            uint64_t offer_execution_id = 0;
+            std::chrono::steady_clock::time_point offer_deadline;
+            Reference last_ack_reference;
+            bool last_ack_reference_valid = false;
+            std::deque<std::pair<uint64_t, Reference>> recent_references;
+            std::deque<uint64_t> object_tracking_sequences;
+            uint64_t object_stop_requested_sequence = 0;
             Reference prepared_reference;
             Reference latest_reference;
             std::chrono::steady_clock::time_point generation_started;
             std::chrono::steady_clock::time_point last_ack;
         };
         ReferenceStreamState reference_stream_state_;
+        struct RetainedNativeHoldEpoch {
+            std::string request_identity;
+            uint64_t execution_id = 0;
+            std::string stream_id;
+            uint64_t status_source_epoch = 0;
+            uint64_t external_status_timestamp_us = 0;
+            uint64_t external_nav_transition_us = 0;
+            uint64_t minimum_external_transition_us = 0;
+            std::chrono::steady_clock::time_point owner_started;
+            std::string claimed_consumer_identity;
+            bool claimed_applied = true;
+            bool completed = false;
+            bool succeeded = false;
+        };
+        RetainedNativeHoldEpoch retained_native_hold_epoch_;
         std::mutex reference_stream_mutex_;
+        // Empty in production; lets the transaction regression place token
+        // completion immediately after eligibility is read deterministically.
+        std::function<void()> terminal_hold_transfer_after_validity_hook_;
+        std::string terminal_quiesce_request_identity_;
+        std::chrono::steady_clock::time_point terminal_quiesce_started_;
 
         bool pauseReferenceStreamIfRequired();
         void publishReferenceStream();
+        void beginReferenceExecution(
+            const std::string & provider,
+            const std::string & request_identity,
+            std::optional<Reference> initial_command = std::nullopt
+        );
+        void beginReferenceExecution(const std::string & provider);
         void acknowledgeReferenceStream(
             const iii_drone_interfaces::msg::ManeuverReferenceAck::SharedPtr message
         );
+        void terminalHoldTransfer(
+            const std::shared_ptr<iii_drone_interfaces::srv::TerminalHoldTransfer::Request> request,
+            std::shared_ptr<iii_drone_interfaces::srv::TerminalHoldTransfer::Response> response
+        );
+        std::shared_ptr<TerminalTrackingHold> retainedTerminalHold() const;
+        bool retireCompletedTerminalHoldAfterNativeHold();
+        bool blendedReferenceApplied(const std::string & request_identity);
+        bool firstObjectReferenceApplied(const std::string & request_identity);
+        bool firstTerminalHoverReferenceApplied(const std::string & request_identity);
+        bool firstManeuverReferenceApplied(
+            maneuver_type_t maneuver_type, const std::string & request_identity);
+        bool appliedFiniteRestReference(
+            const std::string & request_identity, const Reference & command);
         void pauseReferenceStream(
             const std::shared_ptr<iii_drone_interfaces::srv::PauseReferenceStream::Request> request,
             std::shared_ptr<iii_drone_interfaces::srv::PauseReferenceStream::Response> response
@@ -441,7 +504,7 @@ namespace maneuver {
             std::shared_ptr<iii_drone_interfaces::srv::CommitReferenceStream::Response> response
         );
         ManeuverServer::SharedPtr activeManeuverServer() const;
-        bool currentReferenceValid() const;
+        bool currentReferenceValid(const ReferenceCallbackBinding & binding) const;
         std::string nextReferenceStreamId(const std::string & provider);
 
         /**
@@ -507,7 +570,9 @@ namespace maneuver {
          * 
          * @return reference msg
          */
-        iii_drone_interfaces::msg::Reference fetchNextReferenceAndPublish();
+        std::optional<iii_drone_interfaces::msg::Reference> fetchNextReferenceAndPublish(
+            const ReferenceCallbackBinding & binding
+        );
 
         /**
          * @brief Cancels all pending maneuvers.
@@ -535,6 +600,8 @@ namespace maneuver {
          * @brief Maneuver publish timer.
          */
         rclcpp::TimerBase::SharedPtr maneuver_publish_timer_;
+
+        iii_drone::utils::Atomic<uint64_t> current_reference_execution_id_ = 0;
 
 
     };

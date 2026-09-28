@@ -133,6 +133,11 @@ TEST(ManeuverReferenceStreamGuard, AllowsExactlyOneExplicitSuccessorGeneration) 
         ManeuverReferenceStreamDecision::FreshHeld
     );
     EXPECT_TRUE(guard.successorGenerationExpected());
+    EXPECT_EQ(
+        guard.observe(sample("generation-a", 8, 1000), rclcpp::Time(10)),
+        ManeuverReferenceStreamDecision::AwaitingSuccessor
+    );
+    EXPECT_EQ(guard.lastAppliedSequence(), 7U);
 
     EXPECT_EQ(
         guard.observe(sample("generation-b", 1, 1000), rclcpp::Time(10)),

@@ -102,6 +102,15 @@ namespace perception {
         void Reset();
 
         /**
+         * @brief Whether at least one camera observation has initialized the
+         * powerline direction estimate.
+         *
+         * An identity quaternion is a valid direction, so callers must not use
+         * its numeric value as an initialization sentinel.
+         */
+        bool HasEstimate() const;
+
+        /**
          * @brief Updates the PowerlineAdapter object.
          * 
          * @param msg The powerline ROS2 message.

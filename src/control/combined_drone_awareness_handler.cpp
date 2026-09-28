@@ -3,6 +3,30 @@
 /*****************************************************************************/
 
 #include <iii_drone_core/control/combined_drone_awareness_handler.hpp>
+#include <algorithm>
+#include <cmath>
+#include <utility>
+
+namespace {
+int64_t steadyNowNs() {
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+
+template<class Function> class ScopeExit {
+public:
+    explicit ScopeExit(Function function) : function_(std::move(function)) {}
+    ~ScopeExit() { function_(); }
+    ScopeExit(const ScopeExit &) = delete;
+    ScopeExit & operator=(const ScopeExit &) = delete;
+private:
+    Function function_;
+};
+
+template<class Function> ScopeExit<Function> onScopeExit(Function function) {
+    return ScopeExit<Function>(std::move(function));
+}
+}  // namespace
 
 using namespace iii_drone::control;
 using namespace iii_drone::utils;
@@ -29,6 +53,22 @@ CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(
     node_(node) {
 
     debug_ = debug;
+
+    // PX4 external modes are setpoint-driven modes just like the standard
+    // OFFBOARD state.  Keep them offboard-equivalent from startup so maneuvers
+    // can execute immediately after an external mode is selected.  The
+    // registration service remains available for additional application modes.
+    offboard_nav_state_ids_.Store({
+        px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_OFFBOARD,
+        px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_EXTERNAL1,
+        px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_EXTERNAL2,
+        px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_EXTERNAL3,
+        px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_EXTERNAL4,
+        px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_EXTERNAL5,
+        px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_EXTERNAL6,
+        px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_EXTERNAL7,
+        px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_EXTERNAL8
+    });
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(): Creating publishers");
 
@@ -88,13 +128,24 @@ void CombinedDroneAwarenessHandler::Start() {
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Start(): Creating history and atomic member objects");
     vehicle_status_adapter_history_ = std::make_shared<VehicleStatusAdapterHistory>(1);
     vehicle_odometry_adapter_history_ = std::make_shared<VehicleOdometryAdapterHistory>(2);
+    measured_odometry_.Store(std::nullopt);
     vehicle_global_position_adapter_history_ = std::make_shared<VehicleGlobalPositionAdapterHistory>(1);
     powerline_adapter_history_ = std::make_shared<PowerlineAdapterHistory>(1);
     gripper_status_adapter_history_ = std::make_shared<GripperStatusAdapterHistory>(1);
-    odometry_position_reset_offset_ = point_t::Zero();
-    last_raw_odometry_position_ = point_t::Zero();
-    last_odometry_reset_counter_ = 0;
-    has_last_odometry_for_reset_compensation_ = false;
+    {
+        std::lock_guard<std::mutex> lock(odometry_ingest_mutex_);
+        latest_local_reset_.reset();
+        verified_local_reset_.reset();
+        pending_odometry_.reset();
+        local_provenance_invalid_ = false;
+        ++odometry_source_epoch_;
+        position_epoch_ = 0;
+        odometry_ingress_next_ = 0;
+        odometry_ingress_count_ = 0;
+        odometry_ingress_total_callbacks_ = 0;
+        accepted_odometry_samples_ = 0;
+        latest_accepted_odometry_available_ = false;
+    }
     ground_altitude_estimate_ = std::make_shared<iii_drone::utils::Atomic<double>>(0.0);
     ground_altitude_estimate_amsl_ = std::make_shared<iii_drone::utils::Atomic<double>>(0.0);
     target_adapter_ = std::make_shared<iii_drone::utils::Atomic<TargetAdapter>>();
@@ -172,6 +223,13 @@ void CombinedDroneAwarenessHandler::Start() {
         px4_sub_qos,
         [this](const px4_msgs::msg::VehicleStatus::SharedPtr msg) {
             if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::vehicle_status_sub_: Vehicle status received");
+            const auto external_modes = offboard_nav_state_ids_.Load();
+            const bool external_mode = std::find(
+                external_modes.begin(), external_modes.end(), msg->nav_state) !=
+                external_modes.end();
+            vehicle_navigation_evidence_.Store(AdvanceVehicleNavigation(
+                vehicle_navigation_evidence_.Load(), *msg,
+                std::chrono::steady_clock::now(), external_mode));
             iii_drone::adapters::px4::VehicleStatusAdapter adapter(*msg);
             vehicle_status_adapter_history_->Store(adapter);
             updateCombinedDroneAwarenessFromVehicleStatus();
@@ -183,12 +241,19 @@ void CombinedDroneAwarenessHandler::Start() {
         px4_sub_qos,
         [this](const px4_msgs::msg::VehicleOdometry::SharedPtr msg) {
             if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::vehicle_odometry_sub_: Vehicle odometry received");
-            iii_drone::adapters::px4::VehicleOdometryAdapter adapter(*msg);
-            compensateOdometryReset(adapter);
-            vehicle_odometry_adapter_history_->Store(adapter);
+            ingestVehicleOdometry(*msg, node_->now());
             updateCombinedDroneAwarenessFromVehicleOdometry();
         }
     );
+
+    vehicle_local_position_sub_ = node_->create_subscription<px4_msgs::msg::VehicleLocalPosition>(
+        "/fmu/out/vehicle_local_position", px4_sub_qos,
+        [this](const px4_msgs::msg::VehicleLocalPosition::SharedPtr msg) {
+            ingestVehicleLocalPosition(*msg, node_->now());
+            if (vehicle_odometry_adapter_history_ &&
+                !vehicle_odometry_adapter_history_->empty())
+                updateCombinedDroneAwarenessFromVehicleOdometry();
+        });
 
     vehicle_global_position_sub_ = node_->create_subscription<px4_msgs::msg::VehicleGlobalPosition>(
         "/fmu/out/vehicle_global_position",
@@ -267,6 +332,9 @@ void CombinedDroneAwarenessHandler::Stop() {
     vehicle_odometry_sub_->clear_on_new_message_callback();
     vehicle_odometry_sub_.reset();
     vehicle_odometry_sub_ = nullptr;
+    vehicle_local_position_sub_->clear_on_new_message_callback();
+    vehicle_local_position_sub_.reset();
+    vehicle_local_position_sub_ = nullptr;
 
     powerline_sub_->clear_on_new_message_callback();
     powerline_sub_.reset();
@@ -300,10 +368,15 @@ void CombinedDroneAwarenessHandler::Stop() {
     register_offboard_mode_srv_ = nullptr;
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Stop(): Clearing histories and atomics");
-    odometry_position_reset_offset_ = point_t::Zero();
-    last_raw_odometry_position_ = point_t::Zero();
-    last_odometry_reset_counter_ = 0;
-    has_last_odometry_for_reset_compensation_ = false;
+    {
+        std::lock_guard<std::mutex> lock(odometry_ingest_mutex_);
+        latest_local_reset_.reset();
+        verified_local_reset_.reset();
+        pending_odometry_.reset();
+        local_provenance_invalid_ = false;
+        ++odometry_source_epoch_;
+        position_epoch_ = 0;
+    }
     vehicle_status_adapter_history_->clear();
     vehicle_status_adapter_history_.reset();
     vehicle_status_adapter_history_ = nullptr;
@@ -341,7 +414,7 @@ iii_drone::control::State CombinedDroneAwarenessHandler::GetState() const {
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::GetState(): Getting state");
 
-    if (vehicle_status_adapter_history_->empty()) {
+    if (!state_available()) {
         return iii_drone::control::State();
     }
 
@@ -349,42 +422,411 @@ iii_drone::control::State CombinedDroneAwarenessHandler::GetState() const {
 
 }
 
-void CombinedDroneAwarenessHandler::compensateOdometryReset(
-    iii_drone::adapters::px4::VehicleOdometryAdapter & adapter
+std::optional<MeasuredOdometrySnapshot>
+CombinedDroneAwarenessHandler::GetMeasuredOdometry() const {
+    return measured_odometry_.Load();
+}
+
+OdometryIngressDiagnostics
+CombinedDroneAwarenessHandler::TryGetOdometryIngressDiagnostics() const {
+    OdometryIngressDiagnostics result;
+    std::unique_lock<std::mutex> lock(odometry_ingest_mutex_, std::try_to_lock);
+    if (!lock.owns_lock()) {
+        result.busy = true;
+        return result;
+    }
+    result.available = true;
+    result.latest_available = latest_accepted_odometry_available_;
+    result.latest_source_sample_timestamp_us = latest_accepted_source_sample_us_;
+    result.latest_reset_counter = latest_accepted_reset_counter_;
+    result.latest_receipt_ros_ns = latest_accepted_receipt_ros_ns_;
+    result.latest_accepted_steady_ns = latest_accepted_steady_ns_;
+    result.total_callbacks = odometry_ingress_total_callbacks_;
+    result.history_count = odometry_ingress_count_;
+    const size_t start = (odometry_ingress_next_ +
+        OdometryIngressDiagnostics::history_capacity - odometry_ingress_count_) %
+        OdometryIngressDiagnostics::history_capacity;
+    for (size_t i = 0; i < odometry_ingress_count_; ++i) {
+        result.history[i] = odometry_ingress_history_[
+            (start + i) % OdometryIngressDiagnostics::history_capacity];
+    }
+    return result;
+}
+
+VehicleNavigationEvidence
+CombinedDroneAwarenessHandler::GetVehicleNavigationEvidence() const {
+    return vehicle_navigation_evidence_.Load();
+}
+
+VehicleNavigationEvidence CombinedDroneAwarenessHandler::AdvanceVehicleNavigation(
+    VehicleNavigationEvidence previous,
+    const px4_msgs::msg::VehicleStatus & status,
+    std::chrono::steady_clock::time_point receipt,
+    bool external_mode
 ) {
+    const auto reset = [&previous]() {
+        previous.latest.reset();
+        previous.last_external.reset();
+        ++previous.source_epoch;
+        return previous;
+    };
+    if (status.timestamp == 0 || status.nav_state_timestamp > status.timestamp ||
+        (status.nav_state == px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_AUTO_LOITER &&
+         status.nav_state_timestamp == 0)) return reset();
+    if (previous.latest) {
+        if (status.timestamp < previous.latest->source_timestamp_us ||
+            status.nav_state_timestamp < previous.latest->nav_state_timestamp_us) {
+            return reset();
+        }
+        if (status.timestamp == previous.latest->source_timestamp_us) {
+            // Identical source samples never refresh receipt. A changed nav
+            // state at the same source stamp is not valid causal evidence.
+            if (status.nav_state != previous.latest->nav_state ||
+                status.nav_state_timestamp != previous.latest->nav_state_timestamp_us) {
+                return reset();
+            }
+            return previous;
+        }
+    }
+    VehicleNavigationSample sample{
+        status.timestamp, status.nav_state_timestamp, status.nav_state, receipt};
+    previous.latest = sample;
+    if (external_mode) previous.last_external = sample;
+    return previous;
+}
 
-    const point_t raw_position = adapter.position();
-    const uint8_t reset_counter = adapter.reset_counter();
+std::optional<MeasuredOdometrySnapshot>
+CombinedDroneAwarenessHandler::AdvanceMeasuredOdometry(
+    std::optional<MeasuredOdometrySnapshot> previous,
+    const iii_drone::adapters::px4::VehicleOdometryAdapter & adapter,
+    uint64_t source_sample_timestamp_us,
+    const rclcpp::Time & receipt_stamp
+) {
+    if (previous && previous->reset_counter == adapter.reset_counter() &&
+        source_sample_timestamp_us <= previous->source_sample_timestamp_us) {
+        return previous;
+    }
+    return MeasuredOdometrySnapshot{
+        adapter.ToState(), receipt_stamp, source_sample_timestamp_us,
+        adapter.reset_counter(),
+        PositionContinuityIdentity{0, 0, adapter.reset_counter(), false}
+    };
+}
 
-    if (!has_last_odometry_for_reset_compensation_) {
-        last_raw_odometry_position_ = raw_position;
-        last_odometry_reset_counter_ = reset_counter;
-        has_last_odometry_for_reset_compensation_ = true;
-        adapter.ApplyPositionOffset(odometry_position_reset_offset_);
+bool CombinedDroneAwarenessHandler::state_available() const {
+
+    return vehicle_status_adapter_history_ &&
+        vehicle_odometry_adapter_history_ &&
+        !vehicle_status_adapter_history_->empty() &&
+        !vehicle_odometry_adapter_history_->empty();
+
+}
+
+bool CombinedDroneAwarenessHandler::samePositionBasis(
+    const LocalResetMetadata & before, const LocalResetMetadata & after) {
+    return after.xy == before.xy && after.z == before.z &&
+        after.vxy == before.vxy && after.vz == before.vz &&
+        after.xy_global == before.xy_global &&
+        after.z_global == before.z_global &&
+        after.origin_timestamp_us == before.origin_timestamp_us &&
+        after.origin_lat == before.origin_lat &&
+        after.origin_lon == before.origin_lon &&
+        after.origin_alt == before.origin_alt;
+}
+
+bool CombinedDroneAwarenessHandler::headingOnly(
+    const LocalResetMetadata & before, const LocalResetMetadata & after) {
+    return after.heading == static_cast<uint8_t>(before.heading + 1) &&
+        after.source_sample_us > before.source_sample_us &&
+        after.source_sample_us - before.source_sample_us <= 250'000 &&
+        after.receipt.get_clock_type() == before.receipt.get_clock_type() &&
+        (after.receipt - before.receipt).seconds() >= 0.0 &&
+        (after.receipt - before.receipt).seconds() <= 0.25 &&
+        samePositionBasis(before, after);
+}
+
+bool CombinedDroneAwarenessHandler::metadataMatches(
+    const LocalResetMetadata & metadata,
+    const px4_msgs::msg::VehicleOdometry & message,
+    const rclcpp::Time & receipt) const {
+    if (message.pose_frame != px4_msgs::msg::VehicleOdometry::POSE_FRAME_NED ||
+        message.velocity_frame != px4_msgs::msg::VehicleOdometry::VELOCITY_FRAME_NED ||
+        metadata.aggregate() != message.reset_counter ||
+        message.timestamp_sample == 0 || metadata.source_sample_us == 0 ||
+        receipt.get_clock_type() != metadata.receipt.get_clock_type()) return false;
+    constexpr uint64_t max_source_gap_us = 250'000;
+    const uint64_t gap = metadata.source_sample_us > message.timestamp_sample
+        ? metadata.source_sample_us - message.timestamp_sample
+        : message.timestamp_sample - metadata.source_sample_us;
+    return gap <= max_source_gap_us &&
+        std::abs((receipt - metadata.receipt).seconds()) <= 0.25;
+}
+
+void CombinedDroneAwarenessHandler::acceptMeasuredOdometry(
+    const px4_msgs::msg::VehicleOdometry & message,
+    const rclcpp::Time & receipt, bool qualified, bool new_position_epoch,
+    bool force_source_fault) {
+    if (new_position_epoch) ++position_epoch_;
+    iii_drone::adapters::px4::VehicleOdometryAdapter adapter(message);
+    auto snapshot = force_source_fault
+        ? std::optional<MeasuredOdometrySnapshot>(MeasuredOdometrySnapshot{
+            adapter.ToState(), receipt, message.timestamp_sample,
+            message.reset_counter,
+            PositionContinuityIdentity{odometry_source_epoch_, position_epoch_,
+                                       message.reset_counter, false}})
+        : AdvanceMeasuredOdometry(measured_odometry_.Load(), adapter,
+            message.timestamp_sample, receipt);
+    if (!snapshot || snapshot->source_sample_timestamp_us != message.timestamp_sample) return;
+    snapshot->position_continuity = PositionContinuityIdentity{
+        odometry_source_epoch_, position_epoch_, message.reset_counter, qualified};
+    vehicle_odometry_adapter_history_->Store(adapter);
+    measured_odometry_.Store(snapshot);
+    ++accepted_odometry_samples_;
+    latest_accepted_odometry_available_ = true;
+    latest_accepted_source_sample_us_ = message.timestamp_sample;
+    latest_accepted_reset_counter_ = message.reset_counter;
+    latest_accepted_receipt_ros_ns_ = receipt.nanoseconds();
+    latest_accepted_steady_ns_ = steadyNowNs();
+}
+
+void CombinedDroneAwarenessHandler::ingestVehicleOdometry(
+    const px4_msgs::msg::VehicleOdometry & message, const rclcpp::Time & receipt) {
+    const int64_t callback_entry_ns = steadyNowNs();
+    std::lock_guard<std::mutex> lock(odometry_ingest_mutex_);
+    const int64_t lock_acquired_ns = steadyNowNs();
+    const uint64_t accepted_before = accepted_odometry_samples_;
+    const bool pending_before = pending_odometry_.has_value();
+    const auto record_ingress = onScopeExit([&] {
+        OdometryIngressEvent event;
+        event.source_sample_timestamp_us = message.timestamp_sample;
+        event.callback_receipt_ros_ns = receipt.nanoseconds();
+        event.callback_entry_steady_ns = callback_entry_ns;
+        event.lock_acquired_steady_ns = lock_acquired_ns;
+        event.completed_steady_ns = steadyNowNs();
+        event.accepted = accepted_odometry_samples_ != accepted_before;
+        event.accepted_steady_ns = event.accepted ? latest_accepted_steady_ns_ : 0;
+        event.reset_counter = message.reset_counter;
+        event.pending_before = pending_before;
+        event.pending_after = pending_odometry_.has_value();
+        odometry_ingress_history_[odometry_ingress_next_] = event;
+        odometry_ingress_next_ = (odometry_ingress_next_ + 1) %
+            OdometryIngressDiagnostics::history_capacity;
+        odometry_ingress_count_ = std::min(odometry_ingress_count_ + 1,
+            OdometryIngressDiagnostics::history_capacity);
+        ++odometry_ingress_total_callbacks_;
+    });
+    const auto previous = measured_odometry_.Load();
+    if (message.timestamp_sample == 0) return;
+    if (message.pose_frame != px4_msgs::msg::VehicleOdometry::POSE_FRAME_NED ||
+        message.velocity_frame != px4_msgs::msg::VehicleOdometry::VELOCITY_FRAME_NED) {
+        ++odometry_source_epoch_;
+        ++position_epoch_;
+        latest_local_reset_.reset();
+        verified_local_reset_.reset();
+        pending_odometry_.reset();
+        acceptMeasuredOdometry(message, receipt, false, false, true);
         return;
     }
-
-    if (reset_counter != last_odometry_reset_counter_) {
-        const point_t previous_continuous_position =
-            last_raw_odometry_position_ + odometry_position_reset_offset_;
-        odometry_position_reset_offset_ =
-            previous_continuous_position - raw_position;
-
-        RCLCPP_WARN(
-            node_->get_logger(),
-            "CombinedDroneAwarenessHandler::compensateOdometryReset(): PX4 odometry reset counter changed %u -> %u; applying ROS-world continuity offset [%.3f, %.3f, %.3f]",
-            static_cast<unsigned>(last_odometry_reset_counter_),
-            static_cast<unsigned>(reset_counter),
-            odometry_position_reset_offset_(0),
-            odometry_position_reset_offset_(1),
-            odometry_position_reset_offset_(2)
-        );
+    if (previous && message.timestamp_sample < previous->source_sample_timestamp_us) {
+        ++odometry_source_epoch_;
+        ++position_epoch_;
+        latest_local_reset_.reset();
+        verified_local_reset_.reset();
+        pending_odometry_.reset();
+        acceptMeasuredOdometry(message, receipt, false, false, true);
+        return;
     }
+    if (previous && message.timestamp_sample == previous->source_sample_timestamp_us) {
+        if (message.reset_counter != previous->reset_counter) {
+            ++odometry_source_epoch_;
+            ++position_epoch_;
+            latest_local_reset_.reset();
+            verified_local_reset_.reset();
+            acceptMeasuredOdometry(message, receipt, false, false, true);
+        }
+        return;
+    }
+    if (pending_odometry_) {
+        if (message.timestamp_sample <= pending_odometry_->message.timestamp_sample &&
+            message.reset_counter == pending_odometry_->message.reset_counter) return;
+        if (message.reset_counter == previous->reset_counter) return;
+        if (message.reset_counter != pending_odometry_->message.reset_counter) {
+            ++position_epoch_;
+            pending_odometry_.reset();
+            verified_local_reset_.reset();
+            acceptMeasuredOdometry(message, receipt, false, false);
+            return;
+        }
+    }
+    if (!previous || message.reset_counter == previous->reset_counter) {
+        const bool qualified = latest_local_reset_ &&
+            metadataMatches(*latest_local_reset_, message, receipt) &&
+            (!verified_local_reset_ ||
+             latest_local_reset_->source_sample_us >= verified_local_reset_->source_sample_us);
+        if (qualified && verified_local_reset_ &&
+            !samePositionBasis(*verified_local_reset_, *latest_local_reset_))
+            ++position_epoch_;
+        if (qualified) verified_local_reset_ = latest_local_reset_;
+        acceptMeasuredOdometry(message, receipt,
+            qualified || (previous && previous->position_continuity.source_qualified), false);
+        return;
+    }
+    if (latest_local_reset_ && verified_local_reset_ &&
+        previous->position_continuity.source_qualified &&
+        metadataMatches(*latest_local_reset_, message, receipt)) {
+        const bool heading_only = headingOnly(*verified_local_reset_, *latest_local_reset_) &&
+            message.reset_counter == static_cast<uint8_t>(previous->reset_counter + 1);
+        RCLCPP_WARN(node_->get_logger(),
+            "PX4 odometry reset %u->%u classified %s (odometry_source_us=%llu local_source_us=%llu prior_local_source_us=%llu)",
+            static_cast<unsigned>(previous->reset_counter),
+            static_cast<unsigned>(message.reset_counter),
+            heading_only ? "heading-only position-continuous" : "position-continuity fault",
+            static_cast<unsigned long long>(message.timestamp_sample),
+            static_cast<unsigned long long>(latest_local_reset_->source_sample_us),
+            static_cast<unsigned long long>(verified_local_reset_->source_sample_us));
+        acceptMeasuredOdometry(message, receipt, heading_only, !heading_only);
+        verified_local_reset_ = latest_local_reset_;
+        pending_odometry_.reset();
+        return;
+    }
+    // Wait for reordered metadata without refreshing the accepted sample.
+    // If none arrives, its original receipt expires under the existing guard.
+    if (!pending_odometry_) {
+        RCLCPP_WARN(node_->get_logger(),
+            "PX4 odometry reset %u->%u awaiting source-qualified local-position metadata (odometry_source_us=%llu prior_source_us=%llu)",
+            static_cast<unsigned>(previous->reset_counter),
+            static_cast<unsigned>(message.reset_counter),
+            static_cast<unsigned long long>(message.timestamp_sample),
+            static_cast<unsigned long long>(previous->source_sample_timestamp_us));
+    }
+    pending_odometry_ = PendingOdometry{message, receipt};
+}
 
-    last_raw_odometry_position_ = raw_position;
-    last_odometry_reset_counter_ = reset_counter;
-    adapter.ApplyPositionOffset(odometry_position_reset_offset_);
-
+void CombinedDroneAwarenessHandler::ingestVehicleLocalPosition(
+    const px4_msgs::msg::VehicleLocalPosition & message,
+    const rclcpp::Time & receipt) {
+    std::lock_guard<std::mutex> lock(odometry_ingest_mutex_);
+    if (message.timestamp_sample == 0 || message.ref_timestamp == 0 ||
+        !message.xy_global || !message.z_global ||
+        !message.xy_valid || !message.z_valid ||
+        !message.v_xy_valid || !message.v_z_valid ||
+        (message.xy_global && (!std::isfinite(message.ref_lat) ||
+                               !std::isfinite(message.ref_lon))) ||
+        (message.z_global && !std::isfinite(message.ref_alt))) {
+        const auto current = measured_odometry_.Load();
+        if (current && !local_provenance_invalid_) {
+            ++odometry_source_epoch_;
+            ++position_epoch_;
+            auto invalidated = *current;
+            invalidated.position_continuity = PositionContinuityIdentity{
+                odometry_source_epoch_, position_epoch_, current->reset_counter, false};
+            measured_odometry_.Store(invalidated); // original receipt/sample remain authoritative
+            RCLCPP_WARN(node_->get_logger(),
+                "PX4 local-position reset provenance became invalid (raw_reset=%u odometry_source_us=%llu local_source_us=%llu)",
+                static_cast<unsigned>(current->reset_counter),
+                static_cast<unsigned long long>(current->source_sample_timestamp_us),
+                static_cast<unsigned long long>(message.timestamp_sample));
+        }
+        latest_local_reset_.reset();
+        verified_local_reset_.reset();
+        pending_odometry_.reset();
+        local_provenance_invalid_ = true;
+        return;
+    }
+    local_provenance_invalid_ = false;
+    LocalResetMetadata metadata;
+    metadata.source_sample_us = message.timestamp_sample;
+    metadata.receipt = receipt;
+    metadata.xy = message.xy_reset_counter;
+    metadata.z = message.z_reset_counter;
+    metadata.vxy = message.vxy_reset_counter;
+    metadata.vz = message.vz_reset_counter;
+    metadata.heading = message.heading_reset_counter;
+    metadata.xy_global = message.xy_global;
+    metadata.z_global = message.z_global;
+    metadata.origin_timestamp_us = message.ref_timestamp;
+    metadata.origin_lat = message.ref_lat;
+    metadata.origin_lon = message.ref_lon;
+    metadata.origin_alt = message.ref_alt;
+    if (latest_local_reset_ &&
+        metadata.source_sample_us <= latest_local_reset_->source_sample_us) {
+        if (metadata.source_sample_us < latest_local_reset_->source_sample_us) {
+            if (latest_local_reset_->source_sample_us - metadata.source_sample_us <= 250'000)
+                return; // DDS reorder, never refresh provenance.
+            ++odometry_source_epoch_;
+            ++position_epoch_;
+            verified_local_reset_.reset();
+            latest_local_reset_.reset();
+            auto current = measured_odometry_.Load();
+            if (current) {
+                current->position_continuity.source_epoch = odometry_source_epoch_;
+                current->position_continuity.position_epoch = position_epoch_;
+                current->position_continuity.source_qualified = false;
+                measured_odometry_.Store(current);
+            }
+            return;
+        }
+        if (metadata.aggregate() != latest_local_reset_->aggregate() ||
+            metadata.heading != latest_local_reset_->heading ||
+            !samePositionBasis(metadata, *latest_local_reset_)) {
+            ++odometry_source_epoch_;
+            ++position_epoch_;
+            verified_local_reset_.reset();
+            latest_local_reset_.reset();
+            auto current = measured_odometry_.Load();
+            if (current) {
+                current->position_continuity.source_epoch = odometry_source_epoch_;
+                current->position_continuity.position_epoch = position_epoch_;
+                current->position_continuity.source_qualified = false;
+                measured_odometry_.Store(current);
+            }
+        }
+        return;
+    }
+    latest_local_reset_ = metadata;
+    if (pending_odometry_ &&
+        metadataMatches(metadata, pending_odometry_->message,
+            pending_odometry_->receipt)) {
+        const auto previous = measured_odometry_.Load();
+        const bool heading_only = previous && verified_local_reset_ &&
+            previous->position_continuity.source_qualified &&
+            headingOnly(*verified_local_reset_, metadata) &&
+            pending_odometry_->message.reset_counter ==
+                static_cast<uint8_t>(previous->reset_counter + 1);
+        RCLCPP_WARN(node_->get_logger(),
+            "PX4 odometry reset %u->%u classified %s after DDS reorder (odometry_source_us=%llu local_source_us=%llu prior_local_source_us=%llu)",
+            previous ? static_cast<unsigned>(previous->reset_counter) : 0U,
+            static_cast<unsigned>(pending_odometry_->message.reset_counter),
+            heading_only ? "heading-only position-continuous" : "position-continuity fault",
+            static_cast<unsigned long long>(pending_odometry_->message.timestamp_sample),
+            static_cast<unsigned long long>(metadata.source_sample_us),
+            static_cast<unsigned long long>(verified_local_reset_
+                ? verified_local_reset_->source_sample_us : 0));
+        acceptMeasuredOdometry(pending_odometry_->message,
+            pending_odometry_->receipt, heading_only, !heading_only);
+        verified_local_reset_ = metadata;
+        pending_odometry_.reset();
+        return;
+    }
+    const auto current = measured_odometry_.Load();
+    const uint64_t source_gap = current
+        ? (metadata.source_sample_us > current->source_sample_timestamp_us
+            ? metadata.source_sample_us - current->source_sample_timestamp_us
+            : current->source_sample_timestamp_us - metadata.source_sample_us)
+        : 0;
+    if (current && metadata.aggregate() == current->reset_counter &&
+        source_gap <= 250'000 &&
+        std::abs((receipt - current->receipt_stamp).seconds()) <= 0.25) {
+        auto qualified = *current;
+        if (verified_local_reset_ &&
+            !samePositionBasis(*verified_local_reset_, metadata)) {
+            ++position_epoch_;
+        }
+        qualified.position_continuity = PositionContinuityIdentity{
+            odometry_source_epoch_, position_epoch_, current->reset_counter, true};
+        measured_odometry_.Store(qualified); // receipt and sample identity are unchanged.
+        verified_local_reset_ = metadata;
+    }
 }
 
 iii_drone::control::State CombinedDroneAwarenessHandler::ComputeTargetState(const iii_drone::adapters::TargetAdapter & target_adapter) const {

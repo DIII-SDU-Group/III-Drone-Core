@@ -555,51 +555,67 @@ ReferenceTrajectory CableAwareTrajectoryPlanner::buildPiecewiseLinearTrajectory(
     const double dt = getDouble(configuration_, "/control/dt", 0.2);
 
     double path_length = 0.0;
-    std::vector<double> cumulative{0.0};
     for (std::size_t i = 1; i < waypoints.size(); ++i) {
         path_length += (waypoints[i] - waypoints[i - 1]).norm();
-        cumulative.push_back(path_length);
     }
 
-    duration_s_ = std::max(path_length / std::max(avg_velocity, 1.0e-3), dt * (horizon_count - 1));
-    const int sample_count = std::max(horizon_count, static_cast<int>(std::ceil(duration_s_ / dt)) + horizon_count);
-
+    // Sample every validated A* edge independently.  Sampling uniformly over
+    // total arc length can place one reference before a waypoint and the next
+    // after it; the segment joining those references then cuts the corner and
+    // may cross a conductor clearance volume even though both A* edges are
+    // safe.  Retaining each waypoint makes every consecutive reference remain
+    // on one already-validated edge.
     std::vector<Reference> references;
-    references.reserve(sample_count);
-    for (int i = 0; i < sample_count; ++i) {
-        const double t = std::min(duration_s_, i * dt);
-        const double distance = duration_s_ > 1.0e-6 ? (t / duration_s_) * path_length : path_length;
+    references.emplace_back(
+        start_state.position(),
+        start_state.yaw(),
+        start_state.velocity(),
+        0.0,
+        vector_t::Zero(),
+        0.0,
+        start_state.stamp()
+    );
 
-        std::size_t segment = 1;
-        while (segment < cumulative.size() - 1 && cumulative[segment] < distance) {
-            ++segment;
-        }
-
-        const double segment_length = std::max(cumulative[segment] - cumulative[segment - 1], 1.0e-6);
-        const double segment_alpha = std::clamp((distance - cumulative[segment - 1]) / segment_length, 0.0, 1.0);
+    double distance_travelled = 0.0;
+    const double nominal_step = std::max(avg_velocity, 1.0e-3) * dt;
+    for (std::size_t segment = 1; segment < waypoints.size(); ++segment) {
         const vector_t segment_delta = waypoints[segment] - waypoints[segment - 1];
-        const point_t position = waypoints[segment - 1] + segment_alpha * segment_delta;
-        vector_t velocity = vector_t::Zero();
-        if (segment_delta.norm() > 1.0e-6) {
-            velocity = segment_delta.normalized() * avg_velocity;
+        const double segment_length = segment_delta.norm();
+        const int segment_steps = std::max(1, static_cast<int>(std::ceil(segment_length / nominal_step)));
+        vector_t segment_velocity = vector_t::Zero();
+        if (segment_length > 1.0e-6) {
+            segment_velocity = segment_delta / (segment_steps * dt);
         }
-        const double alpha = duration_s_ > 1.0e-6 ? std::clamp(t / duration_s_, 0.0, 1.0) : 1.0;
 
-        const rclcpp::Time stamp = start_state.stamp() + rclcpp::Duration::from_seconds(t);
-        if (t >= duration_s_) {
-            references.push_back(goal_reference.CopyWithNewStamp(stamp));
-        } else {
+        for (int step = 1; step <= segment_steps; ++step) {
+            const double segment_alpha = static_cast<double>(step) / segment_steps;
+            const point_t position = waypoints[segment - 1] + segment_alpha * segment_delta;
+            const double global_alpha = path_length > 1.0e-6
+                ? std::clamp((distance_travelled + segment_alpha * segment_length) / path_length, 0.0, 1.0)
+                : 1.0;
+            const double t = references.size() * dt;
             references.emplace_back(
                 position,
-                yawLerp(start_state.yaw(), goal_reference.yaw(), alpha),
-                i == 0 ? start_state.velocity() : velocity,
+                yawLerp(start_state.yaw(), goal_reference.yaw(), global_alpha),
+                segment_velocity,
                 0.0,
                 vector_t::Zero(),
                 0.0,
-                stamp
+                start_state.stamp() + rclcpp::Duration::from_seconds(t)
             );
         }
+        distance_travelled += segment_length;
     }
+
+    while (static_cast<int>(references.size()) < horizon_count) {
+        const double t = references.size() * dt;
+        references.push_back(goal_reference.CopyWithNewStamp(
+            start_state.stamp() + rclcpp::Duration::from_seconds(t)));
+    }
+
+    duration_s_ = (references.size() - 1) * dt;
+    references.back() = goal_reference.CopyWithNewStamp(
+        start_state.stamp() + rclcpp::Duration::from_seconds(duration_s_));
 
     return ReferenceTrajectory(references);
 }

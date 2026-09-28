@@ -10,6 +10,8 @@
 #include <mutex>
 #include <vector>
 #include <memory>
+#include <cstdint>
+#include <string>
 
 /*****************************************************************************/
 // III-Drone-Core:
@@ -79,6 +81,14 @@ namespace maneuver {
          * @brief Clears the queue.
          */
         void Clear();
+
+        /**
+         * @brief Removes only queued maneuvers owned by request_identity.
+         *
+         * The caller validates the wire identity before selecting this path.
+         * @return Number of queued maneuvers removed.
+         */
+        uint32_t ClearRequestIdentity(const std::string & request_identity);
 
         /**
          * @brief Clears the queue from a specific maneuver.

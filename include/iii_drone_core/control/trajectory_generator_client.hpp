@@ -8,6 +8,9 @@
 // Std:
 
 #include <memory>
+#include <cstdint>
+#include <mutex>
+#include <optional>
 #include <string>
 
 /*****************************************************************************/
@@ -255,6 +258,33 @@ namespace control {
         iii_drone::utils::History<iii_drone::adapters::ReferenceTrajectoryAdapter>::SharedPtr reference_trajectory_adapter_history_;
 
         /**
+         * @brief Serializes trajectory-generation reset, response publication,
+         * and history-pointer access across the maneuver and client callback
+         * groups.
+         */
+        mutable std::mutex trajectory_state_mutex_;
+
+        /**
+         * @brief Monotonically increasing request generation. Responses from a
+         * reset or superseded request are ignored rather than being written into
+         * the successor maneuver's trajectory history.
+         */
+        std::uint64_t trajectory_request_generation_ = 0;
+
+        /**
+         * @brief Whether this generation has produced a successful planned
+         * trajectory. Until then, async MPC publishes only an initialization
+         * hold while retaining the full moving-state seed internally.
+         */
+        bool initial_plan_ready_ = false;
+
+        /**
+         * @brief State timestamp of the last normal MPC planning submission.
+         * Reset and cancellation start a new admission interval.
+         */
+        std::optional<std::int64_t> last_mpc_submission_stamp_ns_;
+
+        /**
          * @brief Busy flag
          */
         iii_drone::utils::Atomic<bool> busy_;
@@ -278,8 +308,11 @@ namespace control {
          * @param future Future
          */
         void serviceResultCallback(
-            const rclcpp::Client<iii_drone_interfaces::srv::ComputeReferenceTrajectory>::SharedFuture future
+            const rclcpp::Client<iii_drone_interfaces::srv::ComputeReferenceTrajectory>::SharedFuture future,
+            std::uint64_t request_generation
         );
+
+        bool admitMpcPlanningRequest(const iii_drone::control::State & state);
 
     };
 

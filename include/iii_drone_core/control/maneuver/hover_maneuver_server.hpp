@@ -1,4 +1,6 @@
 #pragma once
+#include <functional>
+#include <string>
 
 /*****************************************************************************/
 // Includes
@@ -15,6 +17,7 @@
 #include <iii_drone_core/control/maneuver/maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/maneuver.hpp>
 #include <iii_drone_core/control/maneuver/maneuver_types.hpp>
+#include <iii_drone_core/control/maneuver/terminal_tracking_hold.hpp>
 
 #include <iii_drone_core/adapters/combined_drone_awareness_adapter.hpp>
 
@@ -106,6 +109,20 @@ namespace maneuver {
          */
         void Update(const iii_drone::control::Reference &reference);
 
+        struct TerminalHoldBinding {
+            std::shared_ptr<TerminalTrackingHold> hold;
+            std::string request_identity;
+        };
+        void AdoptTerminalHold(
+            std::shared_ptr<TerminalTrackingHold> hold,
+            const std::string & request_identity
+        );
+        std::shared_ptr<TerminalTrackingHold> terminalHold() const;
+        TerminalHoldBinding terminalHoldBinding() const;
+        void ClearTerminalHold();
+        void RegisterFirstReferenceAppliedCallback(
+            std::function<bool(const std::string &)> callback);
+
         /**
          * @brief Gets the hover reference.
          * 
@@ -115,7 +132,14 @@ namespace maneuver {
          */
         iii_drone::control::Reference GetReference(const iii_drone::control::State &state);
 
+    protected:
+        iii_drone::control::Reference initializationReference(const State & state) const override;
+
     private:
+        mutable std::mutex terminal_hold_mutex_;
+        std::shared_ptr<TerminalTrackingHold> terminal_hold_;
+        std::string terminal_hold_request_identity_;
+        std::function<bool(const std::string &)> first_reference_applied_;
         /**
          * @brief The maneuver type (MANEUVER_TYPE_HOVER)
          * 

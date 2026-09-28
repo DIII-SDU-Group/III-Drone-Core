@@ -42,12 +42,14 @@ Maneuver::Maneuver(
 }
 
 Maneuver::Maneuver(const Maneuver & other) : 
+    creation_time_(other.creation_time_),
     goal_handle_(other.goal_handle_),
     uuid_(other.uuid_),
     maneuver_type_(other.maneuver_type_),
-    maneuver_params_(other.maneuver_params_) {
-
-    creation_time_ = rclcpp::Clock().now();
+    request_identity_(other.request_identity_),
+    maneuver_params_(other.maneuver_params_),
+    start_time_(other.start_time_),
+    termination_time_(other.termination_time_) {
 
     terminated_ = other.terminated_;
     success_ = other.success_;
@@ -73,6 +75,8 @@ Maneuver Maneuver::FromGoalHandle(const std::shared_ptr<rclcpp_action::ServerGoa
 
 template <typename ActionT>
 void Maneuver::SetFromGoal(const std::shared_ptr<const typename ActionT::Goal> goal) {
+
+    request_identity_ = goal->request_identity;
 
     if constexpr (std::is_same<ActionT, iii_drone_interfaces::action::FollowWaypointPath>::value) {
         maneuver_type_ = MANEUVER_TYPE_FOLLOW_WAYPOINT_PATH;
@@ -349,9 +353,11 @@ Maneuver & Maneuver::operator=(const Maneuver & rhs) {
     goal_handle_ = rhs.goal_handle_;
     uuid_ = rhs.uuid_;
     maneuver_type_ = rhs.maneuver_type_;
+    request_identity_ = rhs.request_identity_;
     maneuver_params_ = rhs.maneuver_params_;
     creation_time_ = rhs.creation_time_;
     start_time_ = rhs.start_time_;
+    termination_time_ = rhs.termination_time_;
     terminated_ = rhs.terminated_;
     success_ = rhs.success_;
     started_ = rhs.started_;
@@ -369,6 +375,10 @@ const rclcpp_action::GoalUUID Maneuver::uuid() const {
 
 maneuver_type_t Maneuver::maneuver_type() const {
     return maneuver_type_;
+}
+
+const std::string & Maneuver::requestIdentity() const {
+    return request_identity_;
 }
 
 const std::shared_ptr<void> Maneuver::maneuver_params() const {

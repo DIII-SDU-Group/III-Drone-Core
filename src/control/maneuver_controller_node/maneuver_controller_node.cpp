@@ -3,6 +3,8 @@
 /*****************************************************************************/
 
 #include "iii_drone_core/control/maneuver_controller_node/maneuver_controller_node.hpp"
+#include "iii_drone_core/control/maneuver_controller_node/fly_to_object_configuration.hpp"
+#include "iii_drone_core/control/maneuver_controller_node/trajectory_generator_client_configuration.hpp"
 
 using namespace iii_drone::control::maneuver_controller_node;
 using namespace iii_drone::control::maneuver;
@@ -99,12 +101,11 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
     configurator.DeclareParameter("/control/maneuver_controller/use_gripper_status_condition", bool_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_takeoff_min_target_cable_distance", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_takeoff_max_target_cable_distance", double_t);
-    configurator.DeclareParameter("/control/maneuver_controller/generate_trajectories_asynchronously_with_delay", bool_t);
-    configurator.DeclareParameter("/control/maneuver_controller/generate_trajectories_poll_period_ms", int_t);
-    configurator.DeclareParameter("/control/maneuver_controller/generate_trajectories_timeout_ms", int_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_takeoff_reached_pose_norm_threshold", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/fly_to_position_use_mpc", bool_t);
     configurator.DeclareParameter("/control/maneuver_controller/fly_to_object_use_mpc", bool_t);
     configurator.DeclareParameter("/control/maneuver_controller/fly_to_object_target_low_pass_time_constant_s", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/fly_to_object_target_loss_grace_s", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_landing_use_mpc", bool_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_takeoff_use_mpc", bool_t);
     configurator.DeclareParameter("/control/trajectory_generator/cable_aware_clearance_m", double_t);
@@ -147,11 +148,9 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
         ConfigurationEntry("/control/maneuver_controller/hover_on_cable_default_z_velocity", double_t),
         ConfigurationEntry("/control/maneuver_controller/hover_on_cable_default_yaw_rate", double_t),
     });
-    configurator.CreateConfiguration("trajectory_generator_client", {
-        ConfigurationEntry("/control/maneuver_controller/generate_trajectories_asynchronously_with_delay", bool_t),
-        ConfigurationEntry("/control/maneuver_controller/generate_trajectories_poll_period_ms", int_t),
-        ConfigurationEntry("/control/maneuver_controller/generate_trajectories_timeout_ms", int_t),
-    });
+    iii_drone::control::maneuver_controller_node::detail::ConfigureTrajectoryGeneratorClient(
+        configurator
+    );
     configurator.CreateConfiguration("hover_on_cable_maneuver_server", {
         ConfigurationEntry("/tf/cable_gripper_frame_id", string_t),
     });
@@ -188,14 +187,8 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
         ConfigurationEntry("/control/trajectory_interpolator/interpolation_max_jerk_m_s3", double_t),
         ConfigurationEntry("/tf/world_frame_id", string_t),
     });
-    configurator.CreateConfiguration("fly_to_object_maneuver_server", {
-        ConfigurationEntry("/control/maneuver_controller/reached_position_euclidean_distance_threshold", double_t),
-        ConfigurationEntry("/control/maneuver_controller/minimum_target_altitude", double_t),
-        ConfigurationEntry("/control/maneuver_controller/fly_to_object_use_mpc", bool_t),
-        ConfigurationEntry("/control/maneuver_controller/fly_to_object_target_low_pass_time_constant_s", double_t),
-        ConfigurationEntry("/control/maneuver_controller/maneuver_execution_period_ms", int_t),
-        ConfigurationEntry("/tf/world_frame_id", string_t),
-    });
+    iii_drone::control::maneuver_controller_node::detail::ConfigureFlyToObjectManeuverServer(
+        configurator);
     configurator.CreateConfiguration("cable_landing_maneuver_server", {
         ConfigurationEntry("/control/maneuver_controller/cable_landing_target_upwards_velocity", double_t),
         ConfigurationEntry("/control/maneuver_controller/cable_landing_min_z_distance", double_t),
@@ -248,7 +241,7 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
     configurator.CreateConfiguration("cable_takeoff_maneuver_server", {
         ConfigurationEntry("/control/maneuver_controller/cable_takeoff_min_target_cable_distance", double_t),
         ConfigurationEntry("/control/maneuver_controller/cable_takeoff_max_target_cable_distance", double_t),
-        ConfigurationEntry("/control/maneuver_controller/reached_position_euclidean_distance_threshold", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_takeoff_reached_pose_norm_threshold", double_t),
         ConfigurationEntry("/tf/drone_frame_id", string_t),
         ConfigurationEntry("/tf/world_frame_id", string_t),
         ConfigurationEntry("/tf/cable_gripper_frame_id", string_t),

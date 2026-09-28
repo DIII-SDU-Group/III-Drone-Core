@@ -1,5 +1,12 @@
 #pragma once
 
+#include <atomic>
+#include <chrono>
+#include <functional>
+#include <memory>
+#include <optional>
+#include <string>
+
 /*****************************************************************************/
 // Includes
 /*****************************************************************************/
@@ -33,6 +40,8 @@
 
 #include <iii_drone_core/control/maneuver/hover_by_object_maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/hover_maneuver_server.hpp>
+#include <iii_drone_core/control/maneuver/object_tracking_session.hpp>
+#include <iii_drone_core/control/maneuver/terminal_tracking_hold.hpp>
 
 #include <iii_drone_core/control/trajectory_generator_client.hpp>
 
@@ -81,6 +90,19 @@ namespace maneuver {
             iii_drone::control::TrajectoryGeneratorClient::SharedPtr trajectory_generator_client
         );
 
+        // The first command in this goal's own stream establishes consumer
+        // ownership; proximity alone does not prove that handoff occurred.
+        void RegisterFirstReferenceAppliedCallback(
+            std::function<bool(const std::string &)> callback);
+        void RegisterAppliedRestReferenceCallback(
+            std::function<bool(const std::string &, const Reference &)> callback);
+        bool RetainsTrackedSource(const ReferenceCallbackBinding & source) const;
+        bool TrackedSourceUnrecoverable(const ReferenceCallbackBinding & source) const;
+        bool RequestTrackedTransitionStop(const ReferenceCallbackBinding & source);
+        bool TrackedTransitionStopping(const ReferenceCallbackBinding & source) const;
+        std::optional<Reference> TrackedTransitionRest(
+            const ReferenceCallbackBinding & source) const;
+
         /**
          * @brief Whether the maneuver can be executed.
          * 
@@ -119,6 +141,7 @@ namespace maneuver {
          * @return void
          */
         void startExecution(Maneuver & maneuver) override;
+        bool supportsObjectTracking() const;
 
         /**
          * @brief Whether the maneuver can be canceled, always returns true.
@@ -126,6 +149,12 @@ namespace maneuver {
          * @return bool Whether the maneuver can be canceled.
          */
         bool canCancel() override;
+        std::optional<ControlledCancellationConfig> controlledCancellationConfig() const override;
+        bool controlledCancellationComplete(const ControlledCancellationConfig & config) override;
+        bool controlledCancellationFailure() const override;
+        bool validateControlledCancellationStop(
+            const Reference & initial, const KinematicStopTrajectory & candidate,
+            std::string & reason) override;
 
         /**
          * @brief Compute the reference.
@@ -135,6 +164,7 @@ namespace maneuver {
          * @return The reference.
          */
         iii_drone::control::Reference computeReference(const iii_drone::control::State & state) override;
+        iii_drone::control::Reference initializationReference(const iii_drone::control::State & state) const override;
         bool rebaseExecution(const State & stopped_state, std::string & reason) override;
 
         /**
@@ -196,6 +226,9 @@ namespace maneuver {
          */
         iii_drone::control::TrajectoryGeneratorClient::SharedPtr trajectory_generator_client_;
 
+        std::function<bool(const std::string &)> first_reference_applied_;
+        std::function<bool(const std::string &, const Reference &)> applied_rest_reference_;
+
         /**
          * @brief The hover reference target adapter.
          */
@@ -205,6 +238,14 @@ namespace maneuver {
          * @brief Flag for first iteration.
          */
         iii_drone::utils::Atomic<bool> first_iteration_ = true;
+        std::optional<iii_drone::control::Reference> terminal_start_reference_;
+        std::shared_ptr<ObjectTrackingSession> object_tracking_session_;
+        // Scheduler callbacks run independently of the action worker. They
+        // read this synchronized snapshot instead of the worker-owned pointer.
+        iii_drone::utils::Atomic<std::shared_ptr<ObjectTrackingSession>>
+            published_object_tracking_session_;
+        std::shared_ptr<TerminalTrackingHold> object_failure_hold_;
+        bool object_hover_ready_ = false;
 
         /**
          * @brief Has failed flag.
@@ -223,6 +264,20 @@ namespace maneuver {
          * current maneuver execution.
          */
         iii_drone::utils::Atomic<bool> active_target_reference_valid_ = false;
+
+        // One coherent live observation for tracked arrival. The nominal and
+        // filtered references belong to the same lookup and owner generation.
+        // The reference callback writes it; the action worker reads it.
+        struct NominalTargetObservation {
+            iii_drone::control::Reference nominal;
+            iii_drone::control::Reference filtered;
+            std::string request_identity;
+            uint64_t execution_id = 0;
+            rclcpp::Time observed_at{0, 0, RCL_ROS_TIME};
+            std::chrono::steady_clock::time_point received_at;
+        };
+        iii_drone::utils::Atomic<std::shared_ptr<const NominalTargetObservation>>
+            nominal_target_observation_;
 
         /**
          * @brief Whether the target-position low-pass filter has been initialized.
@@ -267,6 +322,9 @@ namespace maneuver {
 
         bool success_timing_logged_ = false;
 
+        /** Monotonic ROS-clock timestamp of the most recent valid target observation. */
+        std::atomic<int64_t> last_target_observation_ns_{0};
+
         /**
          * @brief Get updated target reference. 
          * Sets the has_failed flag if the target is not visible.
@@ -274,6 +332,17 @@ namespace maneuver {
          * @return Updated target reference.
          */
         iii_drone::control::Reference getUpdatedTargetReference(const iii_drone::control::State & state);
+
+        /** Update the control filter and record its fresh nominal source together. */
+        iii_drone::control::Reference updateLiveTargetReference(
+            const iii_drone::control::State & state,
+            const ReferenceCallbackBinding & binding);
+
+        /** Record a successful live target observation for transient-loss handling. */
+        void markTargetObserved();
+
+        /** Whether the last valid target may still be used during a short sensor dropout. */
+        bool targetLossWithinGrace() const;
 
         /**
          * @brief Apply a low-pass filter to the target position while preserving the raw target yaw.

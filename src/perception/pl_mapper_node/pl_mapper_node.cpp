@@ -221,6 +221,7 @@ PowerlineMapperNode::on_configure(const rclcpp_lifecycle::State & state) {
     );
 
     pl_mapper_state_ = configurator_->GetParameter("/perception/begin_running").as_bool() ? pl_mapper_state_running : pl_mapper_state_idle;
+    pl_direction_ready_ = false;
 
     // Tf:
     RCLCPP_DEBUG(
@@ -539,6 +540,13 @@ void PowerlineMapperNode::plMapperCommandCallback(
 
     pl_mapper_state_t previous_state = pl_mapper_state_;
 
+    if (request->pl_mapper_cmd.reset) {
+        // Close the ingestion gate before requesting an asynchronous reset of
+        // the direction computer.  It will reopen only on a subsequent
+        // measured-direction publication.
+        pl_direction_ready_ = false;
+    }
+
     RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Received command");
 
     if (request->pl_mapper_cmd.command == iii_drone_interfaces::msg::PLMapperCommand::PL_MAPPER_CMD_START) {
@@ -704,6 +712,11 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
     }
 
+    if (!pl_direction_ready_) {
+        RCLCPP_DEBUG(this->get_logger(), "Ignoring mmWave data until powerline direction is initialized");
+        return;
+    }
+
     // RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::mmWaveCallback(): Processing %u points", msg->width);
 
     iii_drone::adapters::PointCloudAdapter pcl_adapter(msg);
@@ -794,6 +807,7 @@ void PowerlineMapperNode::plDirectionCallback(const geometry_msgs::msg::Quaterni
     quaternion_t quat = quaternionFromQuaternionMsg(msg->quaternion);
 
     pl_direction_ = quat;
+    pl_direction_ready_ = true;
 
     powerline_->UpdateDirection(quat);
 }

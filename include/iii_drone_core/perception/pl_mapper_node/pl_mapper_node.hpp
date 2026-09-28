@@ -283,6 +283,15 @@ private:
     iii_drone::types::quaternion_t pl_direction_;
 
     /**
+     * @brief True only after a measured powerline direction has arrived.
+     *
+     * Radar points received before this gate opens are deliberately ignored;
+     * projecting them with a default quaternion permanently corrupts the
+     * overview geometry.
+     */
+    bool pl_direction_ready_{false};
+
+    /**
      * @brief Callback for running predict step of Kalman filter when in running state,
      * or updating from inter line positions when in paused with fixed line state.
      * 

@@ -493,6 +493,14 @@ void PowerlineDirectionComputerNode::odometryCallback() {
 
 void PowerlineDirectionComputerNode::publishPowerlineDirection() {
 
+    // Do not turn "no camera estimate yet" into a plausible identity
+    // direction.  The mapper must wait for the first Hough observation before
+    // it can project radar points onto cable-aligned lines.
+    if (!pl_direction_->HasEstimate()) {
+        RCLCPP_DEBUG(this->get_logger(), "Powerline direction is not initialized; skipping publication");
+        return;
+    }
+
     RCLCPP_DEBUG(this->get_logger(), "Publishing powerline direction");
 
     geometry_msgs::msg::PoseStamped pose_msg = pl_direction_->ToPoseStampedMsg(

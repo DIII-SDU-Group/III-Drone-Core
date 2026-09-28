@@ -8,6 +8,11 @@
 // Std:
 
 #include <memory>
+#include <optional>
+#include <chrono>
+#include <array>
+#include <cstdint>
+#include <mutex>
 
 /*****************************************************************************/
 // ROS2:
@@ -30,6 +35,7 @@
 
 #include <px4_msgs/msg/vehicle_status.hpp>
 #include <px4_msgs/msg/vehicle_odometry.hpp>
+#include <px4_msgs/msg/vehicle_local_position.hpp>
 #include <px4_msgs/msg/vehicle_global_position.hpp>
 
 /*****************************************************************************/
@@ -69,6 +75,7 @@
 
 #include <iii_drone_core/control/state.hpp>
 #include <iii_drone_core/control/reference.hpp>
+#include <iii_drone_core/control/position_continuity_identity.hpp>
 
 #include <iii_drone_core/control/maneuver/maneuver_types.hpp>
 
@@ -79,6 +86,58 @@
 namespace iii_drone {
 
 namespace control {
+
+    struct MeasuredOdometrySnapshot {
+        State state;
+        // ROS receipt time is comparable with the command-emission clock.
+        // PX4 sample identity, independent of its publication timestamp.
+        rclcpp::Time receipt_stamp{0, 0, RCL_ROS_TIME};
+        uint64_t source_sample_timestamp_us = 0;
+        uint8_t reset_counter = 0;
+        PositionContinuityIdentity position_continuity{};
+    };
+
+    /** Fixed, process-local receipt evidence. Steady times share one clock epoch. */
+    struct OdometryIngressEvent {
+        uint64_t source_sample_timestamp_us = 0;
+        int64_t callback_receipt_ros_ns = 0;
+        int64_t callback_entry_steady_ns = 0;
+        int64_t lock_acquired_steady_ns = 0;
+        int64_t completed_steady_ns = 0;
+        int64_t accepted_steady_ns = 0;
+        uint8_t reset_counter = 0;
+        bool accepted = false;
+        bool pending_before = false;
+        bool pending_after = false;
+    };
+
+    struct OdometryIngressDiagnostics {
+        static constexpr size_t history_capacity = 64;
+        bool available = false;
+        bool busy = false;
+        bool latest_available = false;
+        uint64_t latest_source_sample_timestamp_us = 0;
+        uint8_t latest_reset_counter = 0;
+        int64_t latest_receipt_ros_ns = 0;
+        int64_t latest_accepted_steady_ns = 0;
+        uint64_t total_callbacks = 0;
+        size_t history_count = 0;
+        std::array<OdometryIngressEvent, history_capacity> history{};
+    };
+
+    struct VehicleNavigationSample {
+        uint64_t source_timestamp_us = 0;
+        uint64_t nav_state_timestamp_us = 0;
+        uint8_t nav_state = 0;
+        std::chrono::steady_clock::time_point receipt;
+    };
+
+    struct VehicleNavigationEvidence {
+        std::optional<VehicleNavigationSample> latest;
+        std::optional<VehicleNavigationSample> last_external;
+        // A raw PX4 clock regression invalidates all earlier owner epochs.
+        uint64_t source_epoch = 0;
+    };
 
     /**
      * @brief Class which subscribes to various topics related to the drone awareness and keeps track of the current combined awareness.
@@ -137,6 +196,33 @@ namespace control {
          * @return The current drone state.
          */
         iii_drone::control::State GetState() const;
+
+        /** Latest measured odometry with its source and receipt metadata. */
+        std::optional<MeasuredOdometrySnapshot> GetMeasuredOdometry() const;
+        /** Nonblocking diagnostic copy; busy means no ingress lock was acquired. */
+        OdometryIngressDiagnostics TryGetOdometryIngressDiagnostics() const;
+        static std::optional<MeasuredOdometrySnapshot> AdvanceMeasuredOdometry(
+            std::optional<MeasuredOdometrySnapshot> previous,
+            const iii_drone::adapters::px4::VehicleOdometryAdapter & adapter,
+            uint64_t source_sample_timestamp_us,
+            const rclcpp::Time & receipt_stamp
+        );
+        VehicleNavigationEvidence GetVehicleNavigationEvidence() const;
+        static VehicleNavigationEvidence AdvanceVehicleNavigation(
+            VehicleNavigationEvidence previous,
+            const px4_msgs::msg::VehicleStatus & status,
+            std::chrono::steady_clock::time_point receipt,
+            bool external_mode
+        );
+
+        /**
+         * @brief Whether status and odometry needed to form a vehicle state are available.
+         *
+         * Status can arrive before odometry after an XRCE reconnect or controller
+         * lifecycle recovery.  Maneuvers must not treat that partial snapshot as
+         * a usable state.
+         */
+        bool state_available() const;
 
         /**
          * @brief Computes the target state of the drone given a target adapter.
@@ -407,6 +493,7 @@ namespace control {
          * @brief Vehicle status adapter history.
         */
         VehicleStatusAdapterHistory::SharedPtr vehicle_status_adapter_history_;
+        iii_drone::utils::Atomic<VehicleNavigationEvidence> vehicle_navigation_evidence_;
 
         /**
          * @brief Updates the combined drone awareness from the vehicle status.
@@ -430,18 +517,63 @@ namespace control {
 		 * @brief PX4 odometry subscription
 		 */
 		rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr vehicle_odometry_sub_;
+		rclcpp::Subscription<px4_msgs::msg::VehicleLocalPosition>::SharedPtr vehicle_local_position_sub_;
 
         /**
          * @brief Vehicle odometry adapter history.
         */
         VehicleOdometryAdapterHistory::SharedPtr vehicle_odometry_adapter_history_;
+        iii_drone::utils::Atomic<std::optional<MeasuredOdometrySnapshot>> measured_odometry_;
 
-        iii_drone::types::point_t odometry_position_reset_offset_;
-        iii_drone::types::point_t last_raw_odometry_position_;
-        uint8_t last_odometry_reset_counter_ = 0;
-        bool has_last_odometry_for_reset_compensation_ = false;
-
-        void compensateOdometryReset(iii_drone::adapters::px4::VehicleOdometryAdapter & adapter);
+        struct LocalResetMetadata {
+            uint64_t source_sample_us = 0;
+            rclcpp::Time receipt{0, 0, RCL_ROS_TIME};
+            uint8_t xy = 0, z = 0, vxy = 0, vz = 0, heading = 0;
+            bool xy_global = false, z_global = false;
+            uint64_t origin_timestamp_us = 0;
+            double origin_lat = 0, origin_lon = 0;
+            float origin_alt = 0;
+            uint8_t aggregate() const {
+                return static_cast<uint8_t>(xy + z + vxy + vz + heading);
+            }
+        };
+        struct PendingOdometry {
+            px4_msgs::msg::VehicleOdometry message;
+            rclcpp::Time receipt{0, 0, RCL_ROS_TIME};
+        };
+        // The two DDS callbacks and the measured snapshot form one transaction.
+        mutable std::mutex odometry_ingest_mutex_;
+        std::array<OdometryIngressEvent,
+            OdometryIngressDiagnostics::history_capacity> odometry_ingress_history_{};
+        size_t odometry_ingress_next_ = 0;
+        size_t odometry_ingress_count_ = 0;
+        uint64_t odometry_ingress_total_callbacks_ = 0;
+        uint64_t accepted_odometry_samples_ = 0;
+        bool latest_accepted_odometry_available_ = false;
+        uint64_t latest_accepted_source_sample_us_ = 0;
+        uint8_t latest_accepted_reset_counter_ = 0;
+        int64_t latest_accepted_receipt_ros_ns_ = 0;
+        int64_t latest_accepted_steady_ns_ = 0;
+        std::optional<LocalResetMetadata> latest_local_reset_;
+        std::optional<LocalResetMetadata> verified_local_reset_;
+        std::optional<PendingOdometry> pending_odometry_;
+        bool local_provenance_invalid_ = false;
+        uint64_t odometry_source_epoch_ = 0;
+        uint64_t position_epoch_ = 0;
+        void ingestVehicleOdometry(const px4_msgs::msg::VehicleOdometry & message,
+            const rclcpp::Time & receipt);
+        void ingestVehicleLocalPosition(const px4_msgs::msg::VehicleLocalPosition & message,
+            const rclcpp::Time & receipt);
+        void acceptMeasuredOdometry(const px4_msgs::msg::VehicleOdometry & message,
+            const rclcpp::Time & receipt, bool qualified, bool new_position_epoch,
+            bool force_source_fault = false);
+        bool metadataMatches(const LocalResetMetadata & metadata,
+            const px4_msgs::msg::VehicleOdometry & message,
+            const rclcpp::Time & receipt) const;
+        static bool headingOnly(const LocalResetMetadata & before,
+            const LocalResetMetadata & after);
+        static bool samePositionBasis(const LocalResetMetadata & before,
+            const LocalResetMetadata & after);
 
         /**
          * @brief Updates the combined drone awareness from the vehicle odometry.

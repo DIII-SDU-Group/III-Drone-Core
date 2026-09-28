@@ -17,6 +17,9 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/quaternion_stamped.hpp>
 
+#include <cmath>
+#include <optional>
+
 /*****************************************************************************/
 // III-Drone-Configuration:
 
@@ -54,6 +57,66 @@
 namespace iii_drone {
 namespace control {
 namespace maneuver {
+
+    namespace detail {
+
+        /**
+         * @brief Captures the aligned cable-axis heading once in world yaw.
+         *
+         * A cable axis is equivalent under a pi rotation. The captured
+         * equivalent is selected nearest the vehicle's current heading, then
+         * remains fixed while live perception updates the cable position.
+         */
+        class CableLandingHeadingLock {
+        public:
+            bool capture(double candidate_yaw, double vehicle_yaw) {
+                if (locked_) {
+                    return true;
+                }
+                if (!std::isfinite(candidate_yaw) || !std::isfinite(vehicle_yaw)) {
+                    return false;
+                }
+
+                double heading = std::atan2(std::sin(candidate_yaw), std::cos(candidate_yaw));
+                const double relative_yaw = std::atan2(
+                    std::sin(heading - vehicle_yaw),
+                    std::cos(heading - vehicle_yaw)
+                );
+                constexpr double pi = 3.14159265358979323846;
+                if (std::abs(relative_yaw) > pi / 2.0) {
+                    heading = std::atan2(std::sin(heading + pi), std::cos(heading + pi));
+                }
+
+                direction_world_ = iii_drone::types::vector_t(
+                    std::cos(heading),
+                    std::sin(heading),
+                    0.0
+                );
+                locked_ = true;
+                return true;
+            }
+
+            void reset() {
+                locked_ = false;
+                direction_world_ = iii_drone::types::vector_t::UnitX();
+            }
+
+            bool locked() const { return locked_; }
+
+            const iii_drone::types::vector_t & directionWorld() const {
+                return direction_world_;
+            }
+
+            double yawWorld() const {
+                return std::atan2(direction_world_(1), direction_world_(0));
+            }
+
+        private:
+            bool locked_ = false;
+            iii_drone::types::vector_t direction_world_ = iii_drone::types::vector_t::UnitX();
+        };
+
+    }  // namespace detail
 
     /**
      * @brief Class for serving cable landing.     
@@ -121,6 +184,7 @@ namespace maneuver {
          * @return void
          */
         void startExecution(Maneuver & maneuver) override;
+        Reference initializationReference(const State & state) const override;
 
         /**
          * @brief Whether the maneuver can be canceled, always returns true.
@@ -212,6 +276,7 @@ namespace maneuver {
          * @brief Flag for first iteration.
          */
         iii_drone::utils::Atomic<bool> first_iteration_ = true;
+        std::optional<Reference> object_transition_start_reference_;
 
         /**
          * @brief Has failed flag.
@@ -228,7 +293,7 @@ namespace maneuver {
         rclcpp::Time line_pid_last_stamp_;
         iii_drone::types::point_t line_pid_anchor_point_world_ = iii_drone::types::point_t::Zero();
         iii_drone::types::point_t line_pid_position_reference_world_ = iii_drone::types::point_t::Zero();
-        iii_drone::types::vector_t line_pid_cable_direction_world_ = iii_drone::types::vector_t::UnitX();
+        detail::CableLandingHeadingLock line_pid_heading_lock_;
         bool line_pid_target_lock_initialized_ = false;
         bool line_pid_has_last_cable_pose_ = false;
         iii_drone::types::pose_t line_pid_last_cable_pose_world_;

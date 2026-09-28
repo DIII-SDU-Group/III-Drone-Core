@@ -216,6 +216,14 @@ namespace maneuver {
 
         bool referenceStreamPaused() const;
 
+        /** Request/execution-fenced startup rejection, readable without the worker mutex. */
+        bool startupRejected(const ReferenceCallbackBinding & binding) const;
+
+        /** Scheduler-staged, request-fenced finite start command from a quiescent terminal hold. */
+        bool StageTerminalStartReference(
+            const std::string & request_identity, const Reference & reference
+        );
+
         /**
          * @brief Shared pointer type.
          */
@@ -291,6 +299,22 @@ namespace maneuver {
         virtual Reference computeReference(const State &) = 0;
 
         /**
+         * Reference published under the new execution identity while
+         * startExecution performs any synchronous initialization.
+         */
+        virtual Reference initializationReference(const State & state) const;
+
+        /** Exact scheduler-prepared callback owner for this action execution. */
+        ReferenceCallbackBinding currentReferenceBinding() const;
+
+        std::optional<Reference> terminalStartReferenceFor(
+            const std::string & request_identity
+        ) const;
+        std::optional<Reference> consumeTerminalStartReference(
+            const std::string & request_identity
+        );
+
+        /**
          * Replan the remaining maneuver from a stopped state. Implementations
          * must guarantee that their first computed sample is continuous with
          * stopped_state. The safe default refuses transparent recovery.
@@ -351,7 +375,10 @@ namespace maneuver {
          * 
          * @return void
          */
-        void registerCallback(const ReferenceCallback & callback);
+        void registerCallback(
+            const ReferenceCallback & callback,
+            const std::string & reference_provider_name = ""
+        );
 
         /**
          * @brief Creates the underlying action server.
@@ -370,6 +397,14 @@ namespace maneuver {
 
         /** Returns the controlled stop endpoint while a cancellation is active. */
         std::optional<Reference> controlledCancellationFinalReference() const;
+        /** True only after the commanded generic stop has reached its rest endpoint. */
+        bool controlledCancellationProfileComplete() const;
+        /** Maneuver-specific measured proof after the commanded stop. */
+        virtual bool controlledCancellationComplete(const ControlledCancellationConfig & config);
+        virtual bool controlledCancellationFailure() const { return false; }
+        virtual bool validateControlledCancellationStop(
+            const Reference &, const KinematicStopTrajectory &, std::string &) { return true; }
+        void PrimeOwnedManagedReference(const Reference & reference);
 
         static ControlledCancellationConfig controlledCancellationConfigFrom(
             const iii_drone::configuration::Configuration::SharedPtr & configuration
@@ -473,6 +508,11 @@ namespace maneuver {
         iii_drone::utils::Atomic<bool> running_;
 
         iii_drone::utils::Atomic<bool> reference_stream_paused_ = false;
+        struct StartupRejection {
+            std::string request_identity;
+            uint64_t execution_id = 0;
+        };
+        iii_drone::utils::Atomic<StartupRejection> startup_rejection_;
 
         /**
          * @brief Action server shared void pointer
@@ -482,7 +522,6 @@ namespace maneuver {
         Reference computeManagedReference(const State & state);
         void resetControlledCancellation();
         bool startControlledCancellation(const ControlledCancellationConfig & config);
-        bool controlledCancellationComplete(const ControlledCancellationConfig & config);
 
         mutable std::mutex controlled_cancellation_mutex_;
         std::optional<Reference> latest_managed_reference_;
@@ -490,6 +529,9 @@ namespace maneuver {
         std::chrono::steady_clock::time_point controlled_stop_start_time_;
         std::optional<std::chrono::steady_clock::time_point>
             controlled_stop_below_threshold_since_;
+        mutable std::mutex terminal_start_mutex_;
+        std::string terminal_start_request_identity_;
+        std::optional<Reference> terminal_start_reference_;
 
         /**
          * @brief Handle goal callback.

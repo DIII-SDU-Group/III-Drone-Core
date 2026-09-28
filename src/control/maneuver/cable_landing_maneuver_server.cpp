@@ -340,6 +340,11 @@ void CableLandingManeuverServer::startExecution(Maneuver & maneuver) {
     );
 
     auto cda_handler = awareness_handler();
+    object_transition_start_reference_ = consumeTerminalStartReference(
+        maneuver.requestIdentity());
+    if (object_transition_start_reference_) {
+        PrimeOwnedManagedReference(*object_transition_start_reference_);
+    }
 
     cable_landing_maneuver_params_t cable_landing_maneuver_params(maneuver.maneuver_params());
     int effective_target_cable_id = cable_landing_maneuver_params.target_cable_id;
@@ -389,6 +394,7 @@ void CableLandingManeuverServer::startExecution(Maneuver & maneuver) {
     first_iteration_ = true;
     has_failed_ = false;
     line_pid_initialized_ = false;
+    line_pid_heading_lock_.reset();
     line_pid_target_lock_initialized_ = false;
     line_pid_has_last_cable_pose_ = false;
     line_pid_along_pid_ = PidState();
@@ -410,6 +416,14 @@ void CableLandingManeuverServer::startExecution(Maneuver & maneuver) {
 
     cda_handler->SetTarget(target_adapter_);
 
+}
+
+Reference CableLandingManeuverServer::initializationReference(const State & state) const {
+    const auto binding = currentReferenceBinding();
+    if (const auto seed = terminalStartReferenceFor(binding.request_identity)) {
+        return seed->CopyWithNewStamp(node()->now());
+    }
+    return ManeuverServer::initializationReference(state);
 }
 
 bool CableLandingManeuverServer::canCancel() {
@@ -524,26 +538,37 @@ Reference CableLandingManeuverServer::computeLinePidReference(const State & stat
 
     const double raw_cable_pose_yaw = quatToEul(cable_pose.orientation)(2);
     const double target_yaw = target_reference.yaw();
-    vector_t cable_direction_world(
-        std::cos(target_yaw),
-        std::sin(target_yaw),
-        0.0
-    );
-    if (cable_direction_world.norm() < 1e-6) {
-        cable_direction_world = vector_t::UnitX();
-    } else {
-        cable_direction_world.normalize();
-    }
-
-    if (line_pid_initialized_) {
-        if (cable_direction_world.dot(line_pid_cable_direction_world_) < 0.0) {
-            cable_direction_world = -cable_direction_world;
+    vector_t cable_direction_world;
+    if (line_pid_heading_lock_.locked()) {
+        // Live line orientation may still update the position target, but it
+        // must not rotate the world-frame yaw reference during the approach.
+        cable_direction_world = line_pid_heading_lock_.directionWorld();
+        cable_direction_world(2) = 0.0;
+        if (!cable_direction_world.allFinite() || cable_direction_world.norm() < 1e-6) {
+            has_failed_ = true;
+            return Reference(state, true, true);
         }
-    } else if (std::abs(shortestYawError(state.yaw(), std::atan2(cable_direction_world(1), cable_direction_world(0)))) > M_PI_2) {
-        cable_direction_world = -cable_direction_world;
-    }
+        cable_direction_world.normalize();
+    } else {
+        cable_direction_world = vector_t(
+            std::cos(target_yaw),
+            std::sin(target_yaw),
+            0.0
+        );
+        if (cable_direction_world.norm() < 1e-6) {
+            cable_direction_world = vector_t::UnitX();
+        } else {
+            cable_direction_world.normalize();
+        }
 
-    line_pid_cable_direction_world_ = cable_direction_world;
+        // Freeze the aligned world heading and choose its cable-axis
+        // equivalent nearest the vehicle's current yaw exactly once.
+        if (!line_pid_heading_lock_.capture(target_yaw, state.yaw())) {
+            has_failed_ = true;
+            return Reference(state, true, true);
+        }
+        cable_direction_world = line_pid_heading_lock_.directionWorld();
+    }
 
     const vector_t world_up = vector_t::UnitZ();
     vector_t cable_cross_world = world_up.cross(cable_direction_world);
@@ -586,7 +611,8 @@ Reference CableLandingManeuverServer::computeLinePidReference(const State & stat
     if (!line_pid_initialized_) {
         const vector_t cable_to_gripper = gripper_position_world - cable_pose.position;
         line_pid_anchor_point_world_ = cable_pose.position + cable_to_gripper.dot(cable_direction_world) * cable_direction_world;
-        line_pid_position_reference_world_ = state.position();
+        line_pid_position_reference_world_ = object_transition_start_reference_
+            ? object_transition_start_reference_->position() : state.position();
         line_pid_last_stamp_ = state.stamp();
         line_pid_last_cable_pose_world_ = cable_pose;
         line_pid_has_last_cable_pose_ = true;
@@ -675,10 +701,27 @@ Reference CableLandingManeuverServer::computeLinePidReference(const State & stat
     const double configured_ascent_velocity = configuration_->GetParameter(
         "/control/maneuver_controller/cable_landing_line_pid_ascent_velocity"
     ).as_double();
-    const double ascent_cross_error_threshold = std::max(
-        configuration_->GetParameter("/control/maneuver_controller/cable_landing_gripper_v_gate_half_width_at_reference_z").as_double(),
-        0.15
-    );
+    // The V gate narrows as the conductor advances into the gripper.  Holding
+    // a fixed 0.15 m cross-track allowance here allowed vertical motion to
+    // continue after the same conductor point had already left the physical
+    // aperture.  Gate vertical motion by the opening at the *current* target
+    // height, using the same geometry as isTargetWithinGripperVGate().
+    const double gate_apex_z = configuration_->GetParameter(
+        "/control/maneuver_controller/cable_landing_gripper_v_gate_apex_z"
+    ).as_double();
+    const double gate_reference_z = configuration_->GetParameter(
+        "/control/maneuver_controller/cable_landing_gripper_v_gate_reference_z"
+    ).as_double();
+    const double gate_half_width_at_reference_z = configuration_->GetParameter(
+        "/control/maneuver_controller/cable_landing_gripper_v_gate_half_width_at_reference_z"
+    ).as_double();
+    const double gate_height = gate_reference_z - gate_apex_z;
+    const double ascent_cross_error_threshold = gate_height > 0.0
+        ? std::max(
+            0.0,
+            (target_point_gripper(2) - gate_apex_z) * gate_half_width_at_reference_z / gate_height
+        )
+        : 0.0;
     const double ascent_velocity = std::abs(cross_error) <= ascent_cross_error_threshold
         ? configured_ascent_velocity
         : 0.0;
@@ -784,7 +827,7 @@ bool CableLandingManeuverServer::isCablePoseConsistentWithLock(
         return true;
     }
 
-    vector_t cable_direction_world = line_pid_cable_direction_world_;
+    vector_t cable_direction_world = line_pid_heading_lock_.directionWorld();
     if (cable_direction_world.norm() < 1e-6) {
         cable_direction_world = vector_t::UnitX();
     } else {
@@ -1174,7 +1217,8 @@ void CableLandingManeuverServer::registerReferenceCallbackOnSuccess(const Maneuv
             &HoverOnCableManeuverServer::GetReference,
             hover_on_cable_maneuver_server,
             std::placeholders::_1
-        )
+        ),
+        hover_on_cable_maneuver_server->action_name()
     );
 
 }
@@ -1259,15 +1303,77 @@ Reference CableLandingManeuverServer::getUpdatedTargetReference(
         }
 
         double raw_target_yaw = quatToEul(matToQuat(target_transform.block<3, 3>(0, 0)))[2];
-        if (line_pid_initialized_) {
-            vector_t locked_direction = line_pid_cable_direction_world_;
-            locked_direction(2) = 0.0;
-            if (locked_direction.norm() > 1e-6) {
-                locked_direction.normalize();
-                raw_target_yaw = std::atan2(locked_direction(1), locked_direction(0));
+        const bool line_pid_heading_locked = line_pid_heading_lock_.locked();
+        if (line_pid_heading_locked) {
+            const vector_t & locked_direction = line_pid_heading_lock_.directionWorld();
+            if (!locked_direction.allFinite() || locked_direction.norm() < 1e-6) {
+                has_failed_ = true;
+                return Reference(state, true, true);
+            }
+            raw_target_yaw = line_pid_heading_lock_.yawWorld();
+        }
+        double target_yaw = line_pid_heading_locked
+            ? raw_target_yaw
+            : state.yaw() + shortestCableAxisYawError(state.yaw(), raw_target_yaw);
+
+        // The gripper frame is rolled and yawed relative to the drone.  Taking
+        // yaw from the fully composed world-to-drone target transform therefore
+        // does not preserve cable-axis equivalence and can request a large yaw
+        // step immediately after the explicit gripper-alignment maneuver.  Use
+        // the same gripper-frame cable-axis error as GetGripperAlignmentYaw so
+        // the landing handoff is continuous.  Keep the composed-transform yaw
+        // as a fallback for a transient perception/TF miss.
+        if (!line_pid_heading_locked) {
+            try {
+                const PowerlineAdapter powerline = cda_handler->GetPowerlineAdapter();
+                const SingleLineAdapter target_line = powerline.GetLine(target_adapter_->target_id());
+
+                geometry_msgs::msg::QuaternionStamped source_q_cable;
+                source_q_cable.header.frame_id = target_line.frame_id();
+                source_q_cable.header.stamp = builtin_interfaces::msg::Time();
+                source_q_cable.quaternion = quaternionMsgFromQuaternion(target_line.quaternion());
+
+                const auto gripper_q_cable = cda_handler->tf_buffer()->transform(
+                    source_q_cable,
+                    target_adapter_->reference_frame_id()
+                );
+                const double raw_gripper_yaw_error = quatToEul(
+                    quaternionFromQuaternionMsg(gripper_q_cable.quaternion)
+                )(2);
+                const double gripper_axis_yaw_error = shortestCableAxisYawError(
+                    0.0,
+                    raw_gripper_yaw_error
+                );
+                target_yaw = state.yaw() + gripper_axis_yaw_error;
+
+                RCLCPP_DEBUG_THROTTLE(
+                    node()->get_logger(),
+                    *node()->get_clock(),
+                    1000,
+                    "CableLandingManeuverServer::getUpdatedTargetReference(): gripper-frame cable alignment raw_error=%.3f axis_error=%.3f target_yaw=%.3f composed_target_yaw=%.3f",
+                    raw_gripper_yaw_error,
+                    gripper_axis_yaw_error,
+                    target_yaw,
+                    raw_target_yaw
+                );
+            } catch (const tf2::TransformException & e) {
+                RCLCPP_WARN_THROTTLE(
+                    node()->get_logger(),
+                    *node()->get_clock(),
+                    1000,
+                    "CableLandingManeuverServer::getUpdatedTargetReference(): Could not transform cable orientation into gripper frame; using composed target yaw: %s",
+                    e.what()
+                );
+            } catch (const std::runtime_error & e) {
+                RCLCPP_WARN_THROTTLE(
+                    node()->get_logger(),
+                    *node()->get_clock(),
+                    1000,
+                    "CableLandingManeuverServer::getUpdatedTargetReference(): Could not derive gripper-frame cable yaw; using composed target yaw: %s",
+                    e.what()
+                );
             }
         }
-        const double target_yaw = state.yaw() + shortestCableAxisYawError(state.yaw(), raw_target_yaw);
 
         target_reference = Reference(
             target_transform.block<3, 1>(0, 3),

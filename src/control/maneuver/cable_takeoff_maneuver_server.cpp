@@ -11,6 +11,20 @@ using namespace iii_drone::math;
 using namespace iii_drone::utils;
 using namespace iii_drone::adapters;
 
+namespace {
+
+double CableTakeoffPoseNorm(const State & state, const Reference & reference) {
+    const Eigen::Vector4d state_position_and_yaw = {
+        state.position()[0], state.position()[1], state.position()[2], state.yaw()
+    };
+    const Eigen::Vector4d target_position_and_yaw = {
+        reference.position()[0], reference.position()[1], reference.position()[2], reference.yaw()
+    };
+    return (state_position_and_yaw - target_position_and_yaw).norm();
+}
+
+}  // namespace
+
 /*****************************************************************************/
 // Implementation
 /*****************************************************************************/
@@ -42,6 +56,14 @@ bool CableTakeoffManeuverServer::CanExecuteManeuver(
 ) const {
 
     cable_takeoff_maneuver_params_t cable_takeoff_maneuver_params(maneuver.maneuver_params());
+
+    if (!awareness_handler()->state_available()) {
+        RCLCPP_DEBUG(
+            node()->get_logger(),
+            "CableTakeoffManeuverServer::CanExecuteManeuver(): Vehicle state is incomplete; waiting for PX4 odometry."
+        );
+        return false;
+    }
 
     if (maneuver.maneuver_type() != MANEUVER_TYPE_CABLE_TAKEOFF) {
         RCLCPP_DEBUG(
@@ -255,8 +277,7 @@ bool CableTakeoffManeuverServer::rebaseExecution(
     in_flight_since_.reset();
     started_at_ = std::chrono::steady_clock::now();
     last_distance_improvement_at_ = started_at_;
-    best_distance_to_target_ =
-        (stopped_state.position() - target_reference_->position()).norm();
+    best_distance_to_target_ = CableTakeoffPoseNorm(stopped_state, *target_reference_);
     reason = "replanned remaining cable takeoff from stopped state";
     return true;
 }
@@ -269,22 +290,33 @@ Reference CableTakeoffManeuverServer::computeReference(const State & state) {
     );
 
     const bool use_mpc = configuration_->GetParameter("/control/maneuver_controller/cable_takeoff_use_mpc").as_bool();
-    bool reset = first_iteration_;
-    bool set_reference = true;
     bool compute_with_mpc = use_mpc;
+    const bool initialize_trajectory = first_iteration_;
 
     Reference ref;
     
     try {
 
-        ref = trajectory_generator_client_->ComputeReference(
-            state,
-            target_reference,
-            set_reference,
-            reset,
-            trajectory_mode_t::cable_takeoff,
-            compute_with_mpc
-        );
+        if (compute_with_mpc) {
+            ref = trajectory_generator_client_->ComputeReference(
+                state,
+                target_reference,
+                true,
+                initialize_trajectory,
+                trajectory_mode_t::cable_takeoff,
+                true
+            );
+        } else {
+            // Build one bounded quintic from the measured moving state, then
+            // sample that fixed segment on subsequent maneuver ticks.
+            ref = trajectory_generator_client_->ComputeReference(
+                Reference(state),
+                target_reference,
+                initialize_trajectory,
+                initialize_trajectory,
+                trajectory_mode_t::cable_takeoff
+            );
+        }
 
     } catch (const std::runtime_error &e) {
 
@@ -317,23 +349,11 @@ bool CableTakeoffManeuverServer::hasSucceeded(Maneuver &) {
 
     Reference target_reference = getUpdatedTargetReference(state);
 
-    Eigen::Vector4d euc_pos = {
-        state.position()[0], 
-        state.position()[1], 
-        state.position()[2], 
-        state.yaw()
-    };
-
-    Eigen::Vector4d target_euc_pos = {
-        target_reference.position()[0], 
-        target_reference.position()[1], 
-        target_reference.position()[2], 
-        target_reference.yaw()
-    };
-
-    double distance = (euc_pos - target_euc_pos).norm();
-
-    const bool reached = distance < configuration_->GetParameter("/control/maneuver_controller/reached_position_euclidean_distance_threshold").as_double();
+    const double distance = CableTakeoffPoseNorm(state, target_reference);
+    const double target_norm_threshold = configuration_->GetParameter(
+        "/control/maneuver_controller/cable_takeoff_reached_pose_norm_threshold"
+    ).as_double();
+    const bool reached = distance < target_norm_threshold;
     if (distance + 0.05 < best_distance_to_target_) {
         best_distance_to_target_ = distance;
         last_distance_improvement_at_ = std::chrono::steady_clock::now();
@@ -362,8 +382,10 @@ bool CableTakeoffManeuverServer::hasSucceeded(Maneuver &) {
 
     RCLCPP_INFO(
         node()->get_logger(),
-        "CableTakeoffManeuverServer::hasSucceeded(): in-flight and target reached for %.2f seconds.",
-        std::chrono::duration<double>(stable_duration).count()
+        "CableTakeoffManeuverServer::hasSucceeded(): in-flight and target reached for %.2f seconds (pose_norm=%.3f threshold=%.3f).",
+        std::chrono::duration<double>(stable_duration).count(),
+        distance,
+        target_norm_threshold
     );
 
     return true;
@@ -425,12 +447,16 @@ bool CableTakeoffManeuverServer::hasFailed(Maneuver &) {
         ) {
             const State state = cda_handler->GetState();
             const Reference target_reference = getUpdatedTargetReference(state);
-            const double distance = (state.position() - target_reference.position()).norm();
+            const double distance = CableTakeoffPoseNorm(state, target_reference);
+            const double target_norm_threshold = configuration_->GetParameter(
+                "/control/maneuver_controller/cable_takeoff_reached_pose_norm_threshold"
+            ).as_double();
             RCLCPP_WARN(
                 node()->get_logger(),
-                "CableTakeoffManeuverServer::hasFailed(): Target distance stalled. distance=%.3f best_distance=%.3f elapsed=%.2f since_improvement=%.2f start_on_cable=%s",
+                "CableTakeoffManeuverServer::hasFailed(): Target pose norm stalled. distance=%.3f best_distance=%.3f threshold=%.3f elapsed=%.2f since_improvement=%.2f start_on_cable=%s",
                 distance,
                 best_distance_to_target_,
+                target_norm_threshold,
                 std::chrono::duration<double>(elapsed).count(),
                 std::chrono::duration<double>(since_improvement).count(),
                 start_on_cable_.Load() ? "true" : "false"

@@ -615,7 +615,7 @@ void TrajectoryGenerator::stepMPC(
 		for (int j = 0; j < 6; j++) planned_traj[i*6+j] = Info.Yopt[j*(N+1)+(i)];
 		// for (int j = 0; j < 6; j++) planned_traj[i*6+j] = Info.Yopt[j*(N+1)+(i+1)];
 
-        for (int j = 0; j < 3; j++) planned_u_traj[i*3+j] = Info.Uopt[j*N+i];
+        for (int j = 0; j < 3; j++) planned_u_traj[i*3+j] = Info.Uopt[j*(N+1)+i];
 
 	} 
 

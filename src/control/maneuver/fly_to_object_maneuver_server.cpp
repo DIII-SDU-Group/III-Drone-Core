@@ -5,7 +5,9 @@
 #include <iii_drone_core/control/maneuver/fly_to_object_maneuver_server.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
+#include <sstream>
 
 using namespace iii_drone::control::maneuver;
 using namespace iii_drone::control;
@@ -73,6 +75,12 @@ FlyToObjectManeuverServer::FlyToObjectManeuverServer(
 
     createServer<FlyToObject>();
 
+}
+
+void FlyToObjectManeuverServer::RegisterFirstReferenceAppliedCallback(
+    std::function<bool(const std::string &)> callback
+) {
+    first_reference_applied_ = std::move(callback);
 }
 
 bool FlyToObjectManeuverServer::CanExecuteManeuver(
@@ -157,13 +165,20 @@ void FlyToObjectManeuverServer::startExecution(Maneuver & maneuver) {
     }
 
     first_iteration_ = true;
+    terminal_start_reference_ = consumeTerminalStartReference(maneuver.requestIdentity());
+    object_tracking_session_.reset();
+    published_object_tracking_session_.Store(nullptr);
+    object_failure_hold_.reset();
+    object_hover_ready_ = false;
     has_failed_ = false;
     active_target_reference_valid_ = false;
+    nominal_target_observation_.Store(nullptr);
     mpc_settle_active_ = false;
     mpc_settle_first_iteration_ = false;
     target_position_filter_initialized_ = false;
     filtered_target_position_ = point_t::Zero();
     last_target_position_filter_update_time_ = node()->now();
+    last_target_observation_ns_.store(0);
     maneuver_start_time_ = node()->now();
     threshold_reached_logged_ = false;
     settle_threshold_reached_logged_ = false;
@@ -172,10 +187,166 @@ void FlyToObjectManeuverServer::startExecution(Maneuver & maneuver) {
 
     cda_handler->SetTarget(target_adapter_);
 
+    if (supportsObjectTracking()) {
+        const auto binding = currentReferenceBinding();
+        if (binding.request_identity != maneuver.requestIdentity() ||
+            binding.execution_id == 0 || binding.reference_provider_name != action_name()) {
+            throw std::runtime_error("fly-to-object tracking has no exact execution owner");
+        }
+        const Reference seed = terminal_start_reference_.value_or(
+            Reference(cda_handler->GetState())).CopyWithNewStamp(node()->now());
+        const double minimum_altitude_m = cda_handler->ground_altitude_estimate() +
+            configuration_->GetParameter(
+                "/control/maneuver_controller/minimum_target_altitude").as_double();
+        ObjectTrackingSession::Limits tracking_limits;
+        tracking_limits.cancellation_config = controlledCancellationConfigFrom(configuration_);
+        object_tracking_session_ = std::make_shared<ObjectTrackingSession>(
+            [client = trajectory_generator_client_](
+                const Reference & start, const Reference & target, bool reset) {
+                return client->ComputeReference(start, target, true, reset,
+                    trajectory_mode_t::bounded_positional);
+            }, seed, maneuver.requestIdentity(), binding.execution_id,
+            node()->now(), std::min(static_cast<double>(seed.position()(2)),
+                minimum_altitude_m), tracking_limits);
+        published_object_tracking_session_.Store(object_tracking_session_);
+        PrimeOwnedManagedReference(seed);
+    }
+
+}
+
+bool FlyToObjectManeuverServer::supportsObjectTracking() const {
+    return !configuration_->GetParameter(
+        "/control/maneuver_controller/fly_to_object_use_mpc").as_bool() &&
+        configuration_->GetParameter(
+        "/control/maneuver_controller/cable_landing_controller_type").as_string() ==
+            "line_pid";
+}
+
+bool FlyToObjectManeuverServer::RetainsTrackedSource(
+    const ReferenceCallbackBinding & source) const {
+    const auto tracking = published_object_tracking_session_.Load();
+    return source.callback && !source.request_identity.empty() &&
+        source.execution_id != 0 && tracking &&
+        tracking->owns(source.request_identity, source.execution_id);
+}
+
+bool FlyToObjectManeuverServer::TrackedSourceUnrecoverable(
+    const ReferenceCallbackBinding & source) const {
+    const auto tracking = published_object_tracking_session_.Load();
+    return tracking && source.callback && !source.request_identity.empty() &&
+        source.execution_id != 0 &&
+        tracking->owns(source.request_identity, source.execution_id) &&
+        tracking->unrecoverable();
+}
+
+bool FlyToObjectManeuverServer::RequestTrackedTransitionStop(
+    const ReferenceCallbackBinding & source) {
+    const auto tracking = published_object_tracking_session_.Load();
+    return tracking && source.callback && !source.request_identity.empty() &&
+        source.execution_id != 0 &&
+        tracking->owns(source.request_identity, source.execution_id) &&
+        tracking->RequestTransitionStop(
+            source.request_identity, source.execution_id);
+}
+
+bool FlyToObjectManeuverServer::TrackedTransitionStopping(
+    const ReferenceCallbackBinding & source) const {
+    const auto tracking = published_object_tracking_session_.Load();
+    return tracking && source.callback && !source.request_identity.empty() &&
+        source.execution_id != 0 &&
+        tracking->owns(source.request_identity, source.execution_id) &&
+        tracking->transitionStopping();
+}
+
+std::optional<Reference> FlyToObjectManeuverServer::TrackedTransitionRest(
+    const ReferenceCallbackBinding & source) const {
+    const auto tracking = published_object_tracking_session_.Load();
+    if (!tracking || !source.callback || source.request_identity.empty() ||
+        source.execution_id == 0 ||
+        !tracking->owns(source.request_identity, source.execution_id) ||
+        !tracking->transitionRest()) return std::nullopt;
+    return tracking->lastCommand();
+}
+
+Reference FlyToObjectManeuverServer::initializationReference(const State & state) const {
+    const auto binding = currentReferenceBinding();
+    if (supportsObjectTracking()) {
+        const Reference seed = terminalStartReferenceFor(binding.request_identity)
+            .value_or(Reference(state)).CopyWithNewStamp(node()->now());
+        const double minimum_altitude_m = awareness_handler()->ground_altitude_estimate() +
+            configuration_->GetParameter(
+                "/control/maneuver_controller/minimum_target_altitude").as_double();
+        std::string reason;
+        if (!ObjectTrackingSession::CanCertifyInitialSeed(seed,
+                std::min(static_cast<double>(seed.position()(2)), minimum_altitude_m),
+                controlledCancellationConfigFrom(configuration_), reason)) {
+            throw std::runtime_error("fly-to-object startup seed rejected: " + reason);
+        }
+        return seed;
+    }
+    if (const auto seed = terminalStartReferenceFor(binding.request_identity)) {
+        return seed->CopyWithNewStamp(node()->now());
+    }
+    return ManeuverServer::initializationReference(state);
 }
 
 bool FlyToObjectManeuverServer::canCancel() {
     return true;
+}
+
+void FlyToObjectManeuverServer::RegisterAppliedRestReferenceCallback(
+    std::function<bool(const std::string &, const Reference &)> callback) {
+    applied_rest_reference_ = std::move(callback);
+}
+
+std::optional<ControlledCancellationConfig>
+FlyToObjectManeuverServer::controlledCancellationConfig() const {
+    return object_tracking_session_ ?
+        std::optional(object_tracking_session_->cancellationConfig()) : std::nullopt;
+}
+
+bool FlyToObjectManeuverServer::validateControlledCancellationStop(
+    const Reference & initial, const KinematicStopTrajectory & candidate,
+    std::string & reason) {
+    if (!object_tracking_session_) return true;
+    if (object_tracking_session_->CertifiesCancellationStop(initial, candidate, reason)) return true;
+    object_tracking_session_->RejectUnsafeCancellation(reason);
+    return false;
+}
+
+bool FlyToObjectManeuverServer::controlledCancellationComplete(
+    const ControlledCancellationConfig &) {
+    if (!object_tracking_session_) return false;
+    const bool profile_complete = controlledCancellationProfileComplete();
+    const auto rest = controlledCancellationFinalReference();
+    const std::string owner = current_maneuver().Load().requestIdentity();
+    const bool exact_applied_rest = profile_complete && rest && applied_rest_reference_ &&
+        applied_rest_reference_(owner, *rest);
+    const bool proved = object_tracking_session_->ObserveCancellationProof(
+        profile_complete, exact_applied_rest,
+        awareness_handler()->GetMeasuredOdometry(), node()->now());
+    if (proved && !object_failure_hold_) {
+        try {
+            object_failure_hold_ = std::make_shared<TerminalTrackingHold>(
+                *rest, awareness_handler(), node()->get_clock(),
+                TerminalTrackingHold::Clearance{}, 0.0);
+            if (!object_failure_hold_->RequestQuiescence() ||
+                !object_failure_hold_->isQuiescent()) {
+                throw std::runtime_error("object cancellation rest cannot be retained");
+            }
+            auto hover = std::static_pointer_cast<HoverManeuverServer>(
+                registered_maneuvers().at(MANEUVER_TYPE_HOVER));
+            hover->AdoptTerminalHold(object_failure_hold_, owner);
+        } catch (const std::exception & error) {
+            object_tracking_session_->RejectUnsafeCancellation(error.what());
+            return false;
+        }
+    }
+    return proved;
+}
+
+bool FlyToObjectManeuverServer::controlledCancellationFailure() const {
+    return object_tracking_session_ && object_tracking_session_->cancellationProofFailed();
 }
 
 bool FlyToObjectManeuverServer::rebaseExecution(
@@ -188,18 +359,29 @@ bool FlyToObjectManeuverServer::rebaseExecution(
     }
     first_iteration_ = true;
     has_failed_ = false;
+    terminal_start_reference_.reset();
+    object_tracking_session_.reset();
+    published_object_tracking_session_.Store(nullptr);
+    object_failure_hold_.reset();
+    object_hover_ready_ = false;
     active_target_reference_valid_ = false;
+    nominal_target_observation_.Store(nullptr);
     mpc_settle_active_ = false;
     mpc_settle_first_iteration_ = false;
     target_position_filter_initialized_ = false;
     filtered_target_position_ = stopped_state.position();
     last_target_position_filter_update_time_ = node()->now();
+    last_target_observation_ns_.store(0);
     maneuver_start_time_ = node()->now();
     reason = "replanned fly-to-object from stopped state";
     return true;
 }
 
 Reference FlyToObjectManeuverServer::computeReference(const State & state) {
+
+    if (object_tracking_session_ && object_tracking_session_->transitionStopping()) {
+        return object_tracking_session_->TransitionReference(node()->now());
+    }
 
     Reference target_reference;
     const bool use_mpc = configuration_->GetParameter("/control/maneuver_controller/fly_to_object_use_mpc").as_bool();
@@ -220,17 +402,30 @@ Reference FlyToObjectManeuverServer::computeReference(const State & state) {
     } else {
         try {
 
-            target_reference = filterTargetPositionReference(
-                getUpdatedTargetReference(state),
-                state
-            );
-            active_target_reference_ = target_reference;
-            active_target_reference_valid_ = true;
+            target_reference = updateLiveTargetReference(
+                state, object_tracking_session_ ? currentReferenceBinding()
+                    : ReferenceCallbackBinding{});
 
         } catch (const std::runtime_error &e) {
+            nominal_target_observation_.Store(nullptr);
 
-            has_failed_ = true;
-            return Reference(state);
+            if (active_target_reference_valid_ && targetLossWithinGrace()) {
+                target_reference = active_target_reference_.Load();
+                RCLCPP_WARN_THROTTLE(
+                    node()->get_logger(),
+                    *node()->get_clock(),
+                    1000,
+                    "FlyToObjectManeuverServer::computeReference(): Target temporarily unavailable; retaining last valid target during grace window: %s",
+                    e.what()
+                );
+            } else {
+                if (object_tracking_session_) {
+                    return object_tracking_session_->FailureReference(
+                        node()->now(), std::string("object target lost: ") + e.what());
+                }
+                has_failed_ = true;
+                return Reference(state);
+            }
 
         }
     }
@@ -238,27 +433,129 @@ Reference FlyToObjectManeuverServer::computeReference(const State & state) {
     Reference ref;
     
     try {
-
-        ref = trajectory_generator_client_->ComputeReference(
-            state,
-            target_reference,
-            set_reference,
-            reset,
-            trajectory_mode_t::positional,
-            compute_with_mpc
-        );
+        if (!compute_with_mpc && !mpc_settle_active_ && object_tracking_session_) {
+            const auto capture_started = std::chrono::steady_clock::now();
+            const auto measured = awareness_handler()->GetMeasuredOdometry();
+            const auto capture_finished = std::chrono::steady_clock::now();
+            if (!measured) {
+                throw std::runtime_error("object tracking measured odometry unavailable");
+            }
+            const auto binding = currentReferenceBinding();
+            const double minimum_altitude_m = awareness_handler()->ground_altitude_estimate() +
+                configuration_->GetParameter(
+                    "/control/maneuver_controller/minimum_target_altitude").as_double();
+            std::string reason;
+            const auto emission_stamp = node()->now();
+            const auto clock_finished = std::chrono::steady_clock::now();
+            bool first_timing_fault = false;
+            if (!object_tracking_session_->Compute(target_reference, *measured,
+                    emission_stamp, binding.request_identity, binding.execution_id,
+                    minimum_altitude_m, 0.4, ref, reason, &first_timing_fault)) {
+                if (first_timing_fault) {
+                    // Compute has released its session lock. This best-effort
+                    // ingress snapshot must not change the failed command.
+                    try {
+                        const auto failure_observed = std::chrono::steady_clock::now();
+                        const auto ingress = awareness_handler()->TryGetOdometryIngressDiagnostics();
+                        const auto ingress_copy_finished = std::chrono::steady_clock::now();
+                        const auto steady_ns = [](std::chrono::steady_clock::time_point time) {
+                            return std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                time.time_since_epoch()).count();
+                        };
+                        const auto & continuity = measured->position_continuity;
+                        std::ostringstream evidence;
+                        evidence << "request=" << binding.request_identity
+                            << " execution=" << binding.execution_id
+                            << " captured_source_us=" << measured->source_sample_timestamp_us
+                            << " captured_receipt_ros_ns=" << measured->receipt_stamp.nanoseconds()
+                            << " captured_raw_reset=" << static_cast<unsigned>(measured->reset_counter)
+                            << " captured_source_epoch=" << continuity.source_epoch
+                            << " captured_position_epoch=" << continuity.position_epoch
+                            << " captured_continuity_qualified=" << continuity.source_qualified
+                            << " emission_ros_ns=" << emission_stamp.nanoseconds()
+                            << " emission_clock_type=" << static_cast<int>(emission_stamp.get_clock_type())
+                            << " capture_started_steady_ns=" << steady_ns(capture_started)
+                            << " capture_finished_steady_ns=" << steady_ns(capture_finished)
+                            << " clock_finished_steady_ns=" << steady_ns(clock_finished)
+                            << " failure_observed_steady_ns=" << steady_ns(failure_observed)
+                            << " ingress_copy_finished_steady_ns=" << steady_ns(ingress_copy_finished);
+                        if (!ingress.available) {
+                            evidence << " ingress=" << (ingress.busy ? "busy" : "unavailable");
+                        } else {
+                            evidence << " ingress=available"
+                                << " latest_available=" << ingress.latest_available
+                                << " latest_source_us=" << ingress.latest_source_sample_timestamp_us
+                                << " latest_raw_reset=" << static_cast<unsigned>(ingress.latest_reset_counter)
+                                << " latest_receipt_ros_ns=" << ingress.latest_receipt_ros_ns
+                                << " latest_accepted_steady_ns=" << ingress.latest_accepted_steady_ns
+                                << " ingress_total=" << ingress.total_callbacks
+                                << " ingress_count=" << ingress.history_count
+                                << " ingress_fields=source_us,raw_reset,callback_ros_ns,entry_steady_ns,lock_steady_ns,accepted_steady_ns,done_steady_ns,accepted,pending_before,pending_after"
+                                << " ingress_history=[";
+                            for (size_t i = 0; i < ingress.history_count; ++i) {
+                                const auto & event = ingress.history[i];
+                                if (i) evidence << ';';
+                                evidence << event.source_sample_timestamp_us << ','
+                                    << static_cast<unsigned>(event.reset_counter) << ','
+                                    << event.callback_receipt_ros_ns << ','
+                                    << event.callback_entry_steady_ns << ','
+                                    << event.lock_acquired_steady_ns << ','
+                                    << event.accepted_steady_ns << ','
+                                    << event.completed_steady_ns << ','
+                                    << event.accepted << ',' << event.pending_before << ','
+                                    << event.pending_after;
+                            }
+                            evidence << ']';
+                        }
+                        RCLCPP_ERROR(node()->get_logger(),
+                            "Object approach timing-fault evidence: %s", evidence.str().c_str());
+                    } catch (...) {
+                        // Diagnostic collection cannot change the failed control result.
+                    }
+                }
+                throw std::runtime_error(reason);
+            }
+            RCLCPP_INFO_THROTTLE(node()->get_logger(), *node()->get_clock(), 5000,
+                "Object approach tracking request=%s nominal=[%.3f,%.3f,%.3f] "
+                "command_error_m=%.3f correction_m=%.3f saturated=%s",
+                binding.request_identity.c_str(),
+                target_reference.position()(0), target_reference.position()(1),
+                target_reference.position()(2),
+                (ref.position() - measured->state.position()).norm(),
+                object_tracking_session_->correction().norm(),
+                object_tracking_session_->saturated() ? "true" : "false");
+        } else if (first_iteration_ && terminal_start_reference_ && !compute_with_mpc) {
+            ref = trajectory_generator_client_->ComputeReference(
+                *terminal_start_reference_, target_reference, set_reference, reset,
+                trajectory_mode_t::positional);
+        } else {
+            State planner_state = state;
+            if (first_iteration_ && terminal_start_reference_) {
+                const auto & seed = *terminal_start_reference_;
+                planner_state = State(seed.position(), seed.velocity(), seed.yaw(),
+                    vector_t(0.0, 0.0, seed.yaw_rate()), seed.stamp());
+            }
+            ref = trajectory_generator_client_->ComputeReference(
+                planner_state, target_reference, set_reference, reset,
+                trajectory_mode_t::positional, compute_with_mpc);
+        }
 
     } catch (const std::runtime_error &e) {
 
         RCLCPP_ERROR(node()->get_logger(), "FlyToObjectManeuverServer::computeReference(): Failed to compute reference, exception: %s", e.what());
-        has_failed_ = true;
-        ref = Reference(state,true,true);
+        if (object_tracking_session_) {
+            ref = object_tracking_session_->FailureReference(node()->now(), e.what());
+        } else {
+            has_failed_ = true;
+            ref = Reference(state,true,true);
+        }
 
     }
 
     if (first_iteration_) {
 
         first_iteration_ = false;
+        terminal_start_reference_.reset();
 
     }
 
@@ -274,6 +571,8 @@ Reference FlyToObjectManeuverServer::computeReference(const State & state) {
 
 bool FlyToObjectManeuverServer::hasSucceeded(Maneuver & maneuver) {
 
+    if (object_tracking_session_ && object_tracking_session_->failed()) return false;
+
     auto cda_handler = awareness_handler();
 
     State state = cda_handler->GetState();
@@ -283,28 +582,64 @@ bool FlyToObjectManeuverServer::hasSucceeded(Maneuver & maneuver) {
     }
 
     Reference target_reference = active_target_reference_.Load();
+    Reference filtered_reference = target_reference;
 
     if (hasFailed(maneuver)) {
         return false;
+    }
+    if (object_tracking_session_ && object_tracking_session_->failed()) return false;
+
+    const bool use_mpc = configuration_->GetParameter(
+        "/control/maneuver_controller/fly_to_object_use_mpc").as_bool();
+    if (object_tracking_session_ && !use_mpc) {
+        const auto observation = nominal_target_observation_.Load();
+        const auto binding = currentReferenceBinding();
+        const auto now = node()->now();
+        const auto steady_now = std::chrono::steady_clock::now();
+        const auto max_age = std::chrono::milliseconds(configuration_->GetParameter(
+            "/control/maneuver_controller/reference_stream_timeout_ms").as_int());
+        const auto max_age_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            max_age).count();
+        if (!observation ||
+            observation->request_identity != maneuver.requestIdentity() ||
+            observation->request_identity != binding.request_identity ||
+            observation->execution_id == 0 ||
+            observation->execution_id != binding.execution_id ||
+            binding.reference_provider_name != action_name() ||
+            !object_tracking_session_->owns(
+                observation->request_identity, observation->execution_id) ||
+            observation->observed_at.get_clock_type() != now.get_clock_type() ||
+            observation->observed_at.nanoseconds() > now.nanoseconds() ||
+            now.nanoseconds() - observation->observed_at.nanoseconds() > max_age_ns ||
+            observation->received_at > steady_now ||
+            steady_now - observation->received_at > max_age) {
+            return false;
+        }
+        target_reference = observation->nominal;
+        filtered_reference = observation->filtered;
     }
 
     const double position_distance = (state.position() - target_reference.position()).norm();
     const double yaw_error = std::abs(shortestCableAxisYawError(state.yaw(), target_reference.yaw()));
     const double distance = std::hypot(position_distance, yaw_error);
 
-    const bool use_mpc = configuration_->GetParameter("/control/maneuver_controller/fly_to_object_use_mpc").as_bool();
+    const double filtered_distance = std::hypot(
+        (state.position() - filtered_reference.position()).norm(),
+        std::abs(shortestCableAxisYawError(state.yaw(), filtered_reference.yaw())));
     const bool vehicle_reached_target = distance < configuration_->GetParameter("/control/maneuver_controller/reached_position_euclidean_distance_threshold").as_double();
     bool succeeded = vehicle_reached_target;
     bool final_reference_streamed = false;
+    bool first_reference_applied = false;
 
     if (vehicle_reached_target && !threshold_reached_logged_) {
         threshold_reached_logged_ = true;
         RCLCPP_INFO(
             node()->get_logger(),
-            "FlyToObjectManeuverServer::hasSucceeded(): timing: vehicle reached threshold after %.3f s. target_id=%d distance=%.3f position_distance=%.3f yaw_error=%.3f",
+            "FlyToObjectManeuverServer::hasSucceeded(): timing: vehicle reached threshold after %.3f s. target_id=%d nominal_distance=%.3f filtered_distance=%.3f position_distance=%.3f yaw_error=%.3f",
             (node()->now() - maneuver_start_time_).seconds(),
             target_adapter_->target_id(),
             distance,
+            filtered_distance,
             position_distance,
             yaw_error
         );
@@ -316,17 +651,10 @@ bool FlyToObjectManeuverServer::hasSucceeded(Maneuver & maneuver) {
                 return false;
             }
 
-            try {
-                target_reference = getUpdatedTargetReference(state);
-            } catch (const std::runtime_error & e) {
-                RCLCPP_WARN(
-                    node()->get_logger(),
-                    "FlyToObjectManeuverServer::hasSucceeded(): MPC reached threshold but final raw target reference is unavailable: %s",
-                    e.what()
-                );
-                return false;
-            }
-
+            // Freeze the same target that satisfied the terminal threshold.
+            // Re-querying the live target here can block against the concurrent
+            // reference callback and can also move the terminal goal between the
+            // threshold check and interpolation settle.
             mpc_settle_target_reference_ = target_reference;
             mpc_settle_active_ = true;
             mpc_settle_first_iteration_ = true;
@@ -388,28 +716,31 @@ bool FlyToObjectManeuverServer::hasSucceeded(Maneuver & maneuver) {
             );
         }
     } else {
-        final_reference_streamed = interpolationFinalReferenceStreamed(target_reference);
-        if (final_reference_streamed && !final_reference_streamed_logged_) {
-            final_reference_streamed_logged_ = true;
-            RCLCPP_INFO(
-                node()->get_logger(),
-                "FlyToObjectManeuverServer::hasSucceeded(): timing: interpolation final reference streamed after %.3f s. target_id=%d distance=%.3f position_distance=%.3f yaw_error=%.3f vehicle_reached_threshold=%s",
-                (node()->now() - maneuver_start_time_).seconds(),
-                target_adapter_->target_id(),
-                distance,
-                position_distance,
-                yaw_error,
-                vehicle_reached_target ? "true" : "false"
-            );
-        }
-        succeeded = vehicle_reached_target && final_reference_streamed;
-        if (vehicle_reached_target && !succeeded) {
-            RCLCPP_DEBUG_THROTTLE(
-                node()->get_logger(),
-                *node()->get_clock(),
-                1000,
-                "FlyToObjectManeuverServer::hasSucceeded(): vehicle is within threshold, waiting for interpolation final reference to stream."
-            );
+        // A non-MPC fly-to-object reference is recomputed continuously from
+        // the moving object.  Once the vehicle reaches that live target,
+        // querying trajectory history here is both redundant and unsafe: the
+        // reference callback may be updating the same history concurrently.
+        // The success handoff immediately installs HoverByObject, which keeps
+        // streaming an object-relative reference without releasing control.
+        first_reference_applied = first_reference_applied_ &&
+            first_reference_applied_(maneuver.requestIdentity());
+        succeeded = vehicle_reached_target && first_reference_applied;
+        if (succeeded && object_tracking_session_ && !object_hover_ready_) {
+            const auto maneuvers = registered_maneuvers();
+            const auto hover_entry = maneuvers.find(
+                MANEUVER_TYPE_HOVER_BY_OBJECT);
+            const auto binding = currentReferenceBinding();
+            object_hover_ready_ = hover_entry != maneuvers.end() &&
+                std::static_pointer_cast<HoverByObjectManeuverServer>(hover_entry->second)
+                    ->UpdateTracked(target_adapter_.Load(), object_tracking_session_,
+                        maneuver.requestIdentity(), binding.execution_id,
+                        configuration_->GetParameter(
+                            "/control/maneuver_controller/minimum_target_altitude").as_double());
+            if (!object_hover_ready_) {
+                object_tracking_session_->Fail(
+                    "object hover continuation could not validate current target");
+                succeeded = false;
+            }
         }
     }
 
@@ -417,13 +748,14 @@ bool FlyToObjectManeuverServer::hasSucceeded(Maneuver & maneuver) {
         success_timing_logged_ = true;
         RCLCPP_INFO(
             node()->get_logger(),
-            "FlyToObjectManeuverServer::hasSucceeded(): timing: succeeded after %.3f s. target_id=%d distance=%.3f position_distance=%.3f yaw_error=%.3f final_reference_streamed=%s",
+            "FlyToObjectManeuverServer::hasSucceeded(): timing: succeeded after %.3f s. target_id=%d distance=%.3f position_distance=%.3f yaw_error=%.3f final_reference_streamed=%s first_reference_applied=%s",
             (node()->now() - maneuver_start_time_).seconds(),
             target_adapter_->target_id(),
             distance,
             position_distance,
             yaw_error,
-            final_reference_streamed ? "true" : "false"
+            final_reference_streamed ? "true" : "false",
+            first_reference_applied ? "true" : "false"
         );
     }
 
@@ -431,9 +763,30 @@ bool FlyToObjectManeuverServer::hasSucceeded(Maneuver & maneuver) {
 
 }
 
-bool FlyToObjectManeuverServer::hasFailed(Maneuver &) {
+bool FlyToObjectManeuverServer::hasFailed(Maneuver & maneuver) {
 
     auto cda_handler = awareness_handler();
+
+    if (object_tracking_session_ && object_tracking_session_->failed()) {
+        if (!object_tracking_session_->stopComplete() &&
+            !object_tracking_session_->unrecoverable()) return false;
+        if (object_tracking_session_->stopComplete() && !object_failure_hold_) {
+            try {
+                const Reference rest = object_tracking_session_->lastCommand();
+                object_failure_hold_ = std::make_shared<TerminalTrackingHold>(
+                    rest, cda_handler, node()->get_clock(),
+                    TerminalTrackingHold::Clearance{}, 0.0);
+                object_failure_hold_->Fail("object approach failed after bounded command stop");
+                auto hover = std::static_pointer_cast<HoverManeuverServer>(
+                    registered_maneuvers().at(MANEUVER_TYPE_HOVER));
+                hover->AdoptTerminalHold(object_failure_hold_, maneuver.requestIdentity());
+            } catch (const std::exception & error) {
+                RCLCPP_ERROR(node()->get_logger(),
+                    "Object approach could not retain its bounded failure stop: %s", error.what());
+            }
+        }
+        return true;
+    }
 
     bool is_in_flight_or_on_current_cable = cda_handler->in_flight() || (
         cda_handler->on_cable() && 
@@ -458,6 +811,10 @@ bool FlyToObjectManeuverServer::hasFailed(Maneuver &) {
 
     TargetAdapter active_target_adapter = cda_handler->target_adapter();
     if (active_target_adapter != *target_adapter_) {
+        if (object_tracking_session_) {
+            object_tracking_session_->Fail("object target adapter changed");
+            return false;
+        }
         RCLCPP_WARN(
             node()->get_logger(),
             "FlyToObjectManeuverServer::hasFailed(): Target adapter has changed, returning true. expected(type=%d,id=%d,frame=%s) active(type=%d,id=%d,frame=%s)",
@@ -473,12 +830,28 @@ bool FlyToObjectManeuverServer::hasFailed(Maneuver &) {
 
     try {
         (void)cda_handler->ComputeTargetTransform(*target_adapter_);
+        markTargetObserved();
     } catch (const std::runtime_error & e) {
+        nominal_target_observation_.Store(nullptr);
+        if (active_target_reference_valid_ && targetLossWithinGrace()) {
+            RCLCPP_WARN_THROTTLE(
+                node()->get_logger(),
+                *node()->get_clock(),
+                1000,
+                "FlyToObjectManeuverServer::hasFailed(): Target temporarily unavailable; retaining last valid target during grace window: %s",
+                e.what()
+            );
+            return false;
+        }
         RCLCPP_WARN(
             node()->get_logger(),
             "FlyToObjectManeuverServer::hasFailed(): Target transform is not currently computable, returning true: %s",
             e.what()
         );
+        if (object_tracking_session_) {
+            object_tracking_session_->Fail(std::string("object transform lost: ") + e.what());
+            return false;
+        }
         return true;
     }
 
@@ -512,9 +885,20 @@ std::shared_ptr<void> FlyToObjectManeuverServer::getFeedback(Maneuver &) {
     try {
         target_reference = getUpdatedTargetReference(state);
     } catch (const std::runtime_error &e) {
-        RCLCPP_ERROR(node()->get_logger(), "FlyToObjectManeuverServer::getFeedback(): Failed to get updated target reference, exception: %s", e.what());
-        has_failed_ = true;
-        return std::static_pointer_cast<void>(feedback);
+        if (active_target_reference_valid_ && targetLossWithinGrace()) {
+            target_reference = active_target_reference_.Load();
+            RCLCPP_WARN_THROTTLE(
+                node()->get_logger(),
+                *node()->get_clock(),
+                1000,
+                "FlyToObjectManeuverServer::getFeedback(): Target temporarily unavailable; reporting last valid target during grace window: %s",
+                e.what()
+            );
+        } else {
+            RCLCPP_ERROR(node()->get_logger(), "FlyToObjectManeuverServer::getFeedback(): Failed to get updated target reference, exception: %s", e.what());
+            has_failed_ = true;
+            return std::static_pointer_cast<void>(feedback);
+        }
     }
 
     feedback->planned_path = reference_trajectory_adapter.ToPathMsg(configuration_->GetParameter("/tf/world_frame_id").as_string());
@@ -596,7 +980,12 @@ void FlyToObjectManeuverServer::registerReferenceCallbackOnSuccess(const Maneuve
 
     std::shared_ptr<HoverByObjectManeuverServer> hover_by_object_maneuver_server = std::static_pointer_cast<HoverByObjectManeuverServer>(registered_hover_by_object_maneuver->second);
 
-    if (hover_by_object_maneuver_server->Update(target_adapter_)) {
+    const auto binding = currentReferenceBinding();
+    const bool hover_ready = object_tracking_session_
+        ? object_hover_ready_ &&
+            hover_by_object_maneuver_server->RetainsTrackedSource(binding)
+        : hover_by_object_maneuver_server->Update(target_adapter_.Load());
+    if (hover_ready) {
 
         registerCallback(
             std::bind(
@@ -608,6 +997,18 @@ void FlyToObjectManeuverServer::registerReferenceCallbackOnSuccess(const Maneuve
 
         return;
 
+    }
+
+    if (object_tracking_session_) {
+        auto session = object_tracking_session_;
+        session->Fail("object hover continuation lost before callback publication");
+        registerCallback([session, clock = node()->get_clock()](const State &) {
+            return session->FailureReference(clock->now(),
+                "object hover continuation lost before callback publication");
+        });
+        RCLCPP_ERROR(node()->get_logger(),
+            "Tracked object continuation failed; retaining its bounded command stop");
+        return;
     }
 
     RCLCPP_ERROR(node()->get_logger(), "FlyToObjectManeuverServer::registerReferenceCallbackOnSuccess(): Failed to register hover by object reference callback on success, registering hover maneuver instead.");
@@ -628,6 +1029,38 @@ void FlyToObjectManeuverServer::registerReferenceCallbackOnSuccess(const Maneuve
 
 }
 
+Reference FlyToObjectManeuverServer::updateLiveTargetReference(
+    const State & state, const ReferenceCallbackBinding & binding
+) {
+    // The nominal reference is normalized and altitude-clamped by the normal
+    // target lookup. Only its position is filtered for command generation.
+    // A failed lookup must not make the previous nominal observation fresh.
+    Reference nominal;
+    try {
+        nominal = getUpdatedTargetReference(state);
+    } catch (...) {
+        nominal_target_observation_.Store(nullptr);
+        throw;
+    }
+    const Reference filtered = filterTargetPositionReference(nominal, state);
+    active_target_reference_ = filtered;
+    active_target_reference_valid_ = true;
+    if (object_tracking_session_ &&
+        object_tracking_session_->owns(binding.request_identity, binding.execution_id)) {
+        auto observation = std::make_shared<NominalTargetObservation>();
+        observation->nominal = nominal;
+        observation->filtered = filtered;
+        observation->request_identity = binding.request_identity;
+        observation->execution_id = binding.execution_id;
+        observation->observed_at = node()->now();
+        observation->received_at = std::chrono::steady_clock::now();
+        nominal_target_observation_.Store(observation);
+    } else {
+        nominal_target_observation_.Store(nullptr);
+    }
+    return filtered;
+}
+
 Reference FlyToObjectManeuverServer::getUpdatedTargetReference(const iii_drone::control::State & state) {
 
     auto cda_handler = awareness_handler();
@@ -636,6 +1069,7 @@ Reference FlyToObjectManeuverServer::getUpdatedTargetReference(const iii_drone::
         Reference(cda_handler->ComputeTargetState(target_adapter_)),
         state.yaw()
     ));
+    markTargetObserved();
 
     RCLCPP_DEBUG_THROTTLE(
         node()->get_logger(),
@@ -651,6 +1085,22 @@ Reference FlyToObjectManeuverServer::getUpdatedTargetReference(const iii_drone::
 
     return reference;
 
+}
+
+void FlyToObjectManeuverServer::markTargetObserved() {
+    last_target_observation_ns_.store(node()->now().nanoseconds());
+}
+
+bool FlyToObjectManeuverServer::targetLossWithinGrace() const {
+    const double grace_s = configuration_->GetParameter(
+        "/control/maneuver_controller/fly_to_object_target_loss_grace_s"
+    ).as_double();
+    const int64_t last_seen_ns = last_target_observation_ns_.load();
+    if (grace_s <= 0.0 || last_seen_ns <= 0) {
+        return false;
+    }
+    const int64_t elapsed_ns = node()->now().nanoseconds() - last_seen_ns;
+    return elapsed_ns >= 0 && static_cast<double>(elapsed_ns) <= grace_s * 1.0e9;
 }
 
 Reference FlyToObjectManeuverServer::enforceMinimumTargetAltitude(

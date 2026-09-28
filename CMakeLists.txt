@@ -112,6 +112,7 @@ set(III_DRONE_LIBRARY_HEADERS
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_scheduler.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_reference_safety_guard.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_reference_startup_policy.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_reference_stream_guard.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_server.hpp"
@@ -121,11 +122,13 @@ set(III_DRONE_LIBRARY_HEADERS
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/fly_to_position_maneuver_server.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/follow_waypoint_path_maneuver_server.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/cable_aware_fly_to_position_maneuver_server.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/terminal_tracking_hold.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/fly_to_object_maneuver_server.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/cable_landing_maneuver_server.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/cable_takeoff_maneuver_server.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/reference_callback_token.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_request_identity.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_reference_client.hpp"
 
@@ -162,6 +165,7 @@ set(III_DRONE_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/control/reference.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/reference_trajectory.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/kinematic_stop_trajectory.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/terminal_position_tracking_controller.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/cable_aware_trajectory_planner.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator_client.cpp"
@@ -185,11 +189,14 @@ set(III_DRONE_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/fly_to_position_maneuver_server.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/follow_waypoint_path_maneuver_server.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/cable_aware_fly_to_position_maneuver_server.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver/terminal_tracking_hold.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver/object_tracking_session.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/fly_to_object_maneuver_server.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/cable_landing_maneuver_server.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/cable_takeoff_maneuver_server.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/maneuver_reference_client.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver/maneuver_request_identity.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/adapters/single_line_adapter.cpp"
   "${PROJECT_SOURCE_DIR}/src/adapters/projection_plane_adapter.cpp"
@@ -210,6 +217,16 @@ set(III_DRONE_LIBRARY_SOURCES
 
 )
 
+option(III_DRONE_OPTIMIZE_CONTROL_KERNELS
+  "Optimize the bounded trajectory planner and stop kernels in Debug builds" ON)
+if(III_DRONE_OPTIMIZE_CONTROL_KERNELS AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  set_property(SOURCE
+    "${PROJECT_SOURCE_DIR}/src/control/trajectory_interpolator.cpp"
+    "${PROJECT_SOURCE_DIR}/src/control/kinematic_stop_trajectory.cpp"
+    APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-O2>"
+  )
+endif()
+
 include_directories(
   ${III_DRONE_INCLUDE_DIRS}
   ${MATLAB_MPC_INCLUDE_DIRS}  
@@ -218,12 +235,6 @@ include_directories(
 # III-Drone-Lib:
 add_library(iii_drone_lib 
   SHARED
-  ${III_DRONE_LIBRARY_HEADERS}
-  ${III_DRONE_LIBRARY_SOURCES}
-)
-
-target_sources(iii_drone_lib
-  PUBLIC
   ${III_DRONE_LIBRARY_HEADERS}
   ${III_DRONE_LIBRARY_SOURCES}
 )
@@ -325,12 +336,14 @@ custom_cpp_target(pl_mapper
 # Trajectory generator:
 custom_cpp_target(trajectory_generator
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator_node/trajectory_generator_node.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/trajectory_generator_node/trajectory_interpolator_configuration.hpp"
   "${PROJECT_SOURCE_DIR}/src/control/trajectory_generator_node/trajectory_generator_node.cpp"
 )
 
 # Maneuver controller:
 custom_cpp_target(maneuver_controller
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver_controller_node/maneuver_controller_node.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver_controller_node/trajectory_generator_client_configuration.hpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver_controller_node/maneuver_controller_node.cpp"
 )
 
@@ -363,6 +376,11 @@ install(DIRECTORY
 # If building tests, merge the test/launch directory with the main launch directory
 if (BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
+  find_package(ament_cmake_pytest REQUIRED)
+
+  ament_add_pytest_test(iii_drone_core_tf_launch_profile_test
+    test/test_tf_launch_profile.py
+  )
 
   ament_add_gtest(iii_drone_core_history_test
     test/utils/history_test.cpp
@@ -387,19 +405,51 @@ if (BUILD_TESTING)
   ament_add_gtest(iii_drone_core_maneuver_reference_safety_guard_test
     test/control/maneuver_reference_safety_guard_test.cpp
   )
+  ament_add_gtest(iii_drone_core_bounded_terminal_position_tracking_test
+    test/control/bounded_terminal_position_tracking_test.cpp
+  )
+  ament_add_gtest(iii_drone_core_measured_odometry_snapshot_test
+    test/control/measured_odometry_snapshot_test.cpp
+  )
+  ament_add_gtest(iii_drone_core_estimated_position_stop_proof_test
+    test/control/estimated_position_stop_proof_test.cpp
+  )
   ament_add_gtest(iii_drone_core_maneuver_reference_stream_guard_test
     test/control/maneuver_reference_stream_guard_test.cpp
   )
+  ament_add_gtest(iii_drone_core_maneuver_reference_client_transaction_test
+    test/control/maneuver_reference_client_transaction_test.cpp
+  )
+  ament_add_gtest(iii_drone_core_reference_callback_token_test
+    test/control/reference_callback_token_test.cpp
+  )
 
-  ament_add_gtest(iii_drone_core_trajectory_interpolator_test
+  # Several closed-loop cases cover over two minutes of virtual flight in Debug.
+  ament_add_gtest(iii_drone_core_trajectory_interpolator_test TIMEOUT 600
     test/control/trajectory_interpolator_test.cpp
+  )
+  ament_add_gtest(iii_drone_core_trajectory_generator_client_test
+    test/control/trajectory_generator_client_test.cpp
+  )
+  ament_add_gtest(iii_drone_core_trajectory_generator_test
+    test/control/trajectory_generator_test.cpp
+  )
+  ament_add_gtest(iii_drone_core_maneuver_controller_configuration_test
+    test/control/maneuver_controller_configuration_test.cpp
   )
   ament_add_gtest(iii_drone_core_waypoint_path_planner_test
     test/control/waypoint_path_planner_test.cpp
   )
+  ament_add_gtest(iii_drone_core_follow_waypoint_path_stop_proof_test
+    test/control/follow_waypoint_path_stop_proof_test.cpp
+  )
 
   ament_add_gtest(iii_drone_core_cable_aware_trajectory_planner_test
     test/control/cable_aware_trajectory_planner_test.cpp
+  )
+
+  ament_add_gtest(iii_drone_core_cable_landing_heading_lock_test
+    test/control/cable_landing_heading_lock_test.cpp
   )
 
   ament_add_gtest(iii_drone_core_basic_adapters_test
@@ -412,6 +462,10 @@ if (BUILD_TESTING)
 
   ament_add_gtest(iii_drone_core_hough_transformer_test
     test/perception/hough_transformer_test.cpp
+  )
+
+  ament_add_gtest(iii_drone_core_powerline_direction_test
+    test/perception/powerline_direction_test.cpp
   )
 
   if(TARGET iii_drone_core_history_test)
@@ -449,10 +503,35 @@ if (BUILD_TESTING)
     target_link_libraries(iii_drone_core_maneuver_reference_safety_guard_test iii_drone_lib)
     ament_target_dependencies(iii_drone_core_maneuver_reference_safety_guard_test ${dependencies})
   endif()
+  if(TARGET iii_drone_core_bounded_terminal_position_tracking_test)
+    target_include_directories(iii_drone_core_bounded_terminal_position_tracking_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_bounded_terminal_position_tracking_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_bounded_terminal_position_tracking_test ${dependencies})
+  endif()
+  if(TARGET iii_drone_core_measured_odometry_snapshot_test)
+    target_include_directories(iii_drone_core_measured_odometry_snapshot_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_measured_odometry_snapshot_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_measured_odometry_snapshot_test ${dependencies})
+  endif()
+  if(TARGET iii_drone_core_estimated_position_stop_proof_test)
+    target_include_directories(iii_drone_core_estimated_position_stop_proof_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_estimated_position_stop_proof_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_estimated_position_stop_proof_test ${dependencies})
+  endif()
   if(TARGET iii_drone_core_maneuver_reference_stream_guard_test)
     target_include_directories(iii_drone_core_maneuver_reference_stream_guard_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
     target_link_libraries(iii_drone_core_maneuver_reference_stream_guard_test iii_drone_lib)
     ament_target_dependencies(iii_drone_core_maneuver_reference_stream_guard_test ${dependencies})
+  endif()
+  if(TARGET iii_drone_core_maneuver_reference_client_transaction_test)
+    target_include_directories(iii_drone_core_maneuver_reference_client_transaction_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_maneuver_reference_client_transaction_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_maneuver_reference_client_transaction_test ${dependencies})
+  endif()
+  if(TARGET iii_drone_core_reference_callback_token_test)
+    target_include_directories(iii_drone_core_reference_callback_token_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_reference_callback_token_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_reference_callback_token_test ${dependencies})
   endif()
 
   if(TARGET iii_drone_core_trajectory_interpolator_test)
@@ -460,16 +539,42 @@ if (BUILD_TESTING)
     target_link_libraries(iii_drone_core_trajectory_interpolator_test iii_drone_lib)
     ament_target_dependencies(iii_drone_core_trajectory_interpolator_test ${dependencies})
   endif()
+  if(TARGET iii_drone_core_trajectory_generator_client_test)
+    target_include_directories(iii_drone_core_trajectory_generator_client_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_trajectory_generator_client_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_trajectory_generator_client_test ${dependencies})
+  endif()
+  if(TARGET iii_drone_core_trajectory_generator_test)
+    target_include_directories(iii_drone_core_trajectory_generator_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_trajectory_generator_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_trajectory_generator_test ${dependencies})
+  endif()
+  if(TARGET iii_drone_core_maneuver_controller_configuration_test)
+    target_include_directories(iii_drone_core_maneuver_controller_configuration_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_maneuver_controller_configuration_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_maneuver_controller_configuration_test ${dependencies})
+  endif()
   if(TARGET iii_drone_core_waypoint_path_planner_test)
     target_include_directories(iii_drone_core_waypoint_path_planner_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
     target_link_libraries(iii_drone_core_waypoint_path_planner_test iii_drone_lib)
     ament_target_dependencies(iii_drone_core_waypoint_path_planner_test ${dependencies})
+  endif()
+  if(TARGET iii_drone_core_follow_waypoint_path_stop_proof_test)
+    target_include_directories(iii_drone_core_follow_waypoint_path_stop_proof_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_follow_waypoint_path_stop_proof_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_follow_waypoint_path_stop_proof_test ${dependencies})
   endif()
 
   if(TARGET iii_drone_core_cable_aware_trajectory_planner_test)
     target_include_directories(iii_drone_core_cable_aware_trajectory_planner_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
     target_link_libraries(iii_drone_core_cable_aware_trajectory_planner_test iii_drone_lib)
     ament_target_dependencies(iii_drone_core_cable_aware_trajectory_planner_test ${dependencies})
+  endif()
+
+  if(TARGET iii_drone_core_cable_landing_heading_lock_test)
+    target_include_directories(iii_drone_core_cable_landing_heading_lock_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_cable_landing_heading_lock_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_cable_landing_heading_lock_test ${dependencies})
   endif()
 
   if(TARGET iii_drone_core_basic_adapters_test)
@@ -488,6 +593,12 @@ if (BUILD_TESTING)
     target_include_directories(iii_drone_core_hough_transformer_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
     target_link_libraries(iii_drone_core_hough_transformer_test iii_drone_lib)
     ament_target_dependencies(iii_drone_core_hough_transformer_test ${dependencies})
+  endif()
+
+  if(TARGET iii_drone_core_powerline_direction_test)
+    target_include_directories(iii_drone_core_powerline_direction_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_powerline_direction_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_powerline_direction_test ${dependencies})
   endif()
 
   install(DIRECTORY

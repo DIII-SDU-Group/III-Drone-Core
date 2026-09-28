@@ -12,6 +12,8 @@
 #include <mutex>
 #include <atomic>
 #include <chrono>
+#include <cstdint>
+#include <atomic>
 #include <functional>
 #include <optional>
 #include <string>
@@ -29,9 +31,12 @@
 #include <iii_drone_core/utils/history.hpp>
 
 #include <iii_drone_core/control/reference.hpp>
+#include <iii_drone_core/diagnostics/hil_trace.hpp>
 #include <iii_drone_core/control/kinematic_stop_trajectory.hpp>
 #include <iii_drone_core/control/maneuver/maneuver_reference_safety_guard.hpp>
+#include <iii_drone_core/control/maneuver/maneuver_reference_startup_policy.hpp>
 #include <iii_drone_core/control/maneuver/maneuver_reference_stream_guard.hpp>
+#include <iii_drone_core/control/maneuver/maneuver_request_identity.hpp>
 
 #include <iii_drone_core/adapters/px4/vehicle_odometry_adapter.hpp>
 #include <iii_drone_core/adapters/reference_adapter.hpp>
@@ -54,6 +59,7 @@
 #include <iii_drone_interfaces/srv/pause_reference_stream.hpp>
 #include <iii_drone_interfaces/srv/rebase_reference_stream.hpp>
 #include <iii_drone_interfaces/srv/commit_reference_stream.hpp>
+#include <iii_drone_interfaces/srv/terminal_hold_transfer.hpp>
 
 /*****************************************************************************/
 // Class:
@@ -106,8 +112,12 @@ namespace maneuver {
                 get_reference_cb_group_
             );
 
-            rclcpp::QoS stream_qos(rclcpp::KeepLast(1));
-            stream_qos.best_effort().durability_volatile();
+            // Match the producer's reliable, bounded control-stream QoS.  The
+            // consumer runs on the same vehicle host; losing every sample of a
+            // newly-created maneuver generation is not an acceptable use of
+            // best effort delivery.
+            rclcpp::QoS stream_qos(rclcpp::KeepLast(5));
+            stream_qos.reliable().durability_volatile();
             stream_qos.deadline(std::chrono::milliseconds(
                 configuration_->GetParameter(
                     "/control/maneuver_controller/maneuver_execution_period_ms"
@@ -151,6 +161,11 @@ namespace maneuver {
                     "/control/maneuver_controller/commit_reference_stream",
                     rclcpp::ServicesQoS(), get_reference_cb_group_
                 );
+            terminal_hold_transfer_client_ =
+                node->template create_client<iii_drone_interfaces::srv::TerminalHoldTransfer>(
+                    "/control/maneuver_controller/terminal_hold_transfer",
+                    rclcpp::ServicesQoS(), get_reference_cb_group_
+                );
 
             reference_mode_publisher_ = node->template create_publisher<iii_drone_interfaces::msg::StringStamped>(
                 "maneuver_reference_client/reference_mode",
@@ -161,7 +176,31 @@ namespace maneuver {
                 std::chrono::milliseconds period,
                 std::function<void()> callback
             ) -> rclcpp::TimerBase::SharedPtr {
-                return node->create_wall_timer(period, std::move(callback));
+                std::function<void()> traced_callback =
+                    [callback = std::move(callback), node]() {
+                        const auto callback_start = std::chrono::steady_clock::now();
+                        auto callback_entry = iii_drone::diagnostics::HilTrace::event(
+                            "callback_group_callback_entry");
+                        callback_entry.text("callback", "maneuver_reference_recovery_timer");
+                        callback_entry.text("callback_group", "mission_executor_default_mutually_exclusive");
+                        callback_entry.text("callback_group_type", "MutuallyExclusive");
+                        callback_entry.text("node", node->get_fully_qualified_name());
+                        callback_entry.commit();
+                        callback();
+                        const auto callback_end = std::chrono::steady_clock::now();
+                        auto callback_exit = iii_drone::diagnostics::HilTrace::event(
+                            "callback_group_callback_exit");
+                        callback_exit.text("callback", "maneuver_reference_recovery_timer");
+                        callback_exit.text("callback_group", "mission_executor_default_mutually_exclusive");
+                        callback_exit.text("callback_group_type", "MutuallyExclusive");
+                        callback_exit.text("node", node->get_fully_qualified_name());
+                        callback_exit.number(
+                            "duration_ns",
+                            static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                callback_end - callback_start).count()));
+                        callback_exit.commit();
+                    };
+                return node->create_wall_timer(period, std::move(traced_callback));
             };
 
             resetReferenceSafety();
@@ -191,6 +230,25 @@ namespace maneuver {
          */
         void SetReferenceModeHover(bool force = false);
 
+        /** Begin a new external mode with fresh hover/reference state. */
+        uint64_t AcquireReferenceControl();
+
+        enum class TerminalHoldAdoption { NoOffer, Adopted, Failed };
+        /** Claim an exact live Core terminal generation before first setpoint. */
+        TerminalHoldAdoption TryAdoptTerminalHold(int timeout_ms = 100);
+        /** Retain a completed opt-in maneuver stream instead of its nominal result. */
+        enum class TerminalHoldRetention { NoOffer, Retained, Failed };
+        TerminalHoldRetention RetainCompletedTerminalHold(
+            const std::string & request_identity, int timeout_ms = 1500
+        );
+        bool terminalHoldContinuityRequired() const;
+        void ResetTerminalRetentionFailure();
+        bool ReportTerminalRetentionFailure(const std::string & request_identity);
+        bool TerminalRetentionFailed();
+
+        /** Retire reference state only if this external mode still owns it. */
+        bool ReleaseReferenceControl(uint64_t owner_generation);
+
         /**
          * @brief Starts a maneuver. References will be consumed from the reference topic.
          * 
@@ -205,6 +263,58 @@ namespace maneuver {
          * @return true if a running maneuver stream can accept the handoff.
          */
         bool PrepareManeuverStreamHandoff();
+
+        /**
+         * @brief Authorize one successor before its action goal is sent.
+         *
+         * The authorization is confirmed by the action goal response or revoked
+         * if that request fails before a successor is consumed. A blended
+         * successor may retain a genuinely running predecessor on that
+         * pre-successor cancellation; ordinary successors use safe stop.
+         */
+        bool BeginManeuverGoalHandoff(
+            const std::string & request_identity,
+            bool preserve_active_predecessor_on_cancel = false
+        );
+
+        /**
+         * @brief Adopt the one authorized successor after its action goal is accepted.
+         *
+         * @return true if a pending goal handoff was confirmed.
+         */
+        bool ConfirmManeuverGoalHandoff(const std::string & request_identity);
+
+        /**
+         * @brief Retire a pending handoff or its confirmed active stream.
+         *
+         * A stale producer must not revoke a newer operation's successor.
+         * @return true only when the matching owner was retired.
+         */
+        bool CancelManeuverGoalHandoff(const std::string & request_identity);
+
+        /**
+         * @brief Complete the matching goal using its final target reference.
+         *
+         * The identity check and reference transition are atomic with respect
+         * to another handoff. A stale goal cannot stop its successor.
+         */
+        bool CompleteManeuverGoalHandoff(
+            const std::string & request_identity,
+            iii_drone::control::Reference final_reference
+        );
+
+        /** Complete a no-reference result, retaining only an exact fresh applied object stream. */
+        bool CompleteManeuverGoalHandoff(const std::string & request_identity);
+
+        /** Schedule terminal cleanup only while this request still owns the handoff. */
+        bool StopManeuverGoalHandoffAfterTimeout(
+            const std::string & request_identity, int timeout_ms
+        );
+        bool StopManeuverGoalHandoffAfterTimeout(
+            const std::string & request_identity,
+            iii_drone::control::Reference final_reference,
+            int timeout_ms
+        );
 
         /**
          * @brief Returns true while the client is actively consuming maneuver references.
@@ -288,6 +398,15 @@ namespace maneuver {
          */
         utils::Atomic<std::function<void()>> stop_maneuver_timer_callback_;
 
+        // Distinguishes an already-dispatched timer callback from a newer stop.
+        uint64_t stop_maneuver_timer_generation_ = 0;
+
+        bool scheduleOwnedManeuverStop(
+            const std::string & request_identity,
+            std::optional<iii_drone::control::Reference> final_reference,
+            int timeout_ms
+        );
+
         /**
          * @brief Serializes maneuver-mode and delayed-stop transitions.
          *
@@ -296,6 +415,19 @@ namespace maneuver {
          * delayed-stop callback completes through StopManeuver().
          */
         std::recursive_mutex transition_mutex_;
+
+        // PX4 may activate a successor before deactivating its predecessor.
+        // Keep mode ownership separate from individual maneuver/action epochs.
+        uint64_t next_reference_control_generation_ = 0;
+        uint64_t reference_control_owner_ = 0;
+        uint64_t terminal_retention_failure_owner_ = 0;
+        std::string terminal_retention_failure_request_;
+
+        // Advanced when a new maneuver takes ownership. A failure callback may
+        // retire its own goal and admit a successor before GetReference resumes.
+        uint64_t maneuver_failure_epoch_ = 0;
+        bool hoverIfFailureEpochUnchanged(uint64_t observed_epoch);
+        std::string currentReferenceModeLabel() const;
 
         /**
          * @brief Stops the maneuver prematurely.
@@ -395,24 +527,119 @@ namespace maneuver {
             rebase_reference_stream_client_;
         rclcpp::Client<iii_drone_interfaces::srv::CommitReferenceStream>::SharedPtr
             commit_reference_stream_client_;
+        rclcpp::Client<iii_drone_interfaces::srv::TerminalHoldTransfer>::SharedPtr
+            terminal_hold_transfer_client_;
+        std::shared_ptr<iii_drone_interfaces::srv::TerminalHoldTransfer::Response>
+        requestTerminalHoldTransfer(
+            const iii_drone_interfaces::srv::TerminalHoldTransfer::Request & request,
+            int timeout_ms
+        );
 
         std::optional<iii_drone_interfaces::msg::ManeuverReferenceStream>
             latest_stream_message_;
         std::chrono::steady_clock::time_point latest_stream_received_at_;
         std::mutex reference_stream_mutex_;
         std::string active_stream_id_;
+        std::string active_request_identity_;
+        std::string candidate_request_identity_;
+        bool candidate_object_tracking_active_ = false;
+        uint8_t candidate_stream_state_ = 0;
+        std::string terminal_consumer_identity_;
+        std::optional<uint8_t> currentTerminalStreamState();
+        bool currentAppliedObjectTrackingStream(const std::string & request_identity);
+        std::string applied_object_tracking_stream_id_;
+        std::string applied_object_tracking_request_identity_;
+        uint64_t applied_object_tracking_sequence_ = 0;
+        std::chrono::steady_clock::time_point applied_object_tracking_at_{};
+        uint8_t applied_object_tracking_state_ = 0;
+        std::string applied_terminal_stream_id_;
+        std::string applied_terminal_request_identity_;
+        std::optional<uint8_t> applied_terminal_stream_state_;
+        std::atomic_bool terminal_hold_continuity_required_{false};
+        bool terminal_degraded_hold_ = false;
+        bool object_stop_failure_hold_ = false;
         uint64_t last_applied_sequence_ = 0;
         uint64_t candidate_sequence_ = 0;
         ManeuverReferenceStreamGuard reference_stream_guard_;
-        std::atomic_bool successor_generation_handoff_requested_{false};
-
         enum class StreamReadResult {
             Unavailable,
             FreshHeld,
+            PredecessorActive,
             NewActive,
             Prepared,
             Paused,
         };
+
+        ManeuverReferenceStartupPolicy startup_reference_policy_;
+
+        struct ReferenceStreamIdentity {
+            std::string stream_id;
+            std::string request_identity;
+            uint64_t last_applied_sequence = 0;
+
+            bool valid() const {
+                return !stream_id.empty() &&
+                    isValidManeuverRequestIdentity(request_identity);
+            }
+        };
+
+        struct ObjectStop {
+            ReferenceStreamIdentity identity;
+            std::chrono::steady_clock::time_point requested_at;
+            std::optional<std::chrono::steady_clock::time_point> completion_deadline;
+            bool admitted = false;
+            bool failure_reported = false;
+            std::string failure_reason;
+        };
+        std::optional<ObjectStop> object_stop_;
+        struct ObjectStoppedHold {
+            std::string stream_id;
+            std::string request_identity;
+            uint64_t control_owner_generation = 0;
+            iii_drone::control::Reference anchor;
+            std::chrono::steady_clock::time_point last_applied_at{};
+            bool failure_reported = false;
+        };
+        std::optional<ObjectStoppedHold> object_stopped_hold_;
+        bool ownsObjectStoppedHold() const;
+        bool beginObjectStopLocked(const std::string & request_identity);
+        bool appliedObjectStopRestLocked(const iii_drone::control::Reference & reference) const;
+        void finishObjectStopLocked(const iii_drone::control::Reference & rest);
+
+        struct ReferenceLossStopStart {
+            iii_drone::control::Reference reference;
+            std::optional<ReferenceStreamIdentity> pause_identity;
+        };
+
+        struct ReferenceConsumption {
+            StreamReadResult stream_result = StreamReadResult::Unavailable;
+            bool accepted = false;
+            bool began_reference_loss_stop = false;
+            bool terminal_degraded = false;
+            bool object_unrecoverable = false;
+            std::optional<ReferenceStreamIdentity> applied_ack_identity;
+            std::optional<ReferenceStreamIdentity> pause_identity;
+        };
+
+        struct PendingManeuverGoalHandoff {
+            std::string request_identity;
+            std::string predecessor_stream_id;
+            bool predecessor_was_running = false;
+            bool preserve_active_predecessor_on_cancel = false;
+            bool goal_accepted = false;
+            bool successor_consumed = false;
+            std::string successor_stream_id;
+        };
+
+        // An active-stream BT goal owns exactly one successor allowance from
+        // dispatch until G2 commits or the goal is cancelled. While pending,
+        // G1 remains a consumable predecessor but cannot satisfy the new
+        // goal's WAIT_FOR_MANEUVER_START transition.
+        std::optional<PendingManeuverGoalHandoff> pending_goal_handoff_;
+
+        // Retained from the rejecting generation before recovery pauses or
+        // rebases it.  Never reconstruct this identity from later samples.
+        std::optional<ReferenceStreamIdentity> fault_stream_identity_;
 
         enum class RecoveryPhase {
             None,
@@ -435,6 +662,19 @@ namespace maneuver {
             const iii_drone_interfaces::msg::ManeuverReferenceStream::SharedPtr message
         );
         StreamReadResult readReferenceStream(Reference & reference);
+        // Caller holds transition_mutex_. This ownership check is shared by
+        // subscription ingress and cache consumption so a retired request
+        // cannot gain authority merely by arriving before cancellation.
+        bool ownsReferenceStreamLocked(
+            const iii_drone_interfaces::msg::ManeuverReferenceStream & message
+        );
+        void retireInadmissibleCachedStreamLocked();
+        ReferenceConsumption consumeReferenceCandidate(
+            Reference & reference,
+            reference_mode_t expected_mode,
+            bool mark_maneuver_reference_valid,
+            bool transition_to_maneuver
+        );
         void publishReferenceAck(uint8_t status, const std::string & detail);
         void publishReferenceAckForStream(
             const std::string & stream_id,
@@ -442,7 +682,10 @@ namespace maneuver {
             uint8_t status,
             const std::string & detail
         );
-        void requestProducerPause(const std::string & reason);
+        void requestProducerPause(
+            const ReferenceStreamIdentity & identity,
+            const std::string & reason
+        );
         bool advanceReferenceRecovery(
             Reference & reference,
             std::function<void()> on_fail_during_maneuver,
@@ -475,7 +718,10 @@ namespace maneuver {
         ManeuverReferenceSafetyConfig referenceSafetyConfig() const;
         iii_drone::control::ControlledCancellationConfig referenceLossStopConfig() const;
         void resetReferenceSafety();
-        iii_drone::control::Reference beginReferenceLossStop(
+        ReferenceLossStopStart beginReferenceLossStop(
+            const ManeuverReferenceSafetyEvaluation & evaluation
+        );
+        ReferenceLossStopStart beginReferenceLossStopLocked(
             const ManeuverReferenceSafetyEvaluation & evaluation
         );
         iii_drone::control::Reference sampleReferenceLossStop(

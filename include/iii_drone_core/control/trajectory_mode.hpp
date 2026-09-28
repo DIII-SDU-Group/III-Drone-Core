@@ -14,7 +14,8 @@ namespace control {
 		positional = 0,
 		cable_landing = 1,
 		cable_takeoff = 2,
-		cable_aware = 3
+		cable_aware = 3,
+		bounded_positional = 4
 	};
 
 }

@@ -25,6 +25,7 @@ struct ControlledCancellationConfig {
  */
 class KinematicStopTrajectory {
 public:
+    static constexpr double MaximumCertifiedDurationS = 60.0;
     KinematicStopTrajectory(const Reference & initial, const KinematicStopLimits & limits);
 
     Reference sample(double elapsed_s, const rclcpp::Time & stamp = rclcpp::Clock().now()) const;

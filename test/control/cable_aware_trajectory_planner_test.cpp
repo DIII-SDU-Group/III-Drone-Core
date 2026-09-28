@@ -93,6 +93,19 @@ TEST(CableAwareTrajectoryPlannerTest, VerticalCrossingPrefersLocalAStarDetour)
 
   EXPECT_LT(max_lateral_distance, 2.0)
     << "The cable-aware planner should use a local A* detour, not the outside-corridor fallback.";
+
+  const rclcpp::Time stamp(100, 0, RCL_ROS_TIME);
+  const iii_drone::control::State start_state(
+    start,
+    iii_drone::types::vector_t::Zero(),
+    0.0,
+    iii_drone::types::vector_t::Zero(),
+    stamp);
+  const iii_drone::control::Reference goal_reference(goal, 0.0);
+  const auto trajectory = planner.buildPiecewiseLinearTrajectory(path, start_state, goal_reference);
+  EXPECT_TRUE(planner.trajectoryIsSafe(
+    trajectory, powerline, start, goal, false, false))
+    << "Piecewise fallback must preserve every validated A* edge without cutting corners.";
 }
 
 TEST(CableAwareTrajectoryPlannerTest, PlannerFallsBackWhenSmoothingMissesTerminalContract)
@@ -148,7 +161,7 @@ TEST(CableAwareTrajectoryPlannerTest, SamplingAtFractionalDurationReturnsExactTe
 
   planner.active_trajectory_ = planner.buildPiecewiseLinearTrajectory(
     {start, goal}, start_state, goal_reference);
-  ASSERT_NEAR(planner.duration_s_, 2.04, 1.0e-6);
+  ASSERT_NEAR(planner.duration_s_, 2.2, 1.0e-6);
 
   const auto sampled = planner.sampleActiveTrajectory(planner.duration_s_);
   ASSERT_FALSE(sampled.references().empty());

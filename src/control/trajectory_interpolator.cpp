@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 using namespace iii_drone::control;
 using namespace iii_drone::configuration;
@@ -38,10 +39,56 @@ Reference withYawClosestTo(const Reference & reference, double anchor_yaw) {
 
 TrajectoryInterpolator::TrajectoryInterpolator(
     Configuration::SharedPtr params,
-    rclcpp_lifecycle::LifecycleNode * node
-) : configuration_(params), node_(node) { }
+    rclcpp_lifecycle::LifecycleNode * node,
+    std::function<rclcpp::Time()> clock_now
+) : configuration_(params), node_(node),
+    clock_now_(clock_now ? std::move(clock_now) : [] { return rclcpp::Clock().now(); }) { }
 
 TrajectoryInterpolator::~TrajectoryInterpolator() { }
+
+TrajectoryInterpolator::BoundedDerivativeSample
+TrajectoryInterpolator::boundedDerivativeSample(double t) const {
+    BoundedDerivativeSample sample;
+    // The bounded certificate evaluates these fixed quintic derivatives at
+    // 513 points. Horner form avoids constructing six tiny Eigen matrices at
+    // every point; keep double arithmetic and the existing vector_t cast.
+    for (int axis = 0; axis < 3; ++axis) {
+        const double c1 = q(1, axis);
+        const double c2 = q(2, axis);
+        const double c3 = q(3, axis);
+        const double c4 = q(4, axis);
+        const double c5 = q(5, axis);
+        sample.velocity(axis) = static_cast<float>(
+            ((((5.0 * c5 * t + 4.0 * c4) * t + 3.0 * c3) * t +
+                2.0 * c2) * t + c1));
+        sample.acceleration(axis) = static_cast<float>(
+            (((20.0 * c5 * t + 12.0 * c4) * t + 6.0 * c3) * t +
+                2.0 * c2));
+        sample.jerk(axis) = static_cast<float>(
+            ((60.0 * c5 * t + 24.0 * c4) * t + 6.0 * c3));
+    }
+    const double y1 = q_yaw(1);
+    const double y2 = q_yaw(2);
+    const double y3 = q_yaw(3);
+    const double y4 = q_yaw(4);
+    const double y5 = q_yaw(5);
+    sample.yaw_rate = ((((5.0 * y5 * t + 4.0 * y4) * t + 3.0 * y3) * t +
+        2.0 * y2) * t + y1);
+    sample.yaw_acceleration = (((20.0 * y5 * t + 12.0 * y4) * t + 6.0 * y3) * t +
+        2.0 * y2);
+    sample.yaw_jerk = ((60.0 * y5 * t + 24.0 * y4) * t + 6.0 * y3);
+    return sample;
+}
+
+ReferenceTrajectory TrajectoryInterpolator::ComputeBoundedPositionalTrajectory(
+    const Reference &start_reference,
+    const Reference &end_reference,
+    bool set_reference,
+    bool reset
+) {
+    return ComputeReferenceTrajectory(
+        start_reference, end_reference, set_reference, reset, true);
+}
 
 ReferenceTrajectory TrajectoryInterpolator::ComputeReferenceTrajectory(
     const State &start_state,
@@ -67,22 +114,32 @@ ReferenceTrajectory TrajectoryInterpolator::ComputeReferenceTrajectory(
     const Reference &start_reference,
     const Reference &end_reference,
     bool set_reference,
-    bool reset
+    bool reset,
+    bool bounded_interpolation
 ) {
 
-    double t = (rclcpp::Clock().now() - start_time_).seconds();
+    const rclcpp::Time now = clock_now_();
+    double t = (now - start_time_).seconds();
 
     if (first_ || reset) {
 
         first_ = false;
         reference_trajectory_ = ReferenceTrajectory();
         reference_ = withYawClosestTo(end_reference, start_reference.yaw());
+        bounded_interpolation_ = bounded_interpolation;
+        if (bounded_interpolation_) {
+            reference_ = Reference(
+                reference_.position(), reference_.yaw(), vector_t::Zero(), 0.0,
+                vector_t::Zero(), 0.0, reference_.stamp()
+            );
+        }
 
-        start_time_ = rclcpp::Clock().now();
+        start_time_ = now;
 
         double T = computeInterpolation(
             start_reference,
-            reference_
+            reference_,
+            bounded_interpolation
         );
 
         end_time_ = start_time_ + rclcpp::Duration::from_seconds(T);
@@ -93,12 +150,20 @@ ReferenceTrajectory TrajectoryInterpolator::ComputeReferenceTrajectory(
 
         Reference new_start_reference = referenceFunction(t);
         reference_ = withYawClosestTo(end_reference, new_start_reference.yaw());
+        bounded_interpolation_ = bounded_interpolation;
+        if (bounded_interpolation_) {
+            reference_ = Reference(
+                reference_.position(), reference_.yaw(), vector_t::Zero(), 0.0,
+                vector_t::Zero(), 0.0, reference_.stamp()
+            );
+        }
 
-        start_time_ = rclcpp::Clock().now();
+        start_time_ = now;
 
         double T = computeInterpolation(
             new_start_reference,
-            reference_
+            reference_,
+            bounded_interpolation
         );
 
         end_time_ = start_time_ + rclcpp::Duration::from_seconds(T);
@@ -115,7 +180,8 @@ ReferenceTrajectory TrajectoryInterpolator::ComputeReferenceTrajectory(
 
 double TrajectoryInterpolator::computeInterpolation(
     const Reference &start_reference,
-    const Reference &end_reference
+    const Reference &end_reference,
+    bool bounded_interpolation
 ) {
 
     auto rescale_yaw = [](double yaw) {
@@ -124,22 +190,43 @@ double TrajectoryInterpolator::computeInterpolation(
         return yaw;
     };
 
+    if (bounded_interpolation && (
+        !start_reference.position().allFinite() ||
+        !start_reference.velocity().allFinite() ||
+        !start_reference.acceleration().allFinite() ||
+        !std::isfinite(start_reference.yaw()) ||
+        !std::isfinite(start_reference.yaw_rate()) ||
+        !std::isfinite(start_reference.yaw_acceleration()) ||
+        !end_reference.position().allFinite() ||
+        !std::isfinite(end_reference.yaw())
+    )) {
+        throw std::runtime_error(
+            "Bounded interpolation requires finite start and target values"
+        );
+    }
+
     const point_t p0 = start_reference.position();
     vector_t v0 = start_reference.velocity();
     // A streamed acceleration is an instantaneous feed-forward value, not a
     // constraint that should shape the entire next segment. Holding it as a
     // quintic endpoint derivative makes longer durations amplify corner
     // handoffs into arbitrarily large spatial excursions.
-    const vector_t a0 = vector_t::Zero();
-    const double yaw0 = rescale_yaw(start_reference.yaw());
+    const vector_t a0 = bounded_interpolation ?
+        start_reference.acceleration() : vector_t::Zero();
+    const double yaw0 = bounded_interpolation ?
+        std::remainder(start_reference.yaw(), 2.0 * M_PI) :
+        rescale_yaw(start_reference.yaw());
     const double yaw_rate_0 = start_reference.yaw_rate();
-    const double yaw_acceleration_0 = 0.0;
+    const double yaw_acceleration_0 = bounded_interpolation ?
+        start_reference.yaw_acceleration() : 0.0;
 
     const point_t pT = end_reference.position();
-    const vector_t vT = end_reference.velocity(); 
-    const vector_t aT = end_reference.acceleration();
-    const double yawT = yaw0 + shortestYawError(yaw0, end_reference.yaw());
-    const double yaw_rate_T = end_reference.yaw_rate();
+    const vector_t vT = bounded_interpolation ? vector_t::Zero() : end_reference.velocity();
+    const vector_t aT = bounded_interpolation ? vector_t::Zero() : end_reference.acceleration();
+    const double end_yaw = bounded_interpolation ?
+        std::remainder(end_reference.yaw(), 2.0 * M_PI) : end_reference.yaw();
+    const double yawT = yaw0 + shortestYawError(yaw0, end_yaw);
+    const double yaw_rate_T = bounded_interpolation ? 0.0 : end_reference.yaw_rate();
     const double yaw_acceleration_T = 0;
 
     const double position_duration = (pT - p0).norm()
@@ -160,6 +247,45 @@ double TrajectoryInterpolator::computeInterpolation(
     const double max_yaw_acceleration = configuration_->GetParameter(
         "/control/trajectory_interpolator/interpolation_max_yaw_acceleration_rad_s2"
     ).as_double();
+    const double max_jerk = bounded_interpolation ? configuration_->GetParameter(
+        "/control/trajectory_interpolator/interpolation_max_jerk_m_s3"
+    ).as_double() : std::numeric_limits<double>::infinity();
+    const double max_yaw_jerk = bounded_interpolation ? configuration_->GetParameter(
+        "/control/maneuver_controller/controlled_cancel_max_yaw_jerk_rad_s3"
+    ).as_double() : std::numeric_limits<double>::infinity();
+
+    if (bounded_interpolation) {
+        const double avg_velocity = configuration_->GetParameter(
+            "/control/trajectory_interpolator/interpolation_avg_velocity_m_s"
+        ).as_double();
+        const double avg_yaw_rate = configuration_->GetParameter(
+            "/control/trajectory_interpolator/interpolation_avg_yaw_rate_rad_s"
+        ).as_double();
+        const bool finite_start = p0.allFinite() && v0.allFinite() && a0.allFinite() &&
+            std::isfinite(yaw0) && std::isfinite(yaw_rate_0) &&
+            std::isfinite(yaw_acceleration_0) && pT.allFinite() &&
+            std::isfinite(yawT);
+        const bool finite_positive_limits = std::isfinite(avg_velocity) && avg_velocity > 0.0 &&
+            std::isfinite(avg_yaw_rate) && avg_yaw_rate > 0.0 &&
+            std::isfinite(max_velocity) && max_velocity > 0.0 &&
+            std::isfinite(max_acceleration) && max_acceleration > 0.0 &&
+            std::isfinite(max_jerk) && max_jerk > 0.0 &&
+            std::isfinite(max_yaw_jerk) && max_yaw_jerk > 0.0 &&
+            std::isfinite(max_yaw_rate) && max_yaw_rate > 0.0 &&
+            std::isfinite(max_yaw_acceleration) && max_yaw_acceleration > 0.0;
+        if (!finite_start || !finite_positive_limits) {
+            throw std::runtime_error(
+                "Bounded interpolation requires finite start/target data and positive finite limits"
+            );
+        }
+        if (v0.norm() > max_velocity || a0.norm() > max_acceleration ||
+            std::abs(yaw_rate_0) > max_yaw_rate ||
+            std::abs(yaw_acceleration_0) > max_yaw_acceleration) {
+            throw std::runtime_error(
+                "Bounded interpolation start derivatives exceed configured interpolation limits"
+            );
+        }
+    }
 
     const double position_distance = (pT - p0).norm();
     const double t0 = 0.0;
@@ -174,6 +300,12 @@ double TrajectoryInterpolator::computeInterpolation(
     const double T_yaw_acceleration = std::sqrt(
         rest_to_rest_peak_acceleration_coeff * yaw_error / max_yaw_acceleration
     );
+    const double T_jerk = bounded_interpolation ? std::cbrt(
+        60.0 * position_distance / max_jerk
+    ) : 0.0;
+    const double T_yaw_jerk = bounded_interpolation ? std::cbrt(
+        60.0 * yaw_error / max_yaw_jerk
+    ) : 0.0;
 
     double T = std::max({
         position_duration,
@@ -182,8 +314,18 @@ double TrajectoryInterpolator::computeInterpolation(
         T_acceleration,
         T_yaw_rate,
         T_yaw_acceleration,
+        T_jerk,
+        T_yaw_jerk,
         1.0e-3
     });
+
+    constexpr double bounded_max_duration_s = 600.0;
+    if (bounded_interpolation &&
+        (!std::isfinite(T) || T <= 0.0 || T > bounded_max_duration_s)) {
+        throw std::runtime_error(
+            "Bounded interpolation has an invalid initial duration"
+        );
+    }
 
     const auto limit_start_velocity_for_duration = [&]() {
         constexpr double monotonic_slope_factor = 3.0;
@@ -250,6 +392,139 @@ double TrajectoryInterpolator::computeInterpolation(
 
         q_yaw = A.colPivHouseholderQr().solve(b_yaw);
     };
+
+    if (bounded_interpolation) {
+        constexpr int sample_count = 512;
+        constexpr int max_duration_adjustments = 64;
+        constexpr double duration_margin = 1.02;
+        constexpr double max_duration_s = bounded_max_duration_s;
+
+        auto polynomialDerivativeBound = [](const auto & coefficients, int order, double duration) {
+            double bound = 0.0;
+            for (int power = order; power < coefficients.rows(); ++power) {
+                double factor = 1.0;
+                for (int derivative = 0; derivative < order; ++derivative) {
+                    factor *= static_cast<double>(power - derivative);
+                }
+                bound += coefficients.row(power).norm() * factor *
+                    std::pow(duration, power - order);
+            }
+            return bound;
+        };
+
+        auto yawDerivativeBound = [](const auto & coefficients, int order, double duration) {
+            double bound = 0.0;
+            for (int power = order; power < coefficients.rows(); ++power) {
+                double factor = 1.0;
+                for (int derivative = 0; derivative < order; ++derivative) {
+                    factor *= static_cast<double>(power - derivative);
+                }
+                bound += std::abs(coefficients(power)) * factor *
+                    std::pow(duration, power - order);
+            }
+            return bound;
+        };
+
+        for (int adjustment = 0; adjustment < max_duration_adjustments; ++adjustment) {
+            if (!std::isfinite(T) || T <= 0.0 || T > max_duration_s) {
+                throw std::runtime_error(
+                    "Bounded interpolation exceeded the duration search bound"
+                );
+            }
+            solve_quintic();
+            if (!q.allFinite() || !q_yaw.allFinite()) {
+                throw std::runtime_error(
+                    "Bounded interpolation produced non-finite coefficients"
+                );
+            }
+
+            double sampled_velocity = 0.0;
+            double sampled_acceleration = 0.0;
+            double sampled_jerk = 0.0;
+            double sampled_yaw_rate = 0.0;
+            double sampled_yaw_acceleration = 0.0;
+            double sampled_yaw_jerk = 0.0;
+            for (int sample = 0; sample <= sample_count; ++sample) {
+                const double time = T * static_cast<double>(sample) / sample_count;
+                const BoundedDerivativeSample derivatives = boundedDerivativeSample(time);
+                if (!derivatives.velocity.allFinite() ||
+                    !derivatives.acceleration.allFinite() ||
+                    !derivatives.jerk.allFinite() ||
+                    !std::isfinite(derivatives.yaw_rate) ||
+                    !std::isfinite(derivatives.yaw_acceleration) ||
+                    !std::isfinite(derivatives.yaw_jerk)) {
+                    throw std::runtime_error(
+                        "Bounded interpolation produced non-finite derivatives"
+                    );
+                }
+                sampled_velocity = std::max(sampled_velocity,
+                    static_cast<double>(derivatives.velocity.norm()));
+                sampled_acceleration = std::max(sampled_acceleration,
+                    static_cast<double>(derivatives.acceleration.norm()));
+                sampled_jerk = std::max(sampled_jerk,
+                    static_cast<double>(derivatives.jerk.norm()));
+                sampled_yaw_rate = std::max(sampled_yaw_rate,
+                    std::abs(derivatives.yaw_rate));
+                sampled_yaw_acceleration = std::max(
+                    sampled_yaw_acceleration, std::abs(derivatives.yaw_acceleration)
+                );
+                sampled_yaw_jerk = std::max(
+                    sampled_yaw_jerk, std::abs(derivatives.yaw_jerk)
+                );
+            }
+
+            const double half_sample_step = T / (2.0 * sample_count);
+            const double certified_velocity = sampled_velocity +
+                polynomialDerivativeBound(q, 2, T) * half_sample_step;
+            const double certified_acceleration = sampled_acceleration +
+                polynomialDerivativeBound(q, 3, T) * half_sample_step;
+            const double certified_jerk = sampled_jerk +
+                polynomialDerivativeBound(q, 4, T) * half_sample_step;
+            const double certified_yaw_rate = sampled_yaw_rate +
+                yawDerivativeBound(q_yaw, 2, T) * half_sample_step;
+            const double certified_yaw_acceleration = sampled_yaw_acceleration +
+                yawDerivativeBound(q_yaw, 3, T) * half_sample_step;
+            const double certified_yaw_jerk = sampled_yaw_jerk +
+                yawDerivativeBound(q_yaw, 4, T) * half_sample_step;
+            if (!std::isfinite(certified_velocity) || !std::isfinite(certified_acceleration) ||
+                !std::isfinite(certified_jerk) || !std::isfinite(certified_yaw_rate) ||
+                !std::isfinite(certified_yaw_acceleration) ||
+                !std::isfinite(certified_yaw_jerk)) {
+                throw std::runtime_error(
+                    "Bounded interpolation could not certify finite derivatives"
+                );
+            }
+
+            const double duration_scale = std::max({
+                certified_velocity / max_velocity,
+                std::sqrt(certified_acceleration / max_acceleration),
+                std::cbrt(certified_jerk / max_jerk),
+                certified_yaw_rate / max_yaw_rate,
+                std::sqrt(certified_yaw_acceleration / max_yaw_acceleration),
+                std::cbrt(certified_yaw_jerk / max_yaw_jerk)
+            });
+
+            if (!std::isfinite(duration_scale)) {
+                throw std::runtime_error(
+                    "Bounded interpolation could not certify finite derivatives"
+                );
+            }
+            if (duration_scale <= 1.0) {
+                return T;
+            }
+
+            T *= std::max(duration_margin, duration_scale * duration_margin);
+            if (!std::isfinite(T) || T > max_duration_s) {
+                throw std::runtime_error(
+                    "Bounded interpolation exceeded the duration search bound"
+                );
+            }
+        }
+
+        throw std::runtime_error(
+            "Bounded interpolation could not satisfy derivative limits"
+        );
+    }
 
     auto yawAccelerationFunction = [this](double t) {
         Eigen::Matrix<double, 1, 6> A_t;
@@ -338,6 +613,15 @@ vector_t TrajectoryInterpolator::accelerationFunction(double t) {
 
 }
 
+vector_t TrajectoryInterpolator::jerkFunction(double t) {
+
+    Eigen::Matrix<double, 1, 6> A_t;
+    A_t << 0, 0, 0, 6, 24 * t, 60 * t * t;
+    const Eigen::Matrix<double, 1, 3> jerk = A_t * q;
+    return vector_t(jerk(0), jerk(1), jerk(2));
+
+}
+
 double TrajectoryInterpolator::yawFunction(double t) {
 
     Eigen::Matrix<double, 1, 6> A_t;
@@ -358,11 +642,25 @@ double TrajectoryInterpolator::yawRateFunction(double t) {
 
 }
 
+double TrajectoryInterpolator::yawAccelerationFunction(double t) {
+    Eigen::Matrix<double, 1, 6> A_t;
+    A_t << 0, 0, 2, 6 * t, 12 * t * t, 20 * t * t * t;
+    return static_cast<double>((A_t * q_yaw)(0));
+}
+
+double TrajectoryInterpolator::yawJerkFunction(double t) {
+    Eigen::Matrix<double, 1, 6> A_t;
+    A_t << 0, 0, 0, 6, 24 * t, 60 * t * t;
+    return static_cast<double>((A_t * q_yaw)(0));
+}
+
 Reference TrajectoryInterpolator::referenceFunction(double t) {
 
     if (start_time_ + rclcpp::Duration::from_seconds(t) > end_time_) {
 
-        return reference_;
+        // Holding the endpoint still produces a new sample. Keep its sample
+        // time advancing just as it does during interpolation.
+        return reference_.CopyWithNewStamp(start_time_ + rclcpp::Duration::from_seconds(t));
 
     }
 
@@ -371,6 +669,7 @@ Reference TrajectoryInterpolator::referenceFunction(double t) {
     vector_t a = accelerationFunction(t);
     double yaw = yawFunction(t);
     double yaw_rate = yawRateFunction(t);
+    double yaw_acceleration = bounded_interpolation_ ? yawAccelerationFunction(t) : 0.0;
 
     return Reference(
         p,
@@ -378,7 +677,7 @@ Reference TrajectoryInterpolator::referenceFunction(double t) {
         v,
         yaw_rate,
         a,
-        0,
+        yaw_acceleration,
         start_time_ + rclcpp::Duration::from_seconds(t)
     );
 

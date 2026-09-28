@@ -3,10 +3,13 @@
 /*****************************************************************************/
 
 #include <iii_drone_core/control/maneuver/maneuver_reference_client.hpp>
+#include <iii_drone_core/control/maneuver/maneuver_request_identity.hpp>
+#include <iii_drone_core/diagnostics/hil_trace.hpp>
 
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
+#include <thread>
 
 using namespace iii_drone::control::maneuver;
 using namespace iii_drone::utils;
@@ -27,34 +30,176 @@ bool finiteReference(const Reference & reference) {
         std::isfinite(reference.yaw_acceleration());
 }
 
+const char * streamDecisionName(ManeuverReferenceStreamDecision decision) {
+    switch (decision) {
+    case ManeuverReferenceStreamDecision::Prepared: return "prepared";
+    case ManeuverReferenceStreamDecision::Paused: return "paused";
+    case ManeuverReferenceStreamDecision::FreshHeld: return "fresh_held";
+    case ManeuverReferenceStreamDecision::AwaitingSuccessor: return "awaiting_successor";
+    case ManeuverReferenceStreamDecision::NewActive: return "new_active";
+    case ManeuverReferenceStreamDecision::Invalid: return "invalid";
+    case ManeuverReferenceStreamDecision::Expired: return "expired";
+    case ManeuverReferenceStreamDecision::WrongGeneration: return "wrong_generation";
+    case ManeuverReferenceStreamDecision::OutOfOrder: return "out_of_order";
+    }
+    return "unknown";
+}
+
+int64_t rosTimeNs(const builtin_interfaces::msg::Time & time) {
+    return static_cast<int64_t>(time.sec) * 1000000000LL + time.nanosec;
+}
+
 }  // namespace
 
 void ManeuverReferenceClient::receiveReferenceStream(
     const iii_drone_interfaces::msg::ManeuverReferenceStream::SharedPtr message
 ) {
+    const auto callback_start = std::chrono::steady_clock::now();
+    auto callback_entry = iii_drone::diagnostics::HilTrace::event("callback_group_callback_entry");
+    callback_entry.text("callback", "maneuver_reference_stream_subscription");
+    callback_entry.text("callback_group", "mission_executor_reference_mutually_exclusive");
+    callback_entry.text("callback_group_type", "MutuallyExclusive");
+    callback_entry.text("node", "/mission_executor");
+    callback_entry.commit();
+
+    auto callback_exit = [&callback_start]() {
+        const auto callback_end = std::chrono::steady_clock::now();
+        auto event = iii_drone::diagnostics::HilTrace::event("callback_group_callback_exit");
+        event.text("callback", "maneuver_reference_stream_subscription");
+        event.text("callback_group", "mission_executor_reference_mutually_exclusive");
+        event.text("callback_group_type", "MutuallyExclusive");
+        event.text("node", "/mission_executor");
+        event.number(
+            "duration_ns",
+            static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+                callback_end - callback_start).count())
+        );
+        event.commit();
+    };
+
+    // Identity admission is intentionally before duplicate/cache bookkeeping.
+    // A canceled request must not refresh DDS age, consume a guard candidate,
+    // emit an ACK, or become the identity used for a later pause/rebase.
+    std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+    const bool recovery_owns_stream =
+        reference_mode_.Load() == reference_mode_t::REFERENCE_LOSS_STOP;
+    if (!ownsReferenceStreamLocked(*message)) {
+        auto rejected = iii_drone::diagnostics::HilTrace::event("reference_stream_identity_rejected");
+        rejected.text("stream_id", message->stream_id);
+        rejected.number("sequence", message->sequence);
+        rejected.text("request_identity", message->request_identity);
+        rejected.text("active_request_identity", active_request_identity_);
+        rejected.text(
+            "pending_request_identity",
+            pending_goal_handoff_ ? pending_goal_handoff_->request_identity : ""
+        );
+        rejected.boolean("recovery_owns_stream", recovery_owns_stream);
+        rejected.commit();
+        callback_exit();
+        return;
+    }
+
+    auto ingress = iii_drone::diagnostics::HilTrace::event("reference_stream_received");
+    ingress.text("stream_id", message->stream_id);
+    ingress.text("request_identity", message->request_identity);
+    ingress.number("sequence", message->sequence);
+    ingress.number("state", message->state);
+    ingress.boolean("is_valid", message->is_valid);
+    ingress.signed_number("produced_at_ns", rosTimeNs(message->produced_at));
+    ingress.signed_number("valid_until_ns", rosTimeNs(message->valid_until));
+    ingress.decimal("trajectory_time_s", message->trajectory_time_s);
+    ingress.text("callback_group", "mission_executor_reference_mutually_exclusive");
+    ingress.text("callback_group_type", "MutuallyExclusive");
+    ingress.commit();
+
     std::lock_guard<std::mutex> lock(reference_stream_mutex_);
     if (
         latest_stream_message_ &&
         latest_stream_message_->stream_id == message->stream_id &&
         message->sequence <= latest_stream_message_->sequence
     ) {
+        auto duplicate = iii_drone::diagnostics::HilTrace::event("reference_stream_duplicate_ignored");
+        duplicate.text("stream_id", message->stream_id);
+        duplicate.text("request_identity", message->request_identity);
+        duplicate.number("sequence", message->sequence);
+        duplicate.commit();
+        callback_exit();
         return;
     }
     latest_stream_message_ = *message;
     latest_stream_received_at_ = std::chrono::steady_clock::now();
+    callback_exit();
+}
+
+bool ManeuverReferenceClient::ownsReferenceStreamLocked(
+    const iii_drone_interfaces::msg::ManeuverReferenceStream & message
+) {
+    if (!isValidManeuverRequestIdentity(message.request_identity)) {
+        return false;
+    }
+    if (reference_mode_.Load() == reference_mode_t::REFERENCE_LOSS_STOP) {
+        // Explicit recovery may rebase a stream ID, but only the identity
+        // latched at the fault may drive that recovery.
+        return fault_stream_identity_ &&
+            fault_stream_identity_->request_identity == message.request_identity;
+    }
+
+    if (pending_goal_handoff_) {
+        if (pending_goal_handoff_->request_identity == message.request_identity) {
+            return true;
+        }
+        // A current request may still make progress while its successor is
+        // pending, but only on the already-owned predecessor stream. Its
+        // identity alone never authorizes another generation.
+        return active_request_identity_ == message.request_identity &&
+            message.stream_id == pending_goal_handoff_->predecessor_stream_id;
+    }
+    return active_request_identity_ == message.request_identity;
+}
+
+void ManeuverReferenceClient::retireInadmissibleCachedStreamLocked() {
+    std::lock_guard<std::mutex> lock(reference_stream_mutex_);
+    if (latest_stream_message_ && !ownsReferenceStreamLocked(*latest_stream_message_)) {
+        latest_stream_message_.reset();
+    }
 }
 
 ManeuverReferenceClient::StreamReadResult
 ManeuverReferenceClient::readReferenceStream(Reference & reference) {
+    // Start/stop/handoff transitions mutate the generation guard and clear the
+    // latest DDS sample.  Serialize the reader with those transitions so a
+    // callback cannot observe a half-applied successor handoff and consume the
+    // one-shot expectation with the previous maneuver generation.
+    std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+
     iii_drone_interfaces::msg::ManeuverReferenceStream message;
     std::chrono::steady_clock::time_point received_at;
     {
         std::lock_guard<std::mutex> lock(reference_stream_mutex_);
         if (!latest_stream_message_) {
+            auto event = iii_drone::diagnostics::HilTrace::event("reference_stream_read");
+            event.text("decision", "unavailable_no_sample");
+            event.commit();
+            RCLCPP_WARN_THROTTLE(
+                logger_, *clock_, 1000,
+                "ManeuverReferenceClient::readReferenceStream(): no stream sample is available"
+            );
             return StreamReadResult::Unavailable;
         }
         message = *latest_stream_message_;
         received_at = latest_stream_received_at_;
+    }
+
+    if (!ownsReferenceStreamLocked(message)) {
+        retireInadmissibleCachedStreamLocked();
+        auto event = iii_drone::diagnostics::HilTrace::event(
+            "reference_stream_cached_identity_retired"
+        );
+        event.text("stream_id", message.stream_id);
+        event.number("sequence", message.sequence);
+        event.text("request_identity", message.request_identity);
+        event.commit();
+        return StreamReadResult::Unavailable;
     }
 
     const auto timeout = std::chrono::milliseconds(
@@ -65,12 +210,30 @@ ManeuverReferenceClient::readReferenceStream(Reference & reference) {
     if (
         std::chrono::steady_clock::now() - received_at > timeout
     ) {
+        auto event = iii_drone::diagnostics::HilTrace::event("reference_stream_read");
+        event.text("decision", "unavailable_stale");
+        event.text("stream_id", message.stream_id);
+        event.number("sequence", message.sequence);
+        event.number("timeout_ms", static_cast<uint64_t>(timeout.count()));
+        event.commit();
+        RCLCPP_WARN_THROTTLE(
+            logger_, *clock_, 1000,
+            "ManeuverReferenceClient::readReferenceStream(): latest stream sample is stale; stream=%s sequence=%lu timeout_ms=%ld",
+            message.stream_id.c_str(),
+            static_cast<unsigned long>(message.sequence),
+            static_cast<long>(timeout.count())
+        );
         return StreamReadResult::Unavailable;
     }
-    if (successor_generation_handoff_requested_.exchange(false)) {
-        reference_stream_guard_.expectSuccessorGeneration();
-    }
     const auto decision = reference_stream_guard_.observe(message, clock_->now());
+    auto decision_event = iii_drone::diagnostics::HilTrace::event("reference_stream_guard_decision");
+    decision_event.text("decision", streamDecisionName(decision));
+    decision_event.text("stream_id", message.stream_id);
+    decision_event.number("sequence", message.sequence);
+    decision_event.number("candidate_sequence", reference_stream_guard_.candidateSequence());
+    decision_event.number("last_applied_sequence", reference_stream_guard_.lastAppliedSequence());
+    decision_event.number("state", message.state);
+    decision_event.commit();
     if (decision == ManeuverReferenceStreamDecision::Prepared) {
         reference = ReferenceAdapter(message.reference).reference();
         return StreamReadResult::Prepared;
@@ -78,18 +241,236 @@ ManeuverReferenceClient::readReferenceStream(Reference & reference) {
     if (decision == ManeuverReferenceStreamDecision::Paused) {
         return StreamReadResult::Paused;
     }
-    if (decision == ManeuverReferenceStreamDecision::FreshHeld) {
+    if (
+        decision == ManeuverReferenceStreamDecision::FreshHeld ||
+        decision == ManeuverReferenceStreamDecision::AwaitingSuccessor
+    ) {
         std::lock_guard<std::mutex> lock(reference_mutex_);
         reference = reference_;
         return StreamReadResult::FreshHeld;
     }
     if (decision != ManeuverReferenceStreamDecision::NewActive) {
+        RCLCPP_WARN_THROTTLE(
+            logger_, *clock_, 1000,
+            "ManeuverReferenceClient::readReferenceStream(): rejected stream sample; decision=%d stream=%s expected_stream=%s sequence=%lu last_applied=%lu state=%u valid=%s",
+            static_cast<int>(decision),
+            message.stream_id.c_str(),
+            reference_stream_guard_.streamId().c_str(),
+            static_cast<unsigned long>(message.sequence),
+            static_cast<unsigned long>(reference_stream_guard_.lastAppliedSequence()),
+            static_cast<unsigned int>(message.state),
+            message.is_valid ? "true" : "false"
+        );
         return StreamReadResult::Unavailable;
     }
+    const bool predecessor_active =
+        pending_goal_handoff_ &&
+        message.request_identity == active_request_identity_ &&
+        message.stream_id == pending_goal_handoff_->predecessor_stream_id;
+    const bool new_active_stream =
+        active_stream_id_ != reference_stream_guard_.streamId();
     active_stream_id_ = reference_stream_guard_.streamId();
+    if (new_active_stream) {
+        // A guard switches generations before the candidate is committed.
+        // Keep the client-side acknowledgement identity in that same
+        // generation: it must never carry a predecessor sequence into a
+        // successor pause/rebase request.
+        last_applied_sequence_ = reference_stream_guard_.lastAppliedSequence();
+        if (terminal_hold_continuity_required_) {
+            startup_reference_policy_.reset();
+        } else {
+            startup_reference_policy_.arm();
+        }
+    }
     reference = ReferenceAdapter(message.reference).reference();
     candidate_sequence_ = reference_stream_guard_.candidateSequence();
-    return StreamReadResult::NewActive;
+    candidate_request_identity_ = message.request_identity;
+    candidate_stream_state_ = message.state;
+    candidate_object_tracking_active_ = message.object_tracking_active &&
+        (message.state == iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_ACTIVE ||
+         message.state ==
+            iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_OBJECT_STOPPING ||
+         message.state ==
+            iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_OBJECT_STOPPED);
+    if ((message.state ==
+            iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_OBJECT_STOPPING ||
+         message.state ==
+            iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_OBJECT_STOPPED) &&
+        !message.object_tracking_active) return StreamReadResult::Unavailable;
+    return predecessor_active ? StreamReadResult::PredecessorActive : StreamReadResult::NewActive;
+}
+
+ManeuverReferenceClient::ReferenceConsumption
+ManeuverReferenceClient::consumeReferenceCandidate(
+    Reference & reference,
+    reference_mode_t expected_mode,
+    bool mark_maneuver_reference_valid,
+    bool transition_to_maneuver
+) {
+    // A candidate has no externally visible effect until its stream
+    // generation, safety decision, cached reference, committed sequence, and
+    // acknowledgement identity agree. Start/stop can otherwise splice a new
+    // generation into the middle of that sequence.
+    std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+    ReferenceConsumption consumption;
+    if (reference_mode_.Load() != expected_mode) {
+        return consumption;
+    }
+
+    consumption.stream_result = readReferenceStream(reference);
+    if (
+        consumption.stream_result != StreamReadResult::NewActive &&
+        consumption.stream_result != StreamReadResult::PredecessorActive
+    ) {
+        return consumption;
+    }
+    if (object_stopped_hold_ &&
+        (expected_mode == reference_mode_t::HOVER ||
+         consumption.stream_result == StreamReadResult::PredecessorActive)) {
+        // A local stopped-object Hold may only consume the exact certified
+        // rest stream. A late ACTIVE/foreign sample must not restart motion.
+        if (!candidate_object_tracking_active_ ||
+            candidate_stream_state_ !=
+                iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_OBJECT_STOPPED ||
+            reference_stream_guard_.streamId() != object_stopped_hold_->stream_id ||
+            candidate_request_identity_ != object_stopped_hold_->request_identity ||
+            !reference.position().allFinite() || !reference.velocity().allFinite() ||
+            !reference.acceleration().allFinite() || !std::isfinite(reference.yaw()) ||
+            !std::isfinite(reference.yaw_rate()) ||
+            !std::isfinite(reference.yaw_acceleration()) ||
+            reference.velocity().norm() > 1.0e-5 ||
+            reference.acceleration().norm() > 1.0e-5 ||
+            std::abs(reference.yaw_rate()) > 1.0e-5 ||
+            std::abs(reference.yaw_acceleration()) > 1.0e-5 ||
+            (reference.position() - object_stopped_hold_->anchor.position()).norm() > 1.0e-5 ||
+            std::abs(std::atan2(
+                std::sin(reference.yaw() - object_stopped_hold_->anchor.yaw()),
+                std::cos(reference.yaw() - object_stopped_hold_->anchor.yaw()))) > 1.0e-5) {
+            return consumption;
+        }
+    }
+    const bool successor_candidate =
+        consumption.stream_result == StreamReadResult::NewActive;
+
+    ManeuverReferenceSafetyEvaluation safety_evaluation;
+    {
+        std::lock_guard<std::mutex> safety_lock(reference_safety_mutex_);
+        if (
+            successor_candidate &&
+            startup_reference_policy_.consumeFirstPlannedBaseline(reference)
+        ) {
+            // The first planned baseline for this generation may be fully
+            // finite or use HoverOnCable's velocity-only shape. The policy
+            // consumes it exactly once; later samples use the existing
+            // continuity envelope unchanged.
+            reference_safety_guard_->reset();
+            safety_evaluation = reference_safety_guard_->observeReference(reference);
+        } else {
+            if (
+                !reference_safety_guard_->hasAcceptedReference() &&
+                !vehicle_odometry_adapter_history_->empty()
+            ) {
+                safety_evaluation = reference_safety_guard_->observeReference(
+                    Reference((*vehicle_odometry_adapter_history_)[0].ToState())
+                );
+            }
+            if (safety_evaluation.decision != ManeuverReferenceSafetyDecision::BEGIN_STOP) {
+                safety_evaluation = reference_safety_guard_->observeReference(reference);
+            }
+        }
+    }
+
+    if (safety_evaluation.decision != ManeuverReferenceSafetyDecision::ACCEPT) {
+        auto loss_stop = beginReferenceLossStopLocked(safety_evaluation);
+        reference = loss_stop.reference;
+        consumption.began_reference_loss_stop = true;
+        consumption.pause_identity = std::move(loss_stop.pause_identity);
+        return consumption;
+    }
+
+    {
+        std::lock_guard<std::mutex> reference_lock(reference_mutex_);
+        reference_ = reference;
+    }
+    if (mark_maneuver_reference_valid) {
+        maneuver_reference_valid_.Store(true);
+    }
+    last_applied_sequence_ = reference_stream_guard_.candidateSequence();
+    reference_stream_guard_.commitCandidate();
+    if (candidate_object_tracking_active_ &&
+        candidate_sequence_ == reference_stream_guard_.lastAppliedSequence()) {
+        applied_object_tracking_stream_id_ = reference_stream_guard_.streamId();
+        applied_object_tracking_request_identity_ = candidate_request_identity_;
+        applied_object_tracking_sequence_ = candidate_sequence_;
+        applied_object_tracking_at_ = std::chrono::steady_clock::now();
+        applied_object_tracking_state_ = candidate_stream_state_;
+    } else {
+        applied_object_tracking_stream_id_.clear();
+        applied_object_tracking_request_identity_.clear();
+        applied_object_tracking_sequence_ = 0;
+        applied_object_tracking_state_ = 0;
+    }
+    consumption.applied_ack_identity = ReferenceStreamIdentity{
+        reference_stream_guard_.streamId(),
+        candidate_request_identity_,
+        reference_stream_guard_.lastAppliedSequence(),
+    };
+    if (successor_candidate) {
+        active_request_identity_ = candidate_request_identity_;
+        if (object_stopped_hold_ &&
+            object_stopped_hold_->stream_id != reference_stream_guard_.streamId()) {
+            object_stopped_hold_.reset();
+        }
+    }
+    if (
+        pending_goal_handoff_ &&
+        successor_candidate &&
+        reference_stream_guard_.streamId() != pending_goal_handoff_->predecessor_stream_id
+    ) {
+        pending_goal_handoff_->successor_consumed = true;
+        pending_goal_handoff_->successor_stream_id = reference_stream_guard_.streamId();
+    }
+    if (transition_to_maneuver && successor_candidate) {
+        reference_mode_.Store(reference_mode_t::MANEUVER);
+    }
+    if (
+        pending_goal_handoff_ &&
+        pending_goal_handoff_->goal_accepted &&
+        pending_goal_handoff_->successor_consumed
+    ) {
+        pending_goal_handoff_.reset();
+    }
+    consumption.accepted = true;
+    {
+        std::lock_guard<std::mutex> stream_lock(reference_stream_mutex_);
+        const bool applied_terminal_message = latest_stream_message_ &&
+            latest_stream_message_->terminal_hold_active &&
+            latest_stream_message_->stream_id == reference_stream_guard_.streamId() &&
+            latest_stream_message_->request_identity == active_request_identity_ &&
+            latest_stream_message_->sequence == reference_stream_guard_.lastAppliedSequence();
+        if (applied_terminal_message) {
+            applied_terminal_stream_id_ = latest_stream_message_->stream_id;
+            applied_terminal_request_identity_ = latest_stream_message_->request_identity;
+            applied_terminal_stream_state_ = latest_stream_message_->state;
+        } else if (successor_candidate) {
+            applied_terminal_stream_id_.clear();
+            applied_terminal_request_identity_.clear();
+            applied_terminal_stream_state_.reset();
+        }
+        consumption.terminal_degraded = applied_terminal_message &&
+            (*applied_terminal_stream_state_ ==
+                iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_TERMINAL_DEGRADED ||
+             *applied_terminal_stream_state_ ==
+                iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_TERMINAL_UNRECOVERABLE);
+        consumption.object_unrecoverable = latest_stream_message_ &&
+            latest_stream_message_->stream_id == reference_stream_guard_.streamId() &&
+            latest_stream_message_->request_identity == active_request_identity_ &&
+            latest_stream_message_->sequence == reference_stream_guard_.lastAppliedSequence() &&
+            !latest_stream_message_->terminal_hold_active &&
+            latest_stream_message_->state ==
+                iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_TERMINAL_UNRECOVERABLE;
+    }
+    return consumption;
 }
 
 void ManeuverReferenceClient::publishReferenceAck(
@@ -115,11 +496,19 @@ void ManeuverReferenceClient::publishReferenceAck(
         ack.last_applied_sequence = latest_stream_message_->sequence;
     }
     ack.applied_at = clock_->now();
+    ack.consumer_identity = terminal_consumer_identity_;
     ack.vehicle_state = StateAdapter(
         (*vehicle_odometry_adapter_history_)[0].ToState()
     ).ToMsg();
     ack.consumer_status = status;
     ack.detail = detail;
+    auto event = iii_drone::diagnostics::HilTrace::event("reference_ack_publication");
+    event.text("stream_id", ack.stream_id);
+    event.number("last_applied_sequence", ack.last_applied_sequence);
+    event.number("consumer_status", ack.consumer_status);
+    event.signed_number("applied_at_ns", rosTimeNs(ack.applied_at));
+    event.text("detail", detail);
+    event.commit();
     reference_ack_publisher_->publish(ack);
 }
 
@@ -134,6 +523,7 @@ void ManeuverReferenceClient::publishReferenceAckForStream(
     }
     iii_drone_interfaces::msg::ManeuverReferenceAck ack;
     ack.stream_id = stream_id;
+    ack.consumer_identity = terminal_consumer_identity_;
     ack.last_applied_sequence = last_applied_sequence;
     ack.applied_at = clock_->now();
     ack.vehicle_state = StateAdapter(
@@ -141,20 +531,35 @@ void ManeuverReferenceClient::publishReferenceAckForStream(
     ).ToMsg();
     ack.consumer_status = status;
     ack.detail = detail;
+    auto event = iii_drone::diagnostics::HilTrace::event("reference_ack_publication");
+    event.text("stream_id", ack.stream_id);
+    event.number("last_applied_sequence", ack.last_applied_sequence);
+    event.number("consumer_status", ack.consumer_status);
+    event.signed_number("applied_at_ns", rosTimeNs(ack.applied_at));
+    event.text("detail", detail);
+    event.commit();
     reference_ack_publisher_->publish(ack);
 }
 
-void ManeuverReferenceClient::requestProducerPause(const std::string & reason) {
-    publishReferenceAck(
+void ManeuverReferenceClient::requestProducerPause(
+    const ReferenceStreamIdentity & identity,
+    const std::string & reason
+) {
+    if (!identity.valid()) {
+        return;
+    }
+    publishReferenceAckForStream(
+        identity.stream_id,
+        identity.last_applied_sequence,
         iii_drone_interfaces::msg::ManeuverReferenceAck::STATUS_PAUSING,
         reason
     );
-    if (active_stream_id_.empty() || !pause_reference_stream_client_->service_is_ready()) {
+    if (!pause_reference_stream_client_->service_is_ready()) {
         return;
     }
     auto request = std::make_shared<iii_drone_interfaces::srv::PauseReferenceStream::Request>();
-    request->stream_id = active_stream_id_;
-    request->last_applied_sequence = last_applied_sequence_;
+    request->stream_id = identity.stream_id;
+    request->last_applied_sequence = identity.last_applied_sequence;
     request->reason = reason;
     pause_reference_stream_client_->async_send_request(request);
 }
@@ -165,12 +570,17 @@ void ManeuverReferenceClient::resetReferenceStreamState() {
         latest_stream_message_.reset();
     }
     active_stream_id_.clear();
+    active_request_identity_.clear();
+    object_stopped_hold_.reset();
+    candidate_request_identity_.clear();
     prepared_stream_id_.clear();
     prepared_reference_anchor_.reset();
     last_applied_sequence_ = 0;
     candidate_sequence_ = 0;
-    successor_generation_handoff_requested_.store(false);
+    startup_reference_policy_.reset();
     reference_stream_guard_.reset();
+    pending_goal_handoff_.reset();
+    fault_stream_identity_.reset();
     recovery_phase_ = RecoveryPhase::None;
     pending_rebase_request_.reset();
     pending_commit_request_.reset();
@@ -243,17 +653,33 @@ void ManeuverReferenceClient::resetReferenceSafety() {
     reference_loss_reason_.clear();
 }
 
-Reference ManeuverReferenceClient::beginReferenceLossStop(
+ManeuverReferenceClient::ReferenceLossStopStart
+ManeuverReferenceClient::beginReferenceLossStop(
+    const ManeuverReferenceSafetyEvaluation & evaluation
+) {
+    std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+    return beginReferenceLossStopLocked(evaluation);
+}
+
+ManeuverReferenceClient::ReferenceLossStopStart
+ManeuverReferenceClient::beginReferenceLossStopLocked(
     const ManeuverReferenceSafetyEvaluation & evaluation
 ) {
     const ControlledCancellationConfig stop_config = referenceLossStopConfig();
     Reference initial;
-    {
+    // A rejected reference is specifically evidence that the producer and the
+    // vehicle may no longer agree.  Anchor the bounded stop in the measured
+    // vehicle state whenever it is available, rather than in the last command.
+    // This matters at the cable-release handoff: the retained pre-release
+    // velocity can be non-zero even though PX4 has already settled on cable.
+    // Starting a stop from that stale command stretches the recovery window and
+    // can cause the otherwise-recoverable successor maneuver to time out.
+    if (!vehicle_odometry_adapter_history_->empty()) {
+        initial = Reference((*vehicle_odometry_adapter_history_)[0].ToState());
+    }
+    if (!finiteReference(initial)) {
         std::lock_guard<std::mutex> reference_lock(reference_mutex_);
         initial = reference_;
-    }
-    if (!finiteReference(initial) && !vehicle_odometry_adapter_history_->empty()) {
-        initial = Reference((*vehicle_odometry_adapter_history_)[0].ToState());
     }
     if (!finiteReference(initial)) {
         throw std::runtime_error("cannot start reference-loss stop without a finite reference or vehicle state");
@@ -280,15 +706,27 @@ Reference ManeuverReferenceClient::beginReferenceLossStop(
         reference_loss_reason_ = evaluation.reason;
     }
     clearPendingReferenceRequest();
+    // A continuity fault transfers reference ownership to the bounded stop.
+    // A late goal-acceptance callback must not revive the failed successor.
+    pending_goal_handoff_.reset();
     recovery_phase_ = RecoveryPhase::Stopping;
     recovery_phase_started_ = std::chrono::steady_clock::now();
-    requestProducerPause(evaluation.reason);
     reference_mode_.Store(reference_mode_t::REFERENCE_LOSS_STOP);
+
+    // Capture the rejecting generation before any asynchronous pause/rebase
+    // exchange. In particular, a rejected first successor sample has a
+    // committed sequence of zero, never the predecessor's last sequence.
+    fault_stream_identity_ = ReferenceStreamIdentity{
+        reference_stream_guard_.streamId(),
+        candidate_request_identity_,
+        reference_stream_guard_.lastAppliedSequence(),
+    };
 
     RCLCPP_ERROR(
         logger_,
         "ManeuverReferenceClient::beginReferenceLossStop(): %s after %.3f s; "
-        "position %.3f/%.3f m, velocity %.3f/%.3f m/s, acceleration %.3f/%.3f m/s^2. "
+        "position %.3f/%.3f m, velocity %.3f/%.3f m/s, acceleration %.3f/%.3f m/s^2, "
+        "yaw %.3f/%.3f rad, yaw_rate %.3f/%.3f rad/s, yaw_acceleration %.3f/%.3f rad/s^2. "
         "Rejecting further server references and starting %.3f s local bounded stop.",
         evaluation.reason.c_str(),
         evaluation.reference_age_s,
@@ -298,9 +736,20 @@ Reference ManeuverReferenceClient::beginReferenceLossStop(
         evaluation.velocity_limit_m_s,
         evaluation.acceleration_error_m_s2,
         evaluation.acceleration_limit_m_s2,
+        evaluation.yaw_error_rad,
+        evaluation.yaw_limit_rad,
+        evaluation.yaw_rate_error_rad_s,
+        evaluation.yaw_rate_limit_rad_s,
+        evaluation.yaw_acceleration_error_rad_s2,
+        evaluation.yaw_acceleration_limit_rad_s2,
         stop_duration_s
     );
-    return initial;
+    ReferenceLossStopStart start;
+    start.reference = initial;
+    if (fault_stream_identity_->valid()) {
+        start.pause_identity = *fault_stream_identity_;
+    }
+    return start;
 }
 
 Reference ManeuverReferenceClient::sampleReferenceLossStop(
@@ -372,6 +821,11 @@ bool ManeuverReferenceClient::advanceReferenceRecovery(
     std::function<void()> on_fail_during_maneuver,
     std::string & reference_mode
 ) {
+    uint64_t failure_epoch;
+    {
+        std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+        failure_epoch = maneuver_failure_epoch_;
+    }
     const auto now = std::chrono::steady_clock::now();
     const auto timeout = std::chrono::milliseconds(
         configuration_->GetParameter(
@@ -385,11 +839,8 @@ bool ManeuverReferenceClient::advanceReferenceRecovery(
             reason.c_str()
         );
         on_fail_during_maneuver();
-        if (reference_mode_.Load() == reference_mode_t::REFERENCE_LOSS_STOP) {
-            SetReferenceModeHover(true);
-        }
-        failed_attempts_ = 0;
-        reference_mode = "hover_after_reference_loss";
+        const bool hovered = hoverIfFailureEpochUnchanged(failure_epoch);
+        reference_mode = hovered ? "hover_after_reference_loss" : currentReferenceModeLabel();
         return false;
     };
 
@@ -404,16 +855,22 @@ bool ManeuverReferenceClient::advanceReferenceRecovery(
         if (vehicle_odometry_adapter_history_->empty()) {
             return fail_recovery("vehicle state unavailable after bounded stop");
         }
+        if (!fault_stream_identity_ || !fault_stream_identity_->valid()) {
+            return fail_recovery("rejecting stream identity unavailable after bounded stop");
+        }
         if (!rebase_reference_stream_client_->service_is_ready()) {
             return fail_recovery("rebase service unavailable after bounded stop");
         }
-        publishReferenceAck(
+        const ReferenceStreamIdentity fault_identity = *fault_stream_identity_;
+        publishReferenceAckForStream(
+            fault_identity.stream_id,
+            fault_identity.last_applied_sequence,
             iii_drone_interfaces::msg::ManeuverReferenceAck::STATUS_STOPPED,
             "bounded stop settled"
         );
         auto request = std::make_shared<iii_drone_interfaces::srv::RebaseReferenceStream::Request>();
-        request->stream_id = active_stream_id_;
-        request->last_applied_sequence = last_applied_sequence_;
+        request->stream_id = fault_identity.stream_id;
+        request->last_applied_sequence = fault_identity.last_applied_sequence;
         request->stopped_state = StateAdapter(
             (*vehicle_odometry_adapter_history_)[0].ToState()
         ).ToMsg();
@@ -441,17 +898,8 @@ bool ManeuverReferenceClient::advanceReferenceRecovery(
             return fail_recovery(response->reason);
         }
         if (response->abort_action) {
-            const std::string stopped_stream_id = active_stream_id_;
-            uint64_t stopped_sequence = last_applied_sequence_;
-            {
-                std::lock_guard<std::mutex> lock(reference_stream_mutex_);
-                if (
-                    latest_stream_message_ &&
-                    latest_stream_message_->stream_id == stopped_stream_id
-                ) {
-                    stopped_sequence = latest_stream_message_->sequence;
-                }
-            }
+            const ReferenceStreamIdentity stopped_identity =
+                fault_stream_identity_.value_or(ReferenceStreamIdentity{});
             RCLCPP_WARN(
                 logger_,
                 "ManeuverReferenceClient: producer requested action abort after bounded stop: %s",
@@ -459,8 +907,8 @@ bool ManeuverReferenceClient::advanceReferenceRecovery(
             );
             SetReferenceModeHover(true);
             publishReferenceAckForStream(
-                stopped_stream_id,
-                stopped_sequence,
+                stopped_identity.stream_id,
+                stopped_identity.last_applied_sequence,
                 iii_drone_interfaces::msg::ManeuverReferenceAck::STATUS_ACTION_ABORT_READY,
                 "consumer entered hover; producer may abort action"
             );
@@ -546,44 +994,74 @@ bool ManeuverReferenceClient::advanceReferenceRecovery(
 
     if (recovery_phase_ == RecoveryPhase::WaitActive) {
         Reference resumed;
-        if (readReferenceStream(resumed) != StreamReadResult::NewActive) {
+        bool waiting_for_active = false;
+        bool continuity_failed = false;
+        std::optional<ReferenceStreamIdentity> applied_ack_identity;
+        std::string resumed_stream_id;
+        {
+            // Recovery is also a stream consume operation. Keep its guard,
+            // safety seed, candidate commit, and ACK identity together so a
+            // Start/Stop transition cannot rebase a different generation.
+            std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+            if (recovery_phase_ != RecoveryPhase::WaitActive) {
+                waiting_for_active = true;
+            } else if (readReferenceStream(resumed) != StreamReadResult::NewActive) {
+                waiting_for_active = true;
+            } else {
+                ManeuverReferenceSafetyEvaluation evaluation;
+                {
+                    std::lock_guard<std::mutex> safety_lock(reference_safety_mutex_);
+                    reference_safety_guard_->reset();
+                    evaluation = reference_safety_guard_->observeReference(
+                        *prepared_reference_anchor_
+                    );
+                    if (evaluation.decision == ManeuverReferenceSafetyDecision::ACCEPT) {
+                        evaluation = reference_safety_guard_->observeReference(resumed);
+                    }
+                }
+                if (evaluation.decision != ManeuverReferenceSafetyDecision::ACCEPT) {
+                    continuity_failed = true;
+                } else {
+                    reference = resumed;
+                    last_applied_sequence_ = reference_stream_guard_.candidateSequence();
+                    reference_stream_guard_.commitCandidate();
+                    {
+                        std::lock_guard<std::mutex> reference_lock(reference_mutex_);
+                        reference_ = resumed;
+                    }
+                    applied_ack_identity = ReferenceStreamIdentity{
+                        reference_stream_guard_.streamId(),
+                        candidate_request_identity_,
+                        reference_stream_guard_.lastAppliedSequence(),
+                    };
+                    resumed_stream_id = applied_ack_identity->stream_id;
+                    active_request_identity_ = applied_ack_identity->request_identity;
+                    recovery_phase_ = RecoveryPhase::None;
+                    reference_loss_stop_trajectory_.reset();
+                    reference_loss_failure_reported_ = false;
+                    fault_stream_identity_.reset();
+                    reference_mode_.Store(reference_mode_t::MANEUVER);
+                }
+            }
+        }
+        if (waiting_for_active) {
             reference_mode = "wait_for_rebased_reference";
             return true;
         }
-        ManeuverReferenceSafetyEvaluation evaluation;
-        {
-            std::lock_guard<std::mutex> safety_lock(reference_safety_mutex_);
-            reference_safety_guard_->reset();
-            evaluation = reference_safety_guard_->observeReference(
-                *prepared_reference_anchor_
-            );
-            if (evaluation.decision == ManeuverReferenceSafetyDecision::ACCEPT) {
-                evaluation = reference_safety_guard_->observeReference(resumed);
-            }
-        }
-        if (evaluation.decision != ManeuverReferenceSafetyDecision::ACCEPT) {
+        if (continuity_failed) {
             return fail_recovery("first committed reference failed continuity validation");
         }
-        reference = resumed;
-        last_applied_sequence_ = candidate_sequence_;
-        reference_stream_guard_.commitCandidate();
-        {
-            std::lock_guard<std::mutex> reference_lock(reference_mutex_);
-            reference_ = resumed;
-        }
-        publishReferenceAck(
+        publishReferenceAckForStream(
+            applied_ack_identity->stream_id,
+            applied_ack_identity->last_applied_sequence,
             iii_drone_interfaces::msg::ManeuverReferenceAck::STATUS_APPLIED,
             "rebased reference applied"
         );
-        recovery_phase_ = RecoveryPhase::None;
-        reference_loss_stop_trajectory_.reset();
-        reference_loss_failure_reported_ = false;
-        reference_mode_.Store(reference_mode_t::MANEUVER);
         reference_mode = "maneuver_rebased";
         RCLCPP_WARN(
             logger_,
             "ManeuverReferenceClient: committed rebased stream %s; maneuver resumed from stopped state.",
-            active_stream_id_.c_str()
+            resumed_stream_id.c_str()
         );
         return true;
     }
@@ -700,12 +1178,18 @@ void ManeuverReferenceClient::SetReferenceModeHover(bool force) {
         return;
     }
 
-    UpdateReference(true);
+    if (!terminal_degraded_hold_ && !object_stop_failure_hold_) {
+        UpdateReference(true);
+    }
 
     if (reference_mode == reference_mode_t::HOVER) {
         resetReferenceSafety();
         clearPendingReferenceRequest();
         resetReferenceStreamState();
+        if (!terminal_degraded_hold_ && !object_stop_failure_hold_) {
+            terminal_consumer_identity_.clear();
+            terminal_hold_continuity_required_ = false;
+        }
         return;
     }
 
@@ -719,13 +1203,302 @@ void ManeuverReferenceClient::SetReferenceModeHover(bool force) {
     resetReferenceSafety();
     clearPendingReferenceRequest();
     resetReferenceStreamState();
+    if (!terminal_degraded_hold_ && !object_stop_failure_hold_) {
+        terminal_consumer_identity_.clear();
+        terminal_hold_continuity_required_ = false;
+    }
 
+}
+
+uint64_t ManeuverReferenceClient::AcquireReferenceControl() {
+    std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+    SetReferenceModeHover(true);
+    reference_control_owner_ = ++next_reference_control_generation_;
+    return reference_control_owner_;
+}
+
+std::shared_ptr<iii_drone_interfaces::srv::TerminalHoldTransfer::Response>
+ManeuverReferenceClient::requestTerminalHoldTransfer(
+    const iii_drone_interfaces::srv::TerminalHoldTransfer::Request & request,
+    int timeout_ms
+) {
+    if (!terminal_hold_transfer_client_ ||
+        !terminal_hold_transfer_client_->service_is_ready()) return nullptr;
+    auto pending = terminal_hold_transfer_client_->async_send_request(
+        std::make_shared<iii_drone_interfaces::srv::TerminalHoldTransfer::Request>(request)
+    );
+    if (pending.wait_for(std::chrono::milliseconds(std::max(1, timeout_ms))) !=
+        std::future_status::ready) {
+        terminal_hold_transfer_client_->remove_pending_request(pending);
+        return nullptr;
+    }
+    return pending.get();
+}
+
+ManeuverReferenceClient::TerminalHoldAdoption
+ManeuverReferenceClient::TryAdoptTerminalHold(int timeout_ms) {
+    using Transfer = iii_drone_interfaces::srv::TerminalHoldTransfer;
+    Transfer::Request query;
+    query.operation = Transfer::Request::OP_QUERY;
+    query.consumer_identity = nextProcessManeuverRequestIdentity();
+    const auto deadline = std::chrono::steady_clock::now() +
+        std::chrono::milliseconds(std::max(1, timeout_ms));
+    std::shared_ptr<Transfer::Response> offer;
+    while (std::chrono::steady_clock::now() < deadline) {
+        const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
+            deadline - std::chrono::steady_clock::now()).count();
+        offer = requestTerminalHoldTransfer(query, std::max(1, static_cast<int>(remaining)));
+        if (!offer) {
+            RCLCPP_ERROR(logger_, "Terminal hold adoption QUERY unavailable");
+            return TerminalHoldAdoption::Failed;
+        }
+        if (offer->accepted ||
+            (offer->reason != "terminal callback finalizing" &&
+             offer->reason != "terminal generation awaiting first applied acknowledgement")) break;
+        const auto retry_budget = std::chrono::duration_cast<std::chrono::milliseconds>(
+            deadline - std::chrono::steady_clock::now());
+        if (retry_budget.count() > 0) {
+            std::this_thread::sleep_for(std::min(std::chrono::milliseconds(20), retry_budget));
+        }
+    }
+    if (!offer || (!offer->accepted &&
+        (offer->reason == "terminal callback finalizing" ||
+         offer->reason == "terminal generation awaiting first applied acknowledgement"))) {
+        RCLCPP_ERROR(logger_, "Terminal hold adoption QUERY timed out while Core finalized the exact owner");
+        return TerminalHoldAdoption::Failed;
+    }
+    if (!offer->accepted) {
+        if (offer->reason != "no retained terminal hold") {
+            RCLCPP_ERROR(logger_, "Terminal hold adoption QUERY rejected: %s", offer->reason.c_str());
+            return TerminalHoldAdoption::Failed;
+        }
+        std::lock_guard<std::recursive_mutex> lock(transition_mutex_);
+        terminal_degraded_hold_ = false;
+        terminal_hold_continuity_required_ = false;
+        terminal_consumer_identity_.clear();
+        UpdateReference(true);
+        return TerminalHoldAdoption::NoOffer;
+    }
+    const Reference anchor = ReferenceAdapter(offer->reference).reference();
+    if (!finiteReference(anchor) ||
+        !isValidManeuverRequestIdentity(offer->source_request_identity) ||
+        offer->source_stream_id.empty() || offer->source_ack_sequence == 0) {
+        return TerminalHoldAdoption::Failed;
+    }
+    Transfer::Request claim;
+    claim.operation = Transfer::Request::OP_CLAIM;
+    claim.source_request_identity = offer->source_request_identity;
+    claim.source_stream_id = offer->source_stream_id;
+    claim.source_ack_sequence = offer->source_ack_sequence;
+    claim.consumer_identity = query.consumer_identity;
+    auto result = requestTerminalHoldTransfer(claim, timeout_ms);
+    if (!result || !result->accepted ||
+        result->source_stream_id != claim.source_stream_id ||
+        result->source_request_identity != claim.source_request_identity ||
+        result->source_ack_sequence < claim.source_ack_sequence) {
+        RCLCPP_ERROR(logger_, "Terminal hold adoption CLAIM rejected: %s",
+            result ? result->reason.c_str() : "service unavailable");
+        return TerminalHoldAdoption::Failed;
+    }
+    const Reference claimed_anchor = ReferenceAdapter(result->reference).reference();
+    if (!finiteReference(claimed_anchor)) return TerminalHoldAdoption::Failed;
+
+    std::lock_guard<std::recursive_mutex> lock(transition_mutex_);
+    if (pending_goal_handoff_ || isManeuverMode()) return TerminalHoldAdoption::Failed;
+    resetReferenceSafety();
+    {
+        std::lock_guard<std::mutex> safety_lock(reference_safety_mutex_);
+        if (reference_safety_guard_->observeReference(claimed_anchor).decision !=
+            ManeuverReferenceSafetyDecision::ACCEPT) return TerminalHoldAdoption::Failed;
+    }
+    {
+        std::lock_guard<std::mutex> reference_lock(reference_mutex_);
+        reference_ = claimed_anchor;
+    }
+    {
+        std::lock_guard<std::mutex> stream_lock(reference_stream_mutex_);
+        latest_stream_message_.reset();
+    }
+    terminal_consumer_identity_ = claim.consumer_identity;
+    terminal_hold_continuity_required_ = true;
+    terminal_degraded_hold_ = false;
+    active_request_identity_ = claim.source_request_identity;
+    active_stream_id_ = claim.source_stream_id;
+    reference_stream_guard_.expectGeneration(claim.source_stream_id, result->source_ack_sequence);
+    startup_reference_policy_.reset();
+    reference_mode_.Store(reference_mode_t::WAIT_FOR_MANEUVER_START);
+    object_stop_.reset();
+    object_stop_failure_hold_ = false;
+    maneuver_reference_valid_.Store(true);
+    maneuver_start_time_.Store(rclcpp::Clock().now());
+    return TerminalHoldAdoption::Adopted;
+}
+
+ManeuverReferenceClient::TerminalHoldRetention
+ManeuverReferenceClient::RetainCompletedTerminalHold(
+    const std::string & request_identity, int timeout_ms
+) {
+    using Transfer = iii_drone_interfaces::srv::TerminalHoldTransfer;
+    if (!isValidManeuverRequestIdentity(request_identity)) return TerminalHoldRetention::Failed;
+    const auto deadline = std::chrono::steady_clock::now() +
+        std::chrono::milliseconds(std::max(1, timeout_ms));
+    std::string last_pending_reason;
+    do {
+        Transfer::Request query;
+        query.operation = Transfer::Request::OP_QUERY;
+        const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
+            deadline - std::chrono::steady_clock::now()).count();
+        auto offer = requestTerminalHoldTransfer(
+            query, std::max(1, std::min(100, static_cast<int>(remaining))));
+        if (offer && !offer->accepted) {
+            if (offer->reason == "terminal action has not completed" ||
+                offer->reason == "terminal callback finalizing" ||
+                offer->reason == "terminal generation awaiting first applied acknowledgement") {
+                // Completion/token return and the first published generation
+                // are bounded transitions. None substitutes for an APPLIED ACK.
+                last_pending_reason = offer->reason;
+                const auto retry_budget = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    deadline - std::chrono::steady_clock::now());
+                if (retry_budget.count() > 0) {
+                    std::this_thread::sleep_for(std::min(std::chrono::milliseconds(20), retry_budget));
+                }
+                continue;
+            }
+            if (offer->reason != "no retained terminal hold") {
+                RCLCPP_ERROR(logger_,
+                    "Terminal hold retention QUERY rejected for request %s: %s",
+                    request_identity.c_str(), offer->reason.c_str());
+            }
+            return offer->reason == "no retained terminal hold"
+                ? TerminalHoldRetention::NoOffer : TerminalHoldRetention::Failed;
+        }
+        if (offer && offer->accepted &&
+            offer->source_request_identity == request_identity &&
+            finiteReference(ReferenceAdapter(offer->reference).reference())) {
+            std::lock_guard<std::recursive_mutex> lock(transition_mutex_);
+            if (pending_goal_handoff_ &&
+                pending_goal_handoff_->request_identity != request_identity) {
+                RCLCPP_ERROR(logger_, "Terminal hold retention lost pending request ownership: %s",
+                    request_identity.c_str());
+                return TerminalHoldRetention::Failed;
+            }
+            if (!pending_goal_handoff_ && active_request_identity_ != request_identity) {
+                RCLCPP_ERROR(logger_, "Terminal hold retention lost active request ownership: %s",
+                    request_identity.c_str());
+                return TerminalHoldRetention::Failed;
+            }
+            pending_goal_handoff_.reset();
+            active_request_identity_ = request_identity;
+            reference_mode_.Store(reference_mode_t::MANEUVER);
+            terminal_hold_continuity_required_ = true;
+            return TerminalHoldRetention::Retained;
+        }
+        if (offer && offer->accepted) {
+            RCLCPP_ERROR(logger_,
+                "Terminal hold retention offer identity or reference invalid: request=%s offered=%s",
+                request_identity.c_str(), offer->source_request_identity.c_str());
+            return TerminalHoldRetention::Failed;
+        }
+        const auto retry_budget = std::chrono::duration_cast<std::chrono::milliseconds>(
+            deadline - std::chrono::steady_clock::now());
+        if (retry_budget.count() > 0) {
+            std::this_thread::sleep_for(std::min(std::chrono::milliseconds(20), retry_budget));
+        }
+    } while (std::chrono::steady_clock::now() < deadline);
+    RCLCPP_ERROR(logger_,
+        "Terminal hold retention QUERY timed out for request %s (last pending reason: %s)",
+        request_identity.c_str(),
+        last_pending_reason.empty() ? "service unavailable" : last_pending_reason.c_str());
+    return TerminalHoldRetention::Failed;
+}
+
+bool ManeuverReferenceClient::terminalHoldContinuityRequired() const {
+    return terminal_hold_continuity_required_.load();
+}
+
+void ManeuverReferenceClient::ResetTerminalRetentionFailure() {
+    std::lock_guard<std::recursive_mutex> lock(transition_mutex_);
+    terminal_retention_failure_owner_ = 0;
+    terminal_retention_failure_request_.clear();
+}
+
+bool ManeuverReferenceClient::ReportTerminalRetentionFailure(
+    const std::string & request_identity
+) {
+    std::lock_guard<std::recursive_mutex> lock(transition_mutex_);
+    if (!isValidManeuverRequestIdentity(request_identity) ||
+        reference_control_owner_ == 0 ||
+        (active_request_identity_ != request_identity &&
+         (!pending_goal_handoff_ ||
+          pending_goal_handoff_->request_identity != request_identity))) return false;
+    terminal_retention_failure_owner_ = reference_control_owner_;
+    terminal_retention_failure_request_ = request_identity;
+    return true;
+}
+
+bool ManeuverReferenceClient::TerminalRetentionFailed() {
+    std::lock_guard<std::recursive_mutex> lock(transition_mutex_);
+    return terminal_retention_failure_owner_ != 0 &&
+        terminal_retention_failure_owner_ == reference_control_owner_ &&
+        !terminal_retention_failure_request_.empty();
+}
+
+bool ManeuverReferenceClient::ReleaseReferenceControl(uint64_t owner_generation) {
+    std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+    if (owner_generation == 0 || owner_generation != reference_control_owner_) {
+        return false;
+    }
+    SetReferenceModeHover(true);
+    reference_control_owner_ = 0;
+    return true;
+}
+
+bool ManeuverReferenceClient::hoverIfFailureEpochUnchanged(uint64_t observed_epoch) {
+    std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+    if (maneuver_failure_epoch_ != observed_epoch) {
+        return false;
+    }
+    if (currentTerminalStreamState() || ownsObjectStoppedHold()) {
+        // An exact, applied Core terminal owner can outlive a successor that
+        // never produced its first sample. A timeout must not turn that
+        // retained finite command into a newly measured Hover reference.
+        // Explicit mode release and Core's terminal lifecycle remain able to
+        // retire this owner.
+        return false;
+    }
+    if (isManeuverMode(reference_mode_.Load())) {
+        SetReferenceModeHover(true);
+    }
+    if (reference_mode_.Load() == reference_mode_t::HOVER) {
+        failed_attempts_ = 0;
+        return true;
+    }
+    return false;
+}
+
+std::string ManeuverReferenceClient::currentReferenceModeLabel() const {
+    switch (reference_mode_.Load()) {
+        case reference_mode_t::PASSTHROUGH: return "passthrough";
+        case reference_mode_t::HOVER: return "hover";
+        case reference_mode_t::WAIT_FOR_MANEUVER_START: return "wait_for_maneuver_start";
+        case reference_mode_t::MANEUVER: return "maneuver";
+        case reference_mode_t::WAIT_FOR_MANEUVER_STOP: return "wait_for_maneuver_stop";
+        case reference_mode_t::REFERENCE_LOSS_STOP: return "reference_loss_stopping";
+    }
+    return "hover";
 }
 
 bool ManeuverReferenceClient::StartManeuver() {
 
     std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
 
+    if (pending_goal_handoff_) {
+        RCLCPP_ERROR(
+            logger_,
+            "ManeuverReferenceClient::StartManeuver(): Cannot replace a pending goal handoff."
+        );
+        return false;
+    }
     auto reference_mode = reference_mode_.Load();
 
     if (reference_mode == WAIT_FOR_MANEUVER_START || reference_mode == MANEUVER) {
@@ -752,8 +1525,40 @@ bool ManeuverReferenceClient::StartManeuver() {
 
     clearPendingReferenceRequest();
     resetReferenceSafety();
-    resetReferenceStreamState();
+    const bool has_prior_generation = !reference_stream_guard_.streamId().empty();
+    if (has_prior_generation) {
+        std::lock_guard<std::mutex> lock(reference_stream_mutex_);
+        latest_stream_message_.reset();
+    } else {
+        resetReferenceStreamState();
+    }
+    active_stream_id_.clear();
+    active_request_identity_.clear();
+    candidate_request_identity_.clear();
+    prepared_stream_id_.clear();
+    prepared_reference_anchor_.reset();
+    last_applied_sequence_ = 0;
+    candidate_sequence_ = 0;
+    if (terminal_hold_continuity_required_) {
+        startup_reference_policy_.reset();
+    } else {
+        startup_reference_policy_.arm();
+    }
+    fault_stream_identity_.reset();
+    recovery_phase_ = RecoveryPhase::None;
+    pending_rebase_request_.reset();
+    pending_commit_request_.reset();
+    if (has_prior_generation) {
+        // Keep the completed generation as the explicit predecessor.  Late
+        // samples from it may still be in DDS queues after StopManeuver(); if
+        // the guard were reset, one such sample could become the new baseline
+        // and make the real successor look like an unauthorized generation.
+        reference_stream_guard_.expectSuccessorGeneration();
+    }
+    object_stop_.reset();
+    object_stop_failure_hold_ = false;
     reference_mode_.Store(reference_mode_t::WAIT_FOR_MANEUVER_START);
+    ++maneuver_failure_epoch_;
     maneuver_reference_valid_.Store(false);
 
     if (*stop_maneuver_timer_ != nullptr) {
@@ -783,11 +1588,323 @@ bool ManeuverReferenceClient::PrepareManeuverStreamHandoff() {
         return false;
     }
 
-    successor_generation_handoff_requested_.store(true);
+    reference_stream_guard_.expectSuccessorGeneration(true);
     RCLCPP_DEBUG(
         logger_,
         "ManeuverReferenceClient::PrepareManeuverStreamHandoff(): "
         "Expecting one continuity-checked successor reference generation."
+    );
+    return true;
+}
+
+bool ManeuverReferenceClient::BeginManeuverGoalHandoff(
+    const std::string & request_identity,
+    bool preserve_active_predecessor_on_cancel
+) {
+    std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+
+    if (!isValidManeuverRequestIdentity(request_identity)) {
+        RCLCPP_ERROR(
+            logger_,
+            "ManeuverReferenceClient::BeginManeuverGoalHandoff(): Refusing malformed request identity."
+        );
+        return false;
+    }
+    if (pending_goal_handoff_ || object_stop_ ||
+        reference_mode_.Load() == reference_mode_t::REFERENCE_LOSS_STOP) {
+        RCLCPP_ERROR(
+            logger_,
+            "ManeuverReferenceClient::BeginManeuverGoalHandoff(): Another handoff or bounded recovery owns the stream."
+        );
+        return false;
+    }
+
+    const auto reference_mode = reference_mode_.Load();
+    PendingManeuverGoalHandoff handoff;
+    handoff.request_identity = request_identity;
+    handoff.predecessor_stream_id = reference_stream_guard_.streamId();
+    handoff.predecessor_was_running = reference_mode == reference_mode_t::MANEUVER;
+    handoff.preserve_active_predecessor_on_cancel = preserve_active_predecessor_on_cancel;
+    pending_goal_handoff_ = std::move(handoff);
+    ++maneuver_failure_epoch_;
+
+    // When an active predecessor exists, retain it as a valid G1 producer but
+    // grant exactly one G2 only to this request identity. For an initial goal,
+    // the empty guard will adopt only this already-bound identity at ingress.
+    if (!reference_stream_guard_.streamId().empty()) {
+        reference_stream_guard_.expectSuccessorGeneration(true);
+    }
+    if (*stop_maneuver_timer_ != nullptr) {
+        (*stop_maneuver_timer_)->cancel();
+        stop_maneuver_timer_.Store(nullptr);
+    }
+    ++stop_maneuver_timer_generation_;
+
+    auto event = iii_drone::diagnostics::HilTrace::event("reference_goal_handoff_begin");
+    event.text("request_identity", request_identity);
+    event.text("predecessor_stream_id", pending_goal_handoff_->predecessor_stream_id);
+    event.text("current_stream_id", reference_stream_guard_.streamId());
+    event.boolean("early_successor_consumed", false);
+    event.boolean("preserve_active_predecessor_on_cancel", preserve_active_predecessor_on_cancel);
+    event.commit();
+    return true;
+}
+
+bool ManeuverReferenceClient::ConfirmManeuverGoalHandoff(const std::string & request_identity) {
+    std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+
+    if (!pending_goal_handoff_ ||
+        pending_goal_handoff_->request_identity != request_identity) {
+        return false;
+    }
+    if (pending_goal_handoff_->goal_accepted) {
+        return false;
+    }
+    pending_goal_handoff_->goal_accepted = true;
+    const PendingManeuverGoalHandoff handoff = *pending_goal_handoff_;
+    const bool owned_stop_waiting_for_completion =
+        reference_mode_.Load() == reference_mode_t::WAIT_FOR_MANEUVER_STOP &&
+        *stop_maneuver_timer_ != nullptr;
+    if (handoff.successor_consumed) {
+        maneuver_reference_valid_.Store(true);
+        if (!owned_stop_waiting_for_completion) {
+            reference_mode_.Store(reference_mode_t::MANEUVER);
+        }
+        pending_goal_handoff_.reset();
+    } else if (owned_stop_waiting_for_completion) {
+        // A terminal action may schedule its bounded stop before Confirm.
+        // Keep that owned timer and WAIT_STOP mode so its original expiry
+        // remains authoritative while this request awaits its first sample.
+    } else if (
+        handoff.preserve_active_predecessor_on_cancel &&
+        handoff.predecessor_was_running
+    ) {
+        // A blended goal attaches to a deliberately preserved maneuver. Its
+        // G1 remains the active control stream until G2 commits.
+        reference_mode_.Store(reference_mode_t::MANEUVER);
+    } else {
+        // Keep G1's committed identity and safety history live while the
+        // accepted goal awaits its explicitly authorized G2. G1 can be
+        // acknowledged, but readReferenceStream classifies it separately so
+        // it cannot satisfy this new maneuver start.
+        reference_mode_.Store(reference_mode_t::WAIT_FOR_MANEUVER_START);
+    }
+    maneuver_start_time_.Store(rclcpp::Clock().now());
+
+    auto event = iii_drone::diagnostics::HilTrace::event("reference_goal_handoff_confirm");
+    event.text("request_identity", handoff.request_identity);
+    event.text("predecessor_stream_id", handoff.predecessor_stream_id);
+    event.text("current_stream_id", reference_stream_guard_.streamId());
+    event.boolean("early_successor_consumed", handoff.successor_consumed);
+    event.commit();
+    return true;
+}
+
+bool ManeuverReferenceClient::CancelManeuverGoalHandoff(const std::string & request_identity) {
+    std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+
+    if (reference_mode_.Load() == reference_mode_t::REFERENCE_LOSS_STOP) {
+        return false;
+    }
+    // A pending successor has priority over its predecessor's still active
+    // stream. Once Confirm has consumed G2, the pending slot is gone and the
+    // committed active identity is the remaining terminal owner.
+    if (!pending_goal_handoff_) {
+        if (!isValidManeuverRequestIdentity(request_identity) ||
+            active_request_identity_ != request_identity) {
+            return false;
+        }
+        if (beginObjectStopLocked(request_identity)) return true;
+        StopManeuver();
+        return true;
+    }
+    if (pending_goal_handoff_->request_identity != request_identity) {
+        return false;
+    }
+    const PendingManeuverGoalHandoff handoff = *pending_goal_handoff_;
+    pending_goal_handoff_.reset();
+    retireInadmissibleCachedStreamLocked();
+
+    auto event = iii_drone::diagnostics::HilTrace::event("reference_goal_handoff_cancel");
+    event.text("request_identity", handoff.request_identity);
+    event.text("predecessor_stream_id", handoff.predecessor_stream_id);
+    event.text("current_stream_id", reference_stream_guard_.streamId());
+    event.boolean("early_successor_consumed", handoff.successor_consumed);
+    event.commit();
+
+    if (!handoff.successor_consumed) {
+        reference_stream_guard_.cancelSuccessorGenerationExpectation();
+        if (ownsObjectStoppedHold() &&
+            handoff.predecessor_stream_id == object_stopped_hold_->stream_id) {
+            // The unstarted successor never displaced this exact certified
+            // rest. Resume its local Hold and continuing producer ACKs.
+            reference_mode_.Store(reference_mode_t::HOVER);
+            return true;
+        }
+        if (
+            !handoff.goal_accepted &&
+            handoff.preserve_active_predecessor_on_cancel &&
+            handoff.predecessor_was_running
+        ) {
+            reference_mode_.Store(reference_mode_t::MANEUVER);
+            return true;
+        }
+    }
+
+    // An ordinary successor, a delayed-stop predecessor, or any successor
+    // that already affected control takes the existing terminal safe path.
+    StopManeuver();
+    return true;
+}
+
+bool ManeuverReferenceClient::CompleteManeuverGoalHandoff(
+    const std::string & request_identity,
+    Reference final_reference
+) {
+    std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+    if (!isValidManeuverRequestIdentity(request_identity) ||
+        reference_mode_.Load() == reference_mode_t::REFERENCE_LOSS_STOP ||
+        (pending_goal_handoff_
+            ? pending_goal_handoff_->request_identity != request_identity
+            : active_request_identity_ != request_identity)) {
+        return false;
+    }
+    if (isManeuverMode()) {
+        if (!pending_goal_handoff_ &&
+            currentAppliedObjectTrackingStream(request_identity)) {
+            // The result's nominal target is metadata. The marked, applied
+            // moving command remains owned until the next request takes it.
+            return true;
+        }
+        StopManeuver(final_reference);
+        // A retained predecessor terminal correction can defer this stop.
+        // The reported nominal object target is metadata, not authority to
+        // discard that command or the still-pending successor identity.
+        if ((pending_goal_handoff_ &&
+             pending_goal_handoff_->request_identity == request_identity) ||
+            (active_request_identity_ == request_identity && isManeuverMode())) {
+            RCLCPP_ERROR(logger_,
+                "ManeuverReferenceClient::CompleteManeuverGoalHandoff(): "
+                "Stop was deferred; request %s still owns a pending or active stream",
+                request_identity.c_str());
+            return false;
+        }
+    } else {
+        // An action may complete before its first reference is consumed.
+        // Preserve its reported target while retiring the pending identity.
+        SetReferenceModeHover(true);
+        SetReference(final_reference);
+    }
+    return true;
+}
+
+bool ManeuverReferenceClient::CompleteManeuverGoalHandoff(
+    const std::string & request_identity
+) {
+    std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+    if (!isValidManeuverRequestIdentity(request_identity) ||
+        reference_mode_.Load() == reference_mode_t::REFERENCE_LOSS_STOP ||
+        (pending_goal_handoff_
+            ? pending_goal_handoff_->request_identity != request_identity
+            : active_request_identity_ != request_identity)) {
+        return false;
+    }
+
+    bool marked_generation =
+        applied_object_tracking_request_identity_ == request_identity;
+    {
+        std::lock_guard<std::mutex> stream_lock(reference_stream_mutex_);
+        marked_generation = marked_generation ||
+            (latest_stream_message_ &&
+             latest_stream_message_->request_identity == request_identity &&
+             latest_stream_message_->object_tracking_active);
+    }
+    if (marked_generation) {
+        // A successful marked result may leave its moving command live only
+        // when this same request has actually consumed a fresh marked sample.
+        // The next goal then asks Core for its certified rest transition.
+        if (pending_goal_handoff_ || object_stop_ || object_stop_failure_hold_ ||
+            reference_mode_.Load() != reference_mode_t::MANEUVER ||
+            !currentAppliedObjectTrackingStream(request_identity)) {
+            RCLCPP_ERROR(logger_,
+                "ManeuverReferenceClient::CompleteManeuverGoalHandoff(): "
+                "Request %s lacks a fresh applied object generation",
+                request_identity.c_str());
+            return false;
+        }
+        return true;
+    }
+
+    // Nontracking HoverByObject keeps its historical no-reference cleanup.
+    return CancelManeuverGoalHandoff(request_identity);
+}
+
+bool ManeuverReferenceClient::StopManeuverGoalHandoffAfterTimeout(
+    const std::string & request_identity, int timeout_ms
+) {
+    return scheduleOwnedManeuverStop(request_identity, std::nullopt, timeout_ms);
+}
+
+bool ManeuverReferenceClient::StopManeuverGoalHandoffAfterTimeout(
+    const std::string & request_identity, Reference final_reference, int timeout_ms
+) {
+    return scheduleOwnedManeuverStop(
+        request_identity, std::move(final_reference), timeout_ms
+    );
+}
+
+bool ManeuverReferenceClient::scheduleOwnedManeuverStop(
+    const std::string & request_identity,
+    std::optional<Reference> final_reference,
+    int timeout_ms
+) {
+    std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+    if (!isValidManeuverRequestIdentity(request_identity) ||
+        reference_mode_.Load() == reference_mode_t::REFERENCE_LOSS_STOP ||
+        (pending_goal_handoff_
+            ? pending_goal_handoff_->request_identity != request_identity
+            : active_request_identity_ != request_identity)) {
+        return false;
+    }
+
+    // A nonpositive timeout remains immediate. A positive owned stop may
+    // outlive the first reference from its accepted pending goal; WAIT_STOP
+    // will consume and acknowledge that authorized sample under this owner.
+    if (timeout_ms <= 0 || !isManeuverMode()) {
+        if (beginObjectStopLocked(request_identity)) return true;
+        return final_reference
+            ? CompleteManeuverGoalHandoff(request_identity, *final_reference)
+            : CancelManeuverGoalHandoff(request_identity);
+    }
+
+    if (*stop_maneuver_timer_ != nullptr) {
+        (*stop_maneuver_timer_)->cancel();
+        stop_maneuver_timer_.Store(nullptr);
+    }
+    const uint64_t generation = ++stop_maneuver_timer_generation_;
+    reference_mode_.Store(reference_mode_t::WAIT_FOR_MANEUVER_STOP);
+
+    // The callback carries its original owner and generation. A canceled
+    // timer already dispatched by ROS cannot borrow a later timer's callback.
+    const std::function<void()> callback = [this, request_identity, generation, final_reference]() {
+        std::lock_guard<std::recursive_mutex> callback_lock(transition_mutex_);
+        if (generation != stop_maneuver_timer_generation_ ||
+            reference_mode_.Load() != reference_mode_t::WAIT_FOR_MANEUVER_STOP ||
+            (pending_goal_handoff_
+                ? pending_goal_handoff_->request_identity != request_identity
+                : active_request_identity_ != request_identity)) {
+            return;
+        }
+        if (beginObjectStopLocked(request_identity)) return;
+        if (final_reference) {
+            CompleteManeuverGoalHandoff(request_identity, *final_reference);
+        } else {
+            CancelManeuverGoalHandoff(request_identity);
+        }
+    };
+    stop_maneuver_timer_callback_ = callback;
+    stop_maneuver_timer_ = create_wall_timer_(
+        std::chrono::milliseconds(timeout_ms), callback
     );
     return true;
 }
@@ -798,9 +1915,148 @@ bool ManeuverReferenceClient::IsManeuverActive() {
 
 }
 
+std::optional<uint8_t> ManeuverReferenceClient::currentTerminalStreamState() {
+    if (!applied_terminal_stream_state_ ||
+        applied_terminal_stream_id_ != active_stream_id_ ||
+        applied_terminal_request_identity_ != active_request_identity_ ||
+        last_applied_sequence_ == 0) {
+        return std::nullopt;
+    }
+    return applied_terminal_stream_state_;
+}
+
+bool ManeuverReferenceClient::currentAppliedObjectTrackingStream(
+    const std::string & request_identity) {
+    if (request_identity.empty() || active_request_identity_ != request_identity ||
+        active_stream_id_.empty() || last_applied_sequence_ == 0 ||
+        applied_object_tracking_stream_id_ != active_stream_id_ ||
+        applied_object_tracking_request_identity_ != request_identity ||
+        applied_object_tracking_sequence_ != last_applied_sequence_ ||
+        applied_object_tracking_state_ !=
+            iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_ACTIVE ||
+        reference_stream_guard_.streamId() != active_stream_id_ ||
+        reference_stream_guard_.lastAppliedSequence() != last_applied_sequence_) {
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(reference_stream_mutex_);
+    if (!latest_stream_message_ || !latest_stream_message_->is_valid ||
+        !latest_stream_message_->object_tracking_active ||
+        latest_stream_message_->terminal_hold_active ||
+        latest_stream_message_->state !=
+            iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_ACTIVE ||
+        latest_stream_message_->stream_id != active_stream_id_ ||
+        latest_stream_message_->request_identity != request_identity ||
+        latest_stream_message_->sequence < last_applied_sequence_ ||
+        rosTimeNs(latest_stream_message_->valid_until) <= clock_->now().nanoseconds()) {
+        return false;
+    }
+    const auto timeout = std::chrono::milliseconds(configuration_->GetParameter(
+        "/control/maneuver_controller/reference_stream_timeout_ms").as_int());
+    const auto now = std::chrono::steady_clock::now();
+    return now >= latest_stream_received_at_ &&
+        now - latest_stream_received_at_ <= timeout &&
+        now >= applied_object_tracking_at_ &&
+        now - applied_object_tracking_at_ <= timeout;
+}
+
+bool ManeuverReferenceClient::beginObjectStopLocked(
+    const std::string & request_identity) {
+    // transition_mutex_ is held by the caller. The sequence is the command
+    // actually consumed, never a newer publication seen only by DDS.
+    if (object_stop_) {
+        return object_stop_->identity.request_identity == request_identity;
+    }
+    if (pending_goal_handoff_ || active_request_identity_ != request_identity ||
+        active_stream_id_.empty() || last_applied_sequence_ == 0 ||
+        applied_object_tracking_stream_id_ != active_stream_id_ ||
+        applied_object_tracking_request_identity_ != request_identity ||
+        applied_object_tracking_sequence_ != last_applied_sequence_ ||
+        applied_object_tracking_state_ !=
+            iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_ACTIVE) {
+        return false;
+    }
+    ObjectStop stop;
+    stop.identity = ReferenceStreamIdentity{
+        active_stream_id_, request_identity, last_applied_sequence_};
+    stop.requested_at = std::chrono::steady_clock::now();
+    if (!currentAppliedObjectTrackingStream(request_identity) ||
+        vehicle_odometry_adapter_history_->empty()) {
+        stop.failure_reason = "object stop lacks a fresh actually applied marked command";
+    }
+    object_stop_ = std::move(stop);
+    reference_mode_.Store(reference_mode_t::WAIT_FOR_MANEUVER_STOP);
+    if (*stop_maneuver_timer_ != nullptr) {
+        (*stop_maneuver_timer_)->cancel();
+        stop_maneuver_timer_.Store(nullptr);
+    }
+    if (object_stop_->failure_reason.empty()) {
+        publishReferenceAckForStream(
+            object_stop_->identity.stream_id,
+            object_stop_->identity.last_applied_sequence,
+            iii_drone_interfaces::msg::ManeuverReferenceAck::STATUS_OBJECT_STOP_REQUESTED,
+            "owned object command transition stop requested");
+    }
+    return true;
+}
+
+bool ManeuverReferenceClient::ownsObjectStoppedHold() const {
+    return object_stopped_hold_ &&
+        object_stopped_hold_->control_owner_generation == reference_control_owner_ &&
+        object_stopped_hold_->stream_id == active_stream_id_ &&
+        object_stopped_hold_->stream_id == reference_stream_guard_.streamId() &&
+        object_stopped_hold_->request_identity == active_request_identity_;
+}
+
+bool ManeuverReferenceClient::appliedObjectStopRestLocked(
+    const Reference & reference) const {
+    if (!object_stop_ || !object_stop_->admitted ||
+        applied_object_tracking_stream_id_ != object_stop_->identity.stream_id ||
+        applied_object_tracking_request_identity_ !=
+            object_stop_->identity.request_identity ||
+        applied_object_tracking_sequence_ != last_applied_sequence_ ||
+        applied_object_tracking_state_ !=
+            iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_OBJECT_STOPPED) return false;
+    return reference.position().allFinite() && reference.velocity().allFinite() &&
+        reference.acceleration().allFinite() && std::isfinite(reference.yaw()) &&
+        std::isfinite(reference.yaw_rate()) &&
+        std::isfinite(reference.yaw_acceleration()) &&
+        reference.velocity().norm() <= 1.0e-5 &&
+        reference.acceleration().norm() <= 1.0e-5 &&
+        std::abs(reference.yaw_rate()) <= 1.0e-5 &&
+        std::abs(reference.yaw_acceleration()) <= 1.0e-5;
+}
+
+void ManeuverReferenceClient::finishObjectStopLocked(const Reference & rest) {
+    const auto stopped_identity = object_stop_->identity;
+    {
+        std::lock_guard<std::mutex> lock(reference_mutex_);
+        reference_ = rest;
+    }
+    object_stopped_hold_ = ObjectStoppedHold{
+        stopped_identity.stream_id,
+        stopped_identity.request_identity,
+        reference_control_owner_,
+        rest,
+        std::chrono::steady_clock::now(),
+        false};
+    reference_mode_.Store(reference_mode_t::HOVER);
+    maneuver_reference_valid_.Store(false);
+    clearPendingReferenceRequest();
+    terminal_consumer_identity_.clear();
+    terminal_hold_continuity_required_ = false;
+    object_stop_failure_hold_ = false;
+    object_stop_.reset();
+    ++stop_maneuver_timer_generation_;
+    if (*stop_maneuver_timer_ != nullptr) {
+        (*stop_maneuver_timer_)->cancel();
+        stop_maneuver_timer_.Store(nullptr);
+    }
+}
+
 void ManeuverReferenceClient::StopManeuver() {
 
     std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+    ++stop_maneuver_timer_generation_;
 
     if (reference_mode_.Load() == reference_mode_t::REFERENCE_LOSS_STOP) {
         RCLCPP_WARN(
@@ -810,9 +2066,32 @@ void ManeuverReferenceClient::StopManeuver() {
         return;
     }
 
+    if (ownsObjectStoppedHold()) {
+        reference_stream_guard_.cancelSuccessorGenerationExpectation();
+        pending_goal_handoff_.reset();
+        reference_mode_.Store(reference_mode_t::HOVER);
+        return;
+    }
+
     if (!isManeuverMode()) {
+        retireInadmissibleCachedStreamLocked();
         RCLCPP_WARN(logger_, "ManeuverReferenceClient::StopManeuver(): Cannot stop maneuver while a maneuver mode is not active.");
         return;
+    }
+
+    if (beginObjectStopLocked(active_request_identity_)) return;
+
+    if (const auto terminal_state = currentTerminalStreamState()) {
+        if (*terminal_state == iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_ACTIVE) {
+            RCLCPP_WARN(logger_, "Deferring terminal stop until Core finishes its bounded command segment");
+            return;
+        }
+        if (*terminal_state ==
+            iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_TERMINAL_DEGRADED) {
+            terminal_degraded_hold_ = true;
+        } else {
+            return;
+        }
     }
 
     RCLCPP_DEBUG(
@@ -824,9 +2103,27 @@ void ManeuverReferenceClient::StopManeuver() {
     maneuver_reference_valid_.Store(false);
     resetReferenceSafety();
     clearPendingReferenceRequest();
-    resetReferenceStreamState();
+    {
+        std::lock_guard<std::mutex> lock(reference_stream_mutex_);
+        latest_stream_message_.reset();
+    }
+    active_stream_id_.clear();
+    active_request_identity_.clear();
+    candidate_request_identity_.clear();
+    prepared_stream_id_.clear();
+    prepared_reference_anchor_.reset();
+    last_applied_sequence_ = 0;
+    candidate_sequence_ = 0;
+    startup_reference_policy_.reset();
+    fault_stream_identity_.reset();
+    pending_goal_handoff_.reset();
+    recovery_phase_ = RecoveryPhase::None;
+    pending_rebase_request_.reset();
+    pending_commit_request_.reset();
 
-    UpdateReference();
+    if (!terminal_degraded_hold_ && !object_stop_failure_hold_) {
+        UpdateReference();
+    }
 
     if (*stop_maneuver_timer_ != nullptr) {
         (*stop_maneuver_timer_)->cancel();
@@ -838,6 +2135,7 @@ void ManeuverReferenceClient::StopManeuver() {
 void ManeuverReferenceClient::StopManeuver(Reference reference) {
 
     std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+    ++stop_maneuver_timer_generation_;
 
     if (reference_mode_.Load() == reference_mode_t::REFERENCE_LOSS_STOP) {
         RCLCPP_WARN(
@@ -847,8 +2145,24 @@ void ManeuverReferenceClient::StopManeuver(Reference reference) {
         return;
     }
 
+    if (ownsObjectStoppedHold()) {
+        // Nominal action-result metadata cannot replace a certified rest
+        // still owned by the predecessor's stopped stream.
+        return;
+    }
+
     if (!isManeuverMode()) {
+        retireInadmissibleCachedStreamLocked();
         RCLCPP_WARN(logger_, "ManeuverReferenceClient::StopManeuver(Reference): Cannot stop maneuver while a maneuver mode is not active.");
+        return;
+    }
+
+    if (beginObjectStopLocked(active_request_identity_)) return;
+
+    if (currentTerminalStreamState()) {
+        // A nominal action result must not overwrite the last accepted
+        // terminal command. Core owns its analytic stop and final hold.
+        StopManeuver();
         return;
     }
 
@@ -866,7 +2180,23 @@ void ManeuverReferenceClient::StopManeuver(Reference reference) {
     maneuver_reference_valid_.Store(false);
     resetReferenceSafety();
     clearPendingReferenceRequest();
-    resetReferenceStreamState();
+    {
+        std::lock_guard<std::mutex> lock(reference_stream_mutex_);
+        latest_stream_message_.reset();
+    }
+    active_stream_id_.clear();
+    active_request_identity_.clear();
+    candidate_request_identity_.clear();
+    prepared_stream_id_.clear();
+    prepared_reference_anchor_.reset();
+    last_applied_sequence_ = 0;
+    candidate_sequence_ = 0;
+    startup_reference_policy_.reset();
+    fault_stream_identity_.reset();
+    pending_goal_handoff_.reset();
+    recovery_phase_ = RecoveryPhase::None;
+    pending_rebase_request_.reset();
+    pending_commit_request_.reset();
 
     if (*stop_maneuver_timer_ != nullptr) {
         (*stop_maneuver_timer_)->cancel();
@@ -888,6 +2218,7 @@ void ManeuverReferenceClient::StopManeuverAfterTimeout(int timeout_ms) {
     }
 
     if (!isManeuverMode()) {
+        retireInadmissibleCachedStreamLocked();
         RCLCPP_WARN(logger_, "ManeuverReferenceClient::StopManeuverAfterTimeout(): Cannot stop maneuver while a maneuver mode is not active.");
         return;
     }
@@ -986,7 +2317,15 @@ Reference ManeuverReferenceClient::GetReference(
 
     iii_drone_interfaces::msg::StringStamped reference_mode_msg;
 
-    switch(reference_mode_.Load()) {
+    reference_mode_t observed_mode;
+    uint64_t failure_epoch;
+    {
+        std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+        observed_mode = reference_mode_.Load();
+        failure_epoch = maneuver_failure_epoch_;
+    }
+
+    switch(observed_mode) {
         case reference_mode_t::PASSTHROUGH:
 
             failed_attempts_ = 0;
@@ -999,11 +2338,43 @@ Reference ManeuverReferenceClient::GetReference(
         case reference_mode_t::HOVER: {
 
             failed_attempts_ = 0;
-
-            std::lock_guard<std::mutex> lock(reference_mutex_);
-
-            reference = reference_;
-
+            std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+            if (object_stopped_hold_ &&
+                object_stopped_hold_->control_owner_generation == reference_control_owner_ &&
+                object_stopped_hold_->stream_id == active_stream_id_ &&
+                object_stopped_hold_->request_identity == active_request_identity_) {
+                const auto consumption = consumeReferenceCandidate(
+                    reference, reference_mode_t::HOVER, false, false);
+                if (consumption.applied_ack_identity) {
+                    object_stopped_hold_->last_applied_at =
+                        std::chrono::steady_clock::now();
+                    publishReferenceAckForStream(
+                        consumption.applied_ack_identity->stream_id,
+                        consumption.applied_ack_identity->last_applied_sequence,
+                        iii_drone_interfaces::msg::ManeuverReferenceAck::STATUS_APPLIED,
+                        "owned stopped-object rest applied");
+                } else {
+                    std::lock_guard<std::mutex> reference_lock(reference_mutex_);
+                    reference = reference_;
+                }
+                const auto timeout = std::chrono::milliseconds(
+                    configuration_->GetParameter(
+                        "/control/maneuver_controller/reference_stream_timeout_ms").as_int());
+                if (!object_stopped_hold_->failure_reported &&
+                    (consumption.began_reference_loss_stop ||
+                     std::chrono::steady_clock::now() -
+                         object_stopped_hold_->last_applied_at > timeout)) {
+                    object_stopped_hold_->failure_reported = true;
+                    object_stop_failure_hold_ = true;
+                    on_fail_during_maneuver();
+                }
+                reference_mode_msg.data = "hover_object_stopped";
+                break;
+            }
+            {
+                std::lock_guard<std::mutex> reference_lock(reference_mutex_);
+                reference = reference_;
+            }
             reference_mode_msg.data = "hover";
 
             break;
@@ -1017,30 +2388,84 @@ Reference ManeuverReferenceClient::GetReference(
 
             int elapsed_ms = elapsed_time_since_start.nanoseconds() / 1e6;
 
-            if (elapsed_ms > configuration_->GetParameter("/mission/wait_for_maneuver_start_timeout_ms").as_int()) {
+            int start_timeout_ms = configuration_->GetParameter(
+                "/mission/wait_for_maneuver_start_timeout_ms").as_int();
+            if (terminal_hold_continuity_required_ &&
+                !terminal_consumer_identity_.empty() && last_applied_sequence_ > 0) {
+                std::lock_guard<std::mutex> stream_lock(reference_stream_mutex_);
+                if (latest_stream_message_ && latest_stream_message_->is_valid &&
+                    latest_stream_message_->stream_id == active_stream_id_ &&
+                    latest_stream_message_->request_identity == active_request_identity_ &&
+                    latest_stream_message_->state ==
+                        iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_ACTIVE &&
+                    rosTimeNs(latest_stream_message_->valid_until) > clock_->now().nanoseconds()) {
+                    // A quiescent analytic segment can take 17.5 s at the
+                    // configured 0.4 m / 0.1 m/s bounds. Keep the ordinary
+                    // 3 s budget unless this exact predecessor is fresh.
+                    start_timeout_ms = std::max(start_timeout_ms, 25000);
+                }
+            }
+            if (elapsed_ms > start_timeout_ms) {
 
                 RCLCPP_ERROR(
                     logger_,
-                    "ManeuverReferenceClient::GetReference(): WAIT_FOR_MANEUVER_START: Timeout while waiting for maneuver start after %d milliseconds. Calling on fail callback and switching to HOVER mode.",
+                    "ManeuverReferenceClient::GetReference(): WAIT_FOR_MANEUVER_START: Timeout while waiting for maneuver start after %d milliseconds. Calling on fail callback and hovering if this maneuver still owns the client.",
                     elapsed_ms
                 );
 
                 on_fail_during_maneuver();
-
-                SetReferenceModeHover(true);
+                hoverIfFailureEpochUnchanged(failure_epoch);
 
                 std::lock_guard<std::mutex> lock(reference_mutex_);
                 reference = reference_;
 
-                reference_mode_msg.data = "hover";
+                reference_mode_msg.data = currentReferenceModeLabel();
                 break;
 
             }
             
-            const StreamReadResult stream_result = readReferenceStream(reference);
-            const bool success = stream_result == StreamReadResult::NewActive;
+            const auto consumption = consumeReferenceCandidate(
+                reference,
+                reference_mode_t::WAIT_FOR_MANEUVER_START,
+                true,
+                true
+            );
+            if (consumption.pause_identity) {
+                requestProducerPause(*consumption.pause_identity, "reference continuity fault");
+            }
+            if (consumption.applied_ack_identity) {
+                publishReferenceAckForStream(
+                    consumption.applied_ack_identity->stream_id,
+                    consumption.applied_ack_identity->last_applied_sequence,
+                    iii_drone_interfaces::msg::ManeuverReferenceAck::STATUS_APPLIED,
+                    "first maneuver reference applied"
+                );
+            }
 
-            if (!success) {
+            if (consumption.object_unrecoverable) {
+                // This is a failed owned generation, not a stationary hold.
+                // Keep the last actually accepted finite command through the
+                // mode-failure callback and require explicit recovery.
+                object_stop_failure_hold_ = true;
+                on_fail_during_maneuver();
+                reference_mode_msg.data = "object_unrecoverable_hold";
+                break;
+            }
+
+            if (consumption.terminal_degraded) {
+                terminal_degraded_hold_ = true;
+                on_fail_during_maneuver();
+                hoverIfFailureEpochUnchanged(failure_epoch);
+                reference_mode_msg.data = "terminal_degraded_hold";
+                break;
+            }
+
+            if (consumption.began_reference_loss_stop) {
+                reference_mode_msg.data = "reference_loss_stopping";
+                break;
+            }
+
+            if (!consumption.accepted) {
 
                 RCLCPP_DEBUG(logger_, "ManeuverReferenceClient::GetReference(): WAIT_FOR_MANEUVER_START: Reference is not yet valid, returning hover reference.");
 
@@ -1052,72 +2477,57 @@ Reference ManeuverReferenceClient::GetReference(
 
             }
 
-            if (reference_mode_.Load() == reference_mode_t::WAIT_FOR_MANEUVER_START) {
-
-                ManeuverReferenceSafetyEvaluation safety_evaluation;
-                {
-                    std::lock_guard<std::mutex> safety_lock(reference_safety_mutex_);
-                    if (
-                        !reference_safety_guard_->hasAcceptedReference() &&
-                        !vehicle_odometry_adapter_history_->empty()
-                    ) {
-                        safety_evaluation = reference_safety_guard_->observeReference(
-                            Reference((*vehicle_odometry_adapter_history_)[0].ToState())
-                        );
-                    }
-                    if (
-                        safety_evaluation.decision !=
-                            ManeuverReferenceSafetyDecision::BEGIN_STOP
-                    ) {
-                        safety_evaluation = reference_safety_guard_->observeReference(reference);
-                    }
-                }
-                if (safety_evaluation.decision != ManeuverReferenceSafetyDecision::ACCEPT) {
-                    reference = beginReferenceLossStop(safety_evaluation);
-                    reference_mode_msg.data = "reference_loss_stopping";
-                    break;
-                }
-
-                RCLCPP_DEBUG(logger_, "ManeuverReferenceClient::GetReference(): WAIT_FOR_MANEUVER_START: Reference is valid, switching to MANEUVER mode.");
-
-                {
-                    std::lock_guard<std::mutex> lock(reference_mutex_);
-                    reference_ = reference;
-                }
-                maneuver_reference_valid_.Store(true);
-                last_applied_sequence_ = candidate_sequence_;
-                reference_stream_guard_.commitCandidate();
-                publishReferenceAck(
-                    iii_drone_interfaces::msg::ManeuverReferenceAck::STATUS_APPLIED,
-                    "first maneuver reference applied"
-                );
-
-                reference_mode_.Store(reference_mode_t::MANEUVER);
-
-                reference_mode_msg.data = "maneuver";
-
-            } else if (reference_mode_.Load() == reference_mode_t::WAIT_FOR_MANEUVER_STOP) {
-
-                RCLCPP_DEBUG(logger_, "ManeuverReferenceClient::GetReference(): WAIT_FOR_MANEUVER_START: Mode switched to WAIT_FOR_MANEUVER_STOP while waiting.");
-
-                reference_mode_msg.data = "wait_for_maneuver_stop";
-
-            } else {
-
-                RCLCPP_ERROR(logger_, "ManeuverReferenceClient::GetReference(): WAIT_FOR_MANEUVER_START: Mode switched to %d while waiting.", reference_mode_.Load());
-
-                reference_mode_msg.data = "error";
-
+            if (consumption.stream_result == StreamReadResult::PredecessorActive) {
+                reference_mode_msg.data = "wait_for_maneuver_start";
+                break;
             }
+
+            RCLCPP_DEBUG(logger_, "ManeuverReferenceClient::GetReference(): WAIT_FOR_MANEUVER_START: Reference is valid, switching to MANEUVER mode.");
+            reference_mode_msg.data = "maneuver";
 
             break;
 
         }
         case reference_mode_t::MANEUVER: {
 
-            const StreamReadResult stream_result = readReferenceStream(reference);
+            const auto consumption = consumeReferenceCandidate(
+                reference,
+                reference_mode_t::MANEUVER,
+                true,
+                false
+            );
+            if (consumption.pause_identity) {
+                requestProducerPause(*consumption.pause_identity, "reference continuity fault");
+            }
+            if (consumption.applied_ack_identity) {
+                publishReferenceAckForStream(
+                    consumption.applied_ack_identity->stream_id,
+                    consumption.applied_ack_identity->last_applied_sequence,
+                    iii_drone_interfaces::msg::ManeuverReferenceAck::STATUS_APPLIED,
+                    "maneuver reference applied"
+                );
+            }
+            if (consumption.object_unrecoverable) {
+                object_stop_failure_hold_ = true;
+                on_fail_during_maneuver();
+                reference_mode_msg.data = "object_unrecoverable_hold";
+                break;
+            }
+            if (consumption.terminal_degraded) {
+                terminal_degraded_hold_ = true;
+                on_fail_during_maneuver();
+                hoverIfFailureEpochUnchanged(failure_epoch);
+                reference_mode_msg.data = "terminal_degraded_hold";
+                break;
+            }
+            if (consumption.began_reference_loss_stop) {
+                reference_mode_msg.data = "reference_loss_stopping";
+                break;
+            }
+
+            const StreamReadResult stream_result = consumption.stream_result;
             const bool success =
-                stream_result == StreamReadResult::NewActive ||
+                consumption.accepted ||
                 stream_result == StreamReadResult::FreshHeld;
 
             // Check if mode is hovering:
@@ -1141,7 +2551,11 @@ Reference ManeuverReferenceClient::GetReference(
                         safety_evaluation = reference_safety_guard_->observeMiss();
                     }
                     if (safety_evaluation.decision == ManeuverReferenceSafetyDecision::BEGIN_STOP) {
-                        reference = beginReferenceLossStop(safety_evaluation);
+                        auto loss_stop = beginReferenceLossStop(safety_evaluation);
+                        reference = loss_stop.reference;
+                        if (loss_stop.pause_identity) {
+                            requestProducerPause(*loss_stop.pause_identity, safety_evaluation.reason);
+                        }
                         reference_mode_msg.data = "reference_loss_stopping";
                         break;
                     }
@@ -1154,20 +2568,17 @@ Reference ManeuverReferenceClient::GetReference(
 
                     RCLCPP_ERROR(
                         logger_,
-                        "ManeuverReferenceClient::GetReference(): MANEUVER: Failed to acquire first valid reference after %d attempts. Calling on failed callback and switching to HOVER mode.",
+                        "ManeuverReferenceClient::GetReference(): MANEUVER: Failed to acquire first valid reference after %d attempts. Calling on failed callback and hovering if this maneuver still owns the client.",
                         failed_attempts_
                     );
 
                     on_fail_during_maneuver();
-
-                    SetReferenceModeHover(true);
-
-                    failed_attempts_ = 0;
+                    hoverIfFailureEpochUnchanged(failure_epoch);
 
                     std::lock_guard<std::mutex> lock(reference_mutex_);
                     reference = reference_;
 
-                    reference_mode_msg.data = "hover";
+                    reference_mode_msg.data = currentReferenceModeLabel();
 
                     break;
 
@@ -1209,39 +2620,120 @@ Reference ManeuverReferenceClient::GetReference(
                 break;
             }
 
-            ManeuverReferenceSafetyEvaluation safety_evaluation;
-            {
-                std::lock_guard<std::mutex> safety_lock(reference_safety_mutex_);
-                safety_evaluation = reference_safety_guard_->observeReference(reference);
-            }
-            if (safety_evaluation.decision != ManeuverReferenceSafetyDecision::ACCEPT) {
-                reference = beginReferenceLossStop(safety_evaluation);
-                reference_mode_msg.data = "reference_loss_stopping";
-                break;
-            }
-
             failed_attempts_ = 0;
-            {
-                std::lock_guard<std::mutex> lock(reference_mutex_);
-                reference_ = reference;
-            }
-            maneuver_reference_valid_.Store(true);
-            last_applied_sequence_ = candidate_sequence_;
-            reference_stream_guard_.commitCandidate();
-            publishReferenceAck(
-                iii_drone_interfaces::msg::ManeuverReferenceAck::STATUS_APPLIED,
-                "maneuver reference applied"
-            );
-
             reference_mode_msg.data = "maneuver";
 
             break;
 
         }
         case WAIT_FOR_MANEUVER_STOP: {
-            const StreamReadResult stream_result = readReferenceStream(reference);
+            const auto consumption = consumeReferenceCandidate(
+                reference,
+                reference_mode_t::WAIT_FOR_MANEUVER_STOP,
+                false,
+                false
+            );
+            if (consumption.pause_identity) {
+                requestProducerPause(*consumption.pause_identity, "reference continuity fault");
+            }
+            if (consumption.applied_ack_identity) {
+                publishReferenceAckForStream(
+                    consumption.applied_ack_identity->stream_id,
+                    consumption.applied_ack_identity->last_applied_sequence,
+                    iii_drone_interfaces::msg::ManeuverReferenceAck::STATUS_APPLIED,
+                    "handoff reference applied"
+                );
+            }
+            bool object_stop_handled = false;
+            bool object_stop_failed = false;
+            {
+                std::lock_guard<std::recursive_mutex> lock(transition_mutex_);
+                if (object_stop_ && reference_mode_.Load() ==
+                        reference_mode_t::WAIT_FOR_MANEUVER_STOP &&
+                    object_stop_->identity.stream_id == active_stream_id_ &&
+                    object_stop_->identity.request_identity == active_request_identity_) {
+                    object_stop_handled = true;
+                    auto & stop = *object_stop_;
+                    const auto now = std::chrono::steady_clock::now();
+                    const bool phase_applied = consumption.accepted &&
+                        applied_object_tracking_stream_id_ == stop.identity.stream_id &&
+                        applied_object_tracking_request_identity_ ==
+                            stop.identity.request_identity &&
+                        applied_object_tracking_sequence_ == last_applied_sequence_ &&
+                        (applied_object_tracking_state_ ==
+                            iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_OBJECT_STOPPING ||
+                         applied_object_tracking_state_ ==
+                            iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_OBJECT_STOPPED);
+                    if (phase_applied && !stop.admitted) {
+                        stop.admitted = true;
+                        stop.completion_deadline = now + std::chrono::milliseconds(
+                            static_cast<int>(
+                                KinematicStopTrajectory::MaximumCertifiedDurationS * 1000.0) +
+                            configuration_->GetParameter(
+                                "/control/maneuver_controller/maneuver_execution_period_ms").as_int() +
+                            configuration_->GetParameter(
+                                "/control/maneuver_controller/reference_stream_timeout_ms").as_int());
+                    }
+                    if (stop.failure_reason.empty() && phase_applied &&
+                        applied_object_tracking_state_ ==
+                            iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_OBJECT_STOPPED) {
+                        if (appliedObjectStopRestLocked(reference)) {
+                            finishObjectStopLocked(reference);
+                            reference_mode_msg.data = "hover_object_stopped";
+                        } else {
+                            stop.failure_reason = "object STOPPED reference was not finite rest";
+                        }
+                    }
+                    if (object_stop_ && object_stop_->failure_reason.empty() &&
+                        (consumption.began_reference_loss_stop || consumption.terminal_degraded)) {
+                        object_stop_->failure_reason =
+                            "object stop stream entered an explicit reference failure";
+                    }
+                    if (object_stop_ && object_stop_->failure_reason.empty()) {
+                        const auto admission = std::chrono::milliseconds(
+                            configuration_->GetParameter(
+                                "/mission/wait_for_maneuver_start_timeout_ms").as_int());
+                        if (!object_stop_->admitted && now - object_stop_->requested_at > admission) {
+                            object_stop_->failure_reason =
+                                "object stop was not applied within the start budget";
+                        } else if (object_stop_->completion_deadline &&
+                                   now > *object_stop_->completion_deadline) {
+                            object_stop_->failure_reason =
+                                "object certified stop exceeded its completion deadline";
+                        }
+                    }
+                    if (object_stop_ && !object_stop_->failure_reason.empty() &&
+                        !object_stop_->failure_reported) {
+                        object_stop_->failure_reported = true;
+                        object_stop_failure_hold_ = true;
+                        object_stop_failed = true;
+                        RCLCPP_ERROR(logger_, "Owned object stop failed: %s (request=%s stream=%s)",
+                            object_stop_->failure_reason.c_str(),
+                            object_stop_->identity.request_identity.c_str(),
+                            object_stop_->identity.stream_id.c_str());
+                    }
+                    if (object_stop_ && !consumption.accepted) {
+                        std::lock_guard<std::mutex> reference_lock(reference_mutex_);
+                        reference = reference_;
+                    }
+                    if (object_stop_ && reference_mode_msg.data.empty()) {
+                        reference_mode_msg.data = object_stop_->failure_reason.empty()
+                            ? "object_stop_waiting" : "object_stop_failed_hold";
+                    }
+                }
+            }
+            if (object_stop_handled) {
+                if (object_stop_failed) on_fail_during_maneuver();
+                break;
+            }
+            if (consumption.began_reference_loss_stop) {
+                reference_mode_msg.data = "reference_loss_stopping";
+                break;
+            }
+
+            const StreamReadResult stream_result = consumption.stream_result;
             const bool success =
-                stream_result == StreamReadResult::NewActive ||
+                consumption.accepted ||
                 stream_result == StreamReadResult::FreshHeld;
             if (!success) {
                 failed_attempts_++;
@@ -1251,7 +2743,11 @@ Reference ManeuverReferenceClient::GetReference(
                     safety_evaluation = reference_safety_guard_->observeMiss();
                 }
                 if (safety_evaluation.decision == ManeuverReferenceSafetyDecision::BEGIN_STOP) {
-                    reference = beginReferenceLossStop(safety_evaluation);
+                    auto loss_stop = beginReferenceLossStop(safety_evaluation);
+                    reference = loss_stop.reference;
+                    if (loss_stop.pause_identity) {
+                        requestProducerPause(*loss_stop.pause_identity, safety_evaluation.reason);
+                    }
                     reference_mode_msg.data = "reference_loss_stopping";
                     break;
                 }
@@ -1274,28 +2770,7 @@ Reference ManeuverReferenceClient::GetReference(
                 break;
             }
 
-            ManeuverReferenceSafetyEvaluation safety_evaluation;
-            {
-                std::lock_guard<std::mutex> safety_lock(reference_safety_mutex_);
-                safety_evaluation = reference_safety_guard_->observeReference(reference);
-            }
-            if (safety_evaluation.decision != ManeuverReferenceSafetyDecision::ACCEPT) {
-                reference = beginReferenceLossStop(safety_evaluation);
-                reference_mode_msg.data = "reference_loss_stopping";
-                break;
-            }
-
             failed_attempts_ = 0;
-            {
-                std::lock_guard<std::mutex> lock(reference_mutex_);
-                reference_ = reference;
-            }
-            last_applied_sequence_ = candidate_sequence_;
-            reference_stream_guard_.commitCandidate();
-            publishReferenceAck(
-                iii_drone_interfaces::msg::ManeuverReferenceAck::STATUS_APPLIED,
-                "handoff reference applied"
-            );
             reference_mode_msg.data = "wait_for_maneuver_stop";
             break;
         }
@@ -1320,7 +2795,10 @@ void ManeuverReferenceClient::stopManeuverPrematurely() {
 
     std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
 
-    if (reference_mode_.Load() != reference_mode_t::WAIT_FOR_MANEUVER_STOP) {
+    if (
+        pending_goal_handoff_ ||
+        reference_mode_.Load() != reference_mode_t::WAIT_FOR_MANEUVER_STOP
+    ) {
         RCLCPP_DEBUG(
             logger_,
             "ManeuverReferenceClient::stopManeuverPrematurely(): Ignoring stale delayed-stop callback after reference mode changed."
