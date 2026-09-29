@@ -976,9 +976,10 @@ void FlyToObjectManeuverServer::publishResultAndFinalize(
 
 void FlyToObjectManeuverServer::registerReferenceCallbackOnSuccess(const Maneuver &) {
 
-    auto registered_hover_by_object_maneuver = registered_maneuvers().find(MANEUVER_TYPE_HOVER_BY_OBJECT);
-
-    std::shared_ptr<HoverByObjectManeuverServer> hover_by_object_maneuver_server = std::static_pointer_cast<HoverByObjectManeuverServer>(registered_hover_by_object_maneuver->second);
+    // registered_maneuvers() returns a copy: take the server within this
+    // statement, never an iterator into the temporary map.
+    std::shared_ptr<HoverByObjectManeuverServer> hover_by_object_maneuver_server = std::static_pointer_cast<HoverByObjectManeuverServer>(
+        registered_maneuvers().at(MANEUVER_TYPE_HOVER_BY_OBJECT));
 
     const auto binding = currentReferenceBinding();
     const bool hover_ready = object_tracking_session_
@@ -1013,9 +1014,10 @@ void FlyToObjectManeuverServer::registerReferenceCallbackOnSuccess(const Maneuve
 
     RCLCPP_ERROR(node()->get_logger(), "FlyToObjectManeuverServer::registerReferenceCallbackOnSuccess(): Failed to register hover by object reference callback on success, registering hover maneuver instead.");
 
-    auto registered_hover_maneuver = registered_maneuvers().find(MANEUVER_TYPE_HOVER);
-
-    std::shared_ptr<HoverManeuverServer> hover_maneuver_server = std::static_pointer_cast<HoverManeuverServer>(registered_hover_maneuver->second);
+    // registered_maneuvers() returns a copy: take the server within this
+    // statement, never an iterator into the temporary map.
+    std::shared_ptr<HoverManeuverServer> hover_maneuver_server = std::static_pointer_cast<HoverManeuverServer>(
+        registered_maneuvers().at(MANEUVER_TYPE_HOVER));
 
     hover_maneuver_server->Update(awareness_handler()->GetState());
 

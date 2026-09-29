@@ -632,9 +632,10 @@ void CableTakeoffManeuverServer::publishResultAndFinalize(
 
 void CableTakeoffManeuverServer::registerReferenceCallbackOnSuccess(const Maneuver & maneuver) {
 
-    auto registered_hover_maneuver = registered_maneuvers().find(MANEUVER_TYPE_HOVER);
-
-    std::shared_ptr<HoverManeuverServer> hover_maneuver_server = std::static_pointer_cast<HoverManeuverServer>(registered_hover_maneuver->second);
+    // registered_maneuvers() returns a copy: take the server within this
+    // statement, never an iterator into the temporary map.
+    std::shared_ptr<HoverManeuverServer> hover_maneuver_server = std::static_pointer_cast<HoverManeuverServer>(
+        registered_maneuvers().at(MANEUVER_TYPE_HOVER));
 
     if (const auto hold = terminalHold()) {
         hover_maneuver_server->AdoptTerminalHold(hold, maneuver.requestIdentity());
