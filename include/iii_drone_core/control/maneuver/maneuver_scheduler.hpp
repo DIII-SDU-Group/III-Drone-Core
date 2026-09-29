@@ -80,6 +80,7 @@
 #include <iii_drone_core/control/maneuver/hover_maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/hover_by_object_maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/hover_on_cable_maneuver_server.hpp>
+#include <iii_drone_core/utils/callback_lifetime.hpp>
 
 /*****************************************************************************/
 // Class
@@ -401,6 +402,9 @@ namespace maneuver {
 
         rclcpp::Publisher<iii_drone_interfaces::msg::ManeuverReferenceStream>::SharedPtr
             reference_stream_publisher_;
+        // Ends the ROS callbacks that capture `this` before destruction.
+        iii_drone::utils::CallbackLifetime callback_lifetime_;
+
         rclcpp::Subscription<iii_drone_interfaces::msg::ManeuverReferenceAck>::SharedPtr
             reference_ack_subscription_;
         rclcpp::Service<iii_drone_interfaces::srv::PauseReferenceStream>::SharedPtr

@@ -30,6 +30,7 @@
 
 #include <iii_drone_core/utils/atomic.hpp>
 #include <iii_drone_core/utils/history.hpp>
+#include <iii_drone_core/utils/callback_lifetime.hpp>
 
 #include <iii_drone_core/control/reference.hpp>
 #include <iii_drone_core/diagnostics/hil_trace.hpp>
@@ -137,7 +138,11 @@ namespace maneuver {
                 node->template create_subscription<iii_drone_interfaces::msg::ManeuverReferenceStream>(
                     "/control/maneuver_controller/reference_stream",
                     stream_qos,
-                    [this](const iii_drone_interfaces::msg::ManeuverReferenceStream::SharedPtr message) {
+                    [this, lifetime = callback_lifetime_.token()](
+                        const iii_drone_interfaces::msg::ManeuverReferenceStream::SharedPtr message
+                    ) {
+                        const auto alive = lifetime.Enter();
+                        if (!alive.owns_lock()) return;
                         receiveReferenceStream(message);
                     },
                     stream_options
@@ -155,7 +160,11 @@ namespace maneuver {
                 node->template create_subscription<iii_drone_interfaces::msg::CombinedDroneAwareness>(
                     "/control/maneuver_controller/combined_drone_awareness",
                     rclcpp::QoS(rclcpp::KeepLast(1)),
-                    [this](const iii_drone_interfaces::msg::CombinedDroneAwareness::SharedPtr message) {
+                    [this, lifetime = callback_lifetime_.token()](
+                        const iii_drone_interfaces::msg::CombinedDroneAwareness::SharedPtr message
+                    ) {
+                        const auto alive = lifetime.Enter();
+                        if (!alive.owns_lock()) return;
                         ground_altitude_estimate_.store(message->ground_altitude_estimate);
                     },
                     awareness_options
@@ -198,12 +207,14 @@ namespace maneuver {
                 10
             );
 
-            create_wall_timer_ = [node](
+            create_wall_timer_ = [node, lifetime = callback_lifetime_.token()](
                 std::chrono::milliseconds period,
                 std::function<void()> callback
             ) -> rclcpp::TimerBase::SharedPtr {
                 std::function<void()> traced_callback =
-                    [callback = std::move(callback), node]() {
+                    [callback = std::move(callback), node, lifetime]() {
+                        const auto alive = lifetime.Enter();
+                        if (!alive.owns_lock()) return;
                         const auto callback_start = std::chrono::steady_clock::now();
                         auto callback_entry = iii_drone::diagnostics::HilTrace::event(
                             "callback_group_callback_entry");
@@ -407,6 +418,12 @@ namespace maneuver {
         /**
          * @brief Shared pointer type.
          */
+        ~ManeuverReferenceClient() {
+            // Subscriptions and timers outlive this body until the members
+            // are destroyed; end their callbacks first.
+            callback_lifetime_.Close();
+        }
+
         typedef std::shared_ptr<ManeuverReferenceClient> SharedPtr;
 
     private:
@@ -701,6 +718,10 @@ namespace maneuver {
         // minimum_target_altitude, the maneuver fails into a measured Hover
         // instead, so PX4 brakes with its own limits above the floor.
         rclcpp::CallbackGroup::SharedPtr awareness_cb_group_;
+
+        // Ends the subscription and timer callbacks (which capture `this`)
+        // before the client is destroyed.
+        iii_drone::utils::CallbackLifetime callback_lifetime_;
         rclcpp::Subscription<iii_drone_interfaces::msg::CombinedDroneAwareness>::SharedPtr
             awareness_subscription_;
         std::atomic<double> ground_altitude_estimate_{std::numeric_limits<double>::quiet_NaN()};

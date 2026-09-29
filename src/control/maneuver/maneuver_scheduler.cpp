@@ -123,7 +123,8 @@ ManeuverScheduler::ManeuverScheduler(
         node_->create_subscription<iii_drone_interfaces::msg::ManeuverReferenceAck>(
             "reference_ack",
             ack_qos,
-            std::bind(&ManeuverScheduler::acknowledgeReferenceStream, this, std::placeholders::_1),
+            callback_lifetime_.Guard<const iii_drone_interfaces::msg::ManeuverReferenceAck::SharedPtr>(
+                std::bind(&ManeuverScheduler::acknowledgeReferenceStream, this, std::placeholders::_1)),
             ack_options
         );
 
@@ -145,6 +146,10 @@ ManeuverScheduler::ManeuverScheduler(
 }
 
 ManeuverScheduler::~ManeuverScheduler() {
+
+    // The ack subscription outlives Stop(); end every ROS callback that
+    // captures `this` before the scheduler is destroyed.
+    callback_lifetime_.Close();
 
     RCLCPP_DEBUG(node_->get_logger(), "ManeuverScheduler::~ManeuverScheduler()");
 
@@ -171,7 +176,7 @@ void ManeuverScheduler::Start() {
 
     maneuver_publish_timer_ = node_->create_wall_timer(
         std::chrono::milliseconds(configuration_->GetParameter("/control/maneuver_controller/maneuver_publish_period_ms").as_int()),
-        [this]() { publishManeuverStatus(); }
+        callback_lifetime_.Guard<>([this]() { publishManeuverStatus(); })
     );
 
     maneuver_execution_timer_ = node_->create_wall_timer(
@@ -180,10 +185,10 @@ void ManeuverScheduler::Start() {
                 "/control/maneuver_controller/maneuver_execution_period_ms"
             ).as_int()
         ),
-        std::bind(
+        callback_lifetime_.Guard<>(std::bind(
             &ManeuverScheduler::maneuverExecutionTimerCallback,
             this
-        ),
+        )),
         maneuver_execution_callback_group_
     );
 
@@ -204,12 +209,14 @@ void ManeuverScheduler::Start() {
 
     get_reference_service_ = node_->create_service<iii_drone_interfaces::srv::GetReference>(
         "get_reference",
-        std::bind(
+        callback_lifetime_.Guard<
+            const std::shared_ptr<iii_drone_interfaces::srv::GetReference::Request>, std::shared_ptr<iii_drone_interfaces::srv::GetReference::Response>>(
+            std::bind(
             &ManeuverScheduler::getReferenceServiceCallback,
             this,
             std::placeholders::_1,
             std::placeholders::_2
-        ),
+        )),
         rclcpp::ServicesQoS(),
         get_reference_callback_group_
     );
@@ -217,62 +224,74 @@ void ManeuverScheduler::Start() {
     pause_reference_stream_service_ =
         node_->create_service<iii_drone_interfaces::srv::PauseReferenceStream>(
             "pause_reference_stream",
+            callback_lifetime_.Guard<
+            const std::shared_ptr<iii_drone_interfaces::srv::PauseReferenceStream::Request>, std::shared_ptr<iii_drone_interfaces::srv::PauseReferenceStream::Response>>(
             std::bind(
                 &ManeuverScheduler::pauseReferenceStream,
                 this,
                 std::placeholders::_1,
                 std::placeholders::_2
-            ),
+            )),
             rclcpp::ServicesQoS(),
             get_reference_callback_group_
         );
     rebase_reference_stream_service_ =
         node_->create_service<iii_drone_interfaces::srv::RebaseReferenceStream>(
             "rebase_reference_stream",
+            callback_lifetime_.Guard<
+            const std::shared_ptr<iii_drone_interfaces::srv::RebaseReferenceStream::Request>, std::shared_ptr<iii_drone_interfaces::srv::RebaseReferenceStream::Response>>(
             std::bind(
                 &ManeuverScheduler::rebaseReferenceStream,
                 this,
                 std::placeholders::_1,
                 std::placeholders::_2
-            ),
+            )),
             rclcpp::ServicesQoS(),
             get_reference_callback_group_
         );
     commit_reference_stream_service_ =
         node_->create_service<iii_drone_interfaces::srv::CommitReferenceStream>(
             "commit_reference_stream",
+            callback_lifetime_.Guard<
+            const std::shared_ptr<iii_drone_interfaces::srv::CommitReferenceStream::Request>, std::shared_ptr<iii_drone_interfaces::srv::CommitReferenceStream::Response>>(
             std::bind(
                 &ManeuverScheduler::commitReferenceStream,
                 this,
                 std::placeholders::_1,
                 std::placeholders::_2
-            ),
+            )),
             rclcpp::ServicesQoS(),
             get_reference_callback_group_
         );
     terminal_hold_transfer_service_ =
         node_->create_service<iii_drone_interfaces::srv::TerminalHoldTransfer>(
             "terminal_hold_transfer",
+            callback_lifetime_.Guard<
+            const std::shared_ptr<iii_drone_interfaces::srv::TerminalHoldTransfer::Request>, std::shared_ptr<iii_drone_interfaces::srv::TerminalHoldTransfer::Response>>(
             std::bind(&ManeuverScheduler::terminalHoldTransfer, this,
-                std::placeholders::_1, std::placeholders::_2),
+                std::placeholders::_1, std::placeholders::_2)),
             rclcpp::ServicesQoS(), get_reference_callback_group_
         );
 
     release_consumer_control_service_ =
         node_->create_service<iii_drone_interfaces::srv::ReleaseConsumerControl>(
             "release_consumer_control",
+            callback_lifetime_.Guard<
+            const std::shared_ptr<iii_drone_interfaces::srv::ReleaseConsumerControl::Request>, std::shared_ptr<iii_drone_interfaces::srv::ReleaseConsumerControl::Response>>(
             std::bind(&ManeuverScheduler::releaseConsumerControl, this,
-                std::placeholders::_1, std::placeholders::_2)
+                std::placeholders::_1, std::placeholders::_2))
         );
 
     clear_maneuver_queue_service_ = node_->create_service<iii_drone_interfaces::srv::ClearManeuverQueue>(
         "clear_maneuver_queue",
-        std::bind(
+        callback_lifetime_.Guard<
+            const std::shared_ptr<iii_drone_interfaces::srv::ClearManeuverQueue::Request>, std::shared_ptr<iii_drone_interfaces::srv::ClearManeuverQueue::Response>>(
+            std::bind(
             &ManeuverScheduler::clearManeuverQueueServiceCallback,
             this,
             std::placeholders::_1,
             std::placeholders::_2
-        )
+        ))
     );
 
     is_started_ = true;

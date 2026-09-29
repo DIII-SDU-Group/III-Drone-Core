@@ -386,6 +386,10 @@ if (BUILD_TESTING)
     test/utils/history_test.cpp
   )
 
+  ament_add_gtest(iii_drone_core_callback_lifetime_test
+    test/utils/callback_lifetime_test.cpp
+  )
+
   ament_add_gtest(iii_drone_core_math_types_test
     test/utils/math_types_test.cpp
   )
@@ -468,6 +472,9 @@ if (BUILD_TESTING)
     test/perception/powerline_direction_test.cpp
   )
 
+  if(TARGET iii_drone_core_callback_lifetime_test)
+    target_include_directories(iii_drone_core_callback_lifetime_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+  endif()
   if(TARGET iii_drone_core_history_test)
     target_include_directories(iii_drone_core_history_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
     target_link_libraries(iii_drone_core_history_test iii_drone_lib)

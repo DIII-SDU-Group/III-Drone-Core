@@ -50,6 +50,9 @@ TrajectoryGeneratorClient::TrajectoryGeneratorClient(
 
 TrajectoryGeneratorClient::~TrajectoryGeneratorClient() {
 
+    // A response can still arrive for a request sent before destruction.
+    callback_lifetime_.Close();
+
     RCLCPP_DEBUG(node_->get_logger(), "TrajectoryGeneratorClient::~TrajectoryGeneratorClient(): Destructing.");
 
 }
@@ -351,9 +354,11 @@ void TrajectoryGeneratorClient::ComputeReferenceTrajectoryAsync(
     // Send request
     auto future = client_->async_send_request(
         request,
-        [this, request_generation](
+        [this, request_generation, lifetime = callback_lifetime_.token()](
             rclcpp::Client<iii_drone_interfaces::srv::ComputeReferenceTrajectory>::SharedFuture response_future
         ) {
+            const auto alive = lifetime.Enter();
+            if (!alive.owns_lock()) return;
             serviceResultCallback(response_future, request_generation);
         }
     );
@@ -415,9 +420,11 @@ void TrajectoryGeneratorClient::ComputeReferenceTrajectoryAsync(
 
     auto future = client_->async_send_request(
         request,
-        [this, request_generation](
+        [this, request_generation, lifetime = callback_lifetime_.token()](
             rclcpp::Client<iii_drone_interfaces::srv::ComputeReferenceTrajectory>::SharedFuture response_future
         ) {
+            const auto alive = lifetime.Enter();
+            if (!alive.owns_lock()) return;
             serviceResultCallback(response_future, request_generation);
         }
     );

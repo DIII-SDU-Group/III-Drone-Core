@@ -48,6 +48,7 @@
 #include <iii_drone_core/control/state.hpp>
 #include <iii_drone_core/control/reference.hpp>
 #include <iii_drone_core/control/reference_trajectory.hpp>
+#include <iii_drone_core/utils/callback_lifetime.hpp>
 
 /*****************************************************************************/
 // Class
@@ -246,6 +247,9 @@ namespace control {
          * @brief Service client
          */
         rclcpp::Client<iii_drone_interfaces::srv::ComputeReferenceTrajectory>::SharedPtr client_;
+
+        // Ends pending response callbacks (they capture `this`) on destruction.
+        iii_drone::utils::CallbackLifetime callback_lifetime_;
 
         /**
          * @brief Client callback group
