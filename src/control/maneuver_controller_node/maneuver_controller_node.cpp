@@ -107,7 +107,6 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
     configurator.DeclareParameter("/control/maneuver_controller/fly_to_object_target_low_pass_time_constant_s", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/fly_to_object_target_loss_grace_s", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_landing_use_mpc", bool_t);
-    configurator.DeclareParameter("/control/maneuver_controller/cable_takeoff_use_mpc", bool_t);
     configurator.DeclareParameter("/control/trajectory_generator/cable_aware_clearance_m", double_t);
     configurator.DeclareParameter("/control/trajectory_interpolator/interpolation_max_velocity_m_s", double_t);
     configurator.DeclareParameter("/control/trajectory_interpolator/interpolation_max_acceleration_m_s2", double_t);
@@ -245,7 +244,6 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
         ConfigurationEntry("/tf/drone_frame_id", string_t),
         ConfigurationEntry("/tf/world_frame_id", string_t),
         ConfigurationEntry("/tf/cable_gripper_frame_id", string_t),
-        ConfigurationEntry("/control/maneuver_controller/cable_takeoff_use_mpc", bool_t),
     });
 }
 

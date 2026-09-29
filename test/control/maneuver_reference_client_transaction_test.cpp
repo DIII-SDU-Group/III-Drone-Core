@@ -118,7 +118,6 @@ Configuration::SharedPtr makeConfiguration(
         {"/control/maneuver_controller/fly_to_object_target_low_pass_time_constant_s", rclcpp::ParameterType::PARAMETER_DOUBLE},
         {"/control/maneuver_controller/cable_landing_target_upwards_velocity", rclcpp::ParameterType::PARAMETER_DOUBLE},
         {"/control/maneuver_controller/cable_landing_max_initial_distance_error", rclcpp::ParameterType::PARAMETER_DOUBLE},
-        {"/control/maneuver_controller/cable_takeoff_use_mpc", rclcpp::ParameterType::PARAMETER_BOOL},
         {"/control/maneuver_controller/generate_trajectories_asynchronously_with_delay", rclcpp::ParameterType::PARAMETER_BOOL},
         {"/control/maneuver_controller/cable_takeoff_reached_pose_norm_threshold", rclcpp::ParameterType::PARAMETER_DOUBLE},
         {"/control/maneuver_controller/cable_takeoff_min_target_cable_distance", rclcpp::ParameterType::PARAMETER_DOUBLE},
@@ -172,8 +171,7 @@ Configuration::SharedPtr makeConfiguration(
             if (name == "/control/maneuver_controller/cable_landing_controller_type") {
                 return rclcpp::Parameter(name, "line_pid");
             }
-            if (name == "/control/maneuver_controller/cable_takeoff_use_mpc" ||
-                name == "/control/maneuver_controller/generate_trajectories_asynchronously_with_delay") {
+            if (name == "/control/maneuver_controller/generate_trajectories_asynchronously_with_delay") {
                 return rclcpp::Parameter(name, true);
             }
             if (name == "/control/maneuver_controller/cable_takeoff_reached_pose_norm_threshold") {
@@ -8968,4 +8966,119 @@ TEST(ManeuverReferenceClientTransaction, PositionResetOnDisarmedVehicleLogsInfoA
         fixture.awareness->logResetClassification(true, "", 13, 14, 1, 1, 0);
         EXPECT_EQ(logs.count(RCUTILS_LOG_SEVERITY_INFO, "heading-only position-continuous"), 1U);
     }
+}
+
+TEST(ManeuverReferenceClientTransaction, RebaseBudgetCountsOnlyQuicklyRecurringFaultsOfOneRequest) {
+    RclcppContext context;
+    ClientFixture fixture("reference_transaction_rebase_budget");
+    auto & client = fixture.client;
+    const auto t0 = std::chrono::steady_clock::now();
+    using std::chrono::milliseconds;
+
+    // No rebase yet: a first fault never counts.
+    EXPECT_FALSE(client.rebaseBudgetExhausted(kRequestB, t0));
+    EXPECT_EQ(client.recurring_rebases_, 0);
+
+    client.last_rebase_request_identity_ = kRequestB;
+    client.last_rebase_committed_at_ = t0;
+    EXPECT_FALSE(client.rebaseBudgetExhausted(kRequestB, t0 + milliseconds(200)));
+    EXPECT_EQ(client.recurring_rebases_, 1);
+    client.last_rebase_committed_at_ = t0 + milliseconds(1000);
+    EXPECT_TRUE(client.rebaseBudgetExhausted(kRequestB, t0 + milliseconds(1200)));
+
+    // A healthy stretch after the last rebase, or another request, resets it.
+    client.last_rebase_committed_at_ = t0;
+    EXPECT_FALSE(client.rebaseBudgetExhausted(kRequestB, t0 + milliseconds(6000)));
+    EXPECT_EQ(client.recurring_rebases_, 0);
+    EXPECT_FALSE(client.rebaseBudgetExhausted(kRequestB, t0 + milliseconds(200)));
+    EXPECT_FALSE(client.rebaseBudgetExhausted(kRequestA, t0 + milliseconds(300)));
+    EXPECT_EQ(client.recurring_rebases_, 0);
+}
+
+TEST(ManeuverReferenceClientTransaction, RecurringContinuityFaultFailsIntoHoverInsteadOfRebasingAgain) {
+    RclcppContext context;
+    ClientFixture fixture("reference_transaction_rebase_livelock");
+    auto & client = fixture.client;
+    startRunningPredecessor(fixture);
+    const auto committed = std::chrono::steady_clock::now();
+    client.last_rebase_request_identity_ = kRequestA;
+    client.last_rebase_committed_at_ = committed;
+    client.recurring_rebases_ = 1;
+    client.reference_mode_.Store(ManeuverReferenceClient::REFERENCE_LOSS_STOP);
+    client.recovery_phase_ = ManeuverReferenceClient::RecoveryPhase::Stopping;
+    client.fault_stream_identity_ = ManeuverReferenceClient::ReferenceStreamIdentity{
+        "hover:g1", kRequestA, 100
+    };
+    client.reference_loss_stop_start_time_ = committed + std::chrono::milliseconds(200);
+
+    int failures = 0;
+    Reference reference;
+    std::string reference_mode;
+    EXPECT_FALSE(client.advanceReferenceRecovery(reference, [&failures] { ++failures; }, reference_mode));
+    EXPECT_EQ(failures, 1);
+    EXPECT_EQ(reference_mode, "hover_after_reference_loss");
+    EXPECT_EQ(client.reference_mode_.Load(), ManeuverReferenceClient::HOVER);
+    EXPECT_FALSE(client.pending_rebase_request_);
+}
+
+VehicleOdometryAdapter descendingVehicleState(double altitude_m, double descent_m_s) {
+    px4_msgs::msg::VehicleOdometry odometry;
+    odometry.pose_frame = iii_drone::adapters::px4::POSE_FRAME_LOCAL_NED;
+    odometry.velocity_frame = iii_drone::adapters::px4::VELOCITY_FRAME_LOCAL_NED;
+    odometry.q[0] = 1.0F;
+    odometry.position[2] = static_cast<float>(-altitude_m);
+    odometry.velocity[2] = static_cast<float>(descent_m_s);
+    return VehicleOdometryAdapter(odometry);
+}
+
+TEST(ManeuverReferenceClientTransaction, LossStopThatWouldEndBelowTheFloorFailsIntoMeasuredHover) {
+    RclcppContext context;
+    ClientFixture fixture("reference_transaction_loss_stop_floor");
+    auto & client = fixture.client;
+    startRunningPredecessor(fixture);
+    client.ground_altitude_estimate_.store(0.0);
+    fixture.history->Store(descendingVehicleState(0.5, 1.4));
+    const double start_z = fixture.history->operator[](0).ToState().position()(2);
+    ASSERT_NEAR(start_z, 0.5, 1e-6);
+
+    iii_drone::control::maneuver::ManeuverReferenceSafetyEvaluation evaluation;
+    evaluation.decision = iii_drone::control::maneuver::ManeuverReferenceSafetyDecision::BEGIN_STOP;
+    evaluation.reason = "test fault";
+    client.beginReferenceLossStop(evaluation);
+    ASSERT_TRUE(client.reference_loss_floor_breach_);
+
+    int failures = 0;
+    std::string reference_mode;
+    const Reference hover = client.sampleReferenceLossStop([&failures] { ++failures; }, reference_mode);
+    EXPECT_EQ(failures, 1);
+    EXPECT_EQ(reference_mode, "hover_after_reference_loss_floor");
+    EXPECT_EQ(client.reference_mode_.Load(), ManeuverReferenceClient::HOVER);
+    EXPECT_FALSE(client.reference_loss_floor_breach_);
+    EXPECT_GE(hover.position()(2), 0.0);
+}
+
+TEST(ManeuverReferenceClientTransaction, LossStopWithRoomAboveTheFloorOrUnknownGroundKeepsBoundedStop) {
+    RclcppContext context;
+    ClientFixture fixture("reference_transaction_loss_stop_room");
+    auto & client = fixture.client;
+    startRunningPredecessor(fixture);
+    iii_drone::control::maneuver::ManeuverReferenceSafetyEvaluation evaluation;
+    evaluation.decision = iii_drone::control::maneuver::ManeuverReferenceSafetyDecision::BEGIN_STOP;
+    evaluation.reason = "test fault";
+
+    client.ground_altitude_estimate_.store(0.0);
+    fixture.history->Store(descendingVehicleState(20.0, 1.4));
+    client.beginReferenceLossStop(evaluation);
+    EXPECT_FALSE(client.reference_loss_floor_breach_);
+
+    client.ground_altitude_estimate_.store(std::numeric_limits<double>::quiet_NaN());
+    fixture.history->Store(descendingVehicleState(0.5, 1.4));
+    client.beginReferenceLossStop(evaluation);
+    EXPECT_FALSE(client.reference_loss_floor_breach_);
+
+    int failures = 0;
+    std::string reference_mode;
+    client.sampleReferenceLossStop([&failures] { ++failures; }, reference_mode);
+    EXPECT_EQ(failures, 0);
+    EXPECT_EQ(reference_mode, "reference_loss_stopping");
 }

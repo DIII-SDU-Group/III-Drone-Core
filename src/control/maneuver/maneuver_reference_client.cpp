@@ -702,6 +702,19 @@ ManeuverReferenceClient::beginReferenceLossStopLocked(
         std::lock_guard<std::mutex> safety_lock(reference_safety_mutex_);
         reference_loss_stop_trajectory_.emplace(initial, stop_config.limits);
         stop_duration_s = reference_loss_stop_trajectory_->durationS();
+        const double ground = ground_altitude_estimate_.load();
+        const double floor = ground + configuration_->GetParameter(
+            "/control/maneuver_controller/minimum_target_altitude").as_double();
+        const double end_z = reference_loss_stop_trajectory_->sample(stop_duration_s).position()(2);
+        reference_loss_floor_breach_ =
+            std::isfinite(floor) && std::isfinite(end_z) &&
+            end_z < floor && end_z < initial.position()(2);
+        reference_loss_floor_breach_detail_ = reference_loss_floor_breach_
+            ? "bounded stop from z " + std::to_string(initial.position()(2)) +
+              " at vz " + std::to_string(initial.velocity()(2)) +
+              " would end at z " + std::to_string(end_z) +
+              ", below the floor " + std::to_string(floor)
+            : std::string();
         reference_loss_stop_start_time_ = std::chrono::steady_clock::now();
         reference_loss_below_threshold_since_.reset();
         reference_loss_failure_reported_ = false;
@@ -803,6 +816,32 @@ Reference ManeuverReferenceClient::sampleReferenceLossStop(
         reference_ = reference;
     }
 
+    bool floor_breach = false;
+    std::string floor_detail;
+    {
+        std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+        floor_breach = reference_loss_floor_breach_;
+        reference_loss_floor_breach_ = false;
+        floor_detail = reference_loss_floor_breach_detail_;
+    }
+    if (floor_breach) {
+        uint64_t failure_epoch;
+        {
+            std::lock_guard<std::recursive_mutex> transition_lock(transition_mutex_);
+            failure_epoch = maneuver_failure_epoch_;
+        }
+        RCLCPP_ERROR(
+            logger_,
+            "ManeuverReferenceClient: %s; failing the maneuver into a measured Hover.",
+            floor_detail.c_str()
+        );
+        on_fail_during_maneuver();
+        const bool hovered = hoverIfFailureEpochUnchanged(failure_epoch);
+        reference_mode = hovered ? "hover_after_reference_loss_floor" : currentReferenceModeLabel();
+        std::lock_guard<std::mutex> reference_lock(reference_mutex_);
+        return reference_;
+    }
+
     if (recovery_phase_ != RecoveryPhase::Stopping) {
         advanceReferenceRecovery(reference, std::move(on_fail_during_maneuver), reference_mode);
         return reference;
@@ -816,6 +855,19 @@ Reference ManeuverReferenceClient::sampleReferenceLossStop(
     (void)failure_reason;
     advanceReferenceRecovery(reference, std::move(on_fail_during_maneuver), reference_mode);
     return reference;
+}
+
+bool ManeuverReferenceClient::rebaseBudgetExhausted(
+    const std::string & request_identity,
+    std::chrono::steady_clock::time_point fault_at
+) {
+    const bool recurring =
+        last_rebase_committed_at_ &&
+        request_identity == last_rebase_request_identity_ &&
+        std::chrono::duration<double>(fault_at - *last_rebase_committed_at_).count() <=
+            kRebaseRecurrenceWindowS;
+    recurring_rebases_ = recurring ? recurring_rebases_ + 1 : 0;
+    return recurring_rebases_ >= kMaxRecurringRebases;
 }
 
 bool ManeuverReferenceClient::advanceReferenceRecovery(
@@ -859,6 +911,17 @@ bool ManeuverReferenceClient::advanceReferenceRecovery(
         }
         if (!fault_stream_identity_ || !fault_stream_identity_->valid()) {
             return fail_recovery("rejecting stream identity unavailable after bounded stop");
+        }
+        std::chrono::steady_clock::time_point fault_at;
+        {
+            std::lock_guard<std::mutex> safety_lock(reference_safety_mutex_);
+            fault_at = reference_loss_stop_start_time_;
+        }
+        if (rebaseBudgetExhausted(fault_stream_identity_->request_identity, fault_at)) {
+            return fail_recovery(
+                "continuity fault recurred after " + std::to_string(recurring_rebases_) +
+                " consecutive rebases of the same maneuver"
+            );
         }
         if (!rebase_reference_stream_client_->service_is_ready()) {
             return fail_recovery("rebase service unavailable after bounded stop");
@@ -1038,6 +1101,8 @@ bool ManeuverReferenceClient::advanceReferenceRecovery(
                     };
                     resumed_stream_id = applied_ack_identity->stream_id;
                     active_request_identity_ = applied_ack_identity->request_identity;
+                    last_rebase_request_identity_ = applied_ack_identity->request_identity;
+                    last_rebase_committed_at_ = now;
                     recovery_phase_ = RecoveryPhase::None;
                     reference_loss_stop_trajectory_.reset();
                     reference_loss_failure_reported_ = false;

@@ -339,34 +339,25 @@ Reference CableTakeoffManeuverServer::computeReference(const State & state) {
         false
     );
 
-    const bool use_mpc = configuration_->GetParameter("/control/maneuver_controller/cable_takeoff_use_mpc").as_bool();
-    bool compute_with_mpc = use_mpc;
     const bool initialize_trajectory = first_iteration_;
 
     Reference ref;
     
     try {
 
-        if (compute_with_mpc) {
-            ref = trajectory_generator_client_->ComputeReference(
-                state,
-                target_reference,
-                true,
-                initialize_trajectory,
-                trajectory_mode_t::cable_takeoff,
-                true
-            );
-        } else {
-            // Build one bounded quintic from the measured moving state, then
-            // sample that fixed segment on subsequent maneuver ticks.
-            ref = trajectory_generator_client_->ComputeReference(
-                Reference(state),
-                target_reference,
-                initialize_trajectory,
-                initialize_trajectory,
-                trajectory_mode_t::cable_takeoff
-            );
-        }
+        // Cable takeoff always builds one jerk-bounded quintic from the
+        // measured moving state and samples that fixed segment on subsequent
+        // ticks. The state-feedback MPC path is deliberately unavailable: it
+        // has no hard jerk bound, leaves the cable at up to ~1.4 m/s, and its
+        // restarts open at the MPC acceleration limit, which exceeds the
+        // reference continuity envelope from rest.
+        ref = trajectory_generator_client_->ComputeReference(
+            Reference(state),
+            target_reference,
+            initialize_trajectory,
+            initialize_trajectory,
+            trajectory_mode_t::cable_takeoff
+        );
 
     } catch (const std::runtime_error &e) {
 

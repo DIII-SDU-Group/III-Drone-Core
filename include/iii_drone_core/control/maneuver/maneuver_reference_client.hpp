@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <atomic>
 #include <functional>
+#include <limits>
 #include <optional>
 #include <string>
 
@@ -54,6 +55,7 @@
 #include <iii_drone_interfaces/msg/string_stamped.hpp>
 #include <iii_drone_interfaces/msg/maneuver_reference_stream.hpp>
 #include <iii_drone_interfaces/msg/maneuver_reference_ack.hpp>
+#include <iii_drone_interfaces/msg/combined_drone_awareness.hpp>
 
 #include <iii_drone_interfaces/srv/get_reference.hpp>
 #include <iii_drone_interfaces/srv/pause_reference_stream.hpp>
@@ -139,6 +141,24 @@ namespace maneuver {
                         receiveReferenceStream(message);
                     },
                     stream_options
+                );
+
+            // The ground estimate bounds where a reference-loss stop may end.
+            // It arrives with every odometry update, so it gets its own
+            // callback group: it must never queue behind or delay the
+            // reference stream and acknowledgement path.
+            awareness_cb_group_ = node->create_callback_group(
+                rclcpp::CallbackGroupType::MutuallyExclusive);
+            rclcpp::SubscriptionOptions awareness_options;
+            awareness_options.callback_group = awareness_cb_group_;
+            awareness_subscription_ =
+                node->template create_subscription<iii_drone_interfaces::msg::CombinedDroneAwareness>(
+                    "/control/maneuver_controller/combined_drone_awareness",
+                    rclcpp::QoS(rclcpp::KeepLast(1)),
+                    [this](const iii_drone_interfaces::msg::CombinedDroneAwareness::SharedPtr message) {
+                        ground_altitude_estimate_.store(message->ground_altitude_estimate);
+                    },
+                    awareness_options
                 );
 
             rclcpp::QoS ack_qos(rclcpp::KeepLast(10));
@@ -670,6 +690,35 @@ namespace maneuver {
             WaitActive,
         };
         RecoveryPhase recovery_phase_ = RecoveryPhase::None;
+
+        // Rebase recovery budget. A continuity fault that recurs shortly after
+        // a rebase of the same request means the producer replans into the
+        // same fault; recovering again would stop and restart indefinitely.
+        static constexpr int kMaxRecurringRebases = 2;
+
+        // A bounded stop decelerates gently and can travel metres from a fast
+        // descent. When its predicted end lies below the ground estimate plus
+        // minimum_target_altitude, the maneuver fails into a measured Hover
+        // instead, so PX4 brakes with its own limits above the floor.
+        rclcpp::CallbackGroup::SharedPtr awareness_cb_group_;
+        rclcpp::Subscription<iii_drone_interfaces::msg::CombinedDroneAwareness>::SharedPtr
+            awareness_subscription_;
+        std::atomic<double> ground_altitude_estimate_{std::numeric_limits<double>::quiet_NaN()};
+        bool reference_loss_floor_breach_ = false;
+        std::string reference_loss_floor_breach_detail_;
+        static constexpr double kRebaseRecurrenceWindowS = 5.0;
+        std::string last_rebase_request_identity_;
+        std::optional<std::chrono::steady_clock::time_point> last_rebase_committed_at_;
+        int recurring_rebases_ = 0;
+
+        /**
+         * @brief Whether a fault at fault_at, for this request, exhausts the rebase budget.
+         * Updates the recurrence count; a fault after a healthy window resets it.
+         */
+        bool rebaseBudgetExhausted(
+            const std::string & request_identity,
+            std::chrono::steady_clock::time_point fault_at
+        );
         std::string prepared_stream_id_;
         std::optional<iii_drone::control::Reference> prepared_reference_anchor_;
         std::chrono::steady_clock::time_point recovery_phase_started_;
