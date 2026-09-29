@@ -1151,3 +1151,45 @@ TEST(TrajectoryInterpolatorTest, ProductionConfigurationViewDeclaresJerkLimits) 
         1.5
     );
 }
+
+TEST(TrajectoryInterpolatorTest, ShortPositionalSegmentHonoursJerkLimit) {
+    // HIL soak finding: a 13 mm FlyToPosition (positional, non-bounded mode)
+    // was timed by its acceleration limit only and swung its acceleration by
+    // ~0.9 m/s^2 within 0.2 s, tripping the consumer's continuity envelope.
+    TrajectoryInterpolator interpolator(makeConfiguration(0.45, 0.5, 1.0), nullptr);
+    const Reference start(
+        point_t(5.738, 6.981, 4.132), -1.817, vector_t::Zero(), 0.0,
+        vector_t::Zero(), 0.0, rclcpp::Time(100, 0)
+    );
+    const Reference target(point_t(5.737, 6.994, 4.138), -1.817);
+
+    interpolator.ComputeReferenceTrajectory(start, target, true, true, false);
+    const double duration = (interpolator.end_time_ - interpolator.start_time_).seconds();
+    ASSERT_GT(duration, 0.0);
+    const double distance = (target.position() - start.position()).norm();
+    EXPECT_GE(duration, std::cbrt(60.0 * distance / 1.0) - 1.0e-9);
+    for (int i = 0; i <= 400; ++i) {
+        const double t = duration * static_cast<double>(i) / 400.0;
+        EXPECT_LE(interpolator.jerkFunction(t).norm(), 1.0 + 1.0e-6);
+        EXPECT_LE(interpolator.accelerationFunction(t).norm(), 0.5 + 1.0e-6);
+    }
+    // A 0.2 s consumer sample interval can never see more than jerk * dt of
+    // acceleration change, inside the 0.75 + 1.0 * 0.2 envelope.
+    for (double t = 0.0; t + 0.2 <= duration; t += 0.01) {
+        EXPECT_LE((interpolator.accelerationFunction(t + 0.2) -
+                   interpolator.accelerationFunction(t)).norm(), 0.2 + 1.0e-6);
+    }
+}
+
+TEST(TrajectoryInterpolatorTest, ShortYawOnlySegmentHonoursYawJerkLimit) {
+    TrajectoryInterpolator interpolator(makeConfiguration(0.45, 0.5, 1.0), nullptr);
+    const Reference start(
+        point_t(0.0, 0.0, 2.0), 0.0, vector_t::Zero(), 0.0,
+        vector_t::Zero(), 0.0, rclcpp::Time(100, 0)
+    );
+    const Reference target(point_t(0.0, 0.0, 2.0), 0.02);
+
+    interpolator.ComputeReferenceTrajectory(start, target, true, true, false);
+    const double duration = (interpolator.end_time_ - interpolator.start_time_).seconds();
+    EXPECT_GE(duration, std::cbrt(60.0 * 0.02 / 1.5) - 1.0e-9);
+}

@@ -247,12 +247,17 @@ double TrajectoryInterpolator::computeInterpolation(
     const double max_yaw_acceleration = configuration_->GetParameter(
         "/control/trajectory_interpolator/interpolation_max_yaw_acceleration_rad_s2"
     ).as_double();
-    const double max_jerk = bounded_interpolation ? configuration_->GetParameter(
+    // Every segment honours the configured jerk limits. Without them a short
+    // segment is timed only by its acceleration limit, and its quintic swings
+    // from +a_max to -a_max within a fraction of a second: a 13 mm FlyToPosition
+    // produced ~13 m/s^3 against the 1 m/s^3 limit the consumer's continuity
+    // envelope assumes.
+    const double max_jerk = configuration_->GetParameter(
         "/control/trajectory_interpolator/interpolation_max_jerk_m_s3"
-    ).as_double() : std::numeric_limits<double>::infinity();
-    const double max_yaw_jerk = bounded_interpolation ? configuration_->GetParameter(
+    ).as_double();
+    const double max_yaw_jerk = configuration_->GetParameter(
         "/control/maneuver_controller/controlled_cancel_max_yaw_jerk_rad_s3"
-    ).as_double() : std::numeric_limits<double>::infinity();
+    ).as_double();
 
     if (bounded_interpolation) {
         const double avg_velocity = configuration_->GetParameter(
@@ -300,12 +305,8 @@ double TrajectoryInterpolator::computeInterpolation(
     const double T_yaw_acceleration = std::sqrt(
         rest_to_rest_peak_acceleration_coeff * yaw_error / max_yaw_acceleration
     );
-    const double T_jerk = bounded_interpolation ? std::cbrt(
-        60.0 * position_distance / max_jerk
-    ) : 0.0;
-    const double T_yaw_jerk = bounded_interpolation ? std::cbrt(
-        60.0 * yaw_error / max_yaw_jerk
-    ) : 0.0;
+    const double T_jerk = std::cbrt(60.0 * position_distance / max_jerk);
+    const double T_yaw_jerk = std::cbrt(60.0 * yaw_error / max_yaw_jerk);
 
     double T = std::max({
         position_duration,
