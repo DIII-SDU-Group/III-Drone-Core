@@ -10,6 +10,9 @@
 #include <chrono>
 #include <memory>
 #include <mutex>
+#include <condition_variable>
+
+#include <iii_drone_core/utils/callback_lifetime.hpp>
 #include <optional>
 
 /*****************************************************************************/
@@ -93,7 +96,7 @@ namespace maneuver {
      * and publish feedback accordingly. When the maneuver is done, the maneuver server will call the done callback function,
      * and the maneuver scheduler will take back the reference callback token.
      */
-    class ManeuverServer {
+    class ManeuverServer : public std::enable_shared_from_this<ManeuverServer> {
     public:
         /**
          * @brief Constructor
@@ -111,6 +114,8 @@ namespace maneuver {
             unsigned int wait_for_execute_poll_ms,
             unsigned int evaluate_done_poll_ms
         );
+
+        virtual ~ManeuverServer();
 
         /**
          * @brief Method to start the maneuver server. The maneuver server will reject any new goals until started.
@@ -544,6 +549,19 @@ namespace maneuver {
          * @brief Whether the server is running, atomic.
          */
         iii_drone::utils::Atomic<bool> running_;
+
+        // Detached execution workers. Stop() waits for them before tearing
+        // down the scheduler callbacks and token they use, and each worker
+        // co-owns the server so unregistering cannot free it under them.
+        std::mutex workers_mutex_;
+        std::condition_variable workers_cv_;
+        int active_workers_ = 0;
+
+        void waitForExecutionWorkers();
+
+        // Ends the action-server callbacks (they capture `this`) before the
+        // server is destroyed.
+        iii_drone::utils::CallbackLifetime callback_lifetime_;
 
         iii_drone::utils::Atomic<bool> reference_stream_paused_ = false;
         struct StartupRejection {

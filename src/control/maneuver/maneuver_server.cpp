@@ -158,8 +158,16 @@ void ManeuverServer::Start(
     RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::Start(): %s: Finished", action_name_.c_str());
 }
 
+ManeuverServer::~ManeuverServer() {
+    callback_lifetime_.Close();
+}
+
 void ManeuverServer::Stop() {
     running_ = false;
+
+    // Workers observe running_ within one poll period and finish their
+    // cancel path through the callbacks and token cleared below.
+    waitForExecutionWorkers();
 
     registered_maneuvers_.clear();
 
@@ -173,6 +181,18 @@ void ManeuverServer::Stop() {
     update_maneuver_ = nullptr;
     register_maneuver_ = nullptr;
 
+}
+
+void ManeuverServer::waitForExecutionWorkers() {
+    std::unique_lock<std::mutex> lock(workers_mutex_);
+    while (!workers_cv_.wait_for(lock, std::chrono::seconds(1), [this]() { return active_workers_ == 0; })) {
+        RCLCPP_WARN(
+            node_->get_logger(),
+            "ManeuverServer::Stop(): %s: waiting for %d execution worker(s) to finish",
+            action_name_.c_str(),
+            active_workers_
+        );
+    }
 }
 
 bool ManeuverServer::running() const {
@@ -692,13 +712,24 @@ void ManeuverServer::handleAccepted(
 
     RCLCPP_INFO(node_->get_logger(), "ManeuverServer::handleAccepted(): %s: Starting async execution", action_name_.c_str());
 
+    {
+        std::lock_guard<std::mutex> workers_lock(workers_mutex_);
+        ++active_workers_;
+    }
     std::thread{
-        std::bind(
-            &ManeuverServer::asyncExecute<ActionT>,
-            this, 
-            std::placeholders::_1
-        ),
-        goal_handle
+        [self = shared_from_this(), goal_handle]() {
+            struct WorkerExit {
+                ManeuverServer & server;
+                ~WorkerExit() {
+                    {
+                        std::lock_guard<std::mutex> workers_lock(server.workers_mutex_);
+                        --server.active_workers_;
+                    }
+                    server.workers_cv_.notify_all();
+                }
+            } worker_exit{*self};
+            self->asyncExecute<ActionT>(goal_handle);
+        }
     }.detach();
 
 }
@@ -751,6 +782,15 @@ void ManeuverServer::asyncExecute(
     while(!goal_handle->is_executing()) {
         // RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::asyncExecute(): Waiting for goal to start executing");
         rate.sleep();
+        if (!running_) {
+            RCLCPP_WARN(
+                node_->get_logger(),
+                "ManeuverServer::asyncExecute(): %s: Server stopped before execution, aborting goal",
+                action_name_.c_str()
+            );
+            abort_maneuver();
+            return;
+        }
         const bool released = consumerReleased(maneuver.requestIdentity());
         if (released) {
             RCLCPP_INFO(
@@ -916,7 +956,7 @@ void ManeuverServer::asyncExecute(
 
     while(true) {
 
-        if (!verify_maneuver_active_(maneuver) || !running_) {
+        if (!running_ || !verify_maneuver_active_(maneuver)) {
             drain_managed();
             if (managed_lease) managed_lease->retire();
 
@@ -1234,25 +1274,28 @@ template <typename ActionT>
 void ManeuverServer::createServer() {
     
     // Create action server
+    const auto lifetime = callback_lifetime_.token();
     std::shared_ptr<rclcpp_action::Server<ActionT>> server = rclcpp_action::create_server<ActionT>(
         node_,
         action_name_,
-        std::bind(
-            &ManeuverServer::handleGoal<ActionT>,
-            this, 
-            std::placeholders::_1, 
-            std::placeholders::_2
-        ),
-        std::bind(
-            &ManeuverServer::handleCancel<ActionT>,
-            this, 
-            std::placeholders::_1
-        ),
-        std::bind(
-            &ManeuverServer::handleAccepted<ActionT>,
-            this, 
-            std::placeholders::_1
-        )
+        [this, lifetime](
+            const rclcpp_action::GoalUUID & uuid,
+            std::shared_ptr<const typename ActionT::Goal> goal
+        ) {
+            const auto alive = lifetime.Enter();
+            if (!alive.owns_lock()) return rclcpp_action::GoalResponse::REJECT;
+            return handleGoal<ActionT>(uuid, goal);
+        },
+        [this, lifetime](const std::shared_ptr<rclcpp_action::ServerGoalHandle<ActionT>> goal_handle) {
+            const auto alive = lifetime.Enter();
+            if (!alive.owns_lock()) return rclcpp_action::CancelResponse::REJECT;
+            return handleCancel<ActionT>(goal_handle);
+        },
+        [this, lifetime](const std::shared_ptr<rclcpp_action::ServerGoalHandle<ActionT>> goal_handle) {
+            const auto alive = lifetime.Enter();
+            if (!alive.owns_lock()) return;
+            handleAccepted<ActionT>(goal_handle);
+        }
     );
 
     server_ = std::static_pointer_cast<void>(server);
