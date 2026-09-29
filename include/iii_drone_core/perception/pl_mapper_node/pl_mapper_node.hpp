@@ -254,8 +254,10 @@ private:
         std::shared_ptr<iii_drone_interfaces::srv::PLMapperCommand::Response> response
     );
 
-    std::shared_ptr<tf2_ros::TransformListener> transform_listener_{nullptr};
+    // Declared before the listener so it is destroyed after it: the
+    // listener's spin thread writes into the buffer until it is joined.
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+    std::shared_ptr<tf2_ros::TransformListener> transform_listener_{nullptr};
 
     /**
      * @brief Timer for predicting the powerline position estimates
