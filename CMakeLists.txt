@@ -428,6 +428,10 @@ if (BUILD_TESTING)
     test/control/reference_callback_token_test.cpp
   )
 
+  ament_add_gtest(iii_drone_core_odometry_ingress_starvation_test
+    test/control/odometry_ingress_starvation_test.cpp
+  )
+
   # Several closed-loop cases cover over two minutes of virtual flight in Debug.
   ament_add_gtest(iii_drone_core_trajectory_interpolator_test TIMEOUT 600
     test/control/trajectory_interpolator_test.cpp
@@ -534,6 +538,11 @@ if (BUILD_TESTING)
     target_include_directories(iii_drone_core_maneuver_reference_client_transaction_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
     target_link_libraries(iii_drone_core_maneuver_reference_client_transaction_test iii_drone_lib)
     ament_target_dependencies(iii_drone_core_maneuver_reference_client_transaction_test ${dependencies})
+  endif()
+  if(TARGET iii_drone_core_odometry_ingress_starvation_test)
+    target_include_directories(iii_drone_core_odometry_ingress_starvation_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_odometry_ingress_starvation_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_odometry_ingress_starvation_test ${dependencies})
   endif()
   if(TARGET iii_drone_core_reference_callback_token_test)
     target_include_directories(iii_drone_core_reference_callback_token_test PRIVATE ${III_DRONE_INCLUDE_DIRS})

@@ -62,6 +62,7 @@
 
 #include <iii_drone_core/utils/atomic.hpp>
 #include <iii_drone_core/utils/history.hpp>
+#include <iii_drone_core/utils/callback_lifetime.hpp>
 
 #include <iii_drone_core/adapters/px4/vehicle_status_adapter.hpp>
 #include <iii_drone_core/adapters/px4/vehicle_odometry_adapter.hpp>
@@ -536,6 +537,16 @@ namespace control {
 		 * @brief PX4 odometry subscription
 		 */
 		rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr vehicle_odometry_sub_;
+		// Odometry and local-position ingress have their own callback group so no other callback of
+		// the node can delay it, and a queue deep enough that a brief
+		// scheduling stall delays samples instead of dropping them (object
+		// tracking requires a continuous source sample sequence).
+		rclcpp::CallbackGroup::SharedPtr odometry_callback_group_;
+		static constexpr size_t odometry_queue_depth_ = 64;  // 0.5 s at 125 Hz
+		// Serialises the read-modify-write updates of the awareness snapshot,
+		// which now run from more than one callback group.
+		std::mutex awareness_update_mutex_;
+		iii_drone::utils::CallbackLifetime callback_lifetime_;
 		rclcpp::Subscription<px4_msgs::msg::VehicleLocalPosition>::SharedPtr vehicle_local_position_sub_;
 
         /**

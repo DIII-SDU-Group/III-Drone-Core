@@ -103,6 +103,8 @@ CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(
 
 CombinedDroneAwarenessHandler::~CombinedDroneAwarenessHandler() {
 
+    callback_lifetime_.Close();
+
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::~CombinedDroneAwarenessHandler(): Destroying CombinedDroneAwarenessHandler");
 
     if (is_started_) {
@@ -238,24 +240,42 @@ void CombinedDroneAwarenessHandler::Start() {
         }
     );
 
+    if (!odometry_callback_group_) {
+        odometry_callback_group_ = node_->create_callback_group(
+            rclcpp::CallbackGroupType::MutuallyExclusive);
+    }
+    rclcpp::SubscriptionOptions odometry_options;
+    odometry_options.callback_group = odometry_callback_group_;
+    rclcpp::QoS odometry_qos{rclcpp::KeepLast{odometry_queue_depth_}};
+    odometry_qos.transient_local();
+    odometry_qos.best_effort();
+
     vehicle_odometry_sub_ = node_->create_subscription<px4_msgs::msg::VehicleOdometry>(
         "/fmu/out/vehicle_odometry",
-        px4_sub_qos,
-        [this](const px4_msgs::msg::VehicleOdometry::SharedPtr msg) {
+        odometry_qos,
+        [this, lifetime = callback_lifetime_.token()](const px4_msgs::msg::VehicleOdometry::SharedPtr msg) {
+            const auto alive = lifetime.Enter();
+            if (!alive.owns_lock()) return;
             if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::vehicle_odometry_sub_: Vehicle odometry received");
             ingestVehicleOdometry(*msg, node_->now());
             updateCombinedDroneAwarenessFromVehicleOdometry();
-        }
+        },
+        odometry_options
     );
 
+    // The other half of the measured-odometry transaction: same group and
+    // queue depth as the odometry ingress.
     vehicle_local_position_sub_ = node_->create_subscription<px4_msgs::msg::VehicleLocalPosition>(
-        "/fmu/out/vehicle_local_position", px4_sub_qos,
-        [this](const px4_msgs::msg::VehicleLocalPosition::SharedPtr msg) {
+        "/fmu/out/vehicle_local_position", odometry_qos,
+        [this, lifetime = callback_lifetime_.token()](const px4_msgs::msg::VehicleLocalPosition::SharedPtr msg) {
+            const auto alive = lifetime.Enter();
+            if (!alive.owns_lock()) return;
             ingestVehicleLocalPosition(*msg, node_->now());
             if (vehicle_odometry_adapter_history_ &&
                 !vehicle_odometry_adapter_history_->empty())
                 updateCombinedDroneAwarenessFromVehicleOdometry();
-        });
+        },
+        odometry_options);
 
     vehicle_global_position_sub_ = node_->create_subscription<px4_msgs::msg::VehicleGlobalPosition>(
         "/fmu/out/vehicle_global_position",
@@ -1281,6 +1301,7 @@ void CombinedDroneAwarenessHandler::updateCombinedDroneAwareness() {
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::updateCombinedDroneAwareness(): Updating combined drone awareness");
 
     // Update the combined drone awareness
+    std::lock_guard<std::mutex> awareness_lock(awareness_update_mutex_);
     CombinedDroneAwarenessAdapter adapter = *combined_drone_awareness_adapter_;
 
     updateCombinedDroneAwarenessFromVehicleStatus(adapter);
@@ -1296,6 +1317,7 @@ void CombinedDroneAwarenessHandler::updateCombinedDroneAwareness() {
 
 void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromVehicleStatus() {
 
+    std::lock_guard<std::mutex> awareness_lock(awareness_update_mutex_);
     CombinedDroneAwarenessAdapter adapter = *combined_drone_awareness_adapter_;
 
     updateCombinedDroneAwarenessFromVehicleStatus(adapter);
@@ -1331,6 +1353,7 @@ void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromVehicleStatu
 
 void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromVehicleOdometry() {
 
+    std::lock_guard<std::mutex> awareness_lock(awareness_update_mutex_);
     CombinedDroneAwarenessAdapter adapter = *combined_drone_awareness_adapter_;
 
     updateCombinedDroneAwarenessFromVehicleOdometry(adapter);
@@ -1363,6 +1386,7 @@ void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromVehicleOdome
 
 void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromPowerline() {
 
+    std::lock_guard<std::mutex> awareness_lock(awareness_update_mutex_);
     CombinedDroneAwarenessAdapter adapter = *combined_drone_awareness_adapter_;
 
     updateCombinedDroneAwarenessFromPowerline(adapter);
@@ -1391,6 +1415,7 @@ void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromPowerline(Co
 
 void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromGripperStatus() {
 
+    std::lock_guard<std::mutex> awareness_lock(awareness_update_mutex_);
     CombinedDroneAwarenessAdapter adapter = *combined_drone_awareness_adapter_;
 
     updateCombinedDroneAwarenessFromTarget(adapter);
@@ -1417,6 +1442,7 @@ void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromGripperStatu
 
 void CombinedDroneAwarenessHandler::updateCombinedDroneAwarenessFromTarget() {
 
+    std::lock_guard<std::mutex> awareness_lock(awareness_update_mutex_);
     CombinedDroneAwarenessAdapter adapter = *combined_drone_awareness_adapter_;
 
     updateCombinedDroneAwarenessFromTarget(adapter);
