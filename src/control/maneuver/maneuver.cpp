@@ -231,7 +231,8 @@ void Maneuver::SetFromGoal(const std::shared_ptr<const typename ActionT::Goal> g
             goal->target_z_velocity,
             goal->target_yaw_rate,
             goal->duration_s,
-            goal->sustain_action
+            goal->sustain_action,
+            goal->push_upwards_acceleration
         );
 
     // } else if constexpr (std::is_same<ActionT, iii_drone_interfaces::action::DisarmOnCable>::value) {

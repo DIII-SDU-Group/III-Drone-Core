@@ -739,6 +739,33 @@ TEST(ManeuverReferenceStartupPolicy, OnlyAllowsOnePlannedBaselineShapePerGenerat
     EXPECT_FALSE(policy.consumeFirstPlannedBaseline(mpcReferenceWithNaNYawDerivatives(-1.0)));
 }
 
+TEST(ManeuverReferenceStartupPolicy, AcceptsHoverOnCablePushShapeAsBaseline) {
+    iii_drone::control::maneuver::ManeuverReferenceStartupPolicy policy;
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const Reference push(
+        point_t::Constant(nan), nan, vector_t(0.0, 0.0, nan), 0.0,
+        vector_t(nan, nan, 0.2), nan
+    );
+    policy.arm();
+    EXPECT_TRUE(policy.consumeFirstPlannedBaseline(push));
+    EXPECT_FALSE(policy.firstPlannedBaselinePending());
+
+    // A vertical axis with both velocity and acceleration, or neither, is
+    // not the push shape.
+    const Reference both(
+        point_t::Constant(nan), nan, vector_t(0.0, 0.0, 0.1), 0.0,
+        vector_t(nan, nan, 0.2), nan
+    );
+    const Reference horizontal_acceleration(
+        point_t::Constant(nan), nan, vector_t(0.0, 0.0, nan), 0.0,
+        vector_t(0.0, nan, 0.2), nan
+    );
+    policy.arm();
+    EXPECT_FALSE(policy.consumeFirstPlannedBaseline(both));
+    EXPECT_FALSE(policy.consumeFirstPlannedBaseline(horizontal_acceleration));
+    EXPECT_TRUE(policy.firstPlannedBaselinePending());
+}
+
 TEST(ManeuverReferenceClientTransaction, LateConfirmPreservesOwnedStopForRunningPredecessor) {
     RclcppContext context;
     ClientFixture fixture("reference_transaction_owned_stop_before_confirm");

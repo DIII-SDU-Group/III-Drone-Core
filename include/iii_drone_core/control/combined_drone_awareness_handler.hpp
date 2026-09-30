@@ -35,6 +35,8 @@
 // PX4 msgs:
 
 #include <px4_msgs/msg/vehicle_status.hpp>
+#include <px4_msgs/msg/vehicle_land_detected.hpp>
+#include <px4_msgs/msg/vehicle_local_position_setpoint.hpp>
 #include <px4_msgs/msg/vehicle_odometry.hpp>
 #include <px4_msgs/msg/vehicle_local_position.hpp>
 #include <px4_msgs/msg/vehicle_global_position.hpp>
@@ -397,6 +399,56 @@ namespace control {
         bool gripper_open() const;
 
         /**
+         * @brief PX4's land detector stages, as last received.
+         */
+        struct Px4LandState {
+            bool landed = true;
+            bool maybe_landed = true;
+            bool ground_contact = true;
+            std::chrono::steady_clock::time_point received_at{};
+        };
+
+        /**
+         * @brief The last PX4 land-detector sample, if any was received.
+         */
+        std::optional<Px4LandState> px4_land_state() const;
+
+        /**
+         * @brief Whether PX4 reports the vehicle airborne: a sample no older
+         * than kPx4LandStateMaxAge (PX4 republishes at least at 1 Hz) with
+         * none of landed, maybe landed or ground contact set. Unknown counts
+         * as not airborne.
+         *
+         * Far above the ground PX4 reports airborne as soon as it arms, while
+         * its takeoff state machine still holds thrust at zero; see
+         * px4_thrust_up() for the thrust PX4 applies.
+         */
+        bool px4_airborne(std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now()) const;
+
+        static constexpr std::chrono::milliseconds kPx4LandStateMaxAge{2500};
+
+        /**
+         * @brief PX4 position controller output, as last received.
+         */
+        struct Px4ThrustSetpoint {
+            /** Upward collective thrust (normalized, NED z negated). */
+            double thrust_up = 0.0;
+            /** Upward acceleration setpoint the thrust realizes (m/s^2). */
+            double acceleration_up = 0.0;
+            std::chrono::steady_clock::time_point received_at{};
+        };
+
+        /**
+         * @brief The thrust PX4's position controller commands, if a sample
+         * no older than kPx4ThrustSetpointMaxAge (PX4 publishes it every
+         * control cycle) is available. It stays zero until PX4 has taken off.
+         */
+        std::optional<Px4ThrustSetpoint> px4_thrust_setpoint(
+            std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now()) const;
+
+        static constexpr std::chrono::milliseconds kPx4ThrustSetpointMaxAge{1000};
+
+        /**
          * @brief Returns the tf buffer shared ptr.
          * 
          * @return The tf buffer shared ptr.
@@ -509,6 +561,14 @@ namespace control {
 		 * @brief PX4 vehicle status subscription
 		 */
 		rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr vehicle_status_sub_;
+
+		/**
+		 * @brief PX4 land detector subscription and its last sample.
+		 */
+		rclcpp::Subscription<px4_msgs::msg::VehicleLandDetected>::SharedPtr vehicle_land_detected_sub_;
+		iii_drone::utils::Atomic<std::optional<Px4LandState>> px4_land_state_;
+		rclcpp::Subscription<px4_msgs::msg::VehicleLocalPositionSetpoint>::SharedPtr vehicle_local_position_setpoint_sub_;
+		iii_drone::utils::Atomic<std::optional<Px4ThrustSetpoint>> px4_thrust_setpoint_;
 
         /**
          * @brief Vehicle status adapter history.

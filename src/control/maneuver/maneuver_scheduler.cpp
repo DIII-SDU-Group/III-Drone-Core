@@ -3235,7 +3235,10 @@ void ManeuverScheduler::progressScheduler() {
                 case MANEUVER_TYPE_HOVER_ON_CABLE: {
                     hover_on_cable_maneuver_params_t maneuver_params(previous_maneuver.maneuver_params());
 
-                    if (maneuver_params.sustain_action) {
+                    // A cable release push is sustained only until it is
+                    // established; it must then keep holding the cable for
+                    // duration_s, until its successor (CableTakeoff) takes over.
+                    if (maneuver_params.sustain_action && !(maneuver_params.push_upwards_acceleration > 0.0)) {
 
                         set_default_no_maneuver_idle_cnt();
 

@@ -11,7 +11,8 @@ namespace iii_drone::control::maneuver {
  * generation. The scheduler's initialization hold deliberately has NaN
  * derivatives, so it must not consume the allowance reserved for the first
  * planned reference. A planned reference may be fully finite, use the
- * velocity-only shape used by HoverOnCable, or the MPC shape with NaN yaw
+ * velocity-only shape used by HoverOnCable, HoverOnCable's push shape
+ * (horizontal velocity, vertical acceleration), or the MPC shape with NaN yaw
  * derivatives.
  */
 class ManeuverReferenceStartupPolicy {
@@ -24,6 +25,7 @@ public:
             !first_planned_baseline_pending_ ||
             (!fullyFinite(reference) &&
                 !validVelocityOnly(reference) &&
+                !validCablePush(reference) &&
                 !validMpcReference(reference))
         ) {
             return false;
@@ -56,6 +58,19 @@ private:
             reference.velocity().allFinite() &&
             std::isfinite(reference.yaw_rate()) &&
             allNaN(reference.acceleration()) &&
+            std::isnan(reference.yaw_acceleration());
+    }
+
+    static bool validCablePush(const Reference & reference) {
+        return allNaN(reference.position()) &&
+            std::isnan(reference.yaw()) &&
+            std::isfinite(reference.velocity().x()) &&
+            std::isfinite(reference.velocity().y()) &&
+            std::isnan(reference.velocity().z()) &&
+            std::isfinite(reference.yaw_rate()) &&
+            std::isnan(reference.acceleration().x()) &&
+            std::isnan(reference.acceleration().y()) &&
+            std::isfinite(reference.acceleration().z()) &&
             std::isnan(reference.yaw_acceleration());
     }
 

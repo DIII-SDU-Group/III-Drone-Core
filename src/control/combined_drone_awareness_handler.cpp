@@ -241,6 +241,30 @@ void CombinedDroneAwarenessHandler::Start() {
         }
     );
 
+    vehicle_land_detected_sub_ = node_->create_subscription<px4_msgs::msg::VehicleLandDetected>(
+        "/fmu/out/vehicle_land_detected",
+        px4_sub_qos,
+        [this, lifetime = callback_lifetime_.token()](const px4_msgs::msg::VehicleLandDetected::SharedPtr msg) {
+            const auto alive = lifetime.Enter();
+            if (!alive.owns_lock()) return;
+            px4_land_state_.Store(Px4LandState{
+                msg->landed, msg->maybe_landed, msg->ground_contact,
+                std::chrono::steady_clock::now()});
+        }
+    );
+
+    vehicle_local_position_setpoint_sub_ = node_->create_subscription<px4_msgs::msg::VehicleLocalPositionSetpoint>(
+        "/fmu/out/vehicle_local_position_setpoint",
+        px4_sub_qos,
+        [this, lifetime = callback_lifetime_.token()](const px4_msgs::msg::VehicleLocalPositionSetpoint::SharedPtr msg) {
+            const auto alive = lifetime.Enter();
+            if (!alive.owns_lock()) return;
+            px4_thrust_setpoint_.Store(Px4ThrustSetpoint{
+                -static_cast<double>(msg->thrust[2]), -static_cast<double>(msg->acceleration[2]),
+                std::chrono::steady_clock::now()});
+        }
+    );
+
     if (!odometry_callback_group_) {
         // Not added to the node's executor: startOdometryIngress() spins it.
         odometry_callback_group_ = node_->create_callback_group(
@@ -388,6 +412,11 @@ void CombinedDroneAwarenessHandler::Stop() {
     gripper_status_sub_->clear_on_new_message_callback();
     gripper_status_sub_.reset();
     gripper_status_sub_ = nullptr;
+
+    vehicle_land_detected_sub_.reset();
+    px4_land_state_.Store(std::nullopt);
+    vehicle_local_position_setpoint_sub_.reset();
+    px4_thrust_setpoint_.Store(std::nullopt);
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Stop(): Stopping combined_drone_awareness_pub_timer_");
     combined_drone_awareness_pub_timer_->cancel();
@@ -1284,6 +1313,28 @@ drone_location_t CombinedDroneAwarenessHandler::drone_location(int &on_cable_id)
 
 bool CombinedDroneAwarenessHandler::gripper_open() const {
     return (*combined_drone_awareness_adapter_)->gripper_open();
+}
+
+std::optional<CombinedDroneAwarenessHandler::Px4LandState> CombinedDroneAwarenessHandler::px4_land_state() const {
+    return px4_land_state_.Load();
+}
+
+bool CombinedDroneAwarenessHandler::px4_airborne(std::chrono::steady_clock::time_point now) const {
+    const auto state = px4_land_state_.Load();
+    return state &&
+        now - state->received_at <= kPx4LandStateMaxAge &&
+        !state->landed && !state->maybe_landed && !state->ground_contact;
+}
+
+std::optional<CombinedDroneAwarenessHandler::Px4ThrustSetpoint> CombinedDroneAwarenessHandler::px4_thrust_setpoint(
+    std::chrono::steady_clock::time_point now
+) const {
+    const auto setpoint = px4_thrust_setpoint_.Load();
+    if (!setpoint || now - setpoint->received_at > kPx4ThrustSetpointMaxAge ||
+        !std::isfinite(setpoint->thrust_up)) {
+        return std::nullopt;
+    }
+    return setpoint;
 }
 
 drone_location_t CombinedDroneAwarenessHandler::drone_location() const {

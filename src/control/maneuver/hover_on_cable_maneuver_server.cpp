@@ -57,6 +57,14 @@ bool HoverOnCableManeuverServer::CanExecuteManeuver(
         return false;
     }
 
+    if (!std::isfinite(params.push_upwards_acceleration) || params.push_upwards_acceleration < 0.0) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "HoverOnCableManeuverServer::CanExecuteManeuver(): push_upwards_acceleration must be finite and non-negative."
+        );
+        return false;
+    }
+
     if (drone_awareness.target_adapter().target_type() != TARGET_TYPE_CABLE) {
         RCLCPP_WARN(
             node()->get_logger(),
@@ -217,6 +225,10 @@ bool HoverOnCableManeuverServer::Update(
     target_cable_id_ = effective_target_cable_id;
     target_z_velocity_ = target_z_velocity;
     target_yaw_rate_ = target_yaw_rate;
+    {
+        std::lock_guard<std::mutex> lock(push_mutex_);
+        push_.reset();
+    }
 
     return true;
 
@@ -234,6 +246,25 @@ Reference HoverOnCableManeuverServer::GetReference(const State &) {
 
     }
 
+    {
+        std::lock_guard<std::mutex> lock(push_mutex_);
+        if (push_) {
+            // Against the cable a vertical velocity setpoint would wind PX4's
+            // integrator up to maximum thrust; an acceleration setpoint sets
+            // the push force (thrust = hover thrust * (1 + a/g)).
+            const auto now = std::chrono::steady_clock::now();
+            const double acceleration = push_->Update(now, px4Push(now));
+            return Reference(
+                {NAN,NAN,NAN},
+                NAN,
+                vector_t(0.0, 0.0, NAN),
+                target_yaw_rate_,
+                vector_t(NAN, NAN, acceleration),
+                NAN
+            );
+        }
+    }
+
     return Reference(
         {NAN,NAN,NAN},
         NAN,
@@ -241,6 +272,22 @@ Reference HoverOnCableManeuverServer::GetReference(const State &) {
         target_yaw_rate_,
         {NAN,NAN,NAN},
         NAN
+    );
+
+}
+
+CablePushProfile::Px4 HoverOnCableManeuverServer::px4Push(
+    std::chrono::steady_clock::time_point now
+) const {
+
+    const auto land = awareness_handler()->px4_land_state();
+    const auto setpoint = awareness_handler()->px4_thrust_setpoint(now);
+    const bool fresh = land && setpoint &&
+        now - land->received_at <= CombinedDroneAwarenessHandler::kPx4LandStateMaxAge;
+    return CablePushProfile::Classify(
+        fresh,
+        fresh && !land->landed && !land->maybe_landed && !land->ground_contact,
+        setpoint ? setpoint->thrust_up : 0.0
     );
 
 }
@@ -281,6 +328,26 @@ void HoverOnCableManeuverServer::startExecution(Maneuver &maneuver) {
 
     hover_start_time_ = rclcpp::Clock().now();
 
+    if (params.push_upwards_acceleration > 0.0) {
+        CablePushProfile::Limits limits;
+        limits.takeoff_request_acceleration_m_s2 = configuration_->GetParameter(
+            "/control/maneuver_controller/cable_push_takeoff_request_acceleration").as_double();
+        limits.jerk_m_s3 = configuration_->GetParameter(
+            "/control/maneuver_controller/cable_push_jerk").as_double();
+        limits.start_timeout = std::chrono::duration<double>(configuration_->GetParameter(
+            "/control/maneuver_controller/cable_push_start_timeout_s").as_double());
+        std::lock_guard<std::mutex> lock(push_mutex_);
+        push_.emplace(params.push_upwards_acceleration, limits, std::chrono::steady_clock::now());
+        RCLCPP_INFO(
+            node()->get_logger(),
+            "HoverOnCableManeuverServer::startExecution(): pushing up at %.2f m/s^2 once PX4 applies thrust "
+            "(takeoff request %.2f m/s^2, jerk %.2f m/s^3).",
+            params.push_upwards_acceleration,
+            limits.takeoff_request_acceleration_m_s2,
+            limits.jerk_m_s3
+        );
+    }
+
 }
 
 bool HoverOnCableManeuverServer::canCancel() {
@@ -301,6 +368,32 @@ bool HoverOnCableManeuverServer::hasSucceeded(Maneuver &) {
         return true;
     }
 
+    {
+        // A sustained push succeeds once it holds the cable: PX4 airborne
+        // and the push ramped to its target.
+        std::lock_guard<std::mutex> lock(push_mutex_);
+        if (push_) {
+            if (push_->established()) {
+                // PX4 realizes an acceleration setpoint as hover thrust *
+                // (1 + a/g), so its commanded thrust shows the hover thrust
+                // it assumes (MPC_THR_HOVER until its estimator converges in
+                // flight): the push force is only right if that is.
+                const auto setpoint = awareness_handler()->px4_thrust_setpoint();
+                const double thrust = setpoint ? setpoint->thrust_up : NAN;
+                const double px4_acceleration = setpoint ? setpoint->acceleration_up : NAN;
+                RCLCPP_INFO(
+                    node()->get_logger(),
+                    "HoverOnCableManeuverServer::hasSucceeded(): push established: commanded %.2f m/s^2, PX4 "
+                    "acceleration setpoint %.2f m/s^2, thrust %.3f, i.e. PX4 hover thrust %.3f.",
+                    push_->acceleration(), px4_acceleration, thrust,
+                    thrust / (1.0 + px4_acceleration / 9.80665)
+                );
+                return true;
+            }
+            return false;
+        }
+    }
+
     if (rclcpp::Clock().now() - hover_start_time_ >= rclcpp::Duration::from_seconds(hover_duration_s_)) {
         return true;
     }
@@ -310,6 +403,20 @@ bool HoverOnCableManeuverServer::hasSucceeded(Maneuver &) {
 }
 
 bool HoverOnCableManeuverServer::hasFailed(Maneuver &) {
+
+    std::lock_guard<std::mutex> lock(push_mutex_);
+    if (push_ && push_->failed(std::chrono::steady_clock::now())) {
+        RCLCPP_ERROR(
+            node()->get_logger(),
+            "HoverOnCableManeuverServer::hasFailed(): push failed: %s (acceleration %.2f of %.2f m/s^2).",
+            push_->pushingLost()
+                ? "PX4 stopped applying it (landed, maybe landed, ground contact or no thrust)"
+                : "PX4 did not apply it (airborne with thrust) within the timeout",
+            push_->acceleration(),
+            push_->target()
+        );
+        return true;
+    }
 
     return false;
 

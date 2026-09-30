@@ -195,6 +195,9 @@ hover_on_cable_maneuver_params_t::hover_on_cable_maneuver_params_t() {
     target_cable_id = -1;
     target_z_velocity = 0.0;
     target_yaw_rate = 0.0;
+    duration_s = 0.0;
+    sustain_action = false;
+    push_upwards_acceleration = 0.0;
 }
 
 hover_on_cable_maneuver_params_t::hover_on_cable_maneuver_params_t(
@@ -202,13 +205,15 @@ hover_on_cable_maneuver_params_t::hover_on_cable_maneuver_params_t(
     double target_z_velocity,
     double target_yaw_rate,
     double duration_s,
-    bool sustain_action
+    bool sustain_action,
+    double push_upwards_acceleration
 ) {
     this->target_cable_id = target_cable_id;
     this->target_z_velocity = target_z_velocity;
     this->target_yaw_rate = target_yaw_rate;
     this->duration_s = duration_s;
     this->sustain_action = sustain_action;
+    this->push_upwards_acceleration = push_upwards_acceleration;
 }
 
 hover_on_cable_maneuver_params_t::hover_on_cable_maneuver_params_t(std::shared_ptr<void> params) {
@@ -218,4 +223,5 @@ hover_on_cable_maneuver_params_t::hover_on_cable_maneuver_params_t(std::shared_p
     target_yaw_rate = params_ptr->target_yaw_rate;
     duration_s = params_ptr->duration_s;
     sustain_action = params_ptr->sustain_action;
+    push_upwards_acceleration = params_ptr->push_upwards_acceleration;
 }
