@@ -47,3 +47,21 @@ TEST(CableLandingHeadingLockTest, RejectsNonFiniteInitialHeading)
   EXPECT_FALSE(lock.capture(std::numeric_limits<double>::quiet_NaN(), 0.0));
   EXPECT_FALSE(lock.locked());
 }
+
+// Once the conductor has entered the V gate at the capture height the gripper
+// holds it; above that height, or outside the gate, it is not captured.
+// SIM gate: apex -0.16 m, half width 0.18 m at 0.03 m; capture at 0.03 m.
+TEST(ConductorCapturedByGripperTest, CapturedOnlyInsideTheGateAtOrBelowTheCaptureHeight)
+{
+  using iii_drone::control::maneuver::detail::ConductorCapturedByGripper;
+  using iii_drone::types::vector_t;
+  const auto captured = [](double y, double z) {
+    return ConductorCapturedByGripper(vector_t(0.0, y, z), 0.03, -0.16, 0.03, 0.18, 0.0);
+  };
+  EXPECT_TRUE(captured(0.0, 0.03));
+  EXPECT_TRUE(captured(0.10, 0.0));      // gate allows 0.152 at z = 0
+  EXPECT_FALSE(captured(0.0, 0.031));    // still above the capture height
+  EXPECT_FALSE(captured(0.16, 0.0));     // outside the gate
+  EXPECT_FALSE(captured(0.0, -0.17));    // below the apex
+  EXPECT_FALSE(ConductorCapturedByGripper(vector_t(0.0, 0.0, 0.0), 0.03, 0.05, 0.03, 0.18, 0.0));  // invalid gate
+}

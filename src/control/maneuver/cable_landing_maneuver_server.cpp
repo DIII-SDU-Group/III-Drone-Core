@@ -408,6 +408,7 @@ void CableLandingManeuverServer::startExecution(Maneuver & maneuver) {
     line_pid_cross_pid_ = PidState();
     line_pid_yaw_pid_ = PidState();
     gripper_v_gate_violation_active_ = false;
+    conductor_captured_ = false;
 
     if (had_locked_pose) {
         line_pid_last_cable_pose_world_ = previous_locked_pose;
@@ -682,7 +683,10 @@ Reference CableLandingManeuverServer::computeLinePidReference(const State & stat
         configuration_->GetParameter("/control/maneuver_controller/cable_landing_line_pid_max_along_velocity").as_double()
     );
 
-    const double cross_velocity = computePidOutput(
+    // Captured, the slot walls centre the conductor; the estimate no longer
+    // can. Hold the cross position.
+    const bool captured = updateConductorCapture(target_point_gripper);
+    const double cross_velocity = captured ? 0.0 : computePidOutput(
         line_pid_cross_pid_,
         cross_error,
         dt,
@@ -730,7 +734,7 @@ Reference CableLandingManeuverServer::computeLinePidReference(const State & stat
             (target_point_gripper(2) - gate_apex_z) * gate_half_width_at_reference_z / gate_height
         )
         : 0.0;
-    const double ascent_velocity = std::abs(cross_error) <= ascent_cross_error_threshold
+    const double ascent_velocity = captured || std::abs(cross_error) <= ascent_cross_error_threshold
         ? configured_ascent_velocity
         : 0.0;
     if (ascent_velocity == 0.0) {
@@ -1696,6 +1700,44 @@ bool CableLandingManeuverServer::getTargetPointInCableGripperFrame(
 
 }
 
+bool CableLandingManeuverServer::updateConductorCapture(
+    const iii_drone::types::vector_t & target_point_gripper
+) const {
+
+    if (conductor_captured_) return true;
+
+    const double capture_z = configuration_->GetParameter(
+        "/control/maneuver_controller/cable_landing_gripper_capture_z"
+    ).as_double();
+    const double apex_z = configuration_->GetParameter(
+        "/control/maneuver_controller/cable_landing_gripper_v_gate_apex_z"
+    ).as_double();
+    const double reference_z = configuration_->GetParameter(
+        "/control/maneuver_controller/cable_landing_gripper_v_gate_reference_z"
+    ).as_double();
+    const double half_width_at_reference_z = configuration_->GetParameter(
+        "/control/maneuver_controller/cable_landing_gripper_v_gate_half_width_at_reference_z"
+    ).as_double();
+    const double center_y = configuration_->GetParameter(
+        "/control/maneuver_controller/cable_landing_gripper_v_gate_center_y"
+    ).as_double();
+    if (!detail::ConductorCapturedByGripper(
+            target_point_gripper, capture_z, apex_z, reference_z, half_width_at_reference_z, center_y)) {
+        return false;
+    }
+
+    conductor_captured_ = true;
+    RCLCPP_INFO(
+        node()->get_logger(),
+        "CableLandingManeuverServer::updateConductorCapture(): Conductor captured by the gripper at target_gripper=[%.4f, %.4f, %.4f]; ascending to the seat without lateral guidance.",
+        target_point_gripper(0),
+        target_point_gripper(1),
+        target_point_gripper(2)
+    );
+    return true;
+
+}
+
 bool CableLandingManeuverServer::isTargetWithinGripperVGate(
     const iii_drone::types::vector_t & target_point_gripper
 ) const {
@@ -1715,6 +1757,11 @@ bool CableLandingManeuverServer::isTargetWithinGripperVGate(
     const double violation_grace_s = configuration_->GetParameter(
         "/control/maneuver_controller/cable_landing_gripper_v_gate_violation_grace_s"
     ).as_double();
+
+    if (updateConductorCapture(target_point_gripper)) {
+        gripper_v_gate_violation_active_ = false;
+        return true;
+    }
 
     const double height = reference_z - apex_z;
     if (height <= 0.0 || half_width_at_reference_z <= 0.0) {

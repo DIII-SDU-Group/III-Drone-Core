@@ -129,6 +129,7 @@ Configuration::SharedPtr makeConfiguration(
         {"/control/maneuver_controller/cable_landing_gripper_v_gate_apex_z", rclcpp::ParameterType::PARAMETER_DOUBLE},
         {"/control/maneuver_controller/cable_landing_gripper_v_gate_reference_z", rclcpp::ParameterType::PARAMETER_DOUBLE},
         {"/control/maneuver_controller/cable_landing_gripper_v_gate_half_width_at_reference_z", rclcpp::ParameterType::PARAMETER_DOUBLE},
+        {"/control/maneuver_controller/cable_landing_gripper_capture_z", rclcpp::ParameterType::PARAMETER_DOUBLE},
         {"/control/maneuver_controller/cable_landing_line_pid_along_kp", rclcpp::ParameterType::PARAMETER_DOUBLE},
         {"/control/maneuver_controller/cable_landing_line_pid_along_ki", rclcpp::ParameterType::PARAMETER_DOUBLE},
         {"/control/maneuver_controller/cable_landing_line_pid_along_kd", rclcpp::ParameterType::PARAMETER_DOUBLE},
@@ -186,6 +187,9 @@ Configuration::SharedPtr makeConfiguration(
             if (name == "/tf/world_frame_id") return rclcpp::Parameter(name, "world");
             if (name == "/tf/drone_frame_id") return rclcpp::Parameter(name, "drone");
             if (name == "/tf/cable_gripper_frame_id") return rclcpp::Parameter(name, "gripper");
+            if (name == "/control/maneuver_controller/cable_landing_gripper_capture_z") {
+                return rclcpp::Parameter(name, 0.03);
+            }
             if (name.find("/cable_landing_line_pid_") != std::string::npos ||
                 name.find("/cable_landing_gripper_v_gate_") != std::string::npos ||
                 name == "/control/maneuver_controller/cable_landing_target_upwards_velocity") {
@@ -4250,7 +4254,13 @@ TEST(ManeuverReferenceClientTransaction, TrackedObjectSuccessKeepsFallbackForExp
                 acquired = landing->object_transition_start_reference_.has_value() &&
                     landing->line_pid_initialized_ &&
                     std::abs(first.velocity()(2) - 0.20F) < 1.0e-5;
-            } catch (...) {
+                if (!acquired) {
+                    ADD_FAILURE() << "line PID start: transition_start=" << landing->object_transition_start_reference_.has_value()
+                                  << " initialized=" << landing->line_pid_initialized_
+                                  << " ascent=" << first.velocity()(2);
+                }
+            } catch (const std::exception & error) {
+                ADD_FAILURE() << "line PID start threw: " << error.what();
                 acquired = false;
             }
             landing->reference_callback_token_->Release();

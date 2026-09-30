@@ -79,6 +79,7 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
     configurator.DeclareParameter("/control/maneuver_controller/cable_landing_gripper_v_gate_half_width_at_reference_z", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_landing_gripper_v_gate_center_y", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_landing_gripper_v_gate_violation_grace_s", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_landing_gripper_capture_z", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_landing_reference_truncate_radius", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_landing_target_upwards_velocity", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_landing_reached_position_euclidean_distance_threshold", double_t);
@@ -218,6 +219,7 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
         ConfigurationEntry("/control/maneuver_controller/cable_landing_gripper_v_gate_half_width_at_reference_z", double_t),
         ConfigurationEntry("/control/maneuver_controller/cable_landing_gripper_v_gate_center_y", double_t),
         ConfigurationEntry("/control/maneuver_controller/cable_landing_gripper_v_gate_violation_grace_s", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_landing_gripper_capture_z", double_t),
         ConfigurationEntry("/control/maneuver_controller/cable_landing_reference_truncate_radius", double_t),
         ConfigurationEntry("/control/maneuver_controller/cable_landing_reached_position_euclidean_distance_threshold", double_t),
         ConfigurationEntry("/control/maneuver_controller/cable_landing_controller_type", string_t),
