@@ -174,7 +174,7 @@ PowerlineMapperNode::PowerlineMapperNode(
                     break;
             }
 
-            state_pub_->publish(std::move(msg));
+            if (state_pub_->is_activated()) state_pub_->publish(std::move(msg));
         }
     );
 

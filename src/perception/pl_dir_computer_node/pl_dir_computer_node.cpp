@@ -111,7 +111,7 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(
             iii_drone_interfaces::msg::StringStamped status_stamped_msg;
             status_stamped_msg.stamp = this->now();
             status_stamped_msg.data = running_ ? "Running" : "Stopped";
-            status_pub_->publish(status_stamped_msg);
+            if (status_pub_->is_activated()) status_pub_->publish(status_stamped_msg);
         }
     );
 
