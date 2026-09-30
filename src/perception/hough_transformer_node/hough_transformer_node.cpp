@@ -23,6 +23,7 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
     configurator.DeclareParameter("/perception/hough_transformer/canny_ratio", int_t);
     configurator.DeclareParameter("/perception/hough_transformer/canny_kernel_size", int_t);
     configurator.DeclareParameter("/perception/hough_transformer/n_lines_include", int_t);
+    configurator.DeclareParameter("/perception/hough_transformer/image_transport", string_t);
     configurator.DeclareParameter("/tf/drone_frame_id", string_t);
     configurator.DeclareParameter("/tf/world_frame_id", string_t);
     configurator.DeclareParameter("/tf/cable_gripper_frame_id", string_t);
@@ -217,15 +218,36 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughT
 	qos.best_effort();
 	qos.durability_volatile();
 
-	camera_subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
-		"/sensor/cable_camera/image_raw",	
-		qos,
-		std::bind(
-			&HoughTransformerNode::onCameraMsg, 
-			this, 
-			std::placeholders::_1
-		)
-	);
+	const std::string image_transport =
+		configurator_->GetParameter("/perception/hough_transformer/image_transport").as_string();
+	if (image_transport == "compressed") {
+		compressed_camera_subscription_ = this->create_subscription<sensor_msgs::msg::CompressedImage>(
+			"/sensor/cable_camera/image_raw/compressed",
+			qos,
+			std::bind(
+				&HoughTransformerNode::onCompressedCameraMsg,
+				this,
+				std::placeholders::_1
+			)
+		);
+	} else if (image_transport == "raw") {
+		camera_subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
+			"/sensor/cable_camera/image_raw",	
+			qos,
+			std::bind(
+				&HoughTransformerNode::onCameraMsg, 
+				this, 
+				std::placeholders::_1
+			)
+		);
+	} else {
+		RCLCPP_ERROR(
+			this->get_logger(),
+			"HoughTransformerNode::on_activate(): unsupported image_transport '%s' (expected raw or compressed)",
+			image_transport.c_str()
+		);
+		return CallbackReturn::FAILURE;
+	}
 
 	command_service_ = this->create_service<iii_drone_interfaces::srv::SystemCommand>(
 		"command",
@@ -262,9 +284,8 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughT
 		return parent_return;
 	}
 
-	camera_subscription_->clear_on_new_message_callback();
 	camera_subscription_.reset();
-	camera_subscription_ = nullptr;
+	compressed_camera_subscription_.reset();
 
 	command_service_->clear_on_new_request_callback();
 	command_service_.reset();
@@ -371,7 +392,27 @@ void HoughTransformerNode::onCameraMsg(const sensor_msgs::msg::Image::SharedPtr 
 		_msg->encoding
 	);
 
-	cv::Mat img = cv_ptr->image;
+	processImage(cv_ptr->image);
+}
+
+void HoughTransformerNode::onCompressedCameraMsg(const sensor_msgs::msg::CompressedImage::SharedPtr msg) {
+
+	if (!running_) {
+		return;
+	}
+
+	// compressed_image_transport records the original encoding first, e.g.
+	// "rgb8; png compressed bgr8": decode back to it so the pixels match the
+	// raw path exactly.
+	std::string encoding = msg->format.substr(0, msg->format.find(';'));
+	encoding.erase(encoding.find_last_not_of(' ') + 1);
+
+	cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(*msg, encoding);
+
+	processImage(cv_ptr->image);
+}
+
+void HoughTransformerNode::processImage(const cv::Mat & img) {
 
 	float angle;
 	bool success = hough_transformer_->ComputeAngle(
