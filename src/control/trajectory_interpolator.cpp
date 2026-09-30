@@ -4,6 +4,8 @@
 
 #include <iii_drone_core/control/trajectory_interpolator.hpp>
 
+#include <sstream>
+
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -514,11 +516,26 @@ double TrajectoryInterpolator::computeInterpolation(
                 return T;
             }
 
+            const double certified_duration = T;
             T *= std::max(duration_margin, duration_scale * duration_margin);
             if (!std::isfinite(T) || T > max_duration_s) {
-                throw std::runtime_error(
-                    "Bounded interpolation exceeded the duration search bound"
-                );
+                // Name the inputs and the limiting derivative so a rare
+                // divergence is diagnosable from the log alone.
+                std::ostringstream reason;
+                reason << "Bounded interpolation exceeded the duration search bound"
+                    << " (adjustment " << adjustment << ", T " << certified_duration << " s"
+                    << ", scale v=" << certified_velocity / max_velocity
+                    << " a=" << std::sqrt(certified_acceleration / max_acceleration)
+                    << " j=" << std::cbrt(certified_jerk / max_jerk)
+                    << " yr=" << certified_yaw_rate / max_yaw_rate
+                    << " ya=" << std::sqrt(certified_yaw_acceleration / max_yaw_acceleration)
+                    << " yj=" << std::cbrt(certified_yaw_jerk / max_yaw_jerk)
+                    << "; p0=[" << p0.transpose() << "] v0=[" << v0.transpose()
+                    << "] a0=[" << a0.transpose() << "] yaw0=" << yaw0
+                    << " yaw_rate0=" << yaw_rate_0 << " yaw_acc0=" << yaw_acceleration_0
+                    << " pT=[" << pT.transpose() << "] yawT=" << yawT
+                    << " vT=[" << vT.transpose() << "] aT=[" << aT.transpose() << "])";
+                throw std::runtime_error(reason.str());
             }
         }
 
