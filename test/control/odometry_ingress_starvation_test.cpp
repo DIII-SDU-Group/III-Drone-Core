@@ -35,7 +35,7 @@ rclcpp::Parameter awarenessParameter(const std::string & name) {
 
 }  // namespace
 
-// HIL soak run 6: maneuver_controller's odometry callback shared the node's
+// HIL soak runs 6 and 7: maneuver_controller's odometry callback shared the node's
 // default (MutuallyExclusive) group with every other awareness callback and
 // kept one sample, so a ~200 ms default-group callback silently dropped the
 // PX4 samples in between and the object-tracking continuity guard failed a
@@ -67,19 +67,27 @@ TEST(OdometryIngress, StaysContinuousWhileTheDefaultCallbackGroupIsBlocked) {
             configuration, std::make_shared<tf2_ros::Buffer>(node->get_clock()), node.get());
         awareness->Start();
 
-        // Occupies the node's default callback group for 300 ms, as a slow
-        // action-server or awareness callback would.
+        // Occupies every thread of the node's executor for 300 ms (HIL run 7:
+        // with its own callback group the ingress still waited ~190 ms for a
+        // free pool thread): the default group and a second, reentrant one.
         std::atomic<bool> start_block{false};
-        std::atomic<bool> blocking{false};
-        std::atomic<bool> blocked_once{false};
-        auto blocker = node->create_wall_timer(5ms, [&]() {
-            if (!start_block || blocked_once.exchange(true)) return;
-            blocking = true;
+        std::atomic<int> blocking{0};
+        std::atomic<int> blocked{0};
+        auto block_once = [&](std::atomic<bool> & done) {
+            if (!start_block || done.exchange(true)) return;
+            ++blocking;
+            ++blocked;
             std::this_thread::sleep_for(300ms);
-            blocking = false;
-        });
+            --blocking;
+        };
+        std::atomic<bool> default_done{false};
+        std::atomic<bool> reentrant_done{false};
+        auto default_blocker = node->create_wall_timer(5ms, [&]() { block_once(default_done); });
+        auto reentrant_group = node->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
+        auto reentrant_blocker = node->create_wall_timer(
+            5ms, [&]() { block_once(reentrant_done); }, reentrant_group);
 
-        rclcpp::executors::MultiThreadedExecutor executor(rclcpp::ExecutorOptions(), 4);
+        rclcpp::executors::MultiThreadedExecutor executor(rclcpp::ExecutorOptions(), 2);
         executor.add_node(node->get_node_base_interface());
         std::thread spinner([&executor]() { executor.spin(); });
 
@@ -105,21 +113,24 @@ TEST(OdometryIngress, StaysContinuousWhileTheDefaultCallbackGroupIsBlocked) {
             odometry.timestamp = sample_us;
             odometry.timestamp_sample = sample_us;
             publisher->publish(odometry);
-            if (blocking) ++published_while_blocked;
+            if (blocking == 2) ++published_while_blocked;
             std::this_thread::sleep_for(8ms);
         }
         std::this_thread::sleep_for(100ms);
-        ASSERT_TRUE(blocked_once.load());
+        ASSERT_EQ(blocked.load(), 2);
         ASSERT_GT(published_while_blocked, 20);
-        ASSERT_FALSE(blocking.load());
+        ASSERT_EQ(blocking.load(), 0);
 
         const auto diagnostics = awareness->TryGetOdometryIngressDiagnostics();
         ASSERT_TRUE(diagnostics.available);
         ASSERT_GT(diagnostics.history_count, 32u);
         uint64_t max_interval_us = 0;
+        int64_t max_entry_gap_ns = 0;
         for (size_t i = 1; i < diagnostics.history_count; ++i) {
             const auto & previous = diagnostics.history[i - 1];
             const auto & current = diagnostics.history[i];
+            max_entry_gap_ns = std::max(max_entry_gap_ns,
+                current.callback_entry_steady_ns - previous.callback_entry_steady_ns);
             if (current.source_sample_timestamp_us > previous.source_sample_timestamp_us) {
                 max_interval_us = std::max(max_interval_us,
                     current.source_sample_timestamp_us - previous.source_sample_timestamp_us);
@@ -128,6 +139,8 @@ TEST(OdometryIngress, StaysContinuousWhileTheDefaultCallbackGroupIsBlocked) {
         // Best-effort loopback may drop a rare sample; a 300 ms default-group
         // stall must not.
         EXPECT_LE(max_interval_us, 40000u);
+        // And they are ingested promptly, not as a late backlog.
+        EXPECT_LE(max_entry_gap_ns, 40000000);
 
         executor.cancel();
         spinner.join();

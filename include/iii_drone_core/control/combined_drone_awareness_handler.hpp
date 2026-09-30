@@ -8,6 +8,7 @@
 // Std:
 
 #include <memory>
+#include <thread>
 #include <optional>
 #include <chrono>
 #include <array>
@@ -537,11 +538,16 @@ namespace control {
 		 * @brief PX4 odometry subscription
 		 */
 		rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr vehicle_odometry_sub_;
-		// Odometry and local-position ingress have their own callback group so no other callback of
-		// the node can delay it, and a queue deep enough that a brief
-		// scheduling stall delays samples instead of dropping them (object
-		// tracking requires a continuous source sample sequence).
+		// Odometry and local-position ingress (one measured-odometry
+		// transaction) run on their own executor thread: object tracking needs
+		// every sample promptly, and neither a busy callback group nor an
+		// exhausted executor thread pool of the node may delay them. The queue
+		// absorbs brief OS scheduling stalls.
 		rclcpp::CallbackGroup::SharedPtr odometry_callback_group_;
+		std::shared_ptr<rclcpp::executors::SingleThreadedExecutor> odometry_executor_;
+		std::thread odometry_thread_;
+		void startOdometryIngress();
+		void stopOdometryIngress();
 		static constexpr size_t odometry_queue_depth_ = 64;  // 0.5 s at 125 Hz
 		// Serialises the read-modify-write updates of the awareness snapshot,
 		// which now run from more than one callback group.

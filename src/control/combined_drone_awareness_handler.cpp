@@ -103,6 +103,7 @@ CombinedDroneAwarenessHandler::CombinedDroneAwarenessHandler(
 
 CombinedDroneAwarenessHandler::~CombinedDroneAwarenessHandler() {
 
+    stopOdometryIngress();
     callback_lifetime_.Close();
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::~CombinedDroneAwarenessHandler(): Destroying CombinedDroneAwarenessHandler");
@@ -241,8 +242,9 @@ void CombinedDroneAwarenessHandler::Start() {
     );
 
     if (!odometry_callback_group_) {
+        // Not added to the node's executor: startOdometryIngress() spins it.
         odometry_callback_group_ = node_->create_callback_group(
-            rclcpp::CallbackGroupType::MutuallyExclusive);
+            rclcpp::CallbackGroupType::MutuallyExclusive, false);
     }
     rclcpp::SubscriptionOptions odometry_options;
     odometry_options.callback_group = odometry_callback_group_;
@@ -276,6 +278,7 @@ void CombinedDroneAwarenessHandler::Start() {
                 updateCombinedDroneAwarenessFromVehicleOdometry();
         },
         odometry_options);
+    startOdometryIngress();
 
     vehicle_global_position_sub_ = node_->create_subscription<px4_msgs::msg::VehicleGlobalPosition>(
         "/fmu/out/vehicle_global_position",
@@ -327,6 +330,23 @@ void CombinedDroneAwarenessHandler::Start() {
 
 }
 
+void CombinedDroneAwarenessHandler::startOdometryIngress() {
+    odometry_executor_ = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
+    odometry_executor_->add_callback_group(
+        odometry_callback_group_, node_->get_node_base_interface());
+    odometry_thread_ = std::thread([executor = odometry_executor_]() {
+        executor->spin();
+    });
+}
+
+void CombinedDroneAwarenessHandler::stopOdometryIngress() {
+    if (!odometry_executor_) return;
+    odometry_executor_->cancel();
+    if (odometry_thread_.joinable()) odometry_thread_.join();
+    odometry_executor_->remove_callback_group(odometry_callback_group_);
+    odometry_executor_.reset();
+}
+
 void CombinedDroneAwarenessHandler::Stop() {
 
     if (!is_started_) {
@@ -338,6 +358,9 @@ void CombinedDroneAwarenessHandler::Stop() {
     }
 
     is_started_ = false;
+
+    // The ingress thread uses the awareness state reset below.
+    stopOdometryIngress();
 
     if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::Stop(): Stopping CombinedDroneAwarenessHandler");
 
