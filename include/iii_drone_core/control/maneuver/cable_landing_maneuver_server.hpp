@@ -117,24 +117,15 @@ namespace maneuver {
         };
 
         /**
-         * @brief Whether a conductor at target_point_gripper (cable gripper
-         * frame: y lateral, z up) is captured by the gripper: at or below
-         * capture_z and inside the V gate (apex_z, and half_width at
-         * reference_z, around center_y).
+         * @brief Whether a conductor estimate at target_point_gripper (cable
+         * gripper frame, z up) has reached the height below which the sensor
+         * can no longer see it.
          */
-        inline bool ConductorCapturedByGripper(
+        inline bool ConductorEstimateShouldFreeze(
             const iii_drone::types::vector_t & target_point_gripper,
-            double capture_z,
-            double apex_z,
-            double reference_z,
-            double half_width_at_reference_z,
-            double center_y
+            double freeze_z
         ) {
-            const double height = reference_z - apex_z;
-            const double z_above_apex = target_point_gripper(2) - apex_z;
-            return height > 0.0 && target_point_gripper(2) <= capture_z && z_above_apex >= 0.0 &&
-                std::abs(target_point_gripper(1) - center_y) <=
-                    z_above_apex * half_width_at_reference_z / height;
+            return std::isfinite(target_point_gripper(2)) && target_point_gripper(2) <= freeze_z;
         }
 
     }  // namespace detail
@@ -326,10 +317,9 @@ namespace maneuver {
         PidState line_pid_cross_pid_;
         PidState line_pid_yaw_pid_;
         mutable bool gripper_v_gate_violation_active_ = false;
-        // Once the conductor has entered the gripper's V gate at the capture
-        // height, the gripper holds it mechanically for the rest of the
-        // ascent; see updateConductorCapture().
-        mutable bool conductor_captured_ = false;
+        // Set once the conductor estimate reached the gripper; see
+        // conductorEstimateFrozen().
+        bool conductor_estimate_frozen_ = false;
         mutable rclcpp::Time gripper_v_gate_violation_started_;
 
         /**
@@ -429,18 +419,14 @@ namespace maneuver {
         ) const;
 
         /**
-         * @brief Latches that the gripper has captured the conductor: the
-         * perceived conductor is at or below cable_landing_gripper_capture_z
-         * (gripper frame) inside the V gate. From there the slot walls guide
-         * it, while the sensor, offset from the gripper, stops seeing it and
-         * the estimate jumps by several centimetres: lateral guidance and gate
-         * checks must not act on that estimate any more.
-         *
-         * @return Whether the conductor is captured (latched per execution).
+         * @brief Whether the landing steers to a frozen conductor estimate.
+         * Latches (per execution) once the estimate is at or below
+         * cable_landing_gripper_capture_z in the gripper frame: from there the
+         * sensor, offset from the gripper, no longer sees the conductor and its
+         * estimate jumps by several centimetres, while the conductor does not
+         * move. The last estimate before that point is kept.
          */
-        bool updateConductorCapture(
-            const iii_drone::types::vector_t & target_point_gripper
-        ) const;
+        bool conductorEstimateFrozen();
 
         /**
          * @brief Truncates the reference to only velocity (sets position to nans).
