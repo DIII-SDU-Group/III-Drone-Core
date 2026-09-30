@@ -280,6 +280,19 @@ namespace maneuver {
         CablePushProfile::Px4 px4Push(std::chrono::steady_clock::time_point now) const;
 
         /**
+         * @brief Once PX4 applies the push, sizes it so PX4 commands
+         * cable_push_thrust_over_hover times the hover thrust measured in free
+         * flight, whatever hover thrust PX4 assumes; keeps the goal's
+         * acceleration when nothing was measured. Call with push_mutex_ held.
+         */
+        void calibratePush(std::chrono::steady_clock::time_point now);
+
+        /**
+         * @brief Whether the active push has been sized.
+         */
+        bool push_calibrated_ = false;
+
+        /**
          * @brief The active pre-release push, if the goal requested one.
          */
         std::optional<CablePushProfile> push_;

@@ -78,6 +78,7 @@
 #include <iii_drone_core/adapters/combined_drone_awareness_adapter.hpp>
 
 #include <iii_drone_core/control/state.hpp>
+#include <iii_drone_core/control/hover_thrust_meter.hpp>
 #include <iii_drone_core/control/reference.hpp>
 #include <iii_drone_core/control/position_continuity_identity.hpp>
 
@@ -449,6 +450,13 @@ namespace control {
         static constexpr std::chrono::milliseconds kPx4ThrustSetpointMaxAge{1000};
 
         /**
+         * @brief The thrust the vehicle actually needs to hover, measured from
+         * PX4's commanded thrust in the latest steady free flight (not on the
+         * cable). Kept while disarmed.
+         */
+        std::optional<HoverThrustMeter::Estimate> measured_hover_thrust() const;
+
+        /**
          * @brief Returns the tf buffer shared ptr.
          * 
          * @return The tf buffer shared ptr.
@@ -569,6 +577,8 @@ namespace control {
 		iii_drone::utils::Atomic<std::optional<Px4LandState>> px4_land_state_;
 		rclcpp::Subscription<px4_msgs::msg::VehicleLocalPositionSetpoint>::SharedPtr vehicle_local_position_setpoint_sub_;
 		iii_drone::utils::Atomic<std::optional<Px4ThrustSetpoint>> px4_thrust_setpoint_;
+		HoverThrustMeter hover_thrust_meter_;
+		mutable std::mutex hover_thrust_meter_mutex_;
 
         /**
          * @brief Vehicle status adapter history.

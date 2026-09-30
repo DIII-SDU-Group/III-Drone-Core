@@ -397,6 +397,9 @@ if (BUILD_TESTING)
   ament_add_ros_isolated_gtest(iii_drone_core_cable_push_profile_test
     test/control/cable_push_profile_test.cpp
   )
+  ament_add_ros_isolated_gtest(iii_drone_core_hover_thrust_meter_test
+    test/control/hover_thrust_meter_test.cpp
+  )
 
   ament_add_ros_isolated_gtest(iii_drone_core_math_types_test
     test/utils/math_types_test.cpp
@@ -489,6 +492,9 @@ if (BUILD_TESTING)
   endif()
   if(TARGET iii_drone_core_cable_push_profile_test)
     target_include_directories(iii_drone_core_cable_push_profile_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+  endif()
+  if(TARGET iii_drone_core_hover_thrust_meter_test)
+    target_include_directories(iii_drone_core_hover_thrust_meter_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
   endif()
   if(TARGET iii_drone_core_history_test)
     target_include_directories(iii_drone_core_history_test PRIVATE ${III_DRONE_INCLUDE_DIRS})

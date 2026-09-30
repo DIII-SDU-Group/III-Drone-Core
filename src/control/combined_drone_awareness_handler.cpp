@@ -259,9 +259,22 @@ void CombinedDroneAwarenessHandler::Start() {
         [this, lifetime = callback_lifetime_.token()](const px4_msgs::msg::VehicleLocalPositionSetpoint::SharedPtr msg) {
             const auto alive = lifetime.Enter();
             if (!alive.owns_lock()) return;
+            const auto now = std::chrono::steady_clock::now();
+            const double thrust_up = -static_cast<double>(msg->thrust[2]);
             px4_thrust_setpoint_.Store(Px4ThrustSetpoint{
-                -static_cast<double>(msg->thrust[2]), -static_cast<double>(msg->acceleration[2]),
-                std::chrono::steady_clock::now()});
+                thrust_up, -static_cast<double>(msg->acceleration[2]), now});
+            // Free flight only: on the cable the vehicle is held and the
+            // thrust says nothing about its weight.
+            double speed = NAN;
+            double vertical_speed = NAN;
+            if (state_available()) {
+                const auto velocity = GetState().velocity();
+                speed = velocity.norm();
+                vertical_speed = velocity(2);
+            }
+            const bool free_flight = px4_airborne(now) && !on_cable();
+            std::lock_guard<std::mutex> lock(hover_thrust_meter_mutex_);
+            hover_thrust_meter_.Add(now, thrust_up, speed, vertical_speed, free_flight);
         }
     );
 
@@ -1324,6 +1337,11 @@ bool CombinedDroneAwarenessHandler::px4_airborne(std::chrono::steady_clock::time
     return state &&
         now - state->received_at <= kPx4LandStateMaxAge &&
         !state->landed && !state->maybe_landed && !state->ground_contact;
+}
+
+std::optional<HoverThrustMeter::Estimate> CombinedDroneAwarenessHandler::measured_hover_thrust() const {
+    std::lock_guard<std::mutex> lock(hover_thrust_meter_mutex_);
+    return hover_thrust_meter_.estimate();
 }
 
 std::optional<CombinedDroneAwarenessHandler::Px4ThrustSetpoint> CombinedDroneAwarenessHandler::px4_thrust_setpoint(

@@ -253,7 +253,11 @@ Reference HoverOnCableManeuverServer::GetReference(const State &) {
             // integrator up to maximum thrust; an acceleration setpoint sets
             // the push force (thrust = hover thrust * (1 + a/g)).
             const auto now = std::chrono::steady_clock::now();
-            const double acceleration = push_->Update(now, px4Push(now));
+            const auto px4 = px4Push(now);
+            if (px4 == CablePushProfile::Px4::kPushing && !push_calibrated_) {
+                calibratePush(now);
+            }
+            const double acceleration = push_->Update(now, px4);
             return Reference(
                 {NAN,NAN,NAN},
                 NAN,
@@ -272,6 +276,51 @@ Reference HoverOnCableManeuverServer::GetReference(const State &) {
         target_yaw_rate_,
         {NAN,NAN,NAN},
         NAN
+    );
+
+}
+
+void HoverOnCableManeuverServer::calibratePush(std::chrono::steady_clock::time_point now) {
+
+    const auto setpoint = awareness_handler()->px4_thrust_setpoint(now);
+    if (!setpoint) return;
+    push_calibrated_ = true;
+
+    // PX4 realizes an acceleration setpoint as hover thrust * (1 + a/g) with
+    // the hover thrust it assumes (MPC_THR_HOVER after a disarm).
+    constexpr double g = 9.80665;
+    const double px4_hover_thrust = setpoint->thrust_up / (1.0 + setpoint->acceleration_up / g);
+    const auto measured = awareness_handler()->measured_hover_thrust();
+    if (!measured || !(px4_hover_thrust > 0.0)) {
+        RCLCPP_WARN(
+            node()->get_logger(),
+            "HoverOnCableManeuverServer::calibratePush(): no hover thrust measured in free flight; pushing at the "
+            "configured %.2f m/s^2, whose force relies on PX4's hover thrust %.3f.",
+            push_->target(), px4_hover_thrust
+        );
+        return;
+    }
+
+    const double ratio = configuration_->GetParameter(
+        "/control/maneuver_controller/cable_push_thrust_over_hover").as_double();
+    const double max_thrust = configuration_->GetParameter(
+        "/control/maneuver_controller/cable_push_max_thrust").as_double();
+    const double acceleration = CablePushProfile::CalibratedAcceleration(
+        ratio, measured->hover_thrust, px4_hover_thrust, max_thrust,
+        configuration_->GetParameter(
+            "/control/maneuver_controller/cable_push_takeoff_request_acceleration").as_double());
+    push_->SetTarget(acceleration);
+    RCLCPP_INFO(
+        node()->get_logger(),
+        "HoverOnCableManeuverServer::calibratePush(): measured hover thrust %.3f (%.0f s ago), PX4 assumes %.3f: "
+        "pushing at %.2f m/s^2 for thrust %.3f (%.2f x hover, cap %.2f).",
+        measured->hover_thrust,
+        std::chrono::duration<double>(now - measured->measured_at).count(),
+        px4_hover_thrust,
+        acceleration,
+        px4_hover_thrust * (1.0 + acceleration / g),
+        px4_hover_thrust * (1.0 + acceleration / g) / measured->hover_thrust,
+        max_thrust
     );
 
 }
@@ -338,6 +387,7 @@ void HoverOnCableManeuverServer::startExecution(Maneuver &maneuver) {
             "/control/maneuver_controller/cable_push_start_timeout_s").as_double());
         std::lock_guard<std::mutex> lock(push_mutex_);
         push_.emplace(params.push_upwards_acceleration, limits, std::chrono::steady_clock::now());
+        push_calibrated_ = false;
         RCLCPP_INFO(
             node()->get_logger(),
             "HoverOnCableManeuverServer::startExecution(): pushing up at %.2f m/s^2 once PX4 applies thrust "

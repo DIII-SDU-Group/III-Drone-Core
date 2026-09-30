@@ -49,6 +49,8 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
     configurator.DeclareParameter("/control/maneuver_controller/cable_push_takeoff_request_acceleration", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_push_jerk", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/cable_push_start_timeout_s", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_push_thrust_over_hover", double_t);
+    configurator.DeclareParameter("/control/maneuver_controller/cable_push_max_thrust", double_t);
     configurator.DeclareParameter("/control/maneuver_controller/maneuver_wait_for_execute_poll_ms", int_t);
     configurator.DeclareParameter("/control/maneuver_controller/maneuver_evaluate_done_poll_ms", int_t);
     configurator.DeclareParameter("/control/maneuver_controller/reached_position_euclidean_distance_threshold", double_t);
@@ -159,6 +161,8 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
         ConfigurationEntry("/control/maneuver_controller/cable_push_takeoff_request_acceleration", double_t),
         ConfigurationEntry("/control/maneuver_controller/cable_push_jerk", double_t),
         ConfigurationEntry("/control/maneuver_controller/cable_push_start_timeout_s", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_push_thrust_over_hover", double_t),
+        ConfigurationEntry("/control/maneuver_controller/cable_push_max_thrust", double_t),
     });
     configurator.CreateConfiguration("fly_to_position_maneuver_server", {
         ConfigurationEntry("/control/maneuver_controller/reached_position_euclidean_distance_threshold", double_t),

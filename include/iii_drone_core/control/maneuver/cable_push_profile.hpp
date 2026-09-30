@@ -125,6 +125,40 @@ namespace maneuver {
             return acceleration_;
         }
 
+        /**
+         * @brief Changes the acceleration the push ramps to (at least the
+         * takeoff request acceleration).
+         */
+        void SetTarget(double target_acceleration_m_s2) {
+            if (!std::isfinite(target_acceleration_m_s2)) {
+                throw std::invalid_argument("cable push target acceleration must be finite");
+            }
+            target_ = std::max(target_acceleration_m_s2, limits_.takeoff_request_acceleration_m_s2);
+        }
+
+        /**
+         * @brief The push acceleration that makes PX4 command push_ratio times
+         * the thrust the vehicle actually needs to hover.
+         *
+         * PX4 realizes an acceleration setpoint as px4_hover_thrust *
+         * (1 + a/g), with the hover thrust it assumes; measured_hover_thrust is
+         * the thrust the vehicle actually hovers at. The result is capped so
+         * the commanded thrust stays at or below max_thrust and is at least
+         * min_acceleration.
+         */
+        static double CalibratedAcceleration(
+            double push_ratio,
+            double measured_hover_thrust,
+            double px4_hover_thrust,
+            double max_thrust,
+            double min_acceleration
+        ) {
+            constexpr double g = 9.80665;
+            const double wanted = g * (push_ratio * measured_hover_thrust / px4_hover_thrust - 1.0);
+            const double cap = g * (max_thrust / px4_hover_thrust - 1.0);
+            return std::max(min_acceleration, std::min(wanted, cap));
+        }
+
         double acceleration() const { return acceleration_; }
 
         double target() const { return target_; }
