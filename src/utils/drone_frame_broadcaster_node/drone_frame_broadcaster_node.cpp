@@ -3,6 +3,7 @@
 /*****************************************************************************/
 
 #include "iii_drone_core/utils/drone_frame_broadcaster_node/drone_frame_broadcaster_node.hpp"
+#include <iii_drone_core/utils/multi_threaded_executor.hpp>
 
 using namespace iii_drone::utils::drone_frame_broadcaster_node;
 using namespace iii_drone::math;
@@ -104,7 +105,7 @@ int main(int argc, char * argv[]) {
 
     rclcpp::init(argc, argv);
 
-    auto multi_threaded_executor = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
+    auto multi_threaded_executor = std::make_shared<iii_drone::utils::MultiThreadedExecutor>();
     auto node = std::make_shared<DroneFrameBroadcasterNode>();
     RCLCPP_DEBUG(node->get_logger(), "DroneFrameBroadcasterNode::main(): Node created");
     multi_threaded_executor->add_node(node);

@@ -3,6 +3,7 @@
 /*****************************************************************************/
 
 #include <iii_drone_core/perception/hough_transformer_node/hough_transformer_node.hpp>
+#include <iii_drone_core/utils/multi_threaded_executor.hpp>
 
 using namespace iii_drone::perception::hough_transformer_node;
 
@@ -443,7 +444,7 @@ int main(int argc, char *argv[])
 	setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 	rclcpp::init(argc, argv);
 
-	rclcpp::executors::MultiThreadedExecutor exec;
+	iii_drone::utils::MultiThreadedExecutor exec;
 
 	auto node = std::make_shared<HoughTransformerNode>();
 

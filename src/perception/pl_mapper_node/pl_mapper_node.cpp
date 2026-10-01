@@ -3,6 +3,7 @@
 /*****************************************************************************/
 
 #include "iii_drone_core/perception/pl_mapper_node/pl_mapper_node.hpp"
+#include <iii_drone_core/utils/multi_threaded_executor.hpp>
 
 using namespace iii_drone::perception::pl_mapper_node;
 using namespace iii_drone::math;
@@ -843,7 +844,7 @@ int main(int argc, char *argv[]) {
     setvbuf(stdout, NULL, _IONBF, BUFSIZ);
     rclcpp::init(argc, argv);
 
-    rclcpp::executors::MultiThreadedExecutor executor;
+    iii_drone::utils::MultiThreadedExecutor executor;
 
     auto node = std::make_shared<PowerlineMapperNode>();
 

@@ -7,6 +7,7 @@
 
 #include <chrono>
 #include <future>
+#include <iii_drone_core/utils/multi_threaded_executor.hpp>
 
 using namespace iii_drone::control::trajectory_generator_node;
 
@@ -564,7 +565,7 @@ int main(int argc, char * argv[]) {
     setvbuf(stdout, NULL, _IONBF, BUFSIZ);
     rclcpp::init(argc, argv);
 
-    rclcpp::executors::MultiThreadedExecutor executor;
+    iii_drone::utils::MultiThreadedExecutor executor;
 
     auto node = std::make_shared<TrajectoryGeneratorNode>();
 

@@ -400,6 +400,10 @@ if (BUILD_TESTING)
   ament_add_ros_isolated_gtest(iii_drone_core_hover_thrust_meter_test
     test/control/hover_thrust_meter_test.cpp
   )
+  ament_add_ros_isolated_gtest(iii_drone_core_multi_threaded_executor_test
+    test/utils/multi_threaded_executor_test.cpp
+    TIMEOUT 120
+  )
 
   ament_add_ros_isolated_gtest(iii_drone_core_math_types_test
     test/utils/math_types_test.cpp
@@ -495,6 +499,10 @@ if (BUILD_TESTING)
   endif()
   if(TARGET iii_drone_core_hover_thrust_meter_test)
     target_include_directories(iii_drone_core_hover_thrust_meter_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+  endif()
+  if(TARGET iii_drone_core_multi_threaded_executor_test)
+    target_include_directories(iii_drone_core_multi_threaded_executor_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    ament_target_dependencies(iii_drone_core_multi_threaded_executor_test rclcpp rclcpp_lifecycle std_msgs)
   endif()
   if(TARGET iii_drone_core_history_test)
     target_include_directories(iii_drone_core_history_test PRIVATE ${III_DRONE_INCLUDE_DIRS})

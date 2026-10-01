@@ -5,6 +5,7 @@
 #include "iii_drone_core/control/maneuver_controller_node/maneuver_controller_node.hpp"
 #include "iii_drone_core/control/maneuver_controller_node/fly_to_object_configuration.hpp"
 #include "iii_drone_core/control/maneuver_controller_node/trajectory_generator_client_configuration.hpp"
+#include <iii_drone_core/utils/multi_threaded_executor.hpp>
 
 using namespace iii_drone::control::maneuver_controller_node;
 using namespace iii_drone::control::maneuver;
@@ -782,7 +783,7 @@ int main(int argc, char * argv[]) {
     setvbuf(stdout, NULL, _IONBF, BUFSIZ);
     rclcpp::init(argc, argv);
 
-    rclcpp::executors::MultiThreadedExecutor executor;
+    iii_drone::utils::MultiThreadedExecutor executor;
 
     auto node = std::make_shared<ManeuverControllerNode>();
     // auto trajectory_generator_node = std::make_shared<iii_drone::control::trajectory_generator_node::TrajectoryGeneratorNode>();
