@@ -1308,6 +1308,12 @@ ManeuverReferenceClient::TryAdoptTerminalHold(int timeout_ms) {
     Transfer::Request query;
     query.operation = Transfer::Request::OP_QUERY;
     query.consumer_identity = nextProcessManeuverRequestIdentity();
+    // HIL: Core answered a QUERY after 253 ms against a 250 ms budget and the
+    // mode failed. The retained hold tolerates unacknowledged streaming for
+    // reference_stream_timeout_ms; adoption may use half of that.
+    const int stream_timeout_ms = static_cast<int>(configuration_->GetParameter(
+        "/control/maneuver_controller/reference_stream_timeout_ms").as_int());
+    timeout_ms = std::max(timeout_ms, stream_timeout_ms / 2);
     const auto deadline = std::chrono::steady_clock::now() +
         std::chrono::milliseconds(std::max(1, timeout_ms));
     std::shared_ptr<Transfer::Response> offer;
