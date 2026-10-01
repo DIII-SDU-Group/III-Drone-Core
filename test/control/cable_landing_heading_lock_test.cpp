@@ -50,6 +50,18 @@ TEST(CableLandingHeadingLockTest, RejectsNonFiniteInitialHeading)
 
 // The landing freezes its conductor estimate once the estimate reaches the
 // gripper (freeze height), where the offset sensor stops seeing the conductor.
+// HIL: the conductor left the sensor's view 2 cm above the freeze height and
+// its mapped estimate jumped ~10 cm before the freeze captured it.
+TEST(HoldLastSeenConductorTest, HoldsOnlyNearTheConductorWhenTheSensorLostIt)
+{
+  using iii_drone::control::maneuver::detail::HoldLastSeenConductor;
+
+  EXPECT_TRUE(HoldLastSeenConductor(true, true, false));
+  EXPECT_FALSE(HoldLastSeenConductor(true, true, true));
+  EXPECT_FALSE(HoldLastSeenConductor(false, true, false));
+  EXPECT_FALSE(HoldLastSeenConductor(true, false, false));
+}
+
 TEST(ConductorEstimateShouldFreezeTest, FreezesAtOrBelowTheFreezeHeightOnly)
 {
   using iii_drone::control::maneuver::detail::ConductorEstimateShouldFreeze;

@@ -129,6 +129,16 @@ namespace maneuver {
         }
 
         /**
+         * @brief Whether to keep steering to the last estimate of the locked
+         * conductor instead of a new one: near the conductor, an estimate of a
+         * line the sensor no longer sees is mapper extrapolation that jumps by
+         * centimetres as the sensor passes it.
+         */
+        inline bool HoldLastSeenConductor(bool near_conductor, bool has_last_estimate, bool target_in_view) {
+            return near_conductor && has_last_estimate && !target_in_view;
+        }
+
+        /**
          * @brief The cross-track error left for the position reference: the
          * vehicle's gripper error (target relative to the gripper along
          * cross_axis_world) minus how far the reference already leads the
@@ -362,6 +372,9 @@ namespace maneuver {
         ) const;
 
         bool nearLockedConductor() const;
+
+        /** Whether perception currently sees the target line (true if unknown). */
+        bool targetLineInView();
 
         bool getStableCablePose(
             iii_drone::types::pose_t & cable_pose_world

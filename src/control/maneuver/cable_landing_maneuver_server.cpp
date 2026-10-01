@@ -923,6 +923,13 @@ bool CableLandingManeuverServer::getStableCablePose(
         return true;
     }
 
+    // Leaving the sensor's view just below the gripper, the mapped conductor
+    // jumps; keep the last estimate seen so the freeze above captures it.
+    if (detail::HoldLastSeenConductor(near_contact, line_pid_has_last_cable_pose_, targetLineInView())) {
+        cable_pose_world = line_pid_last_cable_pose_world_;
+        return true;
+    }
+
     try {
         pose_t candidate_pose = cda_handler->GetPoseOfTarget(target_adapter_);
         if (isCablePoseConsistentWithLock(candidate_pose.position, orthogonal_distance)) {
@@ -1730,6 +1737,15 @@ double CableLandingManeuverServer::gateHeight(double target_z_gripper) const {
     return std::max(target_z_gripper, configuration_->GetParameter(
         "/control/maneuver_controller/cable_landing_gripper_capture_z").as_double());
 
+}
+
+bool CableLandingManeuverServer::targetLineInView() {
+    try {
+        return awareness_handler()->GetPowerlineAdapter().GetLine(target_adapter_->target_id()).in_fov();
+    } catch (const std::runtime_error &) {
+        // Unknown: let the regular target handling report it.
+        return true;
+    }
 }
 
 bool CableLandingManeuverServer::conductorEstimateFrozen() {
