@@ -159,6 +159,17 @@ bool TerminalPositionTrackingController::Update(
                 "->" + std::to_string(position_continuity.position_epoch) + ")",
                 output, failure_reason);
         }
+        if (rebase_sample_timing_) {
+            rebase_sample_timing_ = false;
+            // Only a forward pause is forgiven; older samples still fail.
+            if (odometry_stamp.get_clock_type() == previous_odometry_stamp_.get_clock_type() &&
+                emission_stamp.get_clock_type() == previous_emission_stamp_.get_clock_type() &&
+                secondsBetween(odometry_stamp, previous_odometry_stamp_) >= 0.0 &&
+                secondsBetween(emission_stamp, previous_emission_stamp_) >= 0.0) {
+                previous_odometry_stamp_ = odometry_stamp;
+                previous_emission_stamp_ = emission_stamp;
+            }
+        }
         if (emission_stamp.get_clock_type() != previous_emission_stamp_.get_clock_type() ||
             secondsBetween(emission_stamp, previous_emission_stamp_) < 0.0) {
             return fail("terminal tracking command-emission clock is discontinuous" +
@@ -274,6 +285,10 @@ bool TerminalPositionTrackingController::isQuiescent() const {
     return quiescence_requested_ && !segment_.active &&
         emitted_velocity_.norm() <= rest_tolerance &&
         emitted_acceleration_.norm() <= rest_tolerance;
+}
+
+void TerminalPositionTrackingController::ResumeAfterHandover() {
+    if (initialized_) rebase_sample_timing_ = true;
 }
 
 void TerminalPositionTrackingController::ResumeTracking() {

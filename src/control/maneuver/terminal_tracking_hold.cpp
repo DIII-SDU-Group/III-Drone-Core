@@ -174,6 +174,11 @@ bool TerminalTrackingHold::isQuiescent() const {
     return phase_ == Phase::Tracking && controller_.isQuiescent();
 }
 
+void TerminalTrackingHold::ResumeAfterHandover() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (phase_ == Phase::Tracking) controller_.ResumeAfterHandover();
+}
+
 bool TerminalTrackingHold::ResumeTracking() {
     std::lock_guard<std::mutex> lock(mutex_);
     if (phase_ != Phase::Tracking) return false;

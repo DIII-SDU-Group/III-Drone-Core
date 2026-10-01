@@ -162,6 +162,33 @@ TEST(BoundedTerminalPositionTrackingTest, ReportsOriginalReceiptAndEmissionInter
         "terminal tracking command-emission clock is discontinuous", "-0.020000", "-0.010000");
 }
 
+// A maneuver handover pauses evaluation (SIM: 0.252 s, just over the 0.25 s
+// sample-interval limit); the adopting maneuver resumes the hold, which
+// re-anchors its timing once instead of rejecting the pause. Without the
+// handover the same gap is still rejected, as is an older sample after it.
+TEST(BoundedTerminalPositionTrackingTest, HandoverPauseIsReanchoredOnceButOdometryGapsStillFail) {
+    const State state(point_t::Zero(), vector_t::Zero(), 0.0, vector_t::Zero(), rosTime(1.0));
+    Reference output;
+    std::string reason;
+
+    TerminalPositionTrackingController plain(Reference(point_t(1.0, 0.0, 0.0), 0.0));
+    ASSERT_TRUE(plain.Update(state, rosTime(1.0), 1, rosTime(1.0), 0.35, output, reason)) << reason;
+    EXPECT_FALSE(plain.Update(state, rosTime(1.252), 1, rosTime(1.252), 0.35, output, reason));
+
+    TerminalPositionTrackingController handed_over(Reference(point_t(1.0, 0.0, 0.0), 0.0));
+    ASSERT_TRUE(handed_over.Update(state, rosTime(1.0), 1, rosTime(1.0), 0.35, output, reason)) << reason;
+    handed_over.ResumeAfterHandover();
+    EXPECT_TRUE(handed_over.Update(state, rosTime(1.252), 1, rosTime(1.252), 0.35, output, reason)) << reason;
+    EXPECT_TRUE(handed_over.Update(state, rosTime(1.272), 1, rosTime(1.272), 0.35, output, reason)) << reason;
+    // Once only: a later gap is an odometry gap again.
+    EXPECT_FALSE(handed_over.Update(state, rosTime(1.6), 1, rosTime(1.6), 0.35, output, reason));
+
+    TerminalPositionTrackingController backwards(Reference(point_t(1.0, 0.0, 0.0), 0.0));
+    ASSERT_TRUE(backwards.Update(state, rosTime(1.0), 1, rosTime(1.0), 0.35, output, reason)) << reason;
+    backwards.ResumeAfterHandover();
+    EXPECT_FALSE(backwards.Update(state, rosTime(0.95), 1, rosTime(1.1), 0.35, output, reason));
+}
+
 TEST(BoundedTerminalPositionTrackingTest, RepeatedEmissionIsIdempotentButStillValidatesSampleAndReset) {
     const Reference nominal(point_t(1.5, 0.0, 0.0), 0.0);
     TerminalPositionTrackingController repeated(nominal);

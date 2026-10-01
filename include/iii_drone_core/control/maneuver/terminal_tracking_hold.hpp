@@ -33,6 +33,9 @@ public:
     bool RequestQuiescence();
     bool isQuiescent() const;
     bool ResumeTracking();
+    // Called by a maneuver adopting this hold after a handover pause; see
+    // TerminalPositionTrackingController::ResumeAfterHandover().
+    void ResumeAfterHandover();
     void Fail(const std::string & reason);
     Phase phase() const;
     std::string failureReason() const;

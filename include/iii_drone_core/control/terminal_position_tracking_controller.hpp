@@ -67,6 +67,11 @@ public:
     bool isQuiescent() const;
     /** Resume correction from the actually emitted offset without resetting P/V/A. */
     void ResumeTracking();
+    // A maneuver handover deliberately pauses evaluation (token transfer,
+    // execution start). The next update re-anchors its sample timing instead
+    // of rejecting the pause as an odometry gap or integrating across it; the
+    // continuity identity and odometry-age checks still apply.
+    void ResumeAfterHandover();
 
     /**
      * Irreversible fault stop: finish only the already committed segment.
@@ -108,6 +113,7 @@ private:
     iii_drone::types::vector_t emitted_acceleration_ = iii_drone::types::vector_t::Zero();
     Segment segment_;
     bool initialized_ = false;
+    bool rebase_sample_timing_ = false;
     PositionContinuityIdentity position_continuity_;
     rclcpp::Time previous_odometry_stamp_{0, 0, RCL_ROS_TIME};
     rclcpp::Time previous_emission_stamp_{0, 0, RCL_ROS_TIME};

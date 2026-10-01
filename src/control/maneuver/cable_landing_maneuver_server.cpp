@@ -683,9 +683,19 @@ Reference CableLandingManeuverServer::computeLinePidReference(const State & stat
         configuration_->GetParameter("/control/maneuver_controller/cable_landing_line_pid_max_along_velocity").as_double()
     );
 
+    // The cross velocity moves the position reference that PX4 tracks with a
+    // lag. Driving it with the vehicle's error keeps it moving after it has
+    // reached the conductor and overshoots by the lag (+-9 cm in HIL); drive
+    // it with the reference's own remaining error so it settles on the line.
+    const double reference_cross_error = detail::ReferenceCrossError(
+        cross_error,
+        state.position(),
+        line_pid_position_reference_world_,
+        gripper_y_axis_world
+    );
     const double cross_velocity = computePidOutput(
         line_pid_cross_pid_,
-        cross_error,
+        reference_cross_error,
         dt,
         configuration_->GetParameter("/control/maneuver_controller/cable_landing_line_pid_cross_kp").as_double(),
         configuration_->GetParameter("/control/maneuver_controller/cable_landing_line_pid_cross_ki").as_double(),
@@ -728,14 +738,16 @@ Reference CableLandingManeuverServer::computeLinePidReference(const State & stat
     const double ascent_cross_error_threshold = gate_height > 0.0
         ? std::max(
             0.0,
-            (target_point_gripper(2) - gate_apex_z) * gate_half_width_at_reference_z / gate_height
+            (gateHeight(target_point_gripper(2)) - gate_apex_z) * gate_half_width_at_reference_z / gate_height
         )
         : 0.0;
     const double ascent_velocity = std::abs(cross_error) <= ascent_cross_error_threshold
         ? configured_ascent_velocity
         : 0.0;
     if (ascent_velocity == 0.0) {
-        RCLCPP_WARN_THROTTLE(
+        // The designed gate response, not a fault: a persistent hold ends in
+        // the V-gate safety failure or the landing timeout, which warn.
+        RCLCPP_INFO_THROTTLE(
             node()->get_logger(),
             *node()->get_clock(),
             1000,
@@ -1708,6 +1720,18 @@ bool CableLandingManeuverServer::getTargetPointInCableGripperFrame(
 
 }
 
+double CableLandingManeuverServer::gateHeight(double target_z_gripper) const {
+
+    // Below the freeze height the V gate would keep narrowing to its apex,
+    // demanding a precision the frozen estimate (+-2-3 cm) cannot give while
+    // the gripper's slot centres the conductor. Hold the width the gate had
+    // where the estimate froze: a real miss of the lips still fails it.
+    if (!conductor_estimate_frozen_) return target_z_gripper;
+    return std::max(target_z_gripper, configuration_->GetParameter(
+        "/control/maneuver_controller/cable_landing_gripper_capture_z").as_double());
+
+}
+
 bool CableLandingManeuverServer::conductorEstimateFrozen() {
 
     if (conductor_estimate_frozen_) return true;
@@ -1769,7 +1793,7 @@ bool CableLandingManeuverServer::isTargetWithinGripperVGate(
         return false;
     }
 
-    const double z_above_apex = target_point_gripper(2) - apex_z;
+    const double z_above_apex = gateHeight(target_point_gripper(2)) - apex_z;
     const double lateral_y = target_point_gripper(1) - center_y;
     const double allowed_lateral_y = z_above_apex * half_width_at_reference_z / height;
 
@@ -1784,7 +1808,9 @@ bool CableLandingManeuverServer::isTargetWithinGripperVGate(
 
             const double violation_duration_s = (now - gripper_v_gate_violation_started_).seconds();
             if (violation_duration_s < violation_grace_s) {
-                RCLCPP_WARN_THROTTLE(
+                // Tolerated by design; only a violation outlasting the grace
+                // warns (below).
+                RCLCPP_INFO_THROTTLE(
                     node()->get_logger(),
                     *node()->get_clock(),
                     1000,

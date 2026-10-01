@@ -128,6 +128,23 @@ namespace maneuver {
             return std::isfinite(target_point_gripper(2)) && target_point_gripper(2) <= freeze_z;
         }
 
+        /**
+         * @brief The cross-track error left for the position reference: the
+         * vehicle's gripper error (target relative to the gripper along
+         * cross_axis_world) minus how far the reference already leads the
+         * vehicle along that axis. Zero once the reference is on the line.
+         */
+        inline double ReferenceCrossError(
+            double vehicle_cross_error,
+            const iii_drone::types::point_t & vehicle_position_world,
+            const iii_drone::types::point_t & reference_position_world,
+            const iii_drone::types::vector_t & cross_axis_world
+        ) {
+            iii_drone::types::vector_t lead = reference_position_world - vehicle_position_world;
+            lead(2) = 0.0;
+            return vehicle_cross_error - lead.dot(cross_axis_world);
+        }
+
     }  // namespace detail
 
     /**
@@ -427,6 +444,13 @@ namespace maneuver {
          * move. The last estimate before that point is kept.
          */
         bool conductorEstimateFrozen();
+
+        /**
+         * @brief The conductor height (gripper frame) at which to evaluate
+         * the V gate: the target height, but not below the freeze height once
+         * the estimate is frozen.
+         */
+        double gateHeight(double target_z_gripper) const;
 
         /**
          * @brief Truncates the reference to only velocity (sets position to nans).

@@ -262,6 +262,8 @@ void HoverManeuverServer::startExecution(Maneuver & maneuver) {
 
     if (const auto hold = terminalHold()) {
         AdoptTerminalHold(hold, maneuver.requestIdentity());
+        // Nothing evaluated the hold while the predecessor handed over.
+        hold->ResumeAfterHandover();
     } else if (staged_rest) {
         // The predecessor's certified object stop is a finite commanded
         // rest. Keep every finite channel even when ordinary Hover is
