@@ -21,6 +21,10 @@ public:
         double gain_per_s = 0.15;
         double max_offset_m = 0.4;
         double maximum_sample_interval_s = 0.25;
+        /** An ended source gap up to this (the odometry age limit plus emission
+         * jitter) is ridden through without integrating across it; longer gaps
+         * end tracking. Pauses are bounded by maximum_odometry_age_s. */
+        double maximum_sample_gap_s = 0.5;
         double maximum_odometry_age_s = 0.25;
         double maximum_command_age_s = 0.25;
         double maximum_future_stamp_s = 0.02;

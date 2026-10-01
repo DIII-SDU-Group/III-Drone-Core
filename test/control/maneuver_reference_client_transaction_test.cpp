@@ -2206,24 +2206,24 @@ TEST(ManeuverReferenceClientTransaction, TerminalSampleIntervalFailureRecordsOri
     ASSERT_EQ(fixture.hold->phase(),
         iii_drone::control::maneuver::TerminalTrackingHold::Phase::Tracking);
 
-    ASSERT_EQ(rcl_set_ros_time_override(clock_handle, 10'300'000'000LL), RCL_RET_OK);
-    raw.timestamp_sample = 1'300'000;
+    ASSERT_EQ(rcl_set_ros_time_override(clock_handle, 11'300'000'000LL), RCL_RET_OK);
+    raw.timestamp_sample = 2'300'000;
     fixture.awareness->ingestVehicleOdometry(raw, fixture.node.now());
     const auto measured = fixture.awareness->GetMeasuredOdometry();
     ASSERT_TRUE(measured);
-    ASSERT_EQ(measured->receipt_stamp.nanoseconds(), 10'300'000'000LL);
+    ASSERT_EQ(measured->receipt_stamp.nanoseconds(), 11'300'000'000LL);
     (void)fixture.hold->GetReference();
     const auto reason = fixture.hold->failureReason();
     const auto diagnostic = fixture.hold->last_freshness_diagnostic_;
     EXPECT_EQ(reason.rfind("terminal tracking sample interval is discontinuous", 0), 0U);
-    EXPECT_NE(reason.find("sample_dt_s=0.300000"), std::string::npos);
+    EXPECT_NE(reason.find("sample_dt_s=1.300000"), std::string::npos);
     EXPECT_NE(reason.find("previous_receipt_ns=10000000000"), std::string::npos);
-    EXPECT_NE(reason.find("current_receipt_ns=10300000000"), std::string::npos);
+    EXPECT_NE(reason.find("current_receipt_ns=11300000000"), std::string::npos);
     EXPECT_EQ(reason.find("ingress_history"), std::string::npos);
     EXPECT_NE(diagnostic.find("controller_reason=" + reason), std::string::npos);
-    EXPECT_NE(diagnostic.find("captured_source_us=1300000"), std::string::npos);
-    EXPECT_NE(diagnostic.find("captured_receipt_ros_ns=10300000000"), std::string::npos);
-    EXPECT_NE(diagnostic.find("latest_source_us=1300000"), std::string::npos);
+    EXPECT_NE(diagnostic.find("captured_source_us=2300000"), std::string::npos);
+    EXPECT_NE(diagnostic.find("captured_receipt_ros_ns=11300000000"), std::string::npos);
+    EXPECT_NE(diagnostic.find("latest_source_us=2300000"), std::string::npos);
     EXPECT_NE(diagnostic.find("ingress_count=2"), std::string::npos);
     EXPECT_NE(diagnostic.find("ingress_history=["), std::string::npos);
     (void)fixture.hold->GetReference();
@@ -4591,12 +4591,12 @@ void verifyFtoTimingFaultLogsCapturedAndIngressIdentityOnce(bool interval_fault)
             }
             if (interval_fault) {
                 // Accept the first original source sample, then deliver a
-                // fresh receipt whose source interval alone exceeds 250 ms.
+                // fresh receipt whose source interval alone exceeds the 0.5 s gap bound.
                 (void)object->computeReference(fixture.awareness->GetState());
                 if (rcl_set_ros_time_override(clock_handle, 10'100'000'000LL) != RCL_RET_OK) {
                     throw std::runtime_error("could not advance fixture ROS clock");
                 }
-                raw.timestamp_sample = 1'300'000;
+                raw.timestamp_sample = 1'600'000;
                 fixture.awareness->ingestVehicleOdometry(raw, fixture.node.now());
             }
             (void)object->computeReference(fixture.awareness->GetState());
@@ -4623,19 +4623,19 @@ void verifyFtoTimingFaultLogsCapturedAndIngressIdentityOnce(bool interval_fault)
     const auto diagnostic = std::string("Object approach timing-fault evidence:");
     EXPECT_NE(logs.find(diagnostic), std::string::npos);
     EXPECT_NE(logs.find("captured_source_us=" +
-        std::string(interval_fault ? "1300000" : "1000000")), std::string::npos);
+        std::string(interval_fault ? "1600000" : "1000000")), std::string::npos);
     EXPECT_NE(logs.find("captured_receipt_ros_ns=" +
         std::string(interval_fault ? "10100000000" : "10000000000")), std::string::npos);
     EXPECT_NE(logs.find("emission_ros_ns=" +
         std::string(interval_fault ? "10100000000" : "10300000000")), std::string::npos);
     EXPECT_NE(logs.find("latest_source_us=" +
-        std::string(interval_fault ? "1300000" : "1000000")), std::string::npos);
+        std::string(interval_fault ? "1600000" : "1000000")), std::string::npos);
     EXPECT_NE(logs.find("latest_receipt_ros_ns=" +
         std::string(interval_fault ? "10100000000" : "10000000000")), std::string::npos);
     EXPECT_NE(logs.find("ingress_count=" +
         std::string(interval_fault ? "2" : "1")), std::string::npos);
     if (interval_fault) {
-        EXPECT_NE(tracking->failureReason().find("source_interval_s=0.300000"),
+        EXPECT_NE(tracking->failureReason().find("source_interval_s=0.600000"),
             std::string::npos);
     } else {
         EXPECT_NE(tracking->failureReason().find("odometry_stale=true"),

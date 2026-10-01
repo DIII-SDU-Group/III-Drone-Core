@@ -154,8 +154,8 @@ TEST(BoundedTerminalPositionTrackingTest, ReportsOriginalReceiptAndEmissionInter
         EXPECT_EQ(output.velocity(), accepted.velocity());
         EXPECT_EQ(output.acceleration(), accepted.acceleration());
     };
-    check(rosTime(1.30), rosTime(1.30),
-        "terminal tracking sample interval is discontinuous", "0.300000", "0.300000");
+    check(rosTime(1.60), rosTime(1.60),
+        "terminal tracking sample interval is discontinuous", "0.600000", "0.600000");
     check(rosTime(0.95), rosTime(1.05),
         "terminal tracking sample interval is discontinuous", "-0.050000", "0.050000");
     check(rosTime(0.98), rosTime(0.99),
@@ -164,24 +164,27 @@ TEST(BoundedTerminalPositionTrackingTest, ReportsOriginalReceiptAndEmissionInter
 
 // A maneuver handover pauses evaluation (SIM: 0.252 s, just over the 0.25 s
 // sample-interval limit); the adopting maneuver resumes the hold, which
-// re-anchors its timing once instead of rejecting the pause. Without the
-// handover the same gap is still rejected, as is an older sample after it.
-TEST(BoundedTerminalPositionTrackingTest, HandoverPauseIsReanchoredOnceButOdometryGapsStillFail) {
+// re-anchors its timing once. An ended odometry gap (HIL: 0.3 s) is ridden
+// through up to maximum_sample_gap_s (0.5 s); longer gaps and older samples fail.
+TEST(BoundedTerminalPositionTrackingTest, HandoverPauseAndEndedOdometryGapsAreReanchoredWithinBound) {
     const State state(point_t::Zero(), vector_t::Zero(), 0.0, vector_t::Zero(), rosTime(1.0));
     Reference output;
     std::string reason;
 
     TerminalPositionTrackingController plain(Reference(point_t(1.0, 0.0, 0.0), 0.0));
     ASSERT_TRUE(plain.Update(state, rosTime(1.0), 1, rosTime(1.0), 0.35, output, reason)) << reason;
-    EXPECT_FALSE(plain.Update(state, rosTime(1.252), 1, rosTime(1.252), 0.35, output, reason));
+    EXPECT_TRUE(plain.Update(state, rosTime(1.252), 1, rosTime(1.252), 0.35, output, reason)) << reason;
+    EXPECT_TRUE(plain.Update(state, rosTime(1.552), 1, rosTime(1.552), 0.35, output, reason)) << reason;
+    EXPECT_TRUE(plain.Update(state, rosTime(1.562), 1, rosTime(1.562), 0.35, output, reason)) << reason;
+    EXPECT_FALSE(plain.Update(state, rosTime(2.2), 1, rosTime(2.2), 0.35, output, reason));
 
     TerminalPositionTrackingController handed_over(Reference(point_t(1.0, 0.0, 0.0), 0.0));
     ASSERT_TRUE(handed_over.Update(state, rosTime(1.0), 1, rosTime(1.0), 0.35, output, reason)) << reason;
     handed_over.ResumeAfterHandover();
     EXPECT_TRUE(handed_over.Update(state, rosTime(1.252), 1, rosTime(1.252), 0.35, output, reason)) << reason;
     EXPECT_TRUE(handed_over.Update(state, rosTime(1.272), 1, rosTime(1.272), 0.35, output, reason)) << reason;
-    // Once only: a later gap is an odometry gap again.
-    EXPECT_FALSE(handed_over.Update(state, rosTime(1.6), 1, rosTime(1.6), 0.35, output, reason));
+    // A later gap beyond the bound still fails.
+    EXPECT_FALSE(handed_over.Update(state, rosTime(1.9), 1, rosTime(1.9), 0.35, output, reason));
 
     TerminalPositionTrackingController backwards(Reference(point_t(1.0, 0.0, 0.0), 0.0));
     ASSERT_TRUE(backwards.Update(state, rosTime(1.0), 1, rosTime(1.0), 0.35, output, reason)) << reason;

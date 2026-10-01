@@ -771,21 +771,65 @@ TEST(TrajectoryInterpolatorTest, ObjectTrackingRejectsOversizedSourceGapDespiteF
     std::string reason;
     ASSERT_TRUE(session.Compute(target, measured, stamp(100.0), owner, 1,
         -1.0, 0.4, output, reason)) << reason;
-    measured.source_sample_timestamp_us += 300000;
+    measured.source_sample_timestamp_us += 1300000;
     measured.receipt_stamp = stamp(100.05);
     EXPECT_FALSE(session.Compute(target, measured, stamp(100.05), owner, 1,
         -1.0, 0.4, output, reason));
     EXPECT_TRUE(session.failed());
     EXPECT_NE(reason.find("sample interval is discontinuous"), std::string::npos);
-    EXPECT_NE(reason.find("source_interval_s=0.300000"), std::string::npos);
+    EXPECT_NE(reason.find("source_interval_s=1.300000"), std::string::npos);
     EXPECT_NE(reason.find("receipt_interval_s=0.050000"), std::string::npos);
-    EXPECT_NE(reason.find("source_sample_us=100300000"), std::string::npos);
+    EXPECT_NE(reason.find("source_sample_us=101300000"), std::string::npos);
     EXPECT_NE(reason.find("prior_source_sample_us=100000000"), std::string::npos);
     EXPECT_NE(reason.find("request_identity=" + owner), std::string::npos);
     EXPECT_NE(reason.find("execution_id=1"), std::string::npos);
     EXPECT_TRUE(output.position().allFinite());
     EXPECT_TRUE(output.velocity().allFinite());
     EXPECT_TRUE(output.acceleration().allFinite());
+}
+
+// HIL: PX4 odometry resumed after a 0.304 s source gap and object hover
+// tracking failed. An ended gap within maximum_sample_gap_s is ridden through
+// without integrating the correction across it.
+TEST(TrajectoryInterpolatorTest, ObjectTrackingRidesThroughEndedSourceGapWithoutIntegrating) {
+    using Session = iii_drone::control::maneuver::ObjectTrackingSession;
+    const auto stamp = [](double seconds) {
+        return rclcpp::Time(static_cast<int64_t>(seconds * 1.0e9), RCL_SYSTEM_TIME);
+    };
+    const std::string owner = "mri1-object-source-gap-0000000000000002";
+    Session session(
+        [](const Reference &, const Reference & target, bool) { return target; },
+        Reference(point_t::Zero(), 0.0), owner, 1, stamp(100.0), -1.0,
+        Session::Limits{});
+    iii_drone::control::MeasuredOdometrySnapshot measured;
+    measured.state = State(point_t::Zero(), vector_t::Zero(), 0.0,
+        vector_t::Zero(), stamp(100.0));
+    measured.receipt_stamp = stamp(100.0);
+    measured.source_sample_timestamp_us = 100000000;
+    measured.reset_counter = 7;
+    const Reference target(point_t(1.0F, 0.0F, 0.0F), 0.0);
+    Reference output;
+    std::string reason;
+    ASSERT_TRUE(session.Compute(target, measured, stamp(100.0), owner, 1,
+        -1.0, 0.4, output, reason)) << reason;
+    const auto before_gap = session.correction();
+
+    // Commands keep being emitted during the gap with the last sample.
+    ASSERT_TRUE(session.Compute(target, measured, stamp(100.2), owner, 1,
+        -1.0, 0.4, output, reason)) << reason;
+    measured.source_sample_timestamp_us += 304000;
+    measured.receipt_stamp = stamp(100.296);
+    ASSERT_TRUE(session.Compute(target, measured, stamp(100.296), owner, 1,
+        -1.0, 0.4, output, reason)) << reason;
+    EXPECT_FALSE(session.failed());
+    EXPECT_TRUE(session.correction().isApprox(before_gap, 1.0e-7F));
+
+    // Regular samples integrate again.
+    measured.source_sample_timestamp_us += 10000;
+    measured.receipt_stamp = stamp(100.306);
+    ASSERT_TRUE(session.Compute(target, measured, stamp(100.306), owner, 1,
+        -1.0, 0.4, output, reason)) << reason;
+    EXPECT_FALSE(session.correction().isApprox(before_gap, 1.0e-7F));
 }
 
 TEST(TrajectoryInterpolatorTest, ObjectTrackingRejectsWrongOwnerAndOwnsResetOrStaleFailureStops) {

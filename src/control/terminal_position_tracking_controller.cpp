@@ -81,6 +81,7 @@ TerminalPositionTrackingController::TerminalPositionTrackingController(
         !nonnegativeFinite(limits_.arrival_tolerance_m) ||
         !std::isfinite(limits_.maximum_odometry_age_s) || limits_.maximum_odometry_age_s <= 0.0 ||
         !std::isfinite(limits_.maximum_sample_interval_s) || limits_.maximum_sample_interval_s <= 0.0 ||
+        !std::isfinite(limits_.maximum_sample_gap_s) || limits_.maximum_sample_gap_s < limits_.maximum_sample_interval_s ||
         !nonnegativeFinite(limits_.maximum_future_stamp_s) ||
         !std::isfinite(limits_.maximum_tracking_time_s) || limits_.maximum_tracking_time_s <= 0.0 ||
         !std::isfinite(limits_.authority_exhaustion_time_s) || limits_.authority_exhaustion_time_s <= 0.0
@@ -178,7 +179,13 @@ bool TerminalPositionTrackingController::Update(
                     limits_.maximum_sample_interval_s), output, failure_reason);
         }
         dt_s = secondsBetween(odometry_stamp, previous_odometry_stamp_);
-        if (!std::isfinite(dt_s) || dt_s < 0.0 || dt_s > limits_.maximum_sample_interval_s) {
+        if (std::isfinite(dt_s) && dt_s > limits_.maximum_sample_interval_s &&
+            dt_s <= limits_.maximum_sample_gap_s) {
+            // An odometry gap that has ended: re-anchor without integrating
+            // across it (the sample's age is checked above).
+            previous_odometry_stamp_ = odometry_stamp;
+            dt_s = 0.0;
+        } else if (!std::isfinite(dt_s) || dt_s < 0.0 || dt_s > limits_.maximum_sample_interval_s) {
             return fail("terminal tracking sample interval is discontinuous" +
                 timingFailureDetails(odometry_stamp, previous_odometry_stamp_,
                     emission_stamp, previous_emission_stamp_, age_s,

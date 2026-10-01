@@ -49,6 +49,8 @@ ObjectTrackingSession::ObjectTrackingSession(
         !std::isfinite(limits_.max_offset_m) || limits_.max_offset_m <= 0.0 ||
         !std::isfinite(limits_.maximum_sample_interval_s) ||
         limits_.maximum_sample_interval_s <= 0.0 ||
+        !std::isfinite(limits_.maximum_sample_gap_s) ||
+        limits_.maximum_sample_gap_s < limits_.maximum_sample_interval_s ||
         !std::isfinite(limits_.maximum_odometry_age_s) ||
         limits_.maximum_odometry_age_s <= 0.0 ||
         !std::isfinite(limits_.maximum_command_age_s) ||
@@ -246,7 +248,13 @@ bool ObjectTrackingSession::Compute(
             const uint64_t source_interval_us =
                 measured.source_sample_timestamp_us - *last_sample_timestamp_us_;
             sample_dt_s = static_cast<double>(source_interval_us) * 1.0e-6;
-            if (!std::isfinite(sample_dt_s) || sample_dt_s <= 0.0 ||
+            // HIL: PX4 odometry occasionally arrives after a ~0.3 s gap. The
+            // fresh sample is valid (its age is checked above); only the
+            // correction must not integrate across the gap.
+            if (std::isfinite(sample_dt_s) && sample_dt_s > limits_.maximum_sample_interval_s &&
+                sample_dt_s <= limits_.maximum_sample_gap_s) {
+                sample_dt_s = 0.0;
+            } else if (!std::isfinite(sample_dt_s) || sample_dt_s <= 0.0 ||
                 sample_dt_s > limits_.maximum_sample_interval_s) {
                 const double receipt_interval_s =
                     (measured.receipt_stamp - *last_sample_receipt_).seconds();
