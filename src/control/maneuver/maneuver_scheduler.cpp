@@ -3318,15 +3318,28 @@ void ManeuverScheduler::progressScheduler() {
 
     // Every failure exit names its cause: a pending successor rejected here is
     // otherwise only visible as "could not acquire reference callback token".
-    auto on_failure = [this, &on_no_maneuver](Maneuver previous_maneuver, const std::string & reason) {
+    // A maneuver that ended unsuccessfully (cancelled, or failed and reported
+    // by its own server) is logged at INFO; rejections decided here warn.
+    auto on_failure = [this, &on_no_maneuver](
+        Maneuver previous_maneuver, const std::string & reason, bool decided_here = true) {
 
-        RCLCPP_WARN(
-            node_->get_logger(),
-            "ManeuverScheduler::progressScheduler(): failing maneuver %d (request %s): %s",
-            previous_maneuver.maneuver_type(),
-            previous_maneuver.requestIdentity().c_str(),
-            reason.c_str()
-        );
+        if (decided_here) {
+            RCLCPP_WARN(
+                node_->get_logger(),
+                "ManeuverScheduler::progressScheduler(): failing maneuver %d (request %s): %s",
+                previous_maneuver.maneuver_type(),
+                previous_maneuver.requestIdentity().c_str(),
+                reason.c_str()
+            );
+        } else {
+            RCLCPP_INFO(
+                node_->get_logger(),
+                "ManeuverScheduler::progressScheduler(): maneuver %d (request %s) ended: %s",
+                previous_maneuver.maneuver_type(),
+                previous_maneuver.requestIdentity().c_str(),
+                reason.c_str()
+            );
+        }
 
         previous_maneuver.Terminate(false);
 
@@ -3465,7 +3478,7 @@ void ManeuverScheduler::progressScheduler() {
                     current_maneuver_->maneuver_type()
                 );
 
-                on_failure(current_maneuver_, "maneuver terminated unsuccessfully");
+                on_failure(current_maneuver_, "terminated unsuccessfully (cancelled or failed; see its server's log)", false);
 
             }
 
