@@ -735,9 +735,11 @@ Reference CableLandingManeuverServer::computeLinePidReference(const State & stat
         "/control/maneuver_controller/cable_landing_gripper_v_gate_half_width_at_reference_z"
     ).as_double();
     const double gate_height = gate_reference_z - gate_apex_z;
+    // HIL: holding only at the full opening left no room to re-centre within
+    // the gate's grace; the vehicle met the funnel lip off-centre and the
+    // gate failed the landing. Hold with a margin inside the opening.
     const double ascent_cross_error_threshold = gate_height > 0.0
-        ? std::max(
-            0.0,
+        ? detail::AscentHoldCrossErrorThreshold(
             (gateHeight(target_point_gripper(2)) - gate_apex_z) * gate_half_width_at_reference_z / gate_height
         )
         : 0.0;

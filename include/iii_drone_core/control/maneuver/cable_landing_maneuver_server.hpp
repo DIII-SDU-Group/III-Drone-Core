@@ -7,6 +7,7 @@
 /*****************************************************************************/
 // ROS2:
 
+#include <algorithm>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
 
@@ -126,6 +127,19 @@ namespace maneuver {
             double freeze_z
         ) {
             return std::isfinite(target_point_gripper(2)) && target_point_gripper(2) <= freeze_z;
+        }
+
+        /** Fraction of the V-gate opening at which the line PID stops ascending. */
+        constexpr double kAscentHoldGateFraction = 0.7;
+
+        /**
+         * @brief The cross error above which the line PID holds its ascent:
+         * a margin inside the V-gate opening at the current height, so the
+         * vehicle re-centres before the gate safety check (which allows the
+         * full opening) fails the landing.
+         */
+        inline double AscentHoldCrossErrorThreshold(double gate_opening_half_width) {
+            return std::max(0.0, kAscentHoldGateFraction * gate_opening_half_width);
         }
 
         /**

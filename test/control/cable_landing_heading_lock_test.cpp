@@ -50,6 +50,17 @@ TEST(CableLandingHeadingLockTest, RejectsNonFiniteInitialHeading)
 
 // The landing freezes its conductor estimate once the estimate reaches the
 // gripper (freeze height), where the offset sensor stops seeing the conductor.
+// HIL: holding ascent only at the full V-gate opening let the vehicle reach
+// the funnel lip 7 cm off-centre; the gate then failed the landing.
+TEST(AscentHoldCrossErrorThresholdTest, HoldsWithAMarginInsideTheGateOpening)
+{
+  using iii_drone::control::maneuver::detail::AscentHoldCrossErrorThreshold;
+
+  EXPECT_NEAR(AscentHoldCrossErrorThreshold(0.0581), 0.0407, 1.0e-4);
+  EXPECT_LT(AscentHoldCrossErrorThreshold(0.046), 0.046);
+  EXPECT_DOUBLE_EQ(AscentHoldCrossErrorThreshold(-0.01), 0.0);
+}
+
 // HIL: the conductor left the sensor's view 2 cm above the freeze height and
 // its mapped estimate jumped ~10 cm before the freeze captured it.
 TEST(HoldLastSeenConductorTest, HoldsOnlyNearTheConductorWhenTheSensorLostIt)
