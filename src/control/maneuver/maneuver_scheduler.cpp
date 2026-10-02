@@ -3571,7 +3571,14 @@ void ManeuverScheduler::progressScheduler() {
                             on_failure(current_maneuver_);
                             return;
                         }
-                        const auto acknowledgement_expired = [this]() {
+                        // HIL soak run 19: a hard-coded 250 ms deadline against
+                        // acknowledgements arriving every 200 ms (/control/dt)
+                        // failed the hand-off; use the stream's own deadline.
+                        const auto ack_deadline = std::chrono::milliseconds(
+                            configuration_->GetParameter(
+                                "/control/maneuver_controller/reference_stream_timeout_ms"
+                            ).as_int());
+                        const auto acknowledgement_expired = [this, ack_deadline]() {
                             const auto now = std::chrono::steady_clock::now();
                             std::lock_guard<std::mutex> stream_lock(
                                 reference_stream_mutex_);
@@ -3579,8 +3586,8 @@ void ManeuverScheduler::progressScheduler() {
                             const auto age = stream.ack_seen
                                 ? now - stream.last_ack
                                 : now - stream.generation_started;
-                            return age >= std::chrono::milliseconds(250) ||
-                                (stream.ack_seen && now < stream.last_ack);
+                            return detail::ObjectHandoffAcknowledgementExpired(
+                                age, stream.ack_seen && now < stream.last_ack, ack_deadline);
                         };
                         binding.lease->requestQuiescence();
                         if (!binding.lease->drained()) {
@@ -3641,8 +3648,8 @@ void ManeuverScheduler::progressScheduler() {
                                 stream.provider == binding.reference_provider_name;
                             const auto age = stream.ack_seen
                                 ? now - stream.last_ack : now - stream.generation_started;
-                            expired = age >= std::chrono::milliseconds(250) ||
-                                (stream.ack_seen && now < stream.last_ack);
+                            expired = detail::ObjectHandoffAcknowledgementExpired(
+                                age, stream.ack_seen && now < stream.last_ack, ack_deadline);
                             if (exact && stream.ack_seen && stream.last_ack_reference_valid &&
                                 known_ack && stream.last_consumer_status ==
                                     iii_drone_interfaces::msg::ManeuverReferenceAck::STATUS_APPLIED &&

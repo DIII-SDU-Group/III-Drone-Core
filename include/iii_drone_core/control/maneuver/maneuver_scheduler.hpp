@@ -92,6 +92,26 @@ namespace control {
 
 namespace maneuver {
 
+    namespace detail {
+
+        /**
+         * @brief Whether the consumer's acknowledgement of the reference
+         * stream is too old for a pending HoverByObject to adopt the tracked
+         * object session. The deadline is the stream's acknowledgement
+         * deadline (reference_stream_timeout_ms); the consumer acknowledges
+         * once per setpoint update (every /control/dt, 0.2 s).
+         */
+        inline bool ObjectHandoffAcknowledgementExpired(
+            std::chrono::steady_clock::duration age,
+            bool clock_went_backwards,
+            std::chrono::milliseconds deadline
+        ) {
+            return age >= deadline || clock_went_backwards;
+        }
+
+    } // namespace detail
+
+
     /**
      * @brief Class that schedules execution of drone maneuvers.
      * Maneuver server are registered using the dedicated functions. 

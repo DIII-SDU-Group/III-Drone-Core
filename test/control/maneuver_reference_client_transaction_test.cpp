@@ -622,6 +622,18 @@ TEST(ManeuverReferenceClientTransaction, OwnedStopAcceptsVelocityOnlyFirstReceiv
     ));
 }
 
+// HIL soak run 19: the consumer acknowledges once per setpoint update (every
+// 0.2 s); a hard-coded 250 ms freshness deadline at the FlyToObject ->
+// HoverByObject hand-off failed it after a slightly late acknowledgement.
+TEST(ManeuverSchedulerObjectHandoff, AcknowledgementAgeUsesTheStreamDeadline) {
+    using iii_drone::control::maneuver::detail::ObjectHandoffAcknowledgementExpired;
+    const std::chrono::milliseconds deadline(1500);
+    EXPECT_FALSE(ObjectHandoffAcknowledgementExpired(std::chrono::milliseconds(300), false, deadline));
+    EXPECT_FALSE(ObjectHandoffAcknowledgementExpired(std::chrono::milliseconds(1499), false, deadline));
+    EXPECT_TRUE(ObjectHandoffAcknowledgementExpired(std::chrono::milliseconds(1500), false, deadline));
+    EXPECT_TRUE(ObjectHandoffAcknowledgementExpired(std::chrono::milliseconds(10), true, deadline));
+}
+
 // HIL soak run 19: the guard was re-armed mid HoverOnCable stream while the
 // vehicle, just latched, swung about the cable at ~0.55 m/s. Seeding the guard
 // from that velocity failed the on-cable (0, 0, 0.1) m/s reference.
@@ -5207,8 +5219,10 @@ TEST(ManeuverReferenceClientTransaction, ExpiredEnteredObjectFallbackRejectsPend
         }
         {
             std::lock_guard<std::mutex> lock(fixture.scheduler.reference_stream_mutex_);
+            // Older than the stream's acknowledgement deadline
+            // (reference_stream_timeout_ms, 1000 ms in this fixture).
             fixture.scheduler.reference_stream_state_.last_ack =
-                std::chrono::steady_clock::now() - std::chrono::milliseconds(300);
+                std::chrono::steady_clock::now() - std::chrono::milliseconds(1100);
         }
         const auto sequence_before_expiry =
             fixture.scheduler.reference_stream_state_.sequence;
@@ -5231,7 +5245,7 @@ TEST(ManeuverReferenceClientTransaction, ExpiredEnteredObjectFallbackRejectsPend
         if (second_call.joinable()) second_call.join();
         tick.join();
         EXPECT_TRUE(tick_completed_while_entered)
-            << "a blocked planner must not block the scheduler's 250 ms ACK deadline";
+            << "a blocked planner must not block the scheduler's ACK deadline";
         EXPECT_EQ(fixture.scheduler.current_maneuver_.Load().maneuver_type(),
             iii_drone::control::maneuver::MANEUVER_TYPE_NONE)
             << "the expired pending HBO must be rejected, not left waiting";
