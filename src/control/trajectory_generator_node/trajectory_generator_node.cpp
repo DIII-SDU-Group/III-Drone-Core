@@ -477,8 +477,8 @@ void TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(
         response->error_message = "";
     }
 
-    // HIL: the first MPC request of a qualification run went unanswered for
-    // ~4.7 s (the maneuver controller reused its last trajectory). Report slow
+    // HIL: a FlyToPosition interpolation request went unanswered for ~4.7 s
+    // (the maneuver controller reused its last trajectory). Report slow
     // computations so a recurrence shows whether the time is spent here.
     constexpr uint64_t kSlowComputationNs = 500000000ULL;
     if (nanoseconds > kSlowComputationNs) {
