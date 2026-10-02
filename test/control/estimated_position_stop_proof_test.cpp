@@ -66,7 +66,7 @@ TEST(EstimatedPositionStopProofTest, RejectsBackAndForthMotionWithZeroNetDisplac
     EXPECT_NEAR(*proof.pathSpeedMS(), 0.12, 1.0e-7);
 }
 
-TEST(EstimatedPositionStopProofTest, DuplicateSamplesCannotAdvanceProofAndStalenessResetsIt) {
+TEST(EstimatedPositionStopProofTest, DuplicateSamplesCannotAdvanceProofAndLongGapsResetIt) {
     EstimatedPositionStopProof proof;
     ControlledCancellationConfig config;
     for (int ms = 1000; ms <= 2000; ms += 50)
@@ -76,10 +76,29 @@ TEST(EstimatedPositionStopProofTest, DuplicateSamplesCannotAdvanceProofAndStalen
         duplicate.receipt_stamp = stamp(ms);  // Re-publication is not new measurement.
         EXPECT_FALSE(proof.observe(true, duplicate, config, stamp(ms)));
     }
+    // A stale sample cannot certify; a gap longer than the odometry gap bound
+    // (0.5 s) then restarts the dwell.
     EXPECT_FALSE(proof.observe(true, measured(2000), config, stamp(2301)));
-    for (int ms = 2350; ms < 3550; ms += 50)
+    // The sample ending the 0.55 s gap resets; the dwell restarts after it.
+    for (int ms = 2550; ms < 3800; ms += 50)
         EXPECT_FALSE(proof.observe(true, measured(ms), config, stamp(ms)));
-    EXPECT_TRUE(proof.observe(true, measured(3550), config, stamp(3550)));
+    EXPECT_TRUE(proof.observe(true, measured(3800), config, stamp(3800)));
+}
+
+// HIL: PX4 odometry occasionally resumes after a ~0.3 s gap. A stale
+// evaluation during the gap does not certify, and the ended gap does not
+// restart the one-second dwell.
+TEST(EstimatedPositionStopProofTest, EndedOdometryGapWithinBoundDoesNotRestartTheDwell) {
+    EstimatedPositionStopProof proof;
+    ControlledCancellationConfig config;
+    for (int ms = 1000; ms <= 1900; ms += 50)
+        EXPECT_FALSE(proof.observe(true, measured(ms), config, stamp(ms)));
+    EXPECT_FALSE(proof.observe(true, measured(1900), config, stamp(2160)));  // stale, no new sample
+    // The 0.3 s gap ended: the window (from 1.0 s) is complete and the
+    // 0.2 s settle certifies at 2.4 s; a restarted dwell would need until 3.4 s.
+    for (int ms = 2200; ms < 2400; ms += 50)
+        EXPECT_FALSE(proof.observe(true, measured(ms), config, stamp(ms)));
+    EXPECT_TRUE(proof.observe(true, measured(2400), config, stamp(2400)));
 }
 
 TEST(EstimatedPositionStopProofTest, InvalidGatesGapsResetsAndClocksDiscardTheFullHistory) {
@@ -95,7 +114,7 @@ TEST(EstimatedPositionStopProofTest, InvalidGatesGapsResetsAndClocksDiscardTheFu
             case 0: gate = false; break;
             case 1: bad.reset_counter = 1; break;
             case 2: bad.source_sample_timestamp_us = 2000000; break;
-            case 3: bad.source_sample_timestamp_us = 2400000; break;
+            case 3: bad.source_sample_timestamp_us = 2700000; break;  // > 0.5 s gap
             case 4: bad.receipt_stamp = stamp(1800); break;
             case 5: bad = measured(2150, point_t(NAN, 0, 0)); break;
             case 6: bad = measured(2150, point_t::Zero(), INFINITY); break;

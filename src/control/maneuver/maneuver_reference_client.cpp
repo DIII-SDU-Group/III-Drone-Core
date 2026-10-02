@@ -1362,6 +1362,12 @@ ManeuverReferenceClient::TryAdoptTerminalHold(int timeout_ms) {
     if (!finiteReference(anchor) ||
         !isValidManeuverRequestIdentity(offer->source_request_identity) ||
         offer->source_stream_id.empty() || offer->source_ack_sequence == 0) {
+        RCLCPP_ERROR(logger_,
+            "Terminal hold adoption QUERY returned an unusable offer (finite anchor %d, valid source %d, stream '%s', ack sequence %lu)",
+            static_cast<int>(finiteReference(anchor)),
+            static_cast<int>(isValidManeuverRequestIdentity(offer->source_request_identity)),
+            offer->source_stream_id.c_str(),
+            static_cast<unsigned long>(offer->source_ack_sequence));
         return TerminalHoldAdoption::Failed;
     }
     Transfer::Request claim;
@@ -1380,15 +1386,26 @@ ManeuverReferenceClient::TryAdoptTerminalHold(int timeout_ms) {
         return TerminalHoldAdoption::Failed;
     }
     const Reference claimed_anchor = ReferenceAdapter(result->reference).reference();
-    if (!finiteReference(claimed_anchor)) return TerminalHoldAdoption::Failed;
+    if (!finiteReference(claimed_anchor)) {
+        RCLCPP_ERROR(logger_, "Terminal hold adoption CLAIM returned a non-finite anchor");
+        return TerminalHoldAdoption::Failed;
+    }
 
     std::lock_guard<std::recursive_mutex> lock(transition_mutex_);
-    if (pending_goal_handoff_ || isManeuverMode()) return TerminalHoldAdoption::Failed;
+    if (pending_goal_handoff_ || isManeuverMode()) {
+        RCLCPP_ERROR(logger_,
+            "Terminal hold adoption: claimed hold superseded locally (pending goal hand-off %d, maneuver mode %d)",
+            static_cast<int>(pending_goal_handoff_.has_value()), static_cast<int>(isManeuverMode()));
+        return TerminalHoldAdoption::Failed;
+    }
     resetReferenceSafety();
     {
         std::lock_guard<std::mutex> safety_lock(reference_safety_mutex_);
         if (reference_safety_guard_->observeReference(claimed_anchor).decision !=
-            ManeuverReferenceSafetyDecision::ACCEPT) return TerminalHoldAdoption::Failed;
+            ManeuverReferenceSafetyDecision::ACCEPT) {
+            RCLCPP_ERROR(logger_, "Terminal hold adoption: claimed anchor rejected by the reference safety guard");
+            return TerminalHoldAdoption::Failed;
+        }
     }
     {
         std::lock_guard<std::mutex> reference_lock(reference_mutex_);

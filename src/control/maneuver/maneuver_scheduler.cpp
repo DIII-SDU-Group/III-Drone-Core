@@ -2762,7 +2762,11 @@ void ManeuverScheduler::terminalHoldTransfer(
             stream.offer_consumer_identity = request->consumer_identity;
             stream.offer_ack_sequence = stream.last_ack_sequence;
             stream.offer_execution_id = stream.execution_id;
-            stream.offer_deadline = now + std::chrono::milliseconds(500);
+            // The consumer CLAIMs after a full QUERY round trip (HIL: the
+            // QUERY reply alone took 253 ms); allow the stream's ACK deadline.
+            stream.offer_deadline = now + std::chrono::milliseconds(
+                configuration_->GetParameter(
+                    "/control/maneuver_controller/reference_stream_timeout_ms").as_int());
         }
     } else if (request->operation == Transfer::Request::OP_CLAIM) {
         if (stream.claim_ack_pending ||
@@ -3312,7 +3316,17 @@ void ManeuverScheduler::progressScheduler() {
         }
     };
 
-    auto on_failure = [this, &on_no_maneuver](Maneuver previous_maneuver) {
+    // Every failure exit names its cause: a pending successor rejected here is
+    // otherwise only visible as "could not acquire reference callback token".
+    auto on_failure = [this, &on_no_maneuver](Maneuver previous_maneuver, const std::string & reason) {
+
+        RCLCPP_WARN(
+            node_->get_logger(),
+            "ManeuverScheduler::progressScheduler(): failing maneuver %d (request %s): %s",
+            previous_maneuver.maneuver_type(),
+            previous_maneuver.requestIdentity().c_str(),
+            reason.c_str()
+        );
 
         previous_maneuver.Terminate(false);
 
@@ -3322,6 +3336,16 @@ void ManeuverScheduler::progressScheduler() {
 
         on_no_maneuver(previous_maneuver);
 
+    };
+
+    const auto object_handoff_failure_reason = [](
+        bool applied_rest, bool unrecoverable, bool expired, bool resumed) {
+        std::string reason = "object hand-off: tracked source failed (";
+        reason += applied_rest ? "rest applied" : "rest not applied";
+        if (unrecoverable) reason += ", unrecoverable";
+        if (expired) reason += ", consumer acknowledgement expired";
+        if (!resumed) reason += ", lease not resumed";
+        return reason + ")";
     };
 
     // Check if a maneuver is executing
@@ -3441,7 +3465,7 @@ void ManeuverScheduler::progressScheduler() {
                     current_maneuver_->maneuver_type()
                 );
 
-                on_failure(current_maneuver_);
+                on_failure(current_maneuver_, "maneuver terminated unsuccessfully");
 
             }
 
@@ -3457,7 +3481,7 @@ void ManeuverScheduler::progressScheduler() {
 
                 if ((current_time - maneuver_creation_time).seconds() > configuration_->GetParameter("/control/maneuver_controller/maneuver_register_update_timeout_s").as_double()) {
 
-                    on_failure(current_maneuver_);
+                    on_failure(current_maneuver_, "maneuver goal was not registered within maneuver_register_update_timeout_s");
 
                 }
 
@@ -3475,7 +3499,7 @@ void ManeuverScheduler::progressScheduler() {
                         registered_maneuvers_.at(MANEUVER_TYPE_HOVER))->terminalHoldBinding();
                     if (terminal_binding.hold != terminal_hold ||
                         terminal_binding.request_identity.empty()) {
-                        on_failure(current_maneuver_);
+                        on_failure(current_maneuver_, "pending successor does not match the retained terminal hold binding");
                         return;
                     }
                     const bool same_target_hover =
@@ -3509,7 +3533,7 @@ void ManeuverScheduler::progressScheduler() {
                         RCLCPP_ERROR(node_->get_logger(),
                             "Terminal hold: successor handoff failed: %s",
                             terminal_hold->failureReason().c_str());
-                        on_failure(current_maneuver_);
+                        on_failure(current_maneuver_, "terminal hold failed during the successor hand-off: " + terminal_hold->failureReason());
                         return;
                     }
                     if (terminal_hold->phase() != TerminalTrackingHold::Phase::Tracking) return;
@@ -3531,7 +3555,9 @@ void ManeuverScheduler::progressScheduler() {
                             stream.last_consumer_status ==
                                 iii_drone_interfaces::msg::ManeuverReferenceAck::STATUS_APPLIED &&
                             stream.last_ack_reference_valid &&
-                            now - stream.last_ack < std::chrono::milliseconds(250) &&
+                            now - stream.last_ack < std::chrono::milliseconds(
+                                configuration_->GetParameter(
+                                    "/control/maneuver_controller/reference_stream_timeout_ms").as_int()) &&
                             (same_target_hover ||
                              ((stream.last_ack_reference.position() - command.position()).norm() < 1.0e-3 &&
                               (stream.last_ack_reference.velocity() - command.velocity()).norm() < 1.0e-3 &&
@@ -3568,7 +3594,7 @@ void ManeuverScheduler::progressScheduler() {
                             binding.execution_id !=
                                 current_reference_execution_id_.Load() ||
                             !object->HasTrackedSourceIdentity(binding)) {
-                            on_failure(current_maneuver_);
+                            on_failure(current_maneuver_, "object hand-off: callback binding, lease, provider, execution or tracked-source identity mismatch");
                             return;
                         }
                         // HIL soak run 19: a hard-coded 250 ms deadline against
@@ -3597,13 +3623,13 @@ void ManeuverScheduler::progressScheduler() {
                             // the existing ACK freshness deadline.
                             if (acknowledgement_expired()) {
                                 (void)binding.lease->resume();
-                                on_failure(current_maneuver_);
+                                on_failure(current_maneuver_, "object hand-off: consumer acknowledgement expired while the predecessor callback drained");
                             }
                             return;
                         }
                         if (!object->CanAdoptTrackedSession(
                                 current_maneuver_, binding)) {
-                            on_failure(current_maneuver_);
+                            on_failure(current_maneuver_, "object hand-off: tracked object session cannot be adopted by this request");
                             return;
                         }
                         // An entered fallback may latch a real tracking fault
@@ -3622,7 +3648,7 @@ void ManeuverScheduler::progressScheduler() {
                             // finite rest until control is explicitly retired.
                             const bool resumed = binding.lease->resume();
                             if (applied_rest || unrecoverable || expired || !resumed) {
-                                on_failure(current_maneuver_);
+                                on_failure(current_maneuver_, object_handoff_failure_reason(applied_rest, unrecoverable, expired, resumed));
                             }
                             return;
                         }
@@ -3668,7 +3694,7 @@ void ManeuverScheduler::progressScheduler() {
                         if (!object_seed) {
                             if (expired) {
                                 binding.lease->resume();
-                                on_failure(current_maneuver_);
+                                on_failure(current_maneuver_, "object hand-off: no applied finite rest seed before the acknowledgement deadline");
                             }
                             return;
                         }
@@ -3696,11 +3722,11 @@ void ManeuverScheduler::progressScheduler() {
                             // owner instead of seeding measured/new-target pose.
                             RCLCPP_ERROR(node_->get_logger(),
                                 "Different-target object hover cannot consume an owned object stop; approach the new target with FlyToObject first");
-                            on_failure(current_maneuver_);
+                            on_failure(current_maneuver_, "different-target object hover cannot consume an owned object stop");
                             return;
                         }
                         if (!object->RequestTrackedTransitionStop(binding)) {
-                            on_failure(current_maneuver_);
+                            on_failure(current_maneuver_, "object hand-off: tracked transition stop request was rejected");
                             return;
                         }
                         const auto rest = object->TrackedTransitionRest(binding);
@@ -3733,7 +3759,7 @@ void ManeuverScheduler::progressScheduler() {
                     if (const auto hold = retainedTerminalHold()) {
                         hold->Fail("terminal successor cannot accept a finite start command");
                     } else {
-                        on_failure(current_maneuver_);
+                        on_failure(current_maneuver_, "terminal successor cannot accept a finite start command");
                     }
                     return;
                 }
@@ -3780,7 +3806,7 @@ void ManeuverScheduler::progressScheduler() {
 
                     if ((current_time - maneuver_start_time).seconds() > configuration_->GetParameter("/control/maneuver_controller/maneuver_start_timeout_s").as_double()) {
 
-                        on_failure(current_maneuver_);
+                        on_failure(current_maneuver_, "maneuver did not start within maneuver_start_timeout_s");
 
                     }
                 }

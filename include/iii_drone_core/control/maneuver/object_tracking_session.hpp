@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iii_drone_core/control/position_continuity_identity.hpp>
 #include <chrono>
 #include <cstdint>
 #include <functional>
@@ -24,7 +25,7 @@ public:
         /** An ended source gap up to this (the odometry age limit plus emission
          * jitter) is ridden through without integrating across it; longer gaps
          * end tracking. Pauses are bounded by maximum_odometry_age_s. */
-        double maximum_sample_gap_s = 0.5;
+        double maximum_sample_gap_s = iii_drone::control::kMaximumOdometrySampleGapS;
         double maximum_odometry_age_s = 0.25;
         double maximum_command_age_s = 0.25;
         double maximum_future_stamp_s = 0.02;

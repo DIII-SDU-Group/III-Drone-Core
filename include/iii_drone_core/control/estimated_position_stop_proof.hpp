@@ -50,7 +50,7 @@ public:
             return reject();
         }
         const double age_s = (now - measured.receipt_stamp).seconds();
-        if (age_s < -0.02 || age_s > 0.25) return reject();
+        if (age_s < -0.02) return reject();
         if (previous_now_ &&
             (previous_now_->get_clock_type() != now.get_clock_type() || now < *previous_now_)) {
             return reject();
@@ -63,8 +63,9 @@ public:
                 measured.receipt_stamp < *previous_receipt_) return reject();
             // Repeated polling/publication cannot advance the history or dwell.
             if (stamp == samples_.back().stamp_us) return false;
-            if (stamp - samples_.back().stamp_us > 250000 ||
-                (measured.receipt_stamp - *previous_receipt_).seconds() > 0.25) return reject();
+            const auto max_gap_us = static_cast<uint64_t>(kMaximumOdometrySampleGapS * 1.0e6);
+            if (stamp - samples_.back().stamp_us > max_gap_us ||
+                (measured.receipt_stamp - *previous_receipt_).seconds() > kMaximumOdometrySampleGapS) return reject();
         }
         reset_counter_ = measured.reset_counter;
         previous_receipt_ = measured.receipt_stamp;
@@ -74,6 +75,9 @@ public:
             samples_.pop_front();
         }
         if (samples_.size() > 512) return reject();
+        // A stale sample cannot certify rest now, but a pause shorter than the
+        // odometry gap bound does not restart the dwell (HIL: ~0.3 s gaps).
+        if (age_s > 0.25) return false;
         if (stamp - samples_.front().stamp_us < window_us_) return false;
 
         double length_m = 0.0;

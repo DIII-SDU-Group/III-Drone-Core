@@ -31,7 +31,7 @@ public:
         /** An ended odometry gap up to this (the odometry age limit plus
          * emission jitter) is ridden through without integrating across it;
          * longer gaps end tracking. Pauses are bounded by maximum_odometry_age_s. */
-        double maximum_sample_gap_s = 0.5;
+        double maximum_sample_gap_s = iii_drone::control::kMaximumOdometrySampleGapS;
         double maximum_future_stamp_s = 0.02;
         double maximum_tracking_time_s = 90.0;
         double authority_exhaustion_time_s = 3.0;
