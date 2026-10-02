@@ -368,9 +368,15 @@ ManeuverReferenceClient::consumeReferenceCandidate(
             reference_safety_guard_->reset();
             safety_evaluation = reference_safety_guard_->observeReference(reference);
         } else {
+            // HIL soak run 19: right after the gripper closed, the vehicle
+            // swung about the cable at up to 0.6 m/s; seeding from that
+            // velocity failed HoverOnCable's (0, 0, 0.1) m/s reference. Its
+            // shapes carry no position and are only used on the cable, where
+            // the measured velocity is the swing, so they baseline themselves.
             if (
                 !reference_safety_guard_->hasAcceptedReference() &&
-                !vehicle_odometry_adapter_history_->empty()
+                !vehicle_odometry_adapter_history_->empty() &&
+                !ManeuverReferenceStartupPolicy::onCableShape(reference)
             ) {
                 safety_evaluation = reference_safety_guard_->observeReference(
                     Reference((*vehicle_odometry_adapter_history_)[0].ToState())

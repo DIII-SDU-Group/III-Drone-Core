@@ -622,6 +622,49 @@ TEST(ManeuverReferenceClientTransaction, OwnedStopAcceptsVelocityOnlyFirstReceiv
     ));
 }
 
+// HIL soak run 19: the guard was re-armed mid HoverOnCable stream while the
+// vehicle, just latched, swung about the cable at ~0.55 m/s. Seeding the guard
+// from that velocity failed the on-cable (0, 0, 0.1) m/s reference.
+TEST(ManeuverReferenceClientTransaction, OnCableReferenceAfterGuardResetIgnoresCableSwingVelocity) {
+    RclcppContext context;
+    ClientFixture fixture("reference_transaction_on_cable_swing", 10000, 0.5);
+    ASSERT_TRUE(waitForAckSubscriber(fixture));
+    fixture.client.SetReferenceModeHover(true);
+    ASSERT_TRUE(fixture.client.BeginManeuverGoalHandoff(kRequestA));
+    ASSERT_TRUE(fixture.client.ConfirmManeuverGoalHandoff(kRequestA));
+
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const Reference on_cable(
+        point_t::Constant(nan), nan, vector_t(0.0, 0.0, 0.1), 0.0, vector_t::Constant(nan), nan);
+    fixture.client.receiveReferenceStream(
+        stream(fixture.node, "hover_on_cable:g1", 1, on_cable, kRequestA));
+    fixture.client.GetReference(0.02, [] {});
+    ASSERT_EQ(fixture.client.reference_mode_.Load(), ManeuverReferenceClient::MANEUVER);
+
+    px4_msgs::msg::VehicleOdometry swinging;
+    swinging.pose_frame = iii_drone::adapters::px4::POSE_FRAME_LOCAL_NED;
+    swinging.velocity_frame = iii_drone::adapters::px4::VELOCITY_FRAME_LOCAL_NED;
+    swinging.q[0] = 1.0F;
+    swinging.velocity[0] = 0.185F;
+    swinging.velocity[1] = -0.514F;
+    fixture.history->Store(VehicleOdometryAdapter(swinging));
+    fixture.client.resetReferenceSafety();
+
+    fixture.client.receiveReferenceStream(
+        stream(fixture.node, "hover_on_cable:g1", 2, on_cable, kRequestA));
+    fixture.client.GetReference(0.02, [] {});
+    EXPECT_EQ(fixture.client.reference_mode_.Load(), ManeuverReferenceClient::MANEUVER);
+    EXPECT_EQ(fixture.client.last_applied_sequence_, 2U);
+    EXPECT_TRUE(observedAppliedAck(fixture, "hover_on_cable:g1", 2U));
+
+    // A free-flight reference after a reset still has to match the vehicle.
+    fixture.client.resetReferenceSafety();
+    fixture.client.receiveReferenceStream(
+        stream(fixture.node, "hover_on_cable:g1", 3, finiteReference(0.0, 4.1), kRequestA));
+    fixture.client.GetReference(0.02, [] {});
+    EXPECT_EQ(fixture.client.reference_mode_.Load(), ManeuverReferenceClient::REFERENCE_LOSS_STOP);
+}
+
 TEST(ManeuverReferenceClientTransaction, SuccessorAcceptsFirstMpcSampleWithOrWithoutInitializationAndKeepsGuard) {
     RclcppContext context;
     for (const bool observe_initialization : {false, true}) {

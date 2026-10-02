@@ -477,6 +477,21 @@ void TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(
         response->error_message = "";
     }
 
+    // HIL: the first MPC request of a qualification run went unanswered for
+    // ~4.7 s (the maneuver controller reused its last trajectory). Report slow
+    // computations so a recurrence shows whether the time is spent here.
+    constexpr uint64_t kSlowComputationNs = 500000000ULL;
+    if (nanoseconds > kSlowComputationNs) {
+        RCLCPP_WARN(
+            this->get_logger(),
+            "TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(): %s trajectory computation took %.0f ms (trajectory mode %d, reset %d)",
+            type.c_str(),
+            static_cast<double>(nanoseconds) * 1.0e-6,
+            static_cast<int>(request->trajectory_mode.mode),
+            static_cast<int>(request->reset)
+        );
+    }
+
     // Set the response
     adapters::ReferenceTrajectoryAdapter ref_traj_adapter(ref_traj);
     iii_drone_interfaces::msg::ReferenceTrajectory msg = ref_traj_adapter.ToMsg();
