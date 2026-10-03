@@ -6,6 +6,7 @@
 
 #include <chrono>
 #include <limits>
+#include <mutex>
 #include <optional>
 
 /*****************************************************************************/
@@ -40,6 +41,7 @@
 #include <iii_drone_core/control/maneuver/maneuver_types.hpp>
 
 #include <iii_drone_core/control/maneuver/hover_maneuver_server.hpp>
+#include <iii_drone_core/control/maneuver/terminal_tracking_hold.hpp>
 
 #include <iii_drone_core/control/trajectory_generator_client.hpp>
 
@@ -244,6 +246,34 @@ namespace maneuver {
         std::optional<std::chrono::steady_clock::time_point> last_distance_improvement_at_;
 
         double best_distance_to_target_ = std::numeric_limits<double>::infinity();
+
+        /**
+         * @brief Bounded terminal correction of the frozen clearance target.
+         * PX4's position loop can settle offset from a stationary setpoint
+         * (e.g. an EKF vertical-velocity bias); this removes that residual.
+         */
+        mutable std::mutex terminal_hold_mutex_;
+        std::shared_ptr<TerminalTrackingHold> terminal_hold_;
+        std::shared_ptr<TerminalTrackingHold> terminalHold() const;
+
+        /**
+         * @brief Frozen clearance target of an airborne takeoff that aborted.
+         * A retry within the window resumes this target instead of freezing
+         * a new one below the vehicle's current (already departed) position.
+         */
+        struct DepartureTarget {
+            iii_drone::control::Reference reference;
+            int target_cable_id = -1;
+            double target_cable_distance = 0.0;
+            std::chrono::steady_clock::time_point aborted_at;
+        };
+        mutable std::mutex departure_target_mutex_;
+        std::optional<DepartureTarget> departure_target_;
+        std::optional<DepartureTarget> execution_departure_target_;
+        std::optional<iii_drone::control::Reference> retryDepartureTarget(
+            int target_cable_id,
+            const iii_drone::control::State & state
+        ) const;
 
         /**
          * @brief Get updated target reference. 

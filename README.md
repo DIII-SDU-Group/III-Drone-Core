@@ -84,6 +84,8 @@ Most perception and target-related modules pass data around as transform matrice
 
 `State`, `Reference`, and `ReferenceTrajectory` are the common language used by controllers, mission logic, and parts of the CLI/GC stack. If you need to understand how the rest of the system reasons about motion, start there.
 
+The canonical HIL/simulation profile uses a single fixed-target, jerk-bounded quintic for CableTakeoff. The legacy CableTakeoff MPC setting remains unchanged for the real profile and is not qualified against this jerk-bounded continuity contract.
+
 ## Tests
 
 The current test suite covers:

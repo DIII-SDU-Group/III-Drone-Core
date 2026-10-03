@@ -3,6 +3,7 @@
 /*****************************************************************************/
 
 #include "iii_drone_core/utils/drone_frame_broadcaster_node/drone_frame_broadcaster_node.hpp"
+#include <iii_drone_core/utils/multi_threaded_executor.hpp>
 
 using namespace iii_drone::utils::drone_frame_broadcaster_node;
 using namespace iii_drone::math;
@@ -74,7 +75,6 @@ void DroneFrameBroadcasterNode::odometryCallback(const std::shared_ptr<px4_msgs:
     RCLCPP_DEBUG(this->get_logger(), "DroneFrameBroadcasterNode::odometryCallback(): Received odometry message");
 
     iii_drone::adapters::px4::VehicleOdometryAdapter adapter(*msg);
-    compensateOdometryReset(adapter);
 
     geometry_msgs::msg::TransformStamped t = adapter.ToTransformStamped(
         configurator_->GetParameter("/tf/drone_frame_id").as_string(),
@@ -92,44 +92,6 @@ void DroneFrameBroadcasterNode::odometryCallback(const std::shared_ptr<px4_msgs:
 
 }
 
-void DroneFrameBroadcasterNode::compensateOdometryReset(
-    iii_drone::adapters::px4::VehicleOdometryAdapter & adapter
-) {
-
-    const point_t raw_position = adapter.position();
-    const uint8_t reset_counter = adapter.reset_counter();
-
-    if (!has_last_odometry_for_reset_compensation_) {
-        last_raw_odometry_position_ = raw_position;
-        last_odometry_reset_counter_ = reset_counter;
-        has_last_odometry_for_reset_compensation_ = true;
-        adapter.ApplyPositionOffset(odometry_position_reset_offset_);
-        return;
-    }
-
-    if (reset_counter != last_odometry_reset_counter_) {
-        const point_t previous_continuous_position =
-            last_raw_odometry_position_ + odometry_position_reset_offset_;
-        odometry_position_reset_offset_ =
-            previous_continuous_position - raw_position;
-
-        RCLCPP_WARN(
-            this->get_logger(),
-            "DroneFrameBroadcasterNode::compensateOdometryReset(): PX4 odometry reset counter changed %u -> %u; applying ROS-world continuity offset [%.3f, %.3f, %.3f]",
-            static_cast<unsigned>(last_odometry_reset_counter_),
-            static_cast<unsigned>(reset_counter),
-            odometry_position_reset_offset_(0),
-            odometry_position_reset_offset_(1),
-            odometry_position_reset_offset_(2)
-        );
-    }
-
-    last_raw_odometry_position_ = raw_position;
-    last_odometry_reset_counter_ = reset_counter;
-    adapter.ApplyPositionOffset(odometry_position_reset_offset_);
-
-}
-
 void DroneFrameBroadcasterNode::publishIsAlive() {
     std_msgs::msg::Header header;
     header.stamp = this->get_clock()->now();
@@ -143,7 +105,7 @@ int main(int argc, char * argv[]) {
 
     rclcpp::init(argc, argv);
 
-    auto multi_threaded_executor = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
+    auto multi_threaded_executor = std::make_shared<iii_drone::utils::MultiThreadedExecutor>();
     auto node = std::make_shared<DroneFrameBroadcasterNode>();
     RCLCPP_DEBUG(node->get_logger(), "DroneFrameBroadcasterNode::main(): Node created");
     multi_threaded_executor->add_node(node);

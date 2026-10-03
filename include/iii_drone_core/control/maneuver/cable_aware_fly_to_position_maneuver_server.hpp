@@ -8,6 +8,7 @@
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
 
 #include <optional>
+#include <mutex>
 
 #include <iii_drone_configuration/configuration.hpp>
 
@@ -88,6 +89,9 @@ namespace maneuver {
         iii_drone::utils::Atomic<bool> first_iteration_ = true;
         iii_drone::utils::Atomic<bool> waiting_for_initial_plan_ = false;
         iii_drone::utils::Atomic<bool> has_failed_ = false;
+        mutable std::mutex terminal_hold_mutex_;
+        std::shared_ptr<TerminalTrackingHold> terminal_hold_;
+        std::optional<iii_drone::adapters::PowerlineAdapter> execution_powerline_;
         rclcpp::CallbackGroup::SharedPtr powerline_overview_client_cb_group_;
         rclcpp::Client<iii_drone_interfaces::srv::GetPowerlineOverview>::SharedPtr get_powerline_overview_client_;
     };

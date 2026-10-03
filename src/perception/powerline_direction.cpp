@@ -32,6 +32,12 @@ void PowerlineDirection::Reset() {
 
 }
 
+bool PowerlineDirection::HasEstimate() const {
+
+    return !pl_quat_history_.empty();
+
+}
+
 const geometry_msgs::msg::PoseStamped PowerlineDirection::ToPoseStampedMsg(const std::string & drone_frame_id) const {
 
     geometry_msgs::msg::PoseStamped msg;

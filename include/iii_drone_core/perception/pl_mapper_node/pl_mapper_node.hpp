@@ -254,8 +254,10 @@ private:
         std::shared_ptr<iii_drone_interfaces::srv::PLMapperCommand::Response> response
     );
 
-    std::shared_ptr<tf2_ros::TransformListener> transform_listener_{nullptr};
+    // Declared before the listener so it is destroyed after it: the
+    // listener's spin thread writes into the buffer until it is joined.
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+    std::shared_ptr<tf2_ros::TransformListener> transform_listener_{nullptr};
 
     /**
      * @brief Timer for predicting the powerline position estimates
@@ -281,6 +283,15 @@ private:
      * @brief Direction of detected powerline
     */
     iii_drone::types::quaternion_t pl_direction_;
+
+    /**
+     * @brief True only after a measured powerline direction has arrived.
+     *
+     * Radar points received before this gate opens are deliberately ignored;
+     * projecting them with a default quaternion permanently corrupts the
+     * overview geometry.
+     */
+    bool pl_direction_ready_{false};
 
     /**
      * @brief Callback for running predict step of Kalman filter when in running state,

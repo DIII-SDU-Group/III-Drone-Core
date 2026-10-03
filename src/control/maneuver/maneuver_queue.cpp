@@ -142,6 +142,50 @@ void ManeuverQueue::Clear() {
 
 }
 
+uint32_t ManeuverQueue::ClearRequestIdentity(const std::string & request_identity) {
+
+    std::unique_lock<std::mutex> wlck(writer_mutex_);
+    std::unique_lock<std::mutex> lck(mutex_);
+
+    const auto before = std::vector<Maneuver>::size();
+    auto first_removed = std::remove_if(
+        std::vector<Maneuver>::begin(),
+        std::vector<Maneuver>::end(),
+        [&request_identity](const Maneuver & maneuver) {
+            return maneuver.requestIdentity() == request_identity;
+        }
+    );
+    std::vector<Maneuver>::erase(first_removed, std::vector<Maneuver>::end());
+    const uint32_t cleared = static_cast<uint32_t>(before - std::vector<Maneuver>::size());
+    lck.unlock();
+    if (cleared > 0) {
+        is_not_full_.notify_all();
+    }
+    return cleared;
+}
+
+uint32_t ManeuverQueue::ClearRequestScope(const ManeuverRequestScope & scope) {
+
+    std::unique_lock<std::mutex> wlck(writer_mutex_);
+    std::unique_lock<std::mutex> lck(mutex_);
+
+    const auto before = std::vector<Maneuver>::size();
+    auto first_removed = std::remove_if(
+        std::vector<Maneuver>::begin(),
+        std::vector<Maneuver>::end(),
+        [&scope](const Maneuver & maneuver) {
+            return scope.contains(maneuver.requestIdentity());
+        }
+    );
+    std::vector<Maneuver>::erase(first_removed, std::vector<Maneuver>::end());
+    const uint32_t cleared = static_cast<uint32_t>(before - std::vector<Maneuver>::size());
+    lck.unlock();
+    if (cleared > 0) {
+        is_not_full_.notify_all();
+    }
+    return cleared;
+}
+
 void ManeuverQueue::ClearFrom(Maneuver maneuver) {
 
     std::unique_lock<std::mutex> wlck(writer_mutex_);

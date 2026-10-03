@@ -115,7 +115,7 @@ ReferenceTrajectory CableAwareTrajectoryPlanner::ComputeReferenceTrajectory(
                 start_requires_terminal_exception,
                 goal_requires_terminal_exception
             )) {
-            RCLCPP_WARN(
+            RCLCPP_INFO(
                 node_->get_logger(),
                 "CableAwareTrajectoryPlanner::ComputeReferenceTrajectory(): LLS-smoothed trajectory violates cable clearance or terminal constraints; using piecewise-linear A* trajectory."
             );
@@ -162,7 +162,7 @@ std::vector<point_t> CableAwareTrajectoryPlanner::planAStarPath(
         throw std::runtime_error("CableAwareTrajectoryPlanner: goal position violates cable clearance.");
     }
     if (start_requires_terminal_exception) {
-        RCLCPP_WARN(
+        RCLCPP_INFO(
             node_->get_logger(),
             "CableAwareTrajectoryPlanner::planAStarPath(): Start position violates cable clearance; allowing bounded terminal exception while planning escape path."
         );
@@ -555,51 +555,119 @@ ReferenceTrajectory CableAwareTrajectoryPlanner::buildPiecewiseLinearTrajectory(
     const double dt = getDouble(configuration_, "/control/dt", 0.2);
 
     double path_length = 0.0;
-    std::vector<double> cumulative{0.0};
     for (std::size_t i = 1; i < waypoints.size(); ++i) {
         path_length += (waypoints[i] - waypoints[i - 1]).norm();
-        cumulative.push_back(path_length);
     }
 
-    duration_s_ = std::max(path_length / std::max(avg_velocity, 1.0e-3), dt * (horizon_count - 1));
-    const int sample_count = std::max(horizon_count, static_cast<int>(std::ceil(duration_s_ / dt)) + horizon_count);
-
+    // Sample every validated A* edge independently.  Sampling uniformly over
+    // total arc length can place one reference before a waypoint and the next
+    // after it; the segment joining those references then cuts the corner and
+    // may cross a conductor clearance volume even though both A* edges are
+    // safe.  Every step therefore ends on the current edge or exactly on its
+    // end waypoint.
+    //
+    // The speed along the path is rate limited from the start state's
+    // along-path speed, through each corner and down to rest at the goal.  A
+    // cruise-speed step directly after the (measured) start velocity is a
+    // velocity discontinuity that the consumer's continuity guard rejects.
     std::vector<Reference> references;
-    references.reserve(sample_count);
-    for (int i = 0; i < sample_count; ++i) {
-        const double t = std::min(duration_s_, i * dt);
-        const double distance = duration_s_ > 1.0e-6 ? (t / duration_s_) * path_length : path_length;
+    references.emplace_back(
+        start_state.position(),
+        start_state.yaw(),
+        start_state.velocity(),
+        0.0,
+        vector_t::Zero(),
+        0.0,
+        start_state.stamp()
+    );
 
-        std::size_t segment = 1;
-        while (segment < cumulative.size() - 1 && cumulative[segment] < distance) {
-            ++segment;
+    const double max_acceleration = std::max(getDouble(configuration_,
+        "/control/trajectory_interpolator/interpolation_max_acceleration_m_s2", 0.5), 1.0e-3);
+    const double cruise_speed = std::max(avg_velocity, 1.0e-3);
+    const double speed_step = max_acceleration * dt;
+
+    // Admissible speed at each waypoint: a corner may change the velocity
+    // direction by at most one acceleration step; the goal is reached at rest.
+    std::vector<double> waypoint_speed(waypoints.size(), cruise_speed);
+    waypoint_speed.back() = 0.0;
+    for (std::size_t i = 1; i + 1 < waypoints.size(); ++i) {
+        const vector_t in = waypoints[i] - waypoints[i - 1];
+        const vector_t out = waypoints[i + 1] - waypoints[i];
+        if (in.norm() < 1.0e-6 || out.norm() < 1.0e-6) continue;
+        const double cos_turn = std::clamp(
+            static_cast<double>(in.normalized().dot(out.normalized())), -1.0, 1.0);
+        const double half_turn_sin = std::sin(0.5 * std::acos(cos_turn));
+        if (half_turn_sin > 1.0e-6) {
+            waypoint_speed[i] = std::min(cruise_speed, speed_step / (2.0 * half_turn_sin));
         }
+    }
+    for (std::size_t i = waypoints.size() - 1; i-- > 1;) {
+        const double edge = (waypoints[i + 1] - waypoints[i]).norm();
+        waypoint_speed[i] = std::min(waypoint_speed[i],
+            std::sqrt(waypoint_speed[i + 1] * waypoint_speed[i + 1] +
+                2.0 * max_acceleration * edge));
+    }
 
-        const double segment_length = std::max(cumulative[segment] - cumulative[segment - 1], 1.0e-6);
-        const double segment_alpha = std::clamp((distance - cumulative[segment - 1]) / segment_length, 0.0, 1.0);
+    double speed = 0.0;
+    {
+        const vector_t first_edge = waypoints[1] - waypoints[0];
+        if (first_edge.norm() > 1.0e-6) {
+            speed = std::clamp(
+                static_cast<double>(start_state.velocity().dot(first_edge.normalized())),
+                0.0, cruise_speed);
+        }
+    }
+
+    double distance_travelled = 0.0;
+    std::size_t max_steps = 100000;
+    for (std::size_t segment = 1; segment < waypoints.size(); ++segment) {
         const vector_t segment_delta = waypoints[segment] - waypoints[segment - 1];
-        const point_t position = waypoints[segment - 1] + segment_alpha * segment_delta;
-        vector_t velocity = vector_t::Zero();
-        if (segment_delta.norm() > 1.0e-6) {
-            velocity = segment_delta.normalized() * avg_velocity;
-        }
-        const double alpha = duration_s_ > 1.0e-6 ? std::clamp(t / duration_s_, 0.0, 1.0) : 1.0;
+        const double segment_length = segment_delta.norm();
+        if (segment_length <= 1.0e-6) continue;
+        const vector_t direction = segment_delta / segment_length;
+        double along = 0.0;
+        while (along < segment_length) {
+            if (max_steps-- == 0) {
+                throw std::runtime_error(
+                    "CableAwareTrajectoryPlanner: piecewise-linear speed profile did not converge.");
+            }
+            const double remaining = segment_length - along;
+            double step_speed = std::min({cruise_speed, speed + speed_step,
+                std::sqrt(waypoint_speed[segment] * waypoint_speed[segment] +
+                    2.0 * max_acceleration * remaining)});
+            step_speed = std::max(step_speed, 1.0e-3);
+            const double step_length = std::min(step_speed * dt, remaining);
+            along = step_length >= remaining ? segment_length : along + step_length;
+            // A shortened step that lands on a waypoint keeps the planned
+            // speed; its position lag (< one step) stays within tolerance.
+            speed = step_speed;
 
-        const rclcpp::Time stamp = start_state.stamp() + rclcpp::Duration::from_seconds(t);
-        if (t >= duration_s_) {
-            references.push_back(goal_reference.CopyWithNewStamp(stamp));
-        } else {
+            const double global_alpha = path_length > 1.0e-6
+                ? std::clamp((distance_travelled + along) / path_length, 0.0, 1.0)
+                : 1.0;
+            const double t = references.size() * dt;
             references.emplace_back(
-                position,
-                yawLerp(start_state.yaw(), goal_reference.yaw(), alpha),
-                i == 0 ? start_state.velocity() : velocity,
+                waypoints[segment - 1] + along * direction,
+                yawLerp(start_state.yaw(), goal_reference.yaw(), global_alpha),
+                direction * speed,
                 0.0,
                 vector_t::Zero(),
                 0.0,
-                stamp
+                start_state.stamp() + rclcpp::Duration::from_seconds(t)
             );
         }
+        distance_travelled += segment_length;
     }
+
+    while (static_cast<int>(references.size()) < horizon_count) {
+        const double t = references.size() * dt;
+        references.push_back(goal_reference.CopyWithNewStamp(
+            start_state.stamp() + rclcpp::Duration::from_seconds(t)));
+    }
+
+    duration_s_ = (references.size() - 1) * dt;
+    references.back() = goal_reference.CopyWithNewStamp(
+        start_state.stamp() + rclcpp::Duration::from_seconds(duration_s_));
 
     return ReferenceTrajectory(references);
 }

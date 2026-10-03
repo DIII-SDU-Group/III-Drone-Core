@@ -256,7 +256,9 @@ BaseTimedPath parameterize(
     const WaypointPathConstraints & constraints,
     double start_speed,
     double end_speed,
-    bool periodic = false
+    bool periodic = false,
+    bool fixed_start_rest = false,
+    bool fixed_end_rest = false
 ) {
     if (geometry.size() < 2) {
         throw std::invalid_argument("Waypoint path geometry must contain at least two samples");
@@ -413,6 +415,13 @@ BaseTimedPath parameterize(
     }
     if (periodic) {
         result.accelerations.back() = result.accelerations.front();
+    } else {
+        // A finite stationary command is the planner's initial boundary; a
+        // final Stop is its terminal boundary. Keep those rest derivatives
+        // fixed during jerk projection so a successor/terminal hold receives
+        // the exact command it was promised at the boundary.
+        if (fixed_start_rest) result.accelerations.front().setZero();
+        if (fixed_end_rest) result.accelerations.back().setZero();
     }
 
     // Acceleration is a feed-forward term. Project it onto the configured jerk
@@ -424,9 +433,18 @@ BaseTimedPath parameterize(
         if (delta.norm() <= limit) {
             return;
         }
-        const vector_t correction = 0.5 * (1.0 - limit / delta.norm()) * delta;
-        result.accelerations[from] += correction;
-        result.accelerations[to] -= correction;
+        const bool from_fixed = !periodic &&
+            ((from == 0 && fixed_start_rest) || (from + 1 == count && fixed_end_rest));
+        const bool to_fixed = !periodic &&
+            ((to == 0 && fixed_start_rest) || (to + 1 == count && fixed_end_rest));
+        const vector_t excess = (1.0 - limit / delta.norm()) * delta;
+        if (from_fixed && to_fixed) return;  // Time scaling proves this edge.
+        if (from_fixed) result.accelerations[to] -= excess;
+        else if (to_fixed) result.accelerations[from] += excess;
+        else {
+            result.accelerations[from] += 0.5 * excess;
+            result.accelerations[to] -= 0.5 * excess;
+        }
     };
     for (int iteration = 0; iteration < 64; ++iteration) {
         for (std::size_t index = 0; index + 1 < unique_count; ++index) {
@@ -664,7 +682,17 @@ WaypointPathPlan WaypointPathPlanner::plan(
         prefix_geometry,
         constraints,
         std::max(0.0, static_cast<double>(start_reference.velocity().norm())),
-        repeat ? seam_speed : 0.0
+        repeat ? seam_speed : 0.0,
+        false,
+        start_reference.velocity().allFinite() &&
+            start_reference.acceleration().allFinite() &&
+            std::isfinite(start_reference.yaw_rate()) &&
+            std::isfinite(start_reference.yaw_acceleration()) &&
+            start_reference.velocity().norm() <= 1.0e-5 &&
+            start_reference.acceleration().norm() <= 1.0e-5 &&
+            std::abs(start_reference.yaw_rate()) <= 1.0e-5 &&
+            std::abs(start_reference.yaw_acceleration()) <= 1.0e-5,
+        !repeat  // Every nonrepeating path is already forced to end at zero speed.
     );
 
     const double time_scale = repeat

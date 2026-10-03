@@ -193,6 +193,7 @@ namespace maneuver {
 		double target_yaw_rate;
 		double duration_s;
 		bool sustain_action;
+		double push_upwards_acceleration;
 
 		hover_on_cable_maneuver_params_t();
 		hover_on_cable_maneuver_params_t(
@@ -200,7 +201,8 @@ namespace maneuver {
 			double target_z_velocity, 
 			double target_yaw_rate,
 			double duration_s,
-			bool sustain_action
+			bool sustain_action,
+			double push_upwards_acceleration = 0.0
 		);
 		hover_on_cable_maneuver_params_t(std::shared_ptr<void> params);
 	};

@@ -4,6 +4,7 @@
 #include <iii_drone_core/control/cable_aware_trajectory_planner.hpp>
 #undef private
 
+#include <iii_drone_core/control/maneuver/maneuver_reference_safety_guard.hpp>
 #include <iii_drone_core/utils/math.hpp>
 #include <iii_drone_core/utils/types.hpp>
 
@@ -93,6 +94,19 @@ TEST(CableAwareTrajectoryPlannerTest, VerticalCrossingPrefersLocalAStarDetour)
 
   EXPECT_LT(max_lateral_distance, 2.0)
     << "The cable-aware planner should use a local A* detour, not the outside-corridor fallback.";
+
+  const rclcpp::Time stamp(100, 0, RCL_ROS_TIME);
+  const iii_drone::control::State start_state(
+    start,
+    iii_drone::types::vector_t::Zero(),
+    0.0,
+    iii_drone::types::vector_t::Zero(),
+    stamp);
+  const iii_drone::control::Reference goal_reference(goal, 0.0);
+  const auto trajectory = planner.buildPiecewiseLinearTrajectory(path, start_state, goal_reference);
+  EXPECT_TRUE(planner.trajectoryIsSafe(
+    trajectory, powerline, start, goal, false, false))
+    << "Piecewise fallback must preserve every validated A* edge without cutting corners.";
 }
 
 TEST(CableAwareTrajectoryPlannerTest, PlannerFallsBackWhenSmoothingMissesTerminalContract)
@@ -148,7 +162,8 @@ TEST(CableAwareTrajectoryPlannerTest, SamplingAtFractionalDurationReturnsExactTe
 
   planner.active_trajectory_ = planner.buildPiecewiseLinearTrajectory(
     {start, goal}, start_state, goal_reference);
-  ASSERT_NEAR(planner.duration_s_, 2.04, 1.0e-6);
+  // Rate-limited start and stop make the duration longer than 1.02 m / 0.5 m/s.
+  ASSERT_GT(planner.duration_s_, 1.02 / 0.5);
 
   const auto sampled = planner.sampleActiveTrajectory(planner.duration_s_);
   ASSERT_FALSE(sampled.references().empty());
@@ -156,5 +171,51 @@ TEST(CableAwareTrajectoryPlannerTest, SamplingAtFractionalDurationReturnsExactTe
     EXPECT_LT((reference.position() - goal).norm(), 1.0e-6);
     EXPECT_LT(reference.velocity().norm(), 1.0e-6);
     EXPECT_LT(reference.acceleration().norm(), 1.0e-6);
+  }
+}
+
+TEST(CableAwareTrajectoryPlannerTest, PiecewiseFallbackPassesConsumerContinuityFromMeasuredStart)
+{
+  // SIM ingress: the start violates clearance, LLS smoothing is rejected and
+  // the piecewise-linear A* fallback is streamed after a Reference(state)
+  // hold whose measured velocity points slightly against the path.
+  iii_drone::control::CableAwareTrajectoryPlanner planner(nullptr, nullptr);
+  const rclcpp::Time stamp(100, 0, RCL_ROS_TIME);
+  const iii_drone::types::point_t start(0.0F, 0.0F, 1.0F);
+  const iii_drone::types::point_t goal(3.0F, 3.0F, 1.0F);
+  const iii_drone::control::State start_state(
+    start,
+    iii_drone::types::vector_t(-0.08F, 0.03F, 0.0F),
+    0.0,
+    iii_drone::types::vector_t::Zero(),
+    stamp);
+  const iii_drone::control::Reference goal_reference(goal, 0.5);
+  const std::vector<iii_drone::types::point_t> waypoints{
+    start,
+    iii_drone::types::point_t(1.0F, 0.0F, 1.0F),
+    iii_drone::types::point_t(3.0F, 0.0F, 1.0F),
+    goal,
+  };
+  const auto trajectory = planner.buildPiecewiseLinearTrajectory(waypoints, start_state, goal_reference);
+  ASSERT_TRUE(planner.trajectoryMeetsBoundaryContract(trajectory, start_state, goal_reference));
+
+  // Each trajectory sample is 0.2 s apart, the 5 Hz consumer cadence.
+  iii_drone::control::maneuver::ManeuverReferenceSafetyGuard guard(
+    iii_drone::control::maneuver::ManeuverReferenceSafetyConfig{});
+  auto received = std::chrono::steady_clock::time_point{} + std::chrono::seconds(10);
+  ASSERT_EQ(guard.observeReference(iii_drone::control::Reference(start_state), received).decision,
+    iii_drone::control::maneuver::ManeuverReferenceSafetyDecision::ACCEPT);
+  const auto & references = trajectory.references();
+  for (std::size_t i = 1; i < references.size(); ++i) {
+    received += std::chrono::milliseconds(200);
+    const auto evaluation = guard.observeReference(references[i], received);
+    ASSERT_EQ(evaluation.decision,
+      iii_drone::control::maneuver::ManeuverReferenceSafetyDecision::ACCEPT)
+      << "sample " << i << ": " << evaluation.reason
+      << " velocity " << evaluation.velocity_error_m_s << "/" << evaluation.velocity_limit_m_s
+      << " position " << evaluation.position_error_m << "/" << evaluation.position_limit_m;
+  }
+  for (std::size_t i = 1; i < references.size(); ++i) {
+    EXPECT_LE(references[i].velocity().norm(), 0.5 + 1.0e-6);
   }
 }

@@ -42,15 +42,15 @@ namespace types {
 
     typedef struct {
 
-        point_t p;
-        vector_t v;
+        point_t p = point_t::Zero();
+        vector_t v = vector_t::Zero();
 
     } line_t;
 
     typedef struct {
 
-        point_t p;
-        vector_t normal;
+        point_t p = point_t::Zero();
+        vector_t normal = vector_t::Zero();
 
     } plane_t;
 

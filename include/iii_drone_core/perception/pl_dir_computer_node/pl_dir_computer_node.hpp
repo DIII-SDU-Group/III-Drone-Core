@@ -208,8 +208,10 @@ namespace pl_dir_computer_node {
          */
         rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::QuaternionStamped>::SharedPtr pl_direction_quat_pub_;
 
-        std::shared_ptr<tf2_ros::TransformListener> transform_listener_{nullptr};
+        // Declared before the listener so it is destroyed after it: the
+        // listener's spin thread writes into the buffer until it is joined.
         std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+        std::shared_ptr<tf2_ros::TransformListener> transform_listener_{nullptr};
         rclcpp::TimerBase::SharedPtr drone_tf_timer_{nullptr};
 
         /**

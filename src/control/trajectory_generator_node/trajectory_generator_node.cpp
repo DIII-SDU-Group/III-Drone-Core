@@ -3,9 +3,11 @@
 /*****************************************************************************/
 
 #include <iii_drone_core/control/trajectory_generator_node/trajectory_generator_node.hpp>
+#include <iii_drone_core/control/trajectory_generator_node/trajectory_interpolator_configuration.hpp>
 
 #include <chrono>
 #include <future>
+#include <iii_drone_core/utils/multi_threaded_executor.hpp>
 
 using namespace iii_drone::control::trajectory_generator_node;
 
@@ -25,13 +27,6 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
     configurator.DeclareParameter("/control/trajectory_generator/MPC_use_state_feedback", bool_t);
     configurator.DeclareParameter("/control/trajectory_generator/MPC_N", int_t);
     configurator.DeclareParameter("/control/dt", double_t);
-    configurator.DeclareParameter("/control/trajectory_interpolator/interpolation_avg_velocity_m_s", double_t);
-    configurator.DeclareParameter("/control/trajectory_interpolator/interpolation_avg_yaw_rate_rad_s", double_t);
-    configurator.DeclareParameter("/control/trajectory_interpolator/interpolation_max_velocity_m_s", double_t);
-    configurator.DeclareParameter("/control/trajectory_interpolator/interpolation_max_acceleration_m_s2", double_t);
-    configurator.DeclareParameter("/control/trajectory_interpolator/interpolation_max_yaw_rate_rad_s", double_t);
-    configurator.DeclareParameter("/control/trajectory_interpolator/interpolation_max_yaw_acceleration_rad_s2", double_t);
-    configurator.DeclareParameter("/control/trajectory_interpolator/reference_trajectory_length_N", int_t);
     configurator.DeclareParameter("/control/trajectory_generator/cable_aware_grid_resolution_m", double_t);
     configurator.DeclareParameter("/control/trajectory_generator/cable_aware_grid_margin_m", double_t);
     configurator.DeclareParameter("/control/trajectory_generator/cable_aware_clearance_m", double_t);
@@ -69,16 +64,9 @@ void DeclareManagedParameters(LifecycleConfigurator & configurator)
         configurator.CreateConfiguration(prefix, entries);
     }
 
-    configurator.CreateConfiguration("trajectory_interpolator", {
-        ConfigurationEntry("/control/trajectory_interpolator/interpolation_avg_velocity_m_s", double_t),
-        ConfigurationEntry("/control/trajectory_interpolator/interpolation_avg_yaw_rate_rad_s", double_t),
-        ConfigurationEntry("/control/trajectory_interpolator/interpolation_max_velocity_m_s", double_t),
-        ConfigurationEntry("/control/trajectory_interpolator/interpolation_max_acceleration_m_s2", double_t),
-        ConfigurationEntry("/control/trajectory_interpolator/interpolation_max_yaw_rate_rad_s", double_t),
-        ConfigurationEntry("/control/trajectory_interpolator/interpolation_max_yaw_acceleration_rad_s2", double_t),
-        ConfigurationEntry("/control/trajectory_interpolator/reference_trajectory_length_N", int_t),
-        ConfigurationEntry("/control/dt", double_t),
-    });
+    iii_drone::control::trajectory_generator_node::detail::ConfigureTrajectoryInterpolator(
+        configurator
+    );
 
     configurator.CreateConfiguration("cable_aware_trajectory_planner", {
         ConfigurationEntry("/control/trajectory_generator/cable_aware_grid_resolution_m", double_t),
@@ -401,6 +389,11 @@ void TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(
 
     } else if (use_mpc) {
 
+        if (static_cast<trajectory_mode_t>(request->trajectory_mode.mode) ==
+            trajectory_mode_t::bounded_positional) {
+            throw std::invalid_argument("bounded positional interpolation does not support MPC");
+        }
+
         type = "MPC";
 
         RCLCPP_DEBUG(
@@ -433,7 +426,14 @@ void TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        if (request->use_start_reference) {
+        if (static_cast<trajectory_mode_t>(request->trajectory_mode.mode) ==
+            trajectory_mode_t::bounded_positional) {
+            const Reference start = request->use_start_reference
+                ? start_reference_adapter.reference()
+                : Reference(state_adapter.state().position(), state_adapter.state().yaw());
+            ref_traj = trajectory_interpolator_->ComputeBoundedPositionalTrajectory(
+                start, reference_adapter.reference(), request->set_reference, request->reset);
+        } else if (request->use_start_reference) {
             RCLCPP_DEBUG(
                 this->get_logger(),
                 "TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(): Using full start reference for interpolation."
@@ -442,7 +442,8 @@ void TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(
                 start_reference_adapter.reference(),
                 reference_adapter.reference(),
                 request->set_reference,
-                request->reset
+                request->reset,
+                static_cast<trajectory_mode_t>(request->trajectory_mode.mode) == trajectory_mode_t::cable_takeoff
             );
         } else {
             ref_traj = trajectory_interpolator_->ComputeReferenceTrajectory(
@@ -474,6 +475,21 @@ void TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(
     if (type != "FailedFallback") {
         response->success = true;
         response->error_message = "";
+    }
+
+    // HIL: a FlyToPosition interpolation request went unanswered for ~4.7 s
+    // (the maneuver controller reused its last trajectory). Report slow
+    // computations so a recurrence shows whether the time is spent here.
+    constexpr uint64_t kSlowComputationNs = 500000000ULL;
+    if (nanoseconds > kSlowComputationNs) {
+        RCLCPP_WARN(
+            this->get_logger(),
+            "TrajectoryGeneratorNode::computeReferenceTrajectoryCallback(): %s trajectory computation took %.0f ms (trajectory mode %d, reset %d)",
+            type.c_str(),
+            static_cast<double>(nanoseconds) * 1.0e-6,
+            static_cast<int>(request->trajectory_mode.mode),
+            static_cast<int>(request->reset)
+        );
     }
 
     // Set the response
@@ -564,7 +580,7 @@ int main(int argc, char * argv[]) {
     setvbuf(stdout, NULL, _IONBF, BUFSIZ);
     rclcpp::init(argc, argv);
 
-    rclcpp::executors::MultiThreadedExecutor executor;
+    iii_drone::utils::MultiThreadedExecutor executor;
 
     auto node = std::make_shared<TrajectoryGeneratorNode>();
 

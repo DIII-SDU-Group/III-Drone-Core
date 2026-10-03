@@ -68,7 +68,7 @@ float HoughTransformer::ComputeAngle(
         cols
     );
 
-    theta = lines[idx][1];
+	theta = lines[idx][1];
 
     return theta;
 
