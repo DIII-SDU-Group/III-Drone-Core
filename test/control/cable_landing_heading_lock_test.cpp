@@ -73,6 +73,23 @@ TEST(HoldLastSeenConductorTest, HoldsOnlyNearTheConductorWhenTheSensorLostIt)
   EXPECT_FALSE(HoldLastSeenConductor(true, false, false));
 }
 
+// HIL soak run 20: after the loss of view near the gripper the mapper flagged
+// the conductor in view again for 50 ms with an 8 cm jump; the estimate must
+// stay frozen at the last one seen instead of resuming from that detection.
+TEST(FreezeConductorEstimateOnLossOfViewTest, StaysFrozenWhenTheSensorReportsTheConductorAgain)
+{
+  using iii_drone::control::maneuver::detail::FreezeConductorEstimateOnLossOfView;
+
+  // Approach: in view, or out of view away from the conductor, is not frozen.
+  EXPECT_FALSE(FreezeConductorEstimateOnLossOfView(false, true, true, true));
+  EXPECT_FALSE(FreezeConductorEstimateOnLossOfView(false, false, true, false));
+  EXPECT_FALSE(FreezeConductorEstimateOnLossOfView(false, true, false, false));
+  // First loss of view near the conductor freezes.
+  EXPECT_TRUE(FreezeConductorEstimateOnLossOfView(false, true, true, false));
+  // A later in-view sample does not unfreeze it.
+  EXPECT_TRUE(FreezeConductorEstimateOnLossOfView(true, true, true, true));
+}
+
 TEST(ConductorEstimateShouldFreezeTest, FreezesAtOrBelowTheFreezeHeightOnly)
 {
   using iii_drone::control::maneuver::detail::ConductorEstimateShouldFreeze;

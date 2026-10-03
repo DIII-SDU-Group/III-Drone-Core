@@ -153,6 +153,23 @@ namespace maneuver {
         }
 
         /**
+         * @brief Whether the conductor estimate is frozen for the rest of the
+         * approach: once the sensor has lost the conductor near it, it stays
+         * frozen. Near the conductor the sensor is below its useful range, so a
+         * later "in view" sample there is a spurious close-range detection with
+         * a jumped position (HIL soak run 20: back in view for 50 ms, 8 cm off;
+         * the V gate then failed a conductor the gripper had captured).
+         */
+        inline bool FreezeConductorEstimateOnLossOfView(
+            bool already_frozen,
+            bool near_conductor,
+            bool has_last_estimate,
+            bool target_in_view
+        ) {
+            return already_frozen || HoldLastSeenConductor(near_conductor, has_last_estimate, target_in_view);
+        }
+
+        /**
          * @brief The cross-track error left for the position reference: the
          * vehicle's gripper error (target relative to the gripper along
          * cross_axis_world) minus how far the reference already leads the

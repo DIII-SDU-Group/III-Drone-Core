@@ -926,8 +926,20 @@ bool CableLandingManeuverServer::getStableCablePose(
     }
 
     // Leaving the sensor's view just below the gripper, the mapped conductor
-    // jumps; keep the last estimate seen so the freeze above captures it.
-    if (detail::HoldLastSeenConductor(near_contact, line_pid_has_last_cable_pose_, targetLineInView())) {
+    // jumps, and a brief spurious re-detection there jumps too: freeze the
+    // last estimate seen at the first loss of view near the conductor.
+    if (detail::FreezeConductorEstimateOnLossOfView(
+            conductor_estimate_frozen_, near_contact, line_pid_has_last_cable_pose_, targetLineInView())) {
+        conductor_estimate_frozen_ = true;
+        const auto & frozen = line_pid_last_cable_pose_world_.position;
+        RCLCPP_INFO(
+            node()->get_logger(),
+            "CableLandingManeuverServer::getStableCablePose(): Conductor left the sensor view near the gripper; "
+            "steering to its last estimate [%.3f, %.3f, %.3f] (world) from here.",
+            frozen(0),
+            frozen(1),
+            frozen(2)
+        );
         cable_pose_world = line_pid_last_cable_pose_world_;
         return true;
     }
