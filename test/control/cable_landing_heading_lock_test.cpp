@@ -90,6 +90,23 @@ TEST(FreezeConductorEstimateOnLossOfViewTest, StaysFrozenWhenTheSensorReportsThe
   EXPECT_TRUE(FreezeConductorEstimateOnLossOfView(true, true, true, true));
 }
 
+// HIL soak run 22: the estimate froze at the loss of view ~8 cm above the
+// gripper, 2.8 cm off a conductor the gripper captured and centred; the gate
+// then narrowed to its capture-height width (4.6 cm) and failed the landing.
+TEST(VGateHeightTest, HoldsTheWidthWhereTheEstimateFroze)
+{
+  using iii_drone::control::maneuver::detail::VGateHeight;
+  const double nan = std::numeric_limits<double>::quiet_NaN();
+
+  // Not frozen: the gate follows the estimate down.
+  EXPECT_DOUBLE_EQ(VGateHeight(-0.01, false, 0.08, 0.03), -0.01);
+  // Frozen: the width at the freeze height, not lower.
+  EXPECT_DOUBLE_EQ(VGateHeight(-0.01, true, 0.08, 0.03), 0.08);
+  EXPECT_DOUBLE_EQ(VGateHeight(0.10, true, 0.08, 0.03), 0.10);
+  // Freeze height unknown: the capture height, as before.
+  EXPECT_DOUBLE_EQ(VGateHeight(-0.01, true, nan, 0.03), 0.03);
+}
+
 TEST(ConductorEstimateShouldFreezeTest, FreezesAtOrBelowTheFreezeHeightOnly)
 {
   using iii_drone::control::maneuver::detail::ConductorEstimateShouldFreeze;
