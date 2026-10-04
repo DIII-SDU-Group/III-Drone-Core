@@ -2552,6 +2552,7 @@ Reference ManeuverReferenceClient::GetReference(
         observed_mode = reference_mode_.Load();
         failure_epoch = maneuver_failure_epoch_;
     }
+    if (get_reference_after_mode_snapshot_hook_) get_reference_after_mode_snapshot_hook_();
 
     switch(observed_mode) {
         case reference_mode_t::PASSTHROUGH:
@@ -2766,6 +2767,20 @@ Reference ManeuverReferenceClient::GetReference(
                 break;
             }
 
+            // A transition on the tree's thread (e.g. a successor's goal
+            // acceptance) can change the mode between the snapshot above and
+            // the read, which then reads nothing. No reference was lost: hold
+            // the last one for this update; the next serves the new mode.
+            // (HIL qualification 2026-10-04: a same-target Hover's acceptance
+            // switched to WAIT_FOR_MANEUVER_START 0.6 ms into the read, and the
+            // empty read was reported as a failed acquisition.)
+            if (!success && reference_mode_.Load() != reference_mode_t::MANEUVER) {
+                std::lock_guard<std::mutex> lock(reference_mutex_);
+                reference = reference_;
+                reference_mode_msg.data = currentReferenceModeLabel();
+                break;
+            }
+
             if (!success) {
 
                 failed_attempts_++;
@@ -2963,6 +2978,13 @@ Reference ManeuverReferenceClient::GetReference(
             const bool success =
                 consumption.accepted ||
                 stream_result == StreamReadResult::FreshHeld;
+            if (!success && reference_mode_.Load() != reference_mode_t::WAIT_FOR_MANEUVER_STOP) {
+                // As in MANEUVER: a concurrent transition, not a lost reference.
+                std::lock_guard<std::mutex> lock(reference_mutex_);
+                reference = reference_;
+                reference_mode_msg.data = currentReferenceModeLabel();
+                break;
+            }
             if (!success) {
                 failed_attempts_++;
                 ManeuverReferenceSafetyEvaluation safety_evaluation;

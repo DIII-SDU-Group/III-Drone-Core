@@ -9367,3 +9367,34 @@ TEST(ManeuverReferenceClientTransaction, HaltBeforeCoreStartedTheGoalKeepsThePre
     spinner.join();
     fixture.executor.remove_node(producer);
 }
+
+// HIL qualification 2026-10-04 (7f5fdbe): a same-target Hover's goal acceptance
+// switched the client from MANEUVER to WAIT_FOR_MANEUVER_START 0.6 ms into a
+// GetReference() call. The read found the mode changed and read nothing, and it
+// was reported as a failed acquisition (WARN and a safety miss).
+TEST(ManeuverReferenceClientTransaction, ModeChangeDuringReadIsNotALostReference) {
+    RclcppContext context;
+    ClientFixture fixture("reference_transaction_mode_change_during_read");
+    startRunningPredecessor(fixture);
+    ASSERT_TRUE(fixture.client.BeginManeuverGoalHandoff(kRequestB));
+    const auto held = fixture.client.reference_.Load();
+    bool accepted_during_read = false;
+    fixture.client.get_reference_after_mode_snapshot_hook_ = [&] {
+        if (accepted_during_read) return;
+        accepted_during_read = true;
+        EXPECT_TRUE(fixture.client.ConfirmManeuverGoalHandoff(kRequestB));
+    };
+
+    const auto reference = fixture.client.GetReference(0.02, [] {});
+    EXPECT_TRUE(accepted_during_read);
+    EXPECT_EQ(fixture.client.reference_mode_.Load(),
+        ManeuverReferenceClient::WAIT_FOR_MANEUVER_START);
+    EXPECT_EQ(fixture.client.failed_attempts_, 0);
+    EXPECT_LT((reference.position() - held.position()).norm(), 1.0e-9);
+
+    // The next update serves the new mode.
+    fixture.client.get_reference_after_mode_snapshot_hook_ = {};
+    const auto next = fixture.client.GetReference(0.02, [] {});
+    EXPECT_TRUE(next.position().allFinite());
+    EXPECT_EQ(fixture.client.failed_attempts_, 0);
+}

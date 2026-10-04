@@ -797,6 +797,9 @@ namespace maneuver {
          * @brief Consecutive failed reference acquisitions for this client.
          */
         int failed_attempts_ = 0;
+        // Empty in production; lets the transaction regression change the
+        // mode between GetReference()'s mode snapshot and its stream read.
+        std::function<void()> get_reference_after_mode_snapshot_hook_;
 
         /**
          * @brief Guards maneuver reference delivery and continuity.
