@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <ctime>
 #include <memory>
 #include <thread>
 
@@ -151,6 +152,82 @@ TEST_F(RclcppFixture, DefaultGroupReturnsAfterRebuildWhileBusyEvenIfTheInterrupt
     auto future = client->async_send_request(std::make_shared<lifecycle_msgs::srv::GetState::Request>());
     EXPECT_EQ(client_executor.spin_until_future_complete(future, 3s), rclcpp::FutureReturnCode::SUCCESS)
         << "lifecycle get_state unserviced after its group was busy during a rebuild";
+}
+
+// Upstream rebuilds the entity collection after every MutuallyExclusive
+// callback, which on the Pi cost more CPU than the callbacks themselves. Only a
+// rebuild that overlapped a callback calls for another one.
+TEST_F(RclcppFixture, RebuildsOnlyWhenARebuildOverlapsACallback) {
+    auto node = std::make_shared<rclcpp::Node>("executor_quiet_rebuilds");
+    std::atomic<int> calls{0};
+    auto default_timer = node->create_wall_timer(1ms, [&]() { ++calls; });
+    auto other_group = node->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    auto other_timer = node->create_wall_timer(1ms, [&]() { ++calls; }, other_group);
+
+    iii_drone::utils::MultiThreadedExecutor executor(rclcpp::ExecutorOptions(), 4);
+    executor.add_node(node);
+    std::thread spinner([&]() { executor.spin(); });
+    std::this_thread::sleep_for(1s);
+    executor.cancel();
+    spinner.join();
+
+    EXPECT_GT(calls.load(), 500);
+    EXPECT_LT(executor.get_rebuild_requests(), static_cast<size_t>(calls.load() / 20))
+        << calls.load() << " callbacks";
+}
+
+namespace {
+
+std::chrono::nanoseconds ProcessCpuTime() {
+    timespec ts{};
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
+    return std::chrono::seconds(ts.tv_sec) + std::chrono::nanoseconds(ts.tv_nsec);
+}
+
+}  // namespace
+
+// While a long callback holds its MutuallyExclusive group, the group's other
+// ready entities must not keep the idle threads waking and spinning.
+TEST_F(RclcppFixture, IdleThreadsDoNotSpinOnABusyGroup) {
+    auto node = std::make_shared<rclcpp::Node>("executor_busy_group");
+    std::atomic<bool> long_started{false};
+    std::atomic<bool> long_done{false};
+    rclcpp::TimerBase::SharedPtr long_timer;
+    long_timer = node->create_wall_timer(20ms, [&]() {
+        long_timer->cancel();
+        long_started = true;
+        std::this_thread::sleep_for(500ms);
+        long_done = true;
+    });
+    // Ready again and again while the long callback holds the group.
+    std::atomic<int> fast_calls{0};
+    auto fast_timer = node->create_wall_timer(1ms, [&]() { ++fast_calls; });
+
+    iii_drone::utils::MultiThreadedExecutor executor(rclcpp::ExecutorOptions(), 4);
+    executor.add_node(node);
+    std::thread spinner([&]() { executor.spin(); });
+
+    const auto start_deadline = std::chrono::steady_clock::now() + 2s;
+    while (!long_started && std::chrono::steady_clock::now() < start_deadline) {
+        std::this_thread::sleep_for(1ms);
+    }
+    const auto cpu_before = ProcessCpuTime();
+    const auto wall_before = std::chrono::steady_clock::now();
+    while (!long_done && std::chrono::steady_clock::now() < start_deadline + 2s) {
+        std::this_thread::sleep_for(1ms);
+    }
+    const auto cpu = ProcessCpuTime() - cpu_before;
+    const auto wall = std::chrono::steady_clock::now() - wall_before;
+    const int calls_after_long = fast_calls.load();
+    std::this_thread::sleep_for(100ms);
+    executor.cancel();
+    spinner.join();
+
+    ASSERT_TRUE(long_done.load());
+    EXPECT_LT(cpu, wall / 10) << "idle threads used "
+        << std::chrono::duration_cast<std::chrono::milliseconds>(cpu).count() << " ms CPU in "
+        << std::chrono::duration_cast<std::chrono::milliseconds>(wall).count() << " ms";
+    EXPECT_GT(fast_calls.load(), calls_after_long) << "the group's timer did not return after the long callback";
 }
 
 TEST_F(RclcppFixture, UsesRequestedThreadCount) {
