@@ -618,6 +618,10 @@ namespace maneuver {
         uint64_t last_applied_sequence_ = 0;
         uint64_t candidate_sequence_ = 0;
         ManeuverReferenceStreamGuard reference_stream_guard_;
+        // Diagnostic: since when the consumer has applied no fresh stream
+        // sample, and whether that hold was already reported.
+        std::optional<std::chrono::steady_clock::time_point> stream_hold_since_;
+        bool stream_hold_reported_ = false;
         enum class StreamReadResult {
             Unavailable,
             FreshHeld,
@@ -752,6 +756,12 @@ namespace maneuver {
             const iii_drone_interfaces::msg::ManeuverReferenceStream::SharedPtr message
         );
         StreamReadResult readReferenceStream(Reference & reference);
+        void noteStreamConsumed();
+        void noteStreamHeld(
+            const char * branch,
+            const iii_drone_interfaces::msg::ManeuverReferenceStream & message,
+            std::chrono::milliseconds timeout
+        );
         // Caller holds transition_mutex_. This ownership check is shared by
         // subscription ingress and cache consumption so a retired request
         // cannot gain authority merely by arriving before cancellation.

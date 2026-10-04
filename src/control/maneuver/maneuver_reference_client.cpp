@@ -192,7 +192,15 @@ ManeuverReferenceClient::readReferenceStream(Reference & reference) {
         received_at = latest_stream_received_at_;
     }
 
+    const auto timeout = std::chrono::milliseconds(
+        configuration_->GetParameter(
+            "/control/maneuver_controller/reference_stream_timeout_ms"
+        ).as_int()
+    );
+    const bool sample_fresh = std::chrono::steady_clock::now() - received_at <= timeout;
+
     if (!ownsReferenceStreamLocked(message)) {
+        if (sample_fresh) noteStreamHeld("not_owned", message, timeout);
         retireInadmissibleCachedStreamLocked();
         auto event = iii_drone::diagnostics::HilTrace::event(
             "reference_stream_cached_identity_retired"
@@ -204,14 +212,7 @@ ManeuverReferenceClient::readReferenceStream(Reference & reference) {
         return StreamReadResult::Unavailable;
     }
 
-    const auto timeout = std::chrono::milliseconds(
-        configuration_->GetParameter(
-            "/control/maneuver_controller/reference_stream_timeout_ms"
-        ).as_int()
-    );
-    if (
-        std::chrono::steady_clock::now() - received_at > timeout
-    ) {
+    if (!sample_fresh) {
         auto event = iii_drone::diagnostics::HilTrace::event("reference_stream_read");
         event.text("decision", "unavailable_stale");
         event.text("stream_id", message.stream_id);
@@ -237,6 +238,7 @@ ManeuverReferenceClient::readReferenceStream(Reference & reference) {
     decision_event.number("state", message.state);
     decision_event.commit();
     if (decision == ManeuverReferenceStreamDecision::Prepared) {
+        noteStreamHeld("prepared", message, timeout);
         reference = ReferenceAdapter(message.reference).reference();
         return StreamReadResult::Prepared;
     }
@@ -247,6 +249,7 @@ ManeuverReferenceClient::readReferenceStream(Reference & reference) {
         decision == ManeuverReferenceStreamDecision::FreshHeld ||
         decision == ManeuverReferenceStreamDecision::AwaitingSuccessor
     ) {
+        noteStreamHeld(streamDecisionName(decision), message, timeout);
         std::lock_guard<std::mutex> lock(reference_mutex_);
         reference = reference_;
         return StreamReadResult::FreshHeld;
@@ -298,8 +301,55 @@ ManeuverReferenceClient::readReferenceStream(Reference & reference) {
             iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_OBJECT_STOPPING ||
          message.state ==
             iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_OBJECT_STOPPED) &&
-        !message.object_tracking_active) return StreamReadResult::Unavailable;
+        !message.object_tracking_active) {
+        noteStreamHeld("object_stop_without_tracking", message, timeout);
+        return StreamReadResult::Unavailable;
+    }
+    noteStreamConsumed();
     return predecessor_active ? StreamReadResult::PredecessorActive : StreamReadResult::NewActive;
+}
+
+void ManeuverReferenceClient::noteStreamConsumed() {
+    stream_hold_since_.reset();
+    stream_hold_reported_ = false;
+}
+
+void ManeuverReferenceClient::noteStreamHeld(
+    const char * branch,
+    const iii_drone_interfaces::msg::ManeuverReferenceStream & message,
+    std::chrono::milliseconds timeout
+) {
+    // HIL soak run 25: the consumer acknowledged nothing of a fresh successor
+    // stream for 1.5 s and the producer paused, without a log saying why.
+    // Report once which branch held fresh samples for half a stream deadline.
+    const auto now = std::chrono::steady_clock::now();
+    if (!stream_hold_since_) {
+        stream_hold_since_ = now;
+        return;
+    }
+    if (stream_hold_reported_ || now - *stream_hold_since_ < timeout / 2) {
+        return;
+    }
+    stream_hold_reported_ = true;
+    // INFO: a long legitimate hold (a slow goal acceptance) must not fail the
+    // strict qualification; a real stall is reported by the producer's ERROR.
+    RCLCPP_INFO(
+        logger_,
+        "ManeuverReferenceClient::readReferenceStream(): applied no fresh stream sample for %.2f s; branch=%s "
+        "sample_stream=%s sample_sequence=%lu sample_state=%u sample_request=%s guard_stream=%s "
+        "guard_last_applied=%lu successor_expected=%s predecessor_updates=%s active_request=%s",
+        std::chrono::duration<double>(now - *stream_hold_since_).count(),
+        branch,
+        message.stream_id.c_str(),
+        static_cast<unsigned long>(message.sequence),
+        static_cast<unsigned int>(message.state),
+        message.request_identity.c_str(),
+        reference_stream_guard_.streamId().c_str(),
+        static_cast<unsigned long>(reference_stream_guard_.lastAppliedSequence()),
+        reference_stream_guard_.successorGenerationExpected() ? "true" : "false",
+        reference_stream_guard_.predecessorUpdatesAllowed() ? "true" : "false",
+        active_request_identity_.c_str()
+    );
 }
 
 ManeuverReferenceClient::ReferenceConsumption
