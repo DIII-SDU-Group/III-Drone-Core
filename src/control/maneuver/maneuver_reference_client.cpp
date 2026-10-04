@@ -1539,6 +1539,30 @@ ManeuverReferenceClient::RetainCompletedTerminalHold(
             terminal_hold_continuity_required_ = true;
             return TerminalHoldRetention::Retained;
         }
+        if (offer && offer->accepted &&
+            finiteReference(ReferenceAdapter(offer->reference).reference())) {
+            // A goal halted before Core started it never took over: Core
+            // still streams the active predecessor's retained hold, which
+            // stays in force. (Once started, Core gives the hold to the
+            // goal itself and offers it under the goal's request.)
+            std::lock_guard<std::recursive_mutex> lock(transition_mutex_);
+            if (pending_goal_handoff_ &&
+                pending_goal_handoff_->request_identity == request_identity &&
+                !pending_goal_handoff_->successor_consumed &&
+                isValidManeuverRequestIdentity(active_request_identity_) &&
+                offer->source_request_identity == active_request_identity_) {
+                pending_goal_handoff_.reset();
+                retireInadmissibleCachedStreamLocked();
+                reference_stream_guard_.cancelSuccessorGenerationExpectation();
+                reference_mode_.Store(reference_mode_t::MANEUVER);
+                terminal_hold_continuity_required_ = true;
+                RCLCPP_INFO(logger_,
+                    "Terminal hold retention: request %s ended before it took over; "
+                    "the retained hold of request %s stays in force",
+                    request_identity.c_str(), active_request_identity_.c_str());
+                return TerminalHoldRetention::Retained;
+            }
+        }
         if (offer && offer->accepted) {
             RCLCPP_ERROR(logger_,
                 "Terminal hold retention offer identity or reference invalid: request=%s offered=%s",

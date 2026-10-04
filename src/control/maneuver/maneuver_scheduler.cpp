@@ -1419,6 +1419,7 @@ void ManeuverScheduler::beginReferenceExecution(
     // as one generation to native-Hold retirement and transfer.
     std::lock_guard<std::mutex> lock(reference_stream_mutex_);
     maneuver_server_get_reference_callback_still_registered_ = false;
+    seeded_successor_execution_.reset();
     const uint64_t execution_id = reference_callback_struct_->beginExecution(
         provider, request_identity, std::move(initial_callback));
     current_reference_execution_id_.Store(execution_id);
@@ -1457,6 +1458,67 @@ void ManeuverScheduler::beginReferenceExecution(
 
 void ManeuverScheduler::beginReferenceExecution(const std::string & provider) {
     beginReferenceExecution(provider, "");
+}
+
+void ManeuverScheduler::beginSeededSuccessorExecution(
+    const std::string & provider,
+    const std::string & request_identity,
+    const Reference & seed
+) {
+    beginReferenceExecution(provider, request_identity, seed);
+    std::lock_guard<std::mutex> lock(reference_stream_mutex_);
+    const auto binding = reference_callback_struct_->snapshot();
+    seeded_successor_execution_ = detail::SeededSuccessorExecution{
+        binding.request_identity, binding.execution_id, binding.revision};
+}
+
+bool ManeuverScheduler::installUnexecutedSuccessorHoldLocked() {
+    if (!seeded_successor_execution_) return false;
+    const auto hover_entry = registered_maneuvers_.find(MANEUVER_TYPE_HOVER);
+    if (hover_entry == registered_maneuvers_.end()) return false;
+    const auto hover = std::static_pointer_cast<HoverManeuverServer>(hover_entry->second);
+    const auto owner = hover->terminalHoldBinding();
+    const Maneuver successor = current_maneuver_;
+    const auto binding = reference_callback_struct_->snapshot();
+    detail::UnexecutedSuccessor state;
+    state.seeded = *seeded_successor_execution_;
+    state.request_identity = successor.requestIdentity();
+    state.started = successor.started();
+    state.terminated = successor.terminated();
+    state.succeeded = successor.success();
+    state.binding_request_identity = binding.request_identity;
+    state.binding_execution_id = binding.execution_id;
+    state.binding_revision = binding.revision;
+    state.current_execution_id = current_reference_execution_id_.Load();
+    state.master_has_token = reference_callback_token_.master_has_token();
+    state.hold_tracking = owner.hold &&
+        owner.hold->phase() == TerminalTrackingHold::Phase::Tracking;
+    state.hold_owner = owner.request_identity;
+    if (!detail::UnexecutedSuccessorOwnsRetainedHold(state)) return false;
+
+    // As for an executed owner that ended unsuccessfully (token return):
+    // the hold continues under the successor's request and execution.
+    hover->AdoptTerminalHold(owner.hold, successor.requestIdentity());
+    reference_callback_token_.resource().set(
+        std::bind(&HoverManeuverServer::GetReference, hover, std::placeholders::_1),
+        hover->action_name(), binding.execution_id, binding.request_identity);
+    auto & epoch = retained_native_hold_epoch_;
+    const auto & stream = reference_stream_state_;
+    if (stream.valid && !stream.stream_id.empty() &&
+        stream.request_identity == binding.request_identity &&
+        stream.execution_id == binding.execution_id &&
+        epoch.request_identity == binding.request_identity &&
+        epoch.execution_id == binding.execution_id) {
+        epoch.stream_id = stream.stream_id;
+        epoch.completed = true;
+        epoch.succeeded = false;
+    }
+    maneuver_server_get_reference_callback_still_registered_ = true;
+    seeded_successor_execution_.reset();
+    RCLCPP_INFO(node_->get_logger(),
+        "Terminal hold: request %s ended before its server took over; it keeps the retained hold of request %s",
+        successor.requestIdentity().c_str(), owner.request_identity.c_str());
+    return true;
 }
 
 bool ManeuverScheduler::pauseReferenceStreamIfRequired() {
@@ -2559,6 +2621,8 @@ void ManeuverScheduler::terminalHoldTransfer(
     // owner/binding/completion generations under this lock. A transfer must
     // classify and mutate one generation, including the completion transient.
     std::lock_guard<std::mutex> lock(reference_stream_mutex_);
+    // A halt's QUERY can precede the scheduler tick that sees its successor end.
+    installUnexecutedSuccessorHoldLocked();
     const auto owner = hover->terminalHoldBinding();
     const auto hold = owner.hold;
     const Maneuver source_maneuver = current_maneuver_;
@@ -3395,6 +3459,13 @@ void ManeuverScheduler::progressScheduler() {
 
             }
 
+            {
+                // No token return follows for a successor whose server never
+                // took over; install its retained hold here.
+                std::lock_guard<std::mutex> stream_lock(reference_stream_mutex_);
+                installUnexecutedSuccessorHoldLocked();
+            }
+
             // Token::Release makes the master holder visible before invoking
             // onReferenceCallbackTokenReacquired(). A scheduler tick in that
             // interval must not retire this exact retained owner or advertise
@@ -3779,11 +3850,19 @@ void ManeuverScheduler::progressScheduler() {
                     }
                     return;
                 }
-                beginReferenceExecution(
-                    registered_maneuver->second->action_name(),
-                    current_maneuver_->requestIdentity(),
-                    finite_seed
-                );
+                if (terminal_seed) {
+                    beginSeededSuccessorExecution(
+                        registered_maneuver->second->action_name(),
+                        current_maneuver_->requestIdentity(),
+                        *terminal_seed
+                    );
+                } else {
+                    beginReferenceExecution(
+                        registered_maneuver->second->action_name(),
+                        current_maneuver_->requestIdentity(),
+                        finite_seed
+                    );
+                }
                 if (object_exit_binding) {
                     std::static_pointer_cast<HoverByObjectManeuverServer>(
                         registered_maneuvers_.at(MANEUVER_TYPE_HOVER_BY_OBJECT))
