@@ -634,6 +634,16 @@ TEST(ManeuverSchedulerObjectHandoff, AcknowledgementAgeUsesTheStreamDeadline) {
     EXPECT_TRUE(ObjectHandoffAcknowledgementExpired(std::chrono::milliseconds(10), true, deadline));
 }
 
+// HIL soak run 23: a lost completion report and a retried mode switch made the
+// Inspection Demo -> Reach Cable handoff gap 1.54 s; the retained terminal hold
+// failed at the 1.5 s stream deadline, 4 ms before Reach Cable adopted it.
+TEST(ManeuverSchedulerTerminalHold, HandoffGapGetsThreeStreamDeadlines) {
+    using iii_drone::control::maneuver::detail::TerminalHoldAckTimeout;
+    EXPECT_EQ(TerminalHoldAckTimeout(std::chrono::milliseconds(1500)), std::chrono::milliseconds(4500));
+    EXPECT_EQ(TerminalHoldAckTimeout(std::chrono::milliseconds(500)), std::chrono::milliseconds(1500));
+    EXPECT_GT(TerminalHoldAckTimeout(std::chrono::milliseconds(1500)), std::chrono::milliseconds(1540));
+}
+
 // HIL soak run 19: the guard was re-armed mid HoverOnCable stream while the
 // vehicle, just latched, swung about the cable at ~0.55 m/s. Seeding the guard
 // from that velocity failed the on-cable (0, 0, 0.1) m/s reference.
@@ -6597,11 +6607,16 @@ TEST(ManeuverReferenceClientTransaction, NativeHoldRetiresExactCompletedOwnerBef
         ASSERT_TRUE(fixture.query()->accepted);
         const auto stream_id = fixture.scheduler.reference_stream_state_.stream_id;
         if (after_ack_loss) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(550));
+            // Past the retained hold's acknowledgement deadline (three stream
+            // deadlines, see detail::TerminalHoldAckTimeout).
+            const auto ack_loss = iii_drone::control::maneuver::detail::TerminalHoldAckTimeout(
+                std::chrono::milliseconds(500)) + std::chrono::milliseconds(50);
+            std::this_thread::sleep_for(ack_loss);
             auto measured = fixture.awareness->measured_odometry_.Load();
             ASSERT_TRUE(measured);
             measured->receipt_stamp = fixture.node.now();
-            measured->source_sample_timestamp_us += 550000;
+            measured->source_sample_timestamp_us += static_cast<uint64_t>(
+                std::chrono::duration_cast<std::chrono::microseconds>(ack_loss).count());
             fixture.awareness->measured_odometry_.Store(measured);
             fixture.scheduler.publishReferenceStream();
             EXPECT_NE(fixture.hold->phase(),

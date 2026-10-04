@@ -1752,8 +1752,11 @@ void ManeuverScheduler::publishReferenceStream() {
             : steady_now - reference_stream_state_.generation_started;
         const bool claim_grace = reference_stream_state_.claim_ack_pending &&
             steady_now < reference_stream_state_.claim_deadline;
+        const auto applicable_ack_timeout = terminal_hold
+            ? detail::TerminalHoldAckTimeout(ack_timeout)
+            : ack_timeout;
         if (!reference_stream_state_.paused && !claim_grace &&
-            acknowledgement_age > ack_timeout) {
+            acknowledgement_age > applicable_ack_timeout) {
             if (terminal_hold) {
                 terminal_ack_failed = true;
             } else {

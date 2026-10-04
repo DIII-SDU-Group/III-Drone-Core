@@ -109,6 +109,23 @@ namespace maneuver {
             return age >= deadline || clock_went_backwards;
         }
 
+        /**
+         * @brief Applied-acknowledgement deadline of a retained terminal hold.
+         * The hold bridges a mode handoff: its consumer stops acknowledging
+         * when the predecessor completes and resumes when the successor adopts
+         * it, across two PX4 round trips (the completion report and the mode
+         * switch) that the HIL link may each lose and retry. One stream
+         * deadline did not cover that (HIL soak run 23: a lost completion and
+         * a retried mode switch made the gap 1.54 s against 1.5 s; the hold
+         * failed 4 ms before Reach Cable adopted it). PX4 holds the last
+         * setpoint meanwhile. Live streams keep the stream deadline.
+         */
+        inline constexpr int kTerminalHoldAckTimeoutFactor = 3;
+
+        inline std::chrono::milliseconds TerminalHoldAckTimeout(std::chrono::milliseconds stream_timeout) {
+            return kTerminalHoldAckTimeoutFactor * stream_timeout;
+        }
+
     } // namespace detail
 
 
