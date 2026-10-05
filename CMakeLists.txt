@@ -417,6 +417,10 @@ if (BUILD_TESTING)
     test/utils/math_types_test.cpp
   )
 
+  iii_drone_core_add_isolated_gtest(iii_drone_core_sample_decimator_test
+    test/utils/sample_decimator_test.cpp
+  )
+
   iii_drone_core_add_isolated_gtest(iii_drone_core_timestamp_test
     test/utils/timestamp_test.cpp
   )
@@ -524,6 +528,10 @@ if (BUILD_TESTING)
     target_include_directories(iii_drone_core_history_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
     target_link_libraries(iii_drone_core_history_test iii_drone_lib)
     ament_target_dependencies(iii_drone_core_history_test ${dependencies})
+  endif()
+
+  if(TARGET iii_drone_core_sample_decimator_test)
+    target_include_directories(iii_drone_core_sample_decimator_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
   endif()
 
   if(TARGET iii_drone_core_math_types_test)

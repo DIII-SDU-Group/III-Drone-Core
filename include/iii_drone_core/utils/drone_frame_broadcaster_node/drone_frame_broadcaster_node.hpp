@@ -24,6 +24,7 @@
 #include <iii_drone_configuration/configurator.hpp>
 
 #include <iii_drone_core/adapters/px4/vehicle_odometry_adapter.hpp>
+#include <iii_drone_core/utils/sample_decimator.hpp>
 
 /*****************************************************************************/
 // Class
@@ -57,6 +58,9 @@ namespace drone_frame_broadcaster_node {
         rclcpp::TimerBase::SharedPtr is_alive_timer_;
 
         rclcpp::Time last_alive_pub_time_;
+
+        // One pose per 19 ms of PX4 sample time (every second 100 Hz sample).
+        iii_drone::utils::SampleDecimator tf_decimator_{19000};
 
     };
 
