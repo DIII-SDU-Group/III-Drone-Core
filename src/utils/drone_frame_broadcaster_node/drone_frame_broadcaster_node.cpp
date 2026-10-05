@@ -74,11 +74,12 @@ void DroneFrameBroadcasterNode::odometryCallback(const std::shared_ptr<px4_msgs:
 
     RCLCPP_DEBUG(this->get_logger(), "DroneFrameBroadcasterNode::odometryCallback(): Received odometry message");
 
-    // 50 Hz of PX4's 100 Hz odometry (user decision 2026-10-05): every TF
+    // Every second PX4 odometry sample, 50 Hz of 100 Hz (user decision
+    // 2026-10-05; SITL samples are 8 or 16 ms apart, ~90 Hz): every TF
     // listener receives each frame. The control state comes from odometry;
     // latest-pose lookups (cable landing's gripper position, object tracking)
-    // see the pose at most 20 ms old instead of 10 ms, 1-3 mm at approach
-    // speeds; time-stamped lookups interpolate.
+    // see the pose at most 20 ms old instead of 10 ms (SITL: 24 ms), a few mm
+    // at approach speeds; time-stamped lookups interpolate.
     if (!tf_decimator_.pass(msg->timestamp_sample != 0 ? msg->timestamp_sample : msg->timestamp)) {
         return;
     }

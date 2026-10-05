@@ -59,8 +59,10 @@ namespace drone_frame_broadcaster_node {
 
         rclcpp::Time last_alive_pub_time_;
 
-        // One pose per 19 ms of PX4 sample time (every second 100 Hz sample).
-        iii_drone::utils::SampleDecimator tf_decimator_{19000};
+        // At least 15 ms of PX4 sample time between poses: every second
+        // sample, whether 10 ms apart (100 Hz: 20 ms) or SITL's 8 or 16 ms
+        // (16-24 ms).
+        iii_drone::utils::SampleDecimator tf_decimator_{15000};
 
     };
 
