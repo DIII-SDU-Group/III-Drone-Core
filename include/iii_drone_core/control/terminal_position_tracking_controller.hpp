@@ -25,6 +25,18 @@ public:
         double max_offset_acceleration_m_s2 = 0.2;
         double max_offset_jerk_m_s3 = 0.5;
         double integral_gain_per_s = 0.15;
+        /** Only the position error beyond this radius is integrated. The
+         * vehicle's own position hold wanders a few centimetres about its
+         * setpoint; chasing that wander turns a steady hover into a series of
+         * correction segments. Capped at half the arrival tolerance, so an
+         * error beyond the tolerance always integrates. */
+        double correction_deadband_m = 0.02;
+        /** A pending integral correction is applied only once it reaches this
+         * size (capped like the deadband). Smaller ones keep the reference at
+         * rest: otherwise position noise in a steady hover becomes a stream of
+         * millimetre rest-to-rest segments whose feedforward (up to
+         * 0.045 m/s^2), sampled at the control rate, shakes the vehicle. */
+        double minimum_correction_step_m = 0.01;
         double arrival_tolerance_m = 0.1;
         double maximum_odometry_age_s = 0.25;
         double maximum_sample_interval_s = 0.25;

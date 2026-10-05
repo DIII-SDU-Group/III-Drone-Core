@@ -78,6 +78,8 @@ TerminalPositionTrackingController::TerminalPositionTrackingController(
         !std::isfinite(limits_.max_offset_acceleration_m_s2) || limits_.max_offset_acceleration_m_s2 <= 0.0 ||
         !std::isfinite(limits_.max_offset_jerk_m_s3) || limits_.max_offset_jerk_m_s3 <= 0.0 ||
         !std::isfinite(limits_.integral_gain_per_s) || limits_.integral_gain_per_s <= 0.0 ||
+        !nonnegativeFinite(limits_.correction_deadband_m) ||
+        !nonnegativeFinite(limits_.minimum_correction_step_m) ||
         !nonnegativeFinite(limits_.arrival_tolerance_m) ||
         !std::isfinite(limits_.maximum_odometry_age_s) || limits_.maximum_odometry_age_s <= 0.0 ||
         !std::isfinite(limits_.maximum_sample_interval_s) || limits_.maximum_sample_interval_s <= 0.0 ||
@@ -218,7 +220,12 @@ bool TerminalPositionTrackingController::Update(
     const double available_offset_m = std::min(limits_.max_offset_m, safe_offset_radius_m);
     const vector_t error = nominal_reference_.position() - measured_position;
     if (!quiescence_requested_ && dt_s > 0.0 && available_offset_m > 0.0) {
-        const vector_t requested = integral_target_offset_ + limits_.integral_gain_per_s * dt_s * error;
+        const double deadband_m = std::min(limits_.correction_deadband_m, 0.5 * limits_.arrival_tolerance_m);
+        const double error_norm = error.norm();
+        const vector_t integrated_error = error_norm > deadband_m
+            ? vector_t(error * (1.0 - deadband_m / error_norm))
+            : vector_t(vector_t::Zero());
+        const vector_t requested = integral_target_offset_ + limits_.integral_gain_per_s * dt_s * integrated_error;
         const double requested_norm = requested.norm();
         integral_target_offset_ = requested_norm > available_offset_m
             ? requested * (available_offset_m / requested_norm)
@@ -356,7 +363,8 @@ bool TerminalPositionTrackingController::fail(
 void TerminalPositionTrackingController::beginSegment(const rclcpp::Time & stamp) {
     const vector_t difference = integral_target_offset_ - emitted_offset_;
     const double distance = difference.norm();
-    if (distance <= 1.0e-8) {
+    const double minimum_step_m = std::min(limits_.minimum_correction_step_m, 0.5 * limits_.arrival_tolerance_m);
+    if (distance <= std::max(1.0e-8, minimum_step_m)) {
         segment_.active = false;
         emitted_velocity_.setZero();
         emitted_acceleration_.setZero();

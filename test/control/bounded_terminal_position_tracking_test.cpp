@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <chrono>
+#include <stdexcept>
 #include <string>
 
 #include <iii_drone_core/adapters/px4/trajectory_setpoint_adapter.hpp>
@@ -430,9 +431,11 @@ TEST(BoundedTerminalPositionTrackingTest, QuiescenceFinishesActiveSegmentThenRes
     rclcpp::Time sample_stamp = rosTime(1.0);
     auto guard_time = ManeuverReferenceSafetyGuard::Clock::now();
 
-    for (int tick = 0; tick <= 7; ++tick) {
-        const double t = tick * dt;
-        if (tick > 0 && tick % 2 == 0) sample_stamp = rosTime(1.0 + t);
+    // Track until the first correction segment is under way.
+    int first_tick = 0;
+    for (; first_tick < 20 && controller.emittedOffsetNorm() <= 0.0; ++first_tick) {
+        const double t = first_tick * dt;
+        if (first_tick > 0 && first_tick % 2 == 0) sample_stamp = rosTime(1.0 + t);
         ASSERT_TRUE(controller.Update(state, sample_stamp, 6, rosTime(1.0 + t), 0.35, output, reason)) << reason;
         const auto accepted = guard.observeReference(output, guard_time);
         ASSERT_EQ(accepted.decision, ManeuverReferenceSafetyDecision::ACCEPT) << accepted.reason;
@@ -448,8 +451,8 @@ TEST(BoundedTerminalPositionTrackingTest, QuiescenceFinishesActiveSegmentThenRes
     ASSERT_GT(frozen_target_norm, 0.0);
 
     bool reached_rest = false;
-    int next_tick = 8;
-    for (int tick = 8; tick < 80; ++tick) {
+    int next_tick = first_tick;
+    for (int tick = first_tick; tick < first_tick + 72; ++tick) {
         const double t = tick * dt;
         if (tick % 2 == 0) sample_stamp = rosTime(1.0 + t);
         ASSERT_TRUE(controller.Update(state, sample_stamp, 6, rosTime(1.0 + t), 0.35, output, reason)) << reason;
@@ -622,4 +625,103 @@ TEST(BoundedTerminalPositionTrackingTest, FaultBeforeFirstMeasurementRetainsStat
     EXPECT_DOUBLE_EQ(output.velocity().norm(), 0.0);
     EXPECT_DOUBLE_EQ(output.acceleration().norm(), 0.0);
     EXPECT_TRUE(controller.isQuiescent());
+}
+
+TEST(BoundedTerminalPositionTrackingTest, HoverNoiseBelowTheCorrectionStepKeepsTheReferenceAtRest) {
+    // Millimetre position noise around the target of a steady hover must not
+    // become a stream of rest-to-rest segments: the feedforward stays zero
+    // while the pending correction is below the minimum step.
+    constexpr double dt = 0.2;
+    const point_t target(1.0, 2.0, 3.0);
+    TerminalPositionTrackingController controller(Reference(target, 0.0));
+    Reference output;
+    std::string reason;
+    for (int tick = 0; tick <= 100; ++tick) {
+        const double noise = 0.003 * ((tick % 4) - 1.5) / 1.5;
+        const rclcpp::Time stamp = rosTime(1.0 + tick * dt);
+        const State state(target + point_t(noise, -noise, 0.0), vector_t::Zero(), 0.0, vector_t::Zero(), stamp);
+        ASSERT_TRUE(controller.Update(state, stamp, 1, stamp, 0.35, output, reason)) << reason;
+        EXPECT_DOUBLE_EQ(output.velocity().norm(), 0.0) << "at tick " << tick;
+        EXPECT_DOUBLE_EQ(output.acceleration().norm(), 0.0) << "at tick " << tick;
+    }
+}
+
+TEST(BoundedTerminalPositionTrackingTest, OffsetAboveTheCorrectionStepIsStillCorrected) {
+    constexpr double dt = 0.2;
+    const point_t target(0.0, 0.0, 2.0);
+    TerminalPositionTrackingController controller(Reference(target, 0.0));
+    Reference output;
+    std::string reason;
+    bool corrected = false;
+    for (int tick = 0; tick <= 50; ++tick) {
+        const rclcpp::Time stamp = rosTime(1.0 + tick * dt);
+        const State state(target - point_t(0.05, 0.0, 0.0), vector_t::Zero(), 0.0, vector_t::Zero(), stamp);
+        ASSERT_TRUE(controller.Update(state, stamp, 1, stamp, 0.35, output, reason)) << reason;
+        corrected = corrected || output.velocity().norm() > 0.0;
+    }
+    EXPECT_TRUE(corrected);
+    EXPECT_GT(output.position().x(), target.x());
+}
+
+TEST(BoundedTerminalPositionTrackingTest, HoverWanderWithinTheDeadbandIsNotIntegrated) {
+    // A position hold wandering 15 mm off the target for a long time: inside
+    // the deadband, so no correction accumulates and the reference stays put.
+    constexpr double dt = 0.2;
+    const point_t target(1.0, 2.0, 3.0);
+    TerminalPositionTrackingController controller(Reference(target, 0.0));
+    Reference output;
+    std::string reason;
+    for (int tick = 0; tick <= 300; ++tick) {
+        const rclcpp::Time stamp = rosTime(1.0 + tick * dt);
+        const State state(target + point_t(0.012, -0.009, 0.0), vector_t::Zero(), 0.0, vector_t::Zero(), stamp);
+        ASSERT_TRUE(controller.Update(state, stamp, 1, stamp, 0.35, output, reason)) << reason;
+    }
+    EXPECT_DOUBLE_EQ(controller.integralTargetOffsetNorm(), 0.0);
+    EXPECT_EQ(output.position(), target);
+}
+
+TEST(BoundedTerminalPositionTrackingTest, OnlyTheErrorBeyondTheDeadbandIsIntegrated) {
+    constexpr double dt = 0.2;
+    const point_t target(0.0, 0.0, 2.0);
+    TerminalPositionTrackingController controller(Reference(target, 0.0));
+    Reference output;
+    std::string reason;
+    for (int tick = 0; tick <= 5; ++tick) {
+        const rclcpp::Time stamp = rosTime(1.0 + tick * dt);
+        const State state(target - point_t(0.0, 0.05, 0.0), vector_t::Zero(), 0.0, vector_t::Zero(), stamp);
+        ASSERT_TRUE(controller.Update(state, stamp, 1, stamp, 0.35, output, reason)) << reason;
+    }
+    // One second of a 50 mm error integrates its 30 mm excess at 0.15/s.
+    EXPECT_NEAR(controller.integralTargetOffsetNorm(), 0.15 * 1.0 * 0.03, 1.0e-8);
+}
+
+TEST(BoundedTerminalPositionTrackingTest, DeadbandAndStepStayWithinHalfTheArrivalTolerance) {
+    // A tight arrival tolerance must still converge: a 15 mm error beyond a
+    // 20 mm tolerance would otherwise sit inside the default deadband.
+    constexpr double dt = 0.2;
+    const point_t target(0.0, 0.0, 2.0);
+    TerminalPositionTrackingController::Limits limits;
+    limits.arrival_tolerance_m = 0.01;
+    TerminalPositionTrackingController controller(Reference(target, 0.0), limits);
+    Reference output;
+    std::string reason;
+    bool corrected = false;
+    for (int tick = 0; tick <= 50; ++tick) {
+        const rclcpp::Time stamp = rosTime(1.0 + tick * dt);
+        const State state(target - point_t(0.015, 0.0, 0.0), vector_t::Zero(), 0.0, vector_t::Zero(), stamp);
+        ASSERT_TRUE(controller.Update(state, stamp, 1, stamp, 0.35, output, reason)) << reason;
+        corrected = corrected || output.velocity().norm() > 0.0;
+    }
+    EXPECT_TRUE(corrected);
+    EXPECT_GT(output.position().x(), target.x());
+}
+
+TEST(BoundedTerminalPositionTrackingTest, RejectsNegativeDeadbandOrStep) {
+    const Reference nominal(point_t(0.0, 0.0, 2.0), 0.0);
+    TerminalPositionTrackingController::Limits limits;
+    limits.correction_deadband_m = -0.01;
+    EXPECT_THROW((TerminalPositionTrackingController{nominal, limits}), std::invalid_argument);
+    limits = TerminalPositionTrackingController::Limits{};
+    limits.minimum_correction_step_m = NAN;
+    EXPECT_THROW((TerminalPositionTrackingController{nominal, limits}), std::invalid_argument);
 }
