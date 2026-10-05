@@ -54,6 +54,7 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(diagnostic_msgs REQUIRED)
 
 set(dependencies
   rclcpp
@@ -88,6 +89,7 @@ set(III_DRONE_LIBRARY_HEADERS
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/history.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/token.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/runtime_profile.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/opti_track_pose_relay.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/single_line.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/powerline.hpp"
@@ -158,6 +160,7 @@ set(III_DRONE_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/utils/types.cpp"
   "${PROJECT_SOURCE_DIR}/src/utils/timestamp.cpp"
   "${PROJECT_SOURCE_DIR}/src/utils/runtime_profile.cpp"
+  "${PROJECT_SOURCE_DIR}/src/utils/opti_track_pose_relay.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/perception/single_line.cpp"
   "${PROJECT_SOURCE_DIR}/src/perception/powerline.cpp"
@@ -319,6 +322,14 @@ custom_cpp_target(drone_frame_broadcaster
   "${PROJECT_SOURCE_DIR}/src/utils/drone_frame_broadcaster_node/drone_frame_broadcaster_node.cpp"
 )
 
+# OptiTrack pose relay (opti_track profile):
+custom_cpp_target(opti_track_pose_relay
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/opti_track_pose_relay_node/opti_track_pose_relay_node.hpp"
+  "${PROJECT_SOURCE_DIR}/src/utils/opti_track_pose_relay_node/opti_track_pose_relay_node.cpp"
+  "${PROJECT_SOURCE_DIR}/src/utils/opti_track_pose_relay_node/opti_track_pose_relay_main.cpp"
+)
+ament_target_dependencies(opti_track_pose_relay diagnostic_msgs)
+
 # Hough transformer:
 custom_cpp_target(hough_transformer
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/hough_transformer_node/hough_transformer_node.hpp"
@@ -415,6 +426,12 @@ if (BUILD_TESTING)
   iii_drone_core_add_isolated_gtest(iii_drone_core_multi_threaded_executor_test
     test/utils/multi_threaded_executor_test.cpp
     TIMEOUT 120
+  )
+
+  iii_drone_core_add_isolated_gtest(iii_drone_core_opti_track_pose_relay_test
+    test/utils/opti_track_pose_relay_test.cpp
+    test/utils/opti_track_pose_relay_node_test.cpp
+    src/utils/opti_track_pose_relay_node/opti_track_pose_relay_node.cpp
   )
 
   iii_drone_core_add_isolated_gtest(iii_drone_core_math_types_test
@@ -523,6 +540,12 @@ if (BUILD_TESTING)
     target_include_directories(iii_drone_core_history_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
     target_link_libraries(iii_drone_core_history_test iii_drone_lib)
     ament_target_dependencies(iii_drone_core_history_test ${dependencies})
+  endif()
+
+  if(TARGET iii_drone_core_opti_track_pose_relay_test)
+    target_include_directories(iii_drone_core_opti_track_pose_relay_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_opti_track_pose_relay_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_opti_track_pose_relay_test ${dependencies} diagnostic_msgs)
   endif()
 
   if(TARGET iii_drone_core_math_types_test)
