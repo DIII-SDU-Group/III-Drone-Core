@@ -87,6 +87,7 @@ set(III_DRONE_LIBRARY_HEADERS
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/atomic.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/history.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/token.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/utils/runtime_profile.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/single_line.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/perception/powerline.hpp"
@@ -129,6 +130,7 @@ set(III_DRONE_LIBRARY_HEADERS
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/reference_callback_token.hpp"
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_request_identity.hpp"
+  "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_profile_policy.hpp"
 
   "${PROJECT_SOURCE_DIR}/include/iii_drone_core/control/maneuver/maneuver_reference_client.hpp"
 
@@ -155,6 +157,7 @@ set(III_DRONE_LIBRARY_SOURCES
   "${PROJECT_SOURCE_DIR}/src/utils/math.cpp"
   "${PROJECT_SOURCE_DIR}/src/utils/types.cpp"
   "${PROJECT_SOURCE_DIR}/src/utils/timestamp.cpp"
+  "${PROJECT_SOURCE_DIR}/src/utils/runtime_profile.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/perception/single_line.cpp"
   "${PROJECT_SOURCE_DIR}/src/perception/powerline.cpp"
@@ -197,6 +200,7 @@ set(III_DRONE_LIBRARY_SOURCES
 
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/maneuver_reference_client.cpp"
   "${PROJECT_SOURCE_DIR}/src/control/maneuver/maneuver_request_identity.cpp"
+  "${PROJECT_SOURCE_DIR}/src/control/maneuver/maneuver_profile_policy.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/adapters/single_line_adapter.cpp"
   "${PROJECT_SOURCE_DIR}/src/adapters/projection_plane_adapter.cpp"
@@ -468,6 +472,9 @@ if (BUILD_TESTING)
   iii_drone_core_add_isolated_gtest(iii_drone_core_maneuver_controller_configuration_test
     test/control/maneuver_controller_configuration_test.cpp
   )
+  iii_drone_core_add_isolated_gtest(iii_drone_core_maneuver_profile_policy_test
+    test/control/maneuver_profile_policy_test.cpp
+  )
   iii_drone_core_add_isolated_gtest(iii_drone_core_waypoint_path_planner_test
     test/control/waypoint_path_planner_test.cpp
   )
@@ -602,6 +609,11 @@ if (BUILD_TESTING)
     target_include_directories(iii_drone_core_maneuver_controller_configuration_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
     target_link_libraries(iii_drone_core_maneuver_controller_configuration_test iii_drone_lib)
     ament_target_dependencies(iii_drone_core_maneuver_controller_configuration_test ${dependencies})
+  endif()
+  if(TARGET iii_drone_core_maneuver_profile_policy_test)
+    target_include_directories(iii_drone_core_maneuver_profile_policy_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_maneuver_profile_policy_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_maneuver_profile_policy_test ${dependencies})
   endif()
   if(TARGET iii_drone_core_waypoint_path_planner_test)
     target_include_directories(iii_drone_core_waypoint_path_planner_test PRIVATE ${III_DRONE_INCLUDE_DIRS})

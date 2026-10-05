@@ -165,7 +165,23 @@ namespace maneuver {
          * @return void
          */
         void Stop();
- 
+
+        /**
+         * @brief Marks the maneuver unavailable, e.g. in the opti_track runtime
+         * profile: every goal is then rejected immediately, before it reaches
+         * the scheduler, and reason is logged as an ERROR. The action server
+         * stays up, so a client gets a rejection instead of waiting for a
+         * server that never appears.
+         *
+         * @param reason The rejection text, see ManeuverUnavailableMessage().
+         */
+        void SetUnavailable(const std::string & reason);
+
+        /**
+         * @brief Returns whether goals of this maneuver can be served (see SetUnavailable()).
+         */
+        bool available() const;
+
         /**
          * @brief Virtual function which checks if a maneuver can be executed given an awareness.
          * Must be implemented specific to the maneuver type.
@@ -549,6 +565,11 @@ namespace maneuver {
          * @brief Whether the server is running, atomic.
          */
         iii_drone::utils::Atomic<bool> running_;
+
+        /**
+         * @brief Rejection text while the maneuver is unavailable, empty otherwise.
+         */
+        iii_drone::utils::Atomic<std::string> unavailable_reason_;
 
         // Detached execution workers. Stop() waits for them before tearing
         // down the scheduler callbacks and token they use, and each worker

@@ -74,7 +74,9 @@ namespace maneuver_controller_node {
      * 4. Create a new maneuver server class in the maneuver directory, inheriting from ManeuverServer,
      * implement the virtual methods.
      * 5. Create a new maneuver server in the registerManeuverServers method of this class
-     * and register it with the ManeuverScheduler.
+     * and register it with registerManeuverServer().
+     * 6. If the maneuver may run in the opti_track profile, add it to the allowlist in
+     * ManeuverAvailableInProfile(); otherwise its goals are rejected there.
      */
     class ManeuverControllerNode : public rclcpp_lifecycle::LifecycleNode {
 
@@ -259,6 +261,25 @@ namespace maneuver_controller_node {
          * Will serve cable takeoff action requests.
          */
         std::shared_ptr<iii_drone::control::maneuver::CableTakeoffManeuverServer> cable_takeoff_maneuver_server_;
+
+        /**
+         * @brief Runtime profile resolved at configure from the iii_runtime_profile
+         * parameter or III_SYSTEM_PROFILE (see iii_drone::utils::ResolveRuntimeProfile).
+         * Maneuvers outside its allowlist reject every goal.
+         */
+        std::string runtime_profile_;
+
+        /**
+         * @brief Marks the server unavailable if the runtime profile does not allow
+         * its maneuver, then registers it with the maneuver scheduler.
+         *
+         * @param maneuver_type The maneuver type served.
+         * @param maneuver_server The maneuver server.
+         */
+        void registerManeuverServer(
+            iii_drone::control::maneuver::maneuver_type_t maneuver_type,
+            const iii_drone::control::maneuver::ManeuverServer::SharedPtr & maneuver_server
+        );
 
         /**
          * @brief Creates and registers all maneuver servers with the maneuver scheduler.

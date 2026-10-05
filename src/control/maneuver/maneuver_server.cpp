@@ -199,6 +199,14 @@ bool ManeuverServer::running() const {
     return running_;
 }
 
+void ManeuverServer::SetUnavailable(const std::string & reason) {
+    unavailable_reason_.Store(reason);
+}
+
+bool ManeuverServer::available() const {
+    return unavailable_reason_.Load().empty();
+}
+
 void ManeuverServer::PauseReferenceStream() {
     reference_stream_paused_.Store(true);
 }
@@ -582,6 +590,19 @@ rclcpp_action::GoalResponse ManeuverServer::handleGoal(
     received.commit();
 
     RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::handleGoal(): %s: Received goal", action_name_.c_str());
+
+    // Checked first: the rejection does not depend on server or scheduler state.
+    const std::string unavailable_reason = unavailable_reason_.Load();
+    if (!unavailable_reason.empty()) {
+        auto decision = iii_drone::diagnostics::HilTrace::event("maneuver_server_goal_decision");
+        decision.text("endpoint", action_name_);
+        decision.text("goal_id", goalUuidToString(uuid));
+        decision.text("decision", "REJECT");
+        decision.text("reason", "MANEUVER_UNAVAILABLE");
+        decision.commit();
+        RCLCPP_ERROR(node_->get_logger(), "%s", unavailable_reason.c_str());
+        return rclcpp_action::GoalResponse::REJECT;
+    }
 
     if (!running_) {
         auto decision = iii_drone::diagnostics::HilTrace::event("maneuver_server_goal_decision");
