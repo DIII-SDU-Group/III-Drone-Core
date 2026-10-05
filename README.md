@@ -86,6 +86,50 @@ Most perception and target-related modules pass data around as transform matrice
 
 The canonical HIL/simulation profile uses a single fixed-target, jerk-bounded quintic for CableTakeoff. The legacy CableTakeoff MPC setting remains unchanged for the real profile and is not qualified against this jerk-bounded continuity contract.
 
+## OptiTrack Profile (`opti_track`)
+
+The SDU OptiTrack lab has no cable, so `opti_track` is a reduced flight-basics profile. A node's runtime profile is its `iii_runtime_profile` parameter if non-empty, else `III_SYSTEM_PROFILE` (set by Supervision); an empty or unknown profile is unrestricted.
+
+### Maneuvers
+
+Under `opti_track` the maneuver controller serves only `hover`, `fly_to_position` and `follow_waypoint_path` (an allowlist in `ManeuverAvailableInProfile()`). The other action servers stay up and reject every goal immediately with the ERROR `Maneuver <name> is not available in the opti_track profile`.
+
+### Pose Relay (`opti_track_pose_relay`)
+
+```bash
+ros2 run iii_drone_core opti_track_pose_relay --ros-args --params-file <parameter file>
+```
+
+The relay feeds the motion-capture pose of one rigid body to PX4's EKF2 as external vision. Core keeps taking its pose from PX4 odometry, never from the motion-capture topic.
+
+- Lab side: a second rclcpp context in the lab's ROS domain subscribes `/body_splitter/body_<rigid_body_id>/pose` (`geometry_msgs/PoseStamped` from the lab gateway Pi; best effort, volatile, keep last 1). Discovery uses the process's DDS settings, so the gateway must be reachable on the lab Wi-Fi (e.g. `ROS_AUTOMATIC_DISCOVERY_RANGE=SUBNET`).
+- Stack side (the process's own domain): `px4_msgs/VehicleOdometry` on `/fmu/in/vehicle_visual_odometry` (best effort), health on `/opti_track/pose_relay/health`, the readiness heartbeat on `/opti_track/pose_relay/fresh`, the origin command on `/fmu/in/vehicle_command`.
+
+Frames: the lab world is assumed Z up and bodies forward-left-up. Both are rotated by 180 degrees about x into NED/FRD: position `(x, -y, -z)`, quaternion `(w, x, -y, -z)` normalised, `pose_frame` NED. Lab +x becomes north and EKF2 takes the vision yaw as heading. **Verify this at the lab before the first flight**: with the vehicle on the floor, PX4's `/fmu/out/vehicle_odometry` must show north increasing when it is moved along lab +x, east increasing along lab -y, down decreasing when it is lifted, and yaw near 0 when its nose points along lab +x (+90 degrees towards lab -y). A Y-up stream or another body convention needs a different conversion.
+
+Each pose is converted on arrival and forwarded at once (no buffering): on average at most `output_rate_hz`, never within half a period of the previous one, and never once it is older than `stale_timeout_s`. After a gap the stream resumes with the first fresh pose, without a catch-up burst. Non-finite poses and quaternions whose norm is not within 0.1 of 1 are rejected and counted. Velocity is unknown (`VELOCITY_FRAME_UNKNOWN`, NaN velocity, angular velocity and velocity variance), quality and reset counter are 0, and `timestamp` = `timestamp_sample` = the arrival time (system clock, us). With `UXRCE_DDS_SYNCT=0` PX4 replaces both with its own arrival time; `EKF2_EV_DELAY` covers the latency of the chain.
+
+EKF global origin: Core's awareness handler accepts PX4 local position only with a global origin (`xy_global`, `z_global`). While `send_origin` is set and PX4 is disarmed, has no origin (`vehicle_local_position.xy_global` false) and EKF2 intends to fuse vision position (`estimator_status_flags.cs_ev_pos`), each known from a sample at most 3 s old, the relay sends `VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN` (param5 latitude, param6 longitude, param7 altitude) at most every 5 s. It never sends while armed or while PX4 reports `xy_global`, and keeps evaluating for as long as it runs, so PX4 and its agent may come up after the relay.
+
+Parameters (read once at startup, read-only). An unset rigid-body ID, a value out of range or a mistyped override (e.g. `50` for a double) does not end the process, since a supervised restart would only repeat it: the relay logs the error once, publishes ERROR health naming every invalid parameter, and has no lab side, odometry, heartbeat or origin command.
+
+| Parameter (`/opti_track/pose_relay/...`) | Type | Default | Valid |
+| --- | --- | --- | --- |
+| `rigid_body_id` | int | -1 (unset) | >= 0, the Motive rigid-body ID |
+| `lab_ros_domain_id` | int | 0 | [0, 232] |
+| `output_rate_hz` | double | 50.0 | [1, 200] |
+| `stale_timeout_s` | double | 0.15 | (0, 1] |
+| `position_variance_m2` | double | 0.0001 | (0, 1] |
+| `orientation_variance_rad2` | double | 0.0004 | (0, 1] |
+| `send_origin` | bool | true | |
+| `origin_latitude_deg` | double | 55.3672 | [-90, 90] |
+| `origin_longitude_deg` | double | 10.4310 | [-180, 180] |
+| `origin_altitude_m` | double | 20.0 | [-500, 9000] |
+
+Readiness (`std_msgs/Header` on `/opti_track/pose_relay/fresh`, `frame_id` `opti_track_pose_relay`, stamped now): 2 Hz while a pose was forwarded within `stale_timeout_s`, nothing otherwise. Supervision keys the relay's readiness on it rather than on the odometry stream.
+
+Health (`diagnostic_msgs/DiagnosticStatus` named `opti_track_pose_relay`, always 2 Hz): ERROR for an invalid configuration, before the first pose, or when the last one is older than `stale_timeout_s`; WARN when, during the last period, the stream had a longer gap, its rate was below half `output_rate_hz`, or poses were rejected; OK otherwise. Values: `input_rate_hz`, `output_rate_hz`, `last_input_age_ms`, `max_input_gap_ms` (since the previous message), `lab_stamp_age_ms` (arrival minus header stamp; informative only, the clocks differ), `stale`, `origin_sent`, `rigid_body_id`, `rejected_samples`; `nan` where unknown.
+
 ## Tests
 
 The current test suite covers:
@@ -94,6 +138,7 @@ The current test suite covers:
 - control objects such as `Reference` and reference trajectories
 - basic and perception adapter serialization paths
 - combined-awareness handler behavior
+- the opti_track maneuver allowlist and the OptiTrack pose relay (frame conversion, output gate, health, origin decision, an end-to-end relay through both contexts)
 
 Typical package-only commands:
 
