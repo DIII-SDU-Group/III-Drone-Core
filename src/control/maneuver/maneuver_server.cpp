@@ -62,7 +62,10 @@ bool finalizeGoalSafely(
             goal_handle->execute();
         }
 
-        if (terminal_state == GoalTerminalState::Cancel || goal_handle->is_canceling()) {
+        // Only a goal whose client asked to cancel may end canceled: ROS
+        // rejects EXECUTING -> CANCELED, so a requested cancel of an
+        // executing goal ends it aborted.
+        if (goal_handle->is_canceling()) {
             RCLCPP_WARN(
                 node->get_logger(),
                 "ManeuverServer::finalizeGoalSafely(): %s: Finalizing goal as canceled during %s (was_executing=%s, was_canceling=%s)",
@@ -75,9 +78,10 @@ bool finalizeGoalSafely(
         } else {
             RCLCPP_WARN(
                 node->get_logger(),
-                "ManeuverServer::finalizeGoalSafely(): %s: Finalizing goal as aborted during %s (was_executing=%s, was_canceling=%s)",
+                "ManeuverServer::finalizeGoalSafely(): %s: Finalizing goal as aborted during %s (requested %s, was_executing=%s, was_canceling=%s)",
                 action_name.c_str(),
                 context,
+                terminal_state == GoalTerminalState::Cancel ? "cancel" : "abort",
                 was_executing ? "true" : "false",
                 was_canceling ? "true" : "false"
             );
@@ -977,9 +981,15 @@ void ManeuverServer::asyncExecute(
                     action_name_.c_str()
                 );
             }
+            // No client cancel request: the goal is still EXECUTING, and ROS
+            // rejects EXECUTING -> CANCELED. The exception escaped this
+            // detached worker and aborted the controller when HIL stopped
+            // during a mission (2026-10-05); a Mission Exit that removes the
+            // maneuver first takes this path in flight.
+            const bool client_canceled = goal_handle->is_canceling();
             publishResultAndFinalize(
                 maneuver,
-                MANEUVER_RESULT_TYPE_CANCEL
+                client_canceled ? MANEUVER_RESULT_TYPE_CANCEL : MANEUVER_RESULT_TYPE_ABORT
             );
             maneuver.Terminate(false);
             cancel_maneuver_(maneuver);
@@ -989,7 +999,7 @@ void ManeuverServer::asyncExecute(
             auto terminal = iii_drone::diagnostics::HilTrace::event("maneuver_server_execution_result");
             terminal.text("endpoint", action_name_);
             terminal.text("goal_id", goal_id);
-            terminal.text("result_code", "CANCELED");
+            terminal.text("result_code", client_canceled ? "CANCELED" : "ABORTED");
             terminal.text("reason", "ACTIVE_MANEUVER_REMOVED_OR_SERVER_STOPPED");
             terminal.boolean("success", false);
             terminal.commit();
