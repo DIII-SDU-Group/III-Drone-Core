@@ -192,7 +192,15 @@ ManeuverReferenceClient::readReferenceStream(Reference & reference) {
         received_at = latest_stream_received_at_;
     }
 
+    const auto timeout = std::chrono::milliseconds(
+        configuration_->GetParameter(
+            "/control/maneuver_controller/reference_stream_timeout_ms"
+        ).as_int()
+    );
+    const bool sample_fresh = std::chrono::steady_clock::now() - received_at <= timeout;
+
     if (!ownsReferenceStreamLocked(message)) {
+        if (sample_fresh) noteStreamHeld("not_owned", message, timeout);
         retireInadmissibleCachedStreamLocked();
         auto event = iii_drone::diagnostics::HilTrace::event(
             "reference_stream_cached_identity_retired"
@@ -204,14 +212,7 @@ ManeuverReferenceClient::readReferenceStream(Reference & reference) {
         return StreamReadResult::Unavailable;
     }
 
-    const auto timeout = std::chrono::milliseconds(
-        configuration_->GetParameter(
-            "/control/maneuver_controller/reference_stream_timeout_ms"
-        ).as_int()
-    );
-    if (
-        std::chrono::steady_clock::now() - received_at > timeout
-    ) {
+    if (!sample_fresh) {
         auto event = iii_drone::diagnostics::HilTrace::event("reference_stream_read");
         event.text("decision", "unavailable_stale");
         event.text("stream_id", message.stream_id);
@@ -237,6 +238,7 @@ ManeuverReferenceClient::readReferenceStream(Reference & reference) {
     decision_event.number("state", message.state);
     decision_event.commit();
     if (decision == ManeuverReferenceStreamDecision::Prepared) {
+        noteStreamHeld("prepared", message, timeout);
         reference = ReferenceAdapter(message.reference).reference();
         return StreamReadResult::Prepared;
     }
@@ -247,6 +249,7 @@ ManeuverReferenceClient::readReferenceStream(Reference & reference) {
         decision == ManeuverReferenceStreamDecision::FreshHeld ||
         decision == ManeuverReferenceStreamDecision::AwaitingSuccessor
     ) {
+        noteStreamHeld(streamDecisionName(decision), message, timeout);
         std::lock_guard<std::mutex> lock(reference_mutex_);
         reference = reference_;
         return StreamReadResult::FreshHeld;
@@ -298,8 +301,55 @@ ManeuverReferenceClient::readReferenceStream(Reference & reference) {
             iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_OBJECT_STOPPING ||
          message.state ==
             iii_drone_interfaces::msg::ManeuverReferenceStream::STATE_OBJECT_STOPPED) &&
-        !message.object_tracking_active) return StreamReadResult::Unavailable;
+        !message.object_tracking_active) {
+        noteStreamHeld("object_stop_without_tracking", message, timeout);
+        return StreamReadResult::Unavailable;
+    }
+    noteStreamConsumed();
     return predecessor_active ? StreamReadResult::PredecessorActive : StreamReadResult::NewActive;
+}
+
+void ManeuverReferenceClient::noteStreamConsumed() {
+    stream_hold_since_.reset();
+    stream_hold_reported_ = false;
+}
+
+void ManeuverReferenceClient::noteStreamHeld(
+    const char * branch,
+    const iii_drone_interfaces::msg::ManeuverReferenceStream & message,
+    std::chrono::milliseconds timeout
+) {
+    // HIL soak run 25: the consumer acknowledged nothing of a fresh successor
+    // stream for 1.5 s and the producer paused, without a log saying why.
+    // Report once which branch held fresh samples for half a stream deadline.
+    const auto now = std::chrono::steady_clock::now();
+    if (!stream_hold_since_) {
+        stream_hold_since_ = now;
+        return;
+    }
+    if (stream_hold_reported_ || now - *stream_hold_since_ < timeout / 2) {
+        return;
+    }
+    stream_hold_reported_ = true;
+    // INFO: a long legitimate hold (a slow goal acceptance) must not fail the
+    // strict qualification; a real stall is reported by the producer's ERROR.
+    RCLCPP_INFO(
+        logger_,
+        "ManeuverReferenceClient::readReferenceStream(): applied no fresh stream sample for %.2f s; branch=%s "
+        "sample_stream=%s sample_sequence=%lu sample_state=%u sample_request=%s guard_stream=%s "
+        "guard_last_applied=%lu successor_expected=%s predecessor_updates=%s active_request=%s",
+        std::chrono::duration<double>(now - *stream_hold_since_).count(),
+        branch,
+        message.stream_id.c_str(),
+        static_cast<unsigned long>(message.sequence),
+        static_cast<unsigned int>(message.state),
+        message.request_identity.c_str(),
+        reference_stream_guard_.streamId().c_str(),
+        static_cast<unsigned long>(reference_stream_guard_.lastAppliedSequence()),
+        reference_stream_guard_.successorGenerationExpected() ? "true" : "false",
+        reference_stream_guard_.predecessorUpdatesAllowed() ? "true" : "false",
+        active_request_identity_.c_str()
+    );
 }
 
 ManeuverReferenceClient::ReferenceConsumption
@@ -368,9 +418,15 @@ ManeuverReferenceClient::consumeReferenceCandidate(
             reference_safety_guard_->reset();
             safety_evaluation = reference_safety_guard_->observeReference(reference);
         } else {
+            // HIL soak run 19: right after the gripper closed, the vehicle
+            // swung about the cable at up to 0.6 m/s; seeding from that
+            // velocity failed HoverOnCable's (0, 0, 0.1) m/s reference. Its
+            // shapes carry no position and are only used on the cable, where
+            // the measured velocity is the swing, so they baseline themselves.
             if (
                 !reference_safety_guard_->hasAcceptedReference() &&
-                !vehicle_odometry_adapter_history_->empty()
+                !vehicle_odometry_adapter_history_->empty() &&
+                !ManeuverReferenceStartupPolicy::onCableShape(reference)
             ) {
                 safety_evaluation = reference_safety_guard_->observeReference(
                     Reference((*vehicle_odometry_adapter_history_)[0].ToState())
@@ -1356,6 +1412,12 @@ ManeuverReferenceClient::TryAdoptTerminalHold(int timeout_ms) {
     if (!finiteReference(anchor) ||
         !isValidManeuverRequestIdentity(offer->source_request_identity) ||
         offer->source_stream_id.empty() || offer->source_ack_sequence == 0) {
+        RCLCPP_ERROR(logger_,
+            "Terminal hold adoption QUERY returned an unusable offer (finite anchor %d, valid source %d, stream '%s', ack sequence %lu)",
+            static_cast<int>(finiteReference(anchor)),
+            static_cast<int>(isValidManeuverRequestIdentity(offer->source_request_identity)),
+            offer->source_stream_id.c_str(),
+            static_cast<unsigned long>(offer->source_ack_sequence));
         return TerminalHoldAdoption::Failed;
     }
     Transfer::Request claim;
@@ -1374,15 +1436,26 @@ ManeuverReferenceClient::TryAdoptTerminalHold(int timeout_ms) {
         return TerminalHoldAdoption::Failed;
     }
     const Reference claimed_anchor = ReferenceAdapter(result->reference).reference();
-    if (!finiteReference(claimed_anchor)) return TerminalHoldAdoption::Failed;
+    if (!finiteReference(claimed_anchor)) {
+        RCLCPP_ERROR(logger_, "Terminal hold adoption CLAIM returned a non-finite anchor");
+        return TerminalHoldAdoption::Failed;
+    }
 
     std::lock_guard<std::recursive_mutex> lock(transition_mutex_);
-    if (pending_goal_handoff_ || isManeuverMode()) return TerminalHoldAdoption::Failed;
+    if (pending_goal_handoff_ || isManeuverMode()) {
+        RCLCPP_ERROR(logger_,
+            "Terminal hold adoption: claimed hold superseded locally (pending goal hand-off %d, maneuver mode %d)",
+            static_cast<int>(pending_goal_handoff_.has_value()), static_cast<int>(isManeuverMode()));
+        return TerminalHoldAdoption::Failed;
+    }
     resetReferenceSafety();
     {
         std::lock_guard<std::mutex> safety_lock(reference_safety_mutex_);
         if (reference_safety_guard_->observeReference(claimed_anchor).decision !=
-            ManeuverReferenceSafetyDecision::ACCEPT) return TerminalHoldAdoption::Failed;
+            ManeuverReferenceSafetyDecision::ACCEPT) {
+            RCLCPP_ERROR(logger_, "Terminal hold adoption: claimed anchor rejected by the reference safety guard");
+            return TerminalHoldAdoption::Failed;
+        }
     }
     {
         std::lock_guard<std::mutex> reference_lock(reference_mutex_);
@@ -1465,6 +1538,30 @@ ManeuverReferenceClient::RetainCompletedTerminalHold(
             reference_mode_.Store(reference_mode_t::MANEUVER);
             terminal_hold_continuity_required_ = true;
             return TerminalHoldRetention::Retained;
+        }
+        if (offer && offer->accepted &&
+            finiteReference(ReferenceAdapter(offer->reference).reference())) {
+            // A goal halted before Core started it never took over: Core
+            // still streams the active predecessor's retained hold, which
+            // stays in force. (Once started, Core gives the hold to the
+            // goal itself and offers it under the goal's request.)
+            std::lock_guard<std::recursive_mutex> lock(transition_mutex_);
+            if (pending_goal_handoff_ &&
+                pending_goal_handoff_->request_identity == request_identity &&
+                !pending_goal_handoff_->successor_consumed &&
+                isValidManeuverRequestIdentity(active_request_identity_) &&
+                offer->source_request_identity == active_request_identity_) {
+                pending_goal_handoff_.reset();
+                retireInadmissibleCachedStreamLocked();
+                reference_stream_guard_.cancelSuccessorGenerationExpectation();
+                reference_mode_.Store(reference_mode_t::MANEUVER);
+                terminal_hold_continuity_required_ = true;
+                RCLCPP_INFO(logger_,
+                    "Terminal hold retention: request %s ended before it took over; "
+                    "the retained hold of request %s stays in force",
+                    request_identity.c_str(), active_request_identity_.c_str());
+                return TerminalHoldRetention::Retained;
+            }
         }
         if (offer && offer->accepted) {
             RCLCPP_ERROR(logger_,
@@ -2455,6 +2552,7 @@ Reference ManeuverReferenceClient::GetReference(
         observed_mode = reference_mode_.Load();
         failure_epoch = maneuver_failure_epoch_;
     }
+    if (get_reference_after_mode_snapshot_hook_) get_reference_after_mode_snapshot_hook_();
 
     switch(observed_mode) {
         case reference_mode_t::PASSTHROUGH:
@@ -2669,6 +2767,20 @@ Reference ManeuverReferenceClient::GetReference(
                 break;
             }
 
+            // A transition on the tree's thread (e.g. a successor's goal
+            // acceptance) can change the mode between the snapshot above and
+            // the read, which then reads nothing. No reference was lost: hold
+            // the last one for this update; the next serves the new mode.
+            // (HIL qualification 2026-10-04: a same-target Hover's acceptance
+            // switched to WAIT_FOR_MANEUVER_START 0.6 ms into the read, and the
+            // empty read was reported as a failed acquisition.)
+            if (!success && reference_mode_.Load() != reference_mode_t::MANEUVER) {
+                std::lock_guard<std::mutex> lock(reference_mutex_);
+                reference = reference_;
+                reference_mode_msg.data = currentReferenceModeLabel();
+                break;
+            }
+
             if (!success) {
 
                 failed_attempts_++;
@@ -2866,6 +2978,13 @@ Reference ManeuverReferenceClient::GetReference(
             const bool success =
                 consumption.accepted ||
                 stream_result == StreamReadResult::FreshHeld;
+            if (!success && reference_mode_.Load() != reference_mode_t::WAIT_FOR_MANEUVER_STOP) {
+                // As in MANEUVER: a concurrent transition, not a lost reference.
+                std::lock_guard<std::mutex> lock(reference_mutex_);
+                reference = reference_;
+                reference_mode_msg.data = currentReferenceModeLabel();
+                break;
+            }
             if (!success) {
                 failed_attempts_++;
                 ManeuverReferenceSafetyEvaluation safety_evaluation;

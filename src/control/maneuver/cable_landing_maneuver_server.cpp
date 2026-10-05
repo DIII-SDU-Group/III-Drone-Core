@@ -409,6 +409,7 @@ void CableLandingManeuverServer::startExecution(Maneuver & maneuver) {
     line_pid_yaw_pid_ = PidState();
     gripper_v_gate_violation_active_ = false;
     conductor_estimate_frozen_ = false;
+    conductor_freeze_z_gripper_ = std::numeric_limits<double>::quiet_NaN();
 
     if (had_locked_pose) {
         line_pid_last_cable_pose_world_ = previous_locked_pose;
@@ -926,8 +927,25 @@ bool CableLandingManeuverServer::getStableCablePose(
     }
 
     // Leaving the sensor's view just below the gripper, the mapped conductor
-    // jumps; keep the last estimate seen so the freeze above captures it.
-    if (detail::HoldLastSeenConductor(near_contact, line_pid_has_last_cable_pose_, targetLineInView())) {
+    // jumps, and a brief spurious re-detection there jumps too: freeze the
+    // last estimate seen at the first loss of view near the conductor.
+    if (detail::FreezeConductorEstimateOnLossOfView(
+            conductor_estimate_frozen_, near_contact, line_pid_has_last_cable_pose_, targetLineInView())) {
+        conductor_estimate_frozen_ = true;
+        vector_t frozen_in_gripper;
+        if (getTargetPointInCableGripperFrame(frozen_in_gripper)) {
+            conductor_freeze_z_gripper_ = frozen_in_gripper(2);
+        }
+        const auto & frozen = line_pid_last_cable_pose_world_.position;
+        RCLCPP_INFO(
+            node()->get_logger(),
+            "CableLandingManeuverServer::getStableCablePose(): Conductor left the sensor view near the gripper; "
+            "steering to its last estimate [%.3f, %.3f, %.3f] (world, gripper z %.3f) from here.",
+            frozen(0),
+            frozen(1),
+            frozen(2),
+            conductor_freeze_z_gripper_
+        );
         cable_pose_world = line_pid_last_cable_pose_world_;
         return true;
     }
@@ -1732,12 +1750,15 @@ bool CableLandingManeuverServer::getTargetPointInCableGripperFrame(
 double CableLandingManeuverServer::gateHeight(double target_z_gripper) const {
 
     // Below the freeze height the V gate would keep narrowing to its apex,
-    // demanding a precision the frozen estimate (+-2-3 cm) cannot give while
+    // demanding a precision the frozen estimate (a few cm) cannot give while
     // the gripper's slot centres the conductor. Hold the width the gate had
     // where the estimate froze: a real miss of the lips still fails it.
-    if (!conductor_estimate_frozen_) return target_z_gripper;
-    return std::max(target_z_gripper, configuration_->GetParameter(
-        "/control/maneuver_controller/cable_landing_gripper_capture_z").as_double());
+    return detail::VGateHeight(
+        target_z_gripper,
+        conductor_estimate_frozen_,
+        conductor_freeze_z_gripper_,
+        configuration_->GetParameter("/control/maneuver_controller/cable_landing_gripper_capture_z").as_double()
+    );
 
 }
 
@@ -1763,6 +1784,7 @@ bool CableLandingManeuverServer::conductorEstimateFrozen() {
     if (!detail::ConductorEstimateShouldFreeze(target_point_gripper, freeze_z)) return false;
 
     conductor_estimate_frozen_ = true;
+    conductor_freeze_z_gripper_ = target_point_gripper(2);
     const auto & frozen = line_pid_last_cable_pose_world_.position;
     RCLCPP_INFO(
         node()->get_logger(),

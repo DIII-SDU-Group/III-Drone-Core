@@ -4,6 +4,13 @@
 
 namespace iii_drone::control {
 
+// Longest ended gap between consecutive PX4 odometry samples that consumers
+// treat as continuous. HIL showed single gaps of ~0.3 s on the SITL -> XRCE ->
+// Pi path; sample ages are still bounded separately by each consumer's
+// freshness limit (0.25 s), so this only stops an ended gap from being
+// mistaken for a discontinuity.
+inline constexpr double kMaximumOdometrySampleGapS = 0.5;
+
 // The raw aggregate remains independent: only two source-qualified samples
 // may bridge a change in VehicleOdometry::reset_counter.
 struct PositionContinuityIdentity {

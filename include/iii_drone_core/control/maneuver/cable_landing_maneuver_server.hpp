@@ -19,6 +19,7 @@
 #include <geometry_msgs/msg/quaternion_stamped.hpp>
 
 #include <cmath>
+#include <limits>
 #include <optional>
 
 /*****************************************************************************/
@@ -150,6 +151,39 @@ namespace maneuver {
          */
         inline bool HoldLastSeenConductor(bool near_conductor, bool has_last_estimate, bool target_in_view) {
             return near_conductor && has_last_estimate && !target_in_view;
+        }
+
+        /**
+         * @brief Whether the conductor estimate is frozen for the rest of the
+         * approach: once the sensor has lost the conductor near it, it stays
+         * frozen. Near the conductor the sensor is below its useful range, so a
+         * later "in view" sample there is a spurious close-range detection with
+         * a jumped position (HIL soak run 20: back in view for 50 ms, 8 cm off;
+         * the V gate then failed a conductor the gripper had captured).
+         */
+        /**
+         * @brief Gripper height at which the V gate's width is evaluated. Once
+         * the conductor estimate is frozen, the gate keeps the width it had
+         * where the estimate froze: below that the estimate (good to a few
+         * cm near the sensor's minimum range) cannot give the precision the
+         * narrowing gate demands while the gripper's slot centres the
+         * conductor (HIL soak run 22: frozen 2.8 cm off a captured, centred
+         * conductor, the gate narrowed to 4.6 cm and failed the landing).
+         */
+        inline double VGateHeight(double target_z, bool frozen, double freeze_z, double fallback_z) {
+            if (!frozen) {
+                return target_z;
+            }
+            return std::max(target_z, std::isfinite(freeze_z) ? freeze_z : fallback_z);
+        }
+
+        inline bool FreezeConductorEstimateOnLossOfView(
+            bool already_frozen,
+            bool near_conductor,
+            bool has_last_estimate,
+            bool target_in_view
+        ) {
+            return already_frozen || HoldLastSeenConductor(near_conductor, has_last_estimate, target_in_view);
         }
 
         /**
@@ -361,6 +395,8 @@ namespace maneuver {
         // Set once the conductor estimate reached the gripper; see
         // conductorEstimateFrozen().
         bool conductor_estimate_frozen_ = false;
+        // Gripper-frame height of the conductor estimate when it froze.
+        double conductor_freeze_z_gripper_ = std::numeric_limits<double>::quiet_NaN();
         mutable rclcpp::Time gripper_v_gate_violation_started_;
 
         /**

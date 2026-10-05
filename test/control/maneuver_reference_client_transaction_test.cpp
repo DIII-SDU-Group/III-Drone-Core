@@ -622,6 +622,71 @@ TEST(ManeuverReferenceClientTransaction, OwnedStopAcceptsVelocityOnlyFirstReceiv
     ));
 }
 
+// HIL soak run 19: the consumer acknowledges once per setpoint update (every
+// 0.2 s); a hard-coded 250 ms freshness deadline at the FlyToObject ->
+// HoverByObject hand-off failed it after a slightly late acknowledgement.
+TEST(ManeuverSchedulerObjectHandoff, AcknowledgementAgeUsesTheStreamDeadline) {
+    using iii_drone::control::maneuver::detail::ObjectHandoffAcknowledgementExpired;
+    const std::chrono::milliseconds deadline(1500);
+    EXPECT_FALSE(ObjectHandoffAcknowledgementExpired(std::chrono::milliseconds(300), false, deadline));
+    EXPECT_FALSE(ObjectHandoffAcknowledgementExpired(std::chrono::milliseconds(1499), false, deadline));
+    EXPECT_TRUE(ObjectHandoffAcknowledgementExpired(std::chrono::milliseconds(1500), false, deadline));
+    EXPECT_TRUE(ObjectHandoffAcknowledgementExpired(std::chrono::milliseconds(10), true, deadline));
+}
+
+// HIL soak run 23: a lost completion report and a retried mode switch made the
+// Inspection Demo -> Reach Cable handoff gap 1.54 s; the retained terminal hold
+// failed at the 1.5 s stream deadline, 4 ms before Reach Cable adopted it.
+TEST(ManeuverSchedulerTerminalHold, HandoffGapGetsThreeStreamDeadlines) {
+    using iii_drone::control::maneuver::detail::TerminalHoldAckTimeout;
+    EXPECT_EQ(TerminalHoldAckTimeout(std::chrono::milliseconds(1500)), std::chrono::milliseconds(4500));
+    EXPECT_EQ(TerminalHoldAckTimeout(std::chrono::milliseconds(500)), std::chrono::milliseconds(1500));
+    EXPECT_GT(TerminalHoldAckTimeout(std::chrono::milliseconds(1500)), std::chrono::milliseconds(1540));
+}
+
+// HIL soak run 19: the guard was re-armed mid HoverOnCable stream while the
+// vehicle, just latched, swung about the cable at ~0.55 m/s. Seeding the guard
+// from that velocity failed the on-cable (0, 0, 0.1) m/s reference.
+TEST(ManeuverReferenceClientTransaction, OnCableReferenceAfterGuardResetIgnoresCableSwingVelocity) {
+    RclcppContext context;
+    ClientFixture fixture("reference_transaction_on_cable_swing", 10000, 0.5);
+    ASSERT_TRUE(waitForAckSubscriber(fixture));
+    fixture.client.SetReferenceModeHover(true);
+    ASSERT_TRUE(fixture.client.BeginManeuverGoalHandoff(kRequestA));
+    ASSERT_TRUE(fixture.client.ConfirmManeuverGoalHandoff(kRequestA));
+
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const Reference on_cable(
+        point_t::Constant(nan), nan, vector_t(0.0, 0.0, 0.1), 0.0, vector_t::Constant(nan), nan);
+    fixture.client.receiveReferenceStream(
+        stream(fixture.node, "hover_on_cable:g1", 1, on_cable, kRequestA));
+    fixture.client.GetReference(0.02, [] {});
+    ASSERT_EQ(fixture.client.reference_mode_.Load(), ManeuverReferenceClient::MANEUVER);
+
+    px4_msgs::msg::VehicleOdometry swinging;
+    swinging.pose_frame = iii_drone::adapters::px4::POSE_FRAME_LOCAL_NED;
+    swinging.velocity_frame = iii_drone::adapters::px4::VELOCITY_FRAME_LOCAL_NED;
+    swinging.q[0] = 1.0F;
+    swinging.velocity[0] = 0.185F;
+    swinging.velocity[1] = -0.514F;
+    fixture.history->Store(VehicleOdometryAdapter(swinging));
+    fixture.client.resetReferenceSafety();
+
+    fixture.client.receiveReferenceStream(
+        stream(fixture.node, "hover_on_cable:g1", 2, on_cable, kRequestA));
+    fixture.client.GetReference(0.02, [] {});
+    EXPECT_EQ(fixture.client.reference_mode_.Load(), ManeuverReferenceClient::MANEUVER);
+    EXPECT_EQ(fixture.client.last_applied_sequence_, 2U);
+    EXPECT_TRUE(observedAppliedAck(fixture, "hover_on_cable:g1", 2U));
+
+    // A free-flight reference after a reset still has to match the vehicle.
+    fixture.client.resetReferenceSafety();
+    fixture.client.receiveReferenceStream(
+        stream(fixture.node, "hover_on_cable:g1", 3, finiteReference(0.0, 4.1), kRequestA));
+    fixture.client.GetReference(0.02, [] {});
+    EXPECT_EQ(fixture.client.reference_mode_.Load(), ManeuverReferenceClient::REFERENCE_LOSS_STOP);
+}
+
 TEST(ManeuverReferenceClientTransaction, SuccessorAcceptsFirstMpcSampleWithOrWithoutInitializationAndKeepsGuard) {
     RclcppContext context;
     for (const bool observe_initialization : {false, true}) {
@@ -5164,8 +5229,10 @@ TEST(ManeuverReferenceClientTransaction, ExpiredEnteredObjectFallbackRejectsPend
         }
         {
             std::lock_guard<std::mutex> lock(fixture.scheduler.reference_stream_mutex_);
+            // Older than the stream's acknowledgement deadline
+            // (reference_stream_timeout_ms, 1000 ms in this fixture).
             fixture.scheduler.reference_stream_state_.last_ack =
-                std::chrono::steady_clock::now() - std::chrono::milliseconds(300);
+                std::chrono::steady_clock::now() - std::chrono::milliseconds(1100);
         }
         const auto sequence_before_expiry =
             fixture.scheduler.reference_stream_state_.sequence;
@@ -5188,7 +5255,7 @@ TEST(ManeuverReferenceClientTransaction, ExpiredEnteredObjectFallbackRejectsPend
         if (second_call.joinable()) second_call.join();
         tick.join();
         EXPECT_TRUE(tick_completed_while_entered)
-            << "a blocked planner must not block the scheduler's 250 ms ACK deadline";
+            << "a blocked planner must not block the scheduler's ACK deadline";
         EXPECT_EQ(fixture.scheduler.current_maneuver_.Load().maneuver_type(),
             iii_drone::control::maneuver::MANEUVER_TYPE_NONE)
             << "the expired pending HBO must be rejected, not left waiting";
@@ -6540,11 +6607,16 @@ TEST(ManeuverReferenceClientTransaction, NativeHoldRetiresExactCompletedOwnerBef
         ASSERT_TRUE(fixture.query()->accepted);
         const auto stream_id = fixture.scheduler.reference_stream_state_.stream_id;
         if (after_ack_loss) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(550));
+            // Past the retained hold's acknowledgement deadline (three stream
+            // deadlines, see detail::TerminalHoldAckTimeout).
+            const auto ack_loss = iii_drone::control::maneuver::detail::TerminalHoldAckTimeout(
+                std::chrono::milliseconds(500)) + std::chrono::milliseconds(50);
+            std::this_thread::sleep_for(ack_loss);
             auto measured = fixture.awareness->measured_odometry_.Load();
             ASSERT_TRUE(measured);
             measured->receipt_stamp = fixture.node.now();
-            measured->source_sample_timestamp_us += 550000;
+            measured->source_sample_timestamp_us += static_cast<uint64_t>(
+                std::chrono::duration_cast<std::chrono::microseconds>(ack_loss).count());
             fixture.awareness->measured_odometry_.Store(measured);
             fixture.scheduler.publishReferenceStream();
             EXPECT_NE(fixture.hold->phase(),
@@ -9118,4 +9190,211 @@ TEST(ManeuverReferenceClientTransaction, LossStopWithRoomAboveTheFloorOrUnknownG
     client.sampleReferenceLossStop([&failures] { ++failures; }, reference_mode);
     EXPECT_EQ(failures, 0);
     EXPECT_EQ(reference_mode, "reference_loss_stopping");
+}
+
+// HIL soak run 26: a recharge decision cancelled Inspection Demo's waypoint path
+// 80 ms after the scheduler had started it from the yaw alignment's retained
+// hold, before the path's server executed. The hold stayed with the yaw
+// alignment while the stream carried the path's request; the halt's retention
+// QUERY was rejected ("retained terminal callback is not current") and the
+// mission failed.
+TEST(ManeuverSchedulerTerminalHold, UnexecutedSuccessorOwnsTheHoldItWasStartedFrom) {
+    using iii_drone::control::maneuver::detail::UnexecutedSuccessor;
+    using iii_drone::control::maneuver::detail::UnexecutedSuccessorOwnsRetainedHold;
+    UnexecutedSuccessor base;
+    base.seeded = {kRequestB, 7, 12};
+    base.request_identity = kRequestB;
+    base.started = true;
+    base.terminated = true;
+    base.binding_request_identity = kRequestB;
+    base.binding_execution_id = 7;
+    base.binding_revision = 12;
+    base.current_execution_id = 7;
+    base.master_has_token = true;
+    base.hold_tracking = true;
+    base.hold_owner = kRequestA;
+    EXPECT_TRUE(UnexecutedSuccessorOwnsRetainedHold(base));
+
+    const auto with = [&base](auto change) {
+        auto state = base;
+        change(state);
+        return UnexecutedSuccessorOwnsRetainedHold(state);
+    };
+    EXPECT_FALSE(with([](auto & s) { s.terminated = false; }));
+    EXPECT_FALSE(with([](auto & s) { s.succeeded = true; }));
+    // Its server replaced the seed callback: it executed.
+    EXPECT_FALSE(with([](auto & s) { s.binding_revision = 13; }));
+    EXPECT_FALSE(with([](auto & s) { s.binding_execution_id = 8; s.current_execution_id = 8; }));
+    EXPECT_FALSE(with([](auto & s) { s.current_execution_id = 8; }));
+    EXPECT_FALSE(with([](auto & s) { s.master_has_token = false; }));
+    EXPECT_FALSE(with([](auto & s) { s.hold_tracking = false; }));
+    EXPECT_FALSE(with([](auto & s) { s.hold_owner = kRequestB; }));
+    EXPECT_FALSE(with([](auto & s) { s.hold_owner.clear(); }));
+    EXPECT_FALSE(with([](auto & s) { s.request_identity = kRequestC; }));
+    EXPECT_FALSE(with([](auto & s) { s.seeded.request_identity.clear(); }));
+}
+
+namespace {
+
+// Starts B from the retained hold's applied rest as the scheduler does, with
+// the seed generation published but not yet acknowledged, and ends B before
+// its server executed.
+uint64_t startSeededSuccessorAndCancelBeforeExecution(TerminalCompletionFixture & fixture) {
+    auto path = std::make_shared<iii_drone::control::maneuver::FollowWaypointPathManeuverServer>(
+        &fixture.node, fixture.awareness, "follow_waypoint_path", 1, 1, fixture.config);
+    fixture.scheduler.registered_maneuvers_[
+        iii_drone::control::maneuver::MANEUVER_TYPE_FOLLOW_WAYPOINT_PATH] = path;
+    fixture.scheduler.beginSeededSuccessorExecution(
+        "follow_waypoint_path", kRequestB, fixture.hold->lastCommand());
+    const auto execution = fixture.scheduler.current_reference_execution_id_.Load();
+    auto & stream = fixture.scheduler.reference_stream_state_;
+    stream.stream_id = "follow_waypoint_path:seed";
+    stream.provider = "follow_waypoint_path";
+    stream.request_identity = kRequestB;
+    stream.execution_id = execution;
+    stream.valid = true;
+    stream.sequence = 2;
+    stream.last_ack_sequence = 0;
+    stream.ack_seen = false;
+    stream.last_ack_reference_valid = false;
+    stream.recent_references.clear();
+    stream.recent_references.emplace_back(2, fixture.hold->lastCommand());
+    stream.generation_started = std::chrono::steady_clock::now();
+    iii_drone::control::maneuver::Maneuver successor(
+        iii_drone::control::maneuver::MANEUVER_TYPE_FOLLOW_WAYPOINT_PATH, rclcpp_action::GoalUUID{});
+    successor.request_identity_ = kRequestB;
+    successor.started_ = true;
+    successor.Terminate(false);
+    fixture.scheduler.current_maneuver_ = successor;
+    return execution;
+}
+
+}  // namespace
+
+TEST(ManeuverReferenceClientTransaction, SuccessorCancelledBeforeItsServerTookOverKeepsTheHold) {
+    RclcppContext context;
+    TerminalCompletionFixture fixture("terminal_unexecuted_successor");
+    ASSERT_TRUE(fixture.hold->RequestQuiescence());
+    fixture.finishWithoutSchedulerTick(
+        iii_drone::control::maneuver::MANEUVER_TYPE_CABLE_AWARE_FLY_TO_POSITION,
+        "cable_aware_fly_to_position", true);
+    ASSERT_TRUE(fixture.query()->accepted);
+    const auto execution = startSeededSuccessorAndCancelBeforeExecution(fixture);
+
+    // The halt's QUERY precedes the scheduler tick: B now owns the hold and
+    // waits for the consumer to apply its seed generation.
+    const auto pending = fixture.query();
+    EXPECT_FALSE(pending->accepted);
+    EXPECT_EQ(pending->reason, "terminal generation awaiting first applied acknowledgement");
+    EXPECT_EQ(fixture.hover->terminalHoldBinding().request_identity, kRequestB);
+    const auto binding = fixture.scheduler.reference_callback_struct_->snapshot();
+    EXPECT_EQ(binding.request_identity, kRequestB);
+    EXPECT_EQ(binding.execution_id, execution);
+    EXPECT_EQ(binding.reference_provider_name, "hover");
+    ASSERT_TRUE(binding.callback);
+    const auto command = binding.callback(iii_drone::control::State());
+    EXPECT_LT((command.position() - fixture.hold->lastCommand().position()).norm(), 1.0e-5);
+
+    auto ack = std::make_shared<Ack>();
+    ack->stream_id = "follow_waypoint_path:seed";
+    ack->last_applied_sequence = 2;
+    ack->consumer_status = Ack::STATUS_APPLIED;
+    fixture.scheduler.acknowledgeReferenceStream(ack);
+    const auto offer = fixture.query();
+    EXPECT_TRUE(offer->accepted) << offer->reason;
+    EXPECT_EQ(offer->source_request_identity, kRequestB);
+}
+
+TEST(ManeuverReferenceClientTransaction, SuccessorWhoseServerTookOverDoesNotInheritTheHold) {
+    RclcppContext context;
+    TerminalCompletionFixture fixture("terminal_executed_successor");
+    ASSERT_TRUE(fixture.hold->RequestQuiescence());
+    fixture.finishWithoutSchedulerTick(
+        iii_drone::control::maneuver::MANEUVER_TYPE_CABLE_AWARE_FLY_TO_POSITION,
+        "cable_aware_fly_to_position", true);
+    const auto execution = startSeededSuccessorAndCancelBeforeExecution(fixture);
+    // Its server registered its own callback for this execution.
+    fixture.scheduler.reference_callback_struct_->set(
+        [&fixture](const iii_drone::control::State &) { return fixture.hold->lastCommand(); },
+        "follow_waypoint_path", execution, kRequestB);
+    const auto offer = fixture.query();
+    EXPECT_FALSE(offer->accepted);
+    EXPECT_EQ(offer->reason, "retained terminal callback is not current");
+    EXPECT_EQ(fixture.hover->terminalHoldBinding().request_identity, kRequestA);
+}
+
+// A halt can also land before the scheduler starts the accepted successor: Core
+// still streams the predecessor's retained hold, which must stay in force.
+TEST(ManeuverReferenceClientTransaction, HaltBeforeCoreStartedTheGoalKeepsThePredecessorHold) {
+    RclcppContext context;
+    ClientFixture fixture("terminal_retention_unstarted_successor");
+    startRunningPredecessor(fixture);
+    auto producer = std::make_shared<rclcpp::Node>(
+        "terminal_retention_unstarted_producer", "/control/maneuver_controller");
+    using Transfer = iii_drone_interfaces::srv::TerminalHoldTransfer;
+    auto service = producer->create_service<Transfer>(
+        "terminal_hold_transfer",
+        [](const std::shared_ptr<Transfer::Request> request,
+            std::shared_ptr<Transfer::Response> response) {
+            if (request->operation != Transfer::Request::OP_QUERY) return;
+            response->accepted = true;
+            response->source_request_identity = kRequestA;
+            response->source_stream_id = "hover:g1";
+            response->source_ack_sequence = 100;
+            response->reference = ReferenceAdapter(finiteReference(0.0, 2.0)).ToMsg();
+        });
+    fixture.executor.add_node(producer);
+    std::thread spinner([&fixture] { fixture.executor.spin(); });
+    for (int attempt = 0; attempt < 50 &&
+         !fixture.client.terminal_hold_transfer_client_->service_is_ready(); ++attempt) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    ASSERT_TRUE(fixture.client.BeginManeuverGoalHandoff(kRequestB));
+    ASSERT_TRUE(fixture.client.ConfirmManeuverGoalHandoff(kRequestB));
+
+    EXPECT_EQ(fixture.client.RetainCompletedTerminalHold(kRequestB, 500),
+        ManeuverReferenceClient::TerminalHoldRetention::Retained);
+    EXPECT_FALSE(fixture.client.pending_goal_handoff_.has_value());
+    EXPECT_EQ(fixture.client.active_request_identity_, kRequestA);
+    EXPECT_EQ(fixture.client.reference_mode_.Load(), ManeuverReferenceClient::MANEUVER);
+    EXPECT_TRUE(fixture.client.terminalHoldContinuityRequired());
+    // A different, inactive owner is still not this goal's hold.
+    ASSERT_TRUE(fixture.client.BeginManeuverGoalHandoff(kRequestC));
+    fixture.client.active_request_identity_ = kRequestB;
+    EXPECT_EQ(fixture.client.RetainCompletedTerminalHold(kRequestC, 200),
+        ManeuverReferenceClient::TerminalHoldRetention::Failed);
+    fixture.executor.cancel();
+    spinner.join();
+    fixture.executor.remove_node(producer);
+}
+
+// HIL qualification 2026-10-04 (7f5fdbe): a same-target Hover's goal acceptance
+// switched the client from MANEUVER to WAIT_FOR_MANEUVER_START 0.6 ms into a
+// GetReference() call. The read found the mode changed and read nothing, and it
+// was reported as a failed acquisition (WARN and a safety miss).
+TEST(ManeuverReferenceClientTransaction, ModeChangeDuringReadIsNotALostReference) {
+    RclcppContext context;
+    ClientFixture fixture("reference_transaction_mode_change_during_read");
+    startRunningPredecessor(fixture);
+    ASSERT_TRUE(fixture.client.BeginManeuverGoalHandoff(kRequestB));
+    const auto held = fixture.client.reference_.Load();
+    bool accepted_during_read = false;
+    fixture.client.get_reference_after_mode_snapshot_hook_ = [&] {
+        if (accepted_during_read) return;
+        accepted_during_read = true;
+        EXPECT_TRUE(fixture.client.ConfirmManeuverGoalHandoff(kRequestB));
+    };
+
+    const auto reference = fixture.client.GetReference(0.02, [] {});
+    EXPECT_TRUE(accepted_during_read);
+    EXPECT_EQ(fixture.client.reference_mode_.Load(),
+        ManeuverReferenceClient::WAIT_FOR_MANEUVER_START);
+    EXPECT_EQ(fixture.client.failed_attempts_, 0);
+    EXPECT_LT((reference.position() - held.position()).norm(), 1.0e-9);
+
+    // The next update serves the new mode.
+    fixture.client.get_reference_after_mode_snapshot_hook_ = {};
+    const auto next = fixture.client.GetReference(0.02, [] {});
+    EXPECT_TRUE(next.position().allFinite());
+    EXPECT_EQ(fixture.client.failed_attempts_, 0);
 }

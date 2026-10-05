@@ -38,6 +38,11 @@ public:
         return first_planned_baseline_pending_;
     }
 
+    /** HoverOnCable's shapes: no position channels, used only on the cable. */
+    static bool onCableShape(const Reference & reference) {
+        return validVelocityOnly(reference) || validCablePush(reference);
+    }
+
 private:
     static bool fullyFinite(const Reference & reference) {
         return reference.position().allFinite() &&

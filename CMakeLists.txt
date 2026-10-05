@@ -378,116 +378,124 @@ if (BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
   # Each test gets its own ROS domain: tests that serve the same services or
   # topics (e.g. /control/trajectory_generator/compute_reference_trajectory)
-  # otherwise answer each other when ctest runs them in parallel. Run them
-  # without ROS_DOMAIN_ID set so the isolation can pick the domain.
+  # otherwise answer each other when ctest runs them in parallel. Unlike
+  # ament_add_ros_isolated_gtest, the runner also isolates when ROS_DOMAIN_ID
+  # is inherited (the devcontainer exports ROS_DOMAIN_ID=0) and never picks a
+  # live SIM/HIL domain.
   find_package(ament_cmake_ros REQUIRED)
   find_package(ament_cmake_pytest REQUIRED)
+  function(iii_drone_core_add_isolated_gtest target)
+    ament_add_gtest("${target}"
+      RUNNER "${CMAKE_CURRENT_SOURCE_DIR}/test/ros_domain_isolated_runner.py"
+      ${ARGN}
+    )
+  endfunction()
 
   ament_add_pytest_test(iii_drone_core_tf_launch_profile_test
     test/test_tf_launch_profile.py
   )
 
-  ament_add_ros_isolated_gtest(iii_drone_core_history_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_history_test
     test/utils/history_test.cpp
   )
 
-  ament_add_ros_isolated_gtest(iii_drone_core_callback_lifetime_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_callback_lifetime_test
     test/utils/callback_lifetime_test.cpp
   )
-  ament_add_ros_isolated_gtest(iii_drone_core_cable_push_profile_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_cable_push_profile_test
     test/control/cable_push_profile_test.cpp
   )
-  ament_add_ros_isolated_gtest(iii_drone_core_hover_thrust_meter_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_hover_thrust_meter_test
     test/control/hover_thrust_meter_test.cpp
   )
-  ament_add_ros_isolated_gtest(iii_drone_core_multi_threaded_executor_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_multi_threaded_executor_test
     test/utils/multi_threaded_executor_test.cpp
     TIMEOUT 120
   )
 
-  ament_add_ros_isolated_gtest(iii_drone_core_math_types_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_math_types_test
     test/utils/math_types_test.cpp
   )
 
-  ament_add_ros_isolated_gtest(iii_drone_core_timestamp_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_timestamp_test
     test/utils/timestamp_test.cpp
   )
 
-  ament_add_ros_isolated_gtest(iii_drone_core_reference_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_reference_test
     test/control/reference_test.cpp
   )
 
-  ament_add_ros_isolated_gtest(iii_drone_core_kinematic_stop_trajectory_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_kinematic_stop_trajectory_test
     test/control/kinematic_stop_trajectory_test.cpp
   )
 
-  ament_add_ros_isolated_gtest(iii_drone_core_maneuver_reference_safety_guard_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_maneuver_reference_safety_guard_test
     test/control/maneuver_reference_safety_guard_test.cpp
   )
-  ament_add_ros_isolated_gtest(iii_drone_core_bounded_terminal_position_tracking_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_bounded_terminal_position_tracking_test
     test/control/bounded_terminal_position_tracking_test.cpp
   )
-  ament_add_ros_isolated_gtest(iii_drone_core_measured_odometry_snapshot_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_measured_odometry_snapshot_test
     test/control/measured_odometry_snapshot_test.cpp
   )
-  ament_add_ros_isolated_gtest(iii_drone_core_estimated_position_stop_proof_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_estimated_position_stop_proof_test
     test/control/estimated_position_stop_proof_test.cpp
   )
-  ament_add_ros_isolated_gtest(iii_drone_core_maneuver_reference_stream_guard_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_maneuver_reference_stream_guard_test
     test/control/maneuver_reference_stream_guard_test.cpp
   )
-  ament_add_ros_isolated_gtest(iii_drone_core_maneuver_reference_client_transaction_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_maneuver_reference_client_transaction_test
     test/control/maneuver_reference_client_transaction_test.cpp
   )
-  ament_add_ros_isolated_gtest(iii_drone_core_reference_callback_token_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_reference_callback_token_test
     test/control/reference_callback_token_test.cpp
   )
 
-  ament_add_ros_isolated_gtest(iii_drone_core_odometry_ingress_starvation_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_odometry_ingress_starvation_test
     test/control/odometry_ingress_starvation_test.cpp
   )
 
   # Several closed-loop cases cover over two minutes of virtual flight in Debug.
-  ament_add_ros_isolated_gtest(iii_drone_core_trajectory_interpolator_test TIMEOUT 600
+  iii_drone_core_add_isolated_gtest(iii_drone_core_trajectory_interpolator_test TIMEOUT 600
     test/control/trajectory_interpolator_test.cpp
   )
-  ament_add_ros_isolated_gtest(iii_drone_core_trajectory_generator_client_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_trajectory_generator_client_test
     test/control/trajectory_generator_client_test.cpp
   )
-  ament_add_ros_isolated_gtest(iii_drone_core_trajectory_generator_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_trajectory_generator_test
     test/control/trajectory_generator_test.cpp
   )
-  ament_add_ros_isolated_gtest(iii_drone_core_maneuver_controller_configuration_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_maneuver_controller_configuration_test
     test/control/maneuver_controller_configuration_test.cpp
   )
-  ament_add_ros_isolated_gtest(iii_drone_core_waypoint_path_planner_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_waypoint_path_planner_test
     test/control/waypoint_path_planner_test.cpp
   )
-  ament_add_ros_isolated_gtest(iii_drone_core_follow_waypoint_path_stop_proof_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_follow_waypoint_path_stop_proof_test
     test/control/follow_waypoint_path_stop_proof_test.cpp
   )
 
-  ament_add_ros_isolated_gtest(iii_drone_core_cable_aware_trajectory_planner_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_cable_aware_trajectory_planner_test
     test/control/cable_aware_trajectory_planner_test.cpp
   )
 
-  ament_add_ros_isolated_gtest(iii_drone_core_cable_landing_heading_lock_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_cable_landing_heading_lock_test
     test/control/cable_landing_heading_lock_test.cpp
   )
 
-  ament_add_ros_isolated_gtest(iii_drone_core_basic_adapters_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_basic_adapters_test
     test/adapters/basic_adapters_test.cpp
   )
 
-  ament_add_ros_isolated_gtest(iii_drone_core_perception_adapters_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_perception_adapters_test
     test/adapters/perception_adapters_test.cpp
   )
 
-  ament_add_ros_isolated_gtest(iii_drone_core_hough_transformer_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_hough_transformer_test
     test/perception/hough_transformer_test.cpp
   )
 
-  ament_add_ros_isolated_gtest(iii_drone_core_powerline_direction_test
+  iii_drone_core_add_isolated_gtest(iii_drone_core_powerline_direction_test
     test/perception/powerline_direction_test.cpp
   )
 

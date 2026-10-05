@@ -92,6 +92,96 @@ namespace control {
 
 namespace maneuver {
 
+    namespace detail {
+
+        /**
+         * @brief Whether the consumer's acknowledgement of the reference
+         * stream is too old for a pending HoverByObject to adopt the tracked
+         * object session. The deadline is the stream's acknowledgement
+         * deadline (reference_stream_timeout_ms); the consumer acknowledges
+         * once per setpoint update (every /control/dt, 0.2 s).
+         */
+        inline bool ObjectHandoffAcknowledgementExpired(
+            std::chrono::steady_clock::duration age,
+            bool clock_went_backwards,
+            std::chrono::milliseconds deadline
+        ) {
+            return age >= deadline || clock_went_backwards;
+        }
+
+        /**
+         * @brief Applied-acknowledgement deadline of a retained terminal hold.
+         * The hold bridges a mode handoff: its consumer stops acknowledging
+         * when the predecessor completes and resumes when the successor adopts
+         * it, across two PX4 round trips (the completion report and the mode
+         * switch) that the HIL link may each lose and retry. One stream
+         * deadline did not cover that (HIL soak run 23: a lost completion and
+         * a retried mode switch made the gap 1.54 s against 1.5 s; the hold
+         * failed 4 ms before Reach Cable adopted it). PX4 holds the last
+         * setpoint meanwhile. Live streams keep the stream deadline.
+         */
+        inline constexpr int kTerminalHoldAckTimeoutFactor = 3;
+
+        inline std::chrono::milliseconds TerminalHoldAckTimeout(std::chrono::milliseconds stream_timeout) {
+            return kTerminalHoldAckTimeoutFactor * stream_timeout;
+        }
+
+        /**
+         * @brief The binding a terminal successor was started with: the
+         * retained hold's applied rest under the successor's request.
+         */
+        struct SeededSuccessorExecution {
+            std::string request_identity;
+            uint64_t execution_id = 0;
+            uint64_t revision = 0;
+        };
+
+        /** @brief Inputs of UnexecutedSuccessorOwnsRetainedHold(). */
+        struct UnexecutedSuccessor {
+            SeededSuccessorExecution seeded;
+            std::string request_identity;
+            bool started = false;
+            bool terminated = false;
+            bool succeeded = false;
+            std::string binding_request_identity;
+            uint64_t binding_execution_id = 0;
+            uint64_t binding_revision = 0;
+            uint64_t current_execution_id = 0;
+            bool master_has_token = false;
+            bool hold_tracking = false;
+            std::string hold_owner;
+        };
+
+        /**
+         * @brief Whether a terminal successor that ended before its server
+         * took over must own the retained hold it was started from.
+         *
+         * The scheduler starts a successor by binding the hold's applied rest
+         * under the successor's request before the successor's server
+         * executes. A goal cancelled or aborted in that window has only ever
+         * streamed that rest, so its stream is the hold, and the halt that
+         * ended it must be able to retain the hold as the successor's. HIL
+         * soak run 26: a recharge decision cancelled Inspection Demo's
+         * waypoint path 80 ms after it was started from the yaw alignment's
+         * hold; the hold stayed with the yaw alignment, the halt's retention
+         * was rejected and the mission failed. The unchanged seed binding
+         * (execution and revision) proves the server never took over.
+         */
+        inline bool UnexecutedSuccessorOwnsRetainedHold(const UnexecutedSuccessor & state) {
+            return !state.seeded.request_identity.empty() &&
+                state.request_identity == state.seeded.request_identity &&
+                state.started && state.terminated && !state.succeeded &&
+                state.binding_request_identity == state.seeded.request_identity &&
+                state.binding_execution_id == state.seeded.execution_id &&
+                state.binding_revision == state.seeded.revision &&
+                state.binding_execution_id == state.current_execution_id &&
+                state.master_has_token && state.hold_tracking &&
+                !state.hold_owner.empty() && state.hold_owner != state.request_identity;
+        }
+
+    } // namespace detail
+
+
     /**
      * @brief Class that schedules execution of drone maneuvers.
      * Maneuver server are registered using the dedicated functions. 
@@ -478,6 +568,8 @@ namespace maneuver {
         std::function<void()> terminal_hold_transfer_after_validity_hook_;
         std::string terminal_quiesce_request_identity_;
         std::chrono::steady_clock::time_point terminal_quiesce_started_;
+        // Seed binding of the last terminal successor (reference_stream_mutex_).
+        std::optional<detail::SeededSuccessorExecution> seeded_successor_execution_;
 
         bool pauseReferenceStreamIfRequired();
         void publishReferenceStream();
@@ -487,6 +579,17 @@ namespace maneuver {
             std::optional<Reference> initial_command = std::nullopt
         );
         void beginReferenceExecution(const std::string & provider);
+        /** Starts a terminal successor from the retained hold's applied rest. */
+        void beginSeededSuccessorExecution(
+            const std::string & provider,
+            const std::string & request_identity,
+            const Reference & seed
+        );
+        /**
+         * Gives the retained hold to a terminal successor that ended before
+         * its server took over (reference_stream_mutex_ held).
+         */
+        bool installUnexecutedSuccessorHoldLocked();
         void acknowledgeReferenceStream(
             const iii_drone_interfaces::msg::ManeuverReferenceAck::SharedPtr message
         );
