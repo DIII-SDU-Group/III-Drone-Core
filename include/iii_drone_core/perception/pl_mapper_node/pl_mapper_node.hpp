@@ -270,14 +270,11 @@ private:
     Powerline::SharedPtr powerline_;
 
     /**
-     * @brief Rotation matrix from drone to mmWave frame
+     * @brief The static radar mount: maps points from the mmWave frame into
+     * the drone frame (looked up once at activation, applied with tf2's own
+     * transform math so it equals a per-point TF transform).
     */
-    iii_drone::types::rotation_matrix_t R_drone_to_mmw_;
-
-    /**
-     * @brief Translation vector from drone to mmWave frame
-    */
-    iii_drone::types::vector_t v_drone_to_mmw_;
+    tf2::Transform drone_from_mmwave_;
 
     /**
      * @brief Direction of detected powerline

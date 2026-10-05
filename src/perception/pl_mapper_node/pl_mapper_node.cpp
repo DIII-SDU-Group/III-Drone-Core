@@ -399,10 +399,7 @@ PowerlineMapperNode::on_activate(const rclcpp_lifecycle::State & state) {
 
     }
 
-    quaternion_t mmw_quat = quaternionFromTransformMsg(mmw_tf.transform);
-
-    R_drone_to_mmw_ = quatToMat(mmw_quat);
-    v_drone_to_mmw_ = vectorFromTransformMsg(mmw_tf.transform);
+    tf2::fromMsg(mmw_tf.transform, drone_from_mmwave_);
 
 
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
@@ -729,6 +726,25 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
     int n_skipped = 0;
 
+    // Points in the radar frame (the normal case) need no TF per point: the
+    // field-of-view check is in that frame, and radar->drone is the static
+    // mount cached at activation (drone_from_mmwave_).
+    const auto powerline_configuration = configurator_->GetConfiguration("powerline");
+    if (msg->header.frame_id == configurator_->GetParameter("/tf/mmwave_frame_id").as_string()) {
+        const float min_point_dist = powerline_configuration->GetParameter("/perception/pl_mapper/min_point_dist").as_double();
+        const float max_point_dist = powerline_configuration->GetParameter("/perception/pl_mapper/max_point_dist").as_double();
+        const float view_cone_slope = powerline_configuration->GetParameter("/perception/pl_mapper/view_cone_slope").as_double();
+        for (const point_t & point : pcl_points) {
+            if (!SingleLine::IsInFOV(point, min_point_dist, max_point_dist, view_cone_slope)) {
+                n_skipped++;
+                continue;
+            }
+            const tf2::Vector3 in_drone = drone_from_mmwave_ * tf2::Vector3(point.x(), point.y(), point.z());
+            transformed_points.push_back(point_t(in_drone.x(), in_drone.y(), in_drone.z()));
+        }
+        pcl_points.clear();
+    }
+
     for (size_t i = 0; i < pcl_points.size(); i++) {
 
         auto line = SingleLine(
@@ -737,7 +753,7 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
             pl_direction_,
             msg->header.frame_id,
             tf_buffer_,
-            configurator_->GetConfiguration("powerline")
+            powerline_configuration
         );
 
         if(!line.IsInFOV()) {
