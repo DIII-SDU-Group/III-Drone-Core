@@ -162,6 +162,24 @@ namespace control {
     );
 
     /**
+     * @brief AMSL altitude of the ground: the local ground altitude estimate
+     * plus the offset between PX4's AMSL altitude and the local altitude of
+     * the same instant. NaN when the AMSL altitude is unknown (zero or not
+     * finite) or the local altitude is not finite.
+     *
+     * @param ground_altitude_estimate Local ground altitude estimate [m, up].
+     * @param altitude_amsl PX4 global position altitude [m AMSL].
+     * @param altitude_local Local altitude of the same instant [m, up].
+     *
+     * @return double The ground altitude AMSL, or NaN.
+     */
+    double GroundAltitudeEstimateAmsl(
+        double ground_altitude_estimate,
+        float altitude_amsl,
+        float altitude_local
+    );
+
+    /**
      * @brief Class which subscribes to various topics related to the drone awareness and keeps track of the current combined awareness.
      * Does the following:
      * - Subscribes to the PX4 vehicle status and odometry topics, the powerline topic, the gripper status topic, and the target cable id topic.

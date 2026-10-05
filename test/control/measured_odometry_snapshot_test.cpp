@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 #include <chrono>
+#include <cmath>
+#include <limits>
 
 #include <iii_drone_core/control/combined_drone_awareness_handler.hpp>
 
@@ -129,4 +131,20 @@ TEST(VehicleNavigationEvidence, SourceIdentityAndResetFenceNativeHold) {
         evidence, status, first_receipt + std::chrono::seconds(4), false);
     EXPECT_FALSE(evidence.latest);
     EXPECT_FALSE(evidence.last_external);
+}
+
+TEST(GroundAltitudeEstimateAmsl, AddsTheAmslOffsetOfTheSameInstant) {
+    EXPECT_NEAR(iii_drone::control::GroundAltitudeEstimateAmsl(0.10, 45.30F, 0.12F), 45.28, 1.0e-5);
+}
+
+TEST(GroundAltitudeEstimateAmsl, UnknownAltitudeIsNan) {
+    using iii_drone::control::GroundAltitudeEstimateAmsl;
+    const float nan = std::numeric_limits<float>::quiet_NaN();
+    const float infinity = std::numeric_limits<float>::infinity();
+    // A NaN AMSL altitude never compared equal to NAN, so it passed the old guard.
+    EXPECT_TRUE(std::isnan(GroundAltitudeEstimateAmsl(0.10, nan, 0.12F)));
+    EXPECT_TRUE(std::isnan(GroundAltitudeEstimateAmsl(0.10, infinity, 0.12F)));
+    EXPECT_TRUE(std::isnan(GroundAltitudeEstimateAmsl(0.10, -infinity, 0.12F)));
+    EXPECT_TRUE(std::isnan(GroundAltitudeEstimateAmsl(0.10, 0.0F, 0.12F)));
+    EXPECT_TRUE(std::isnan(GroundAltitudeEstimateAmsl(0.10, 45.30F, nan)));
 }

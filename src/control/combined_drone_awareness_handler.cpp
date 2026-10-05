@@ -562,6 +562,19 @@ bool iii_drone::control::IsOperatorNativeControl(
          nav_state > px4_msgs::msg::VehicleStatus::NAVIGATION_STATE_EXTERNAL8);
 }
 
+double iii_drone::control::GroundAltitudeEstimateAmsl(
+    double ground_altitude_estimate,
+    float altitude_amsl,
+    float altitude_local
+) {
+    // std::isfinite: NaN compares unequal to everything, NAN included.
+    if (altitude_amsl == 0 || !std::isfinite(altitude_amsl) || !std::isfinite(altitude_local)) {
+        return NAN;
+    }
+    const float diff = altitude_amsl - altitude_local;
+    return ground_altitude_estimate + diff;
+}
+
 bool CombinedDroneAwarenessHandler::OperatorNativeControl() const {
     return IsOperatorNativeControl(
         vehicle_navigation_evidence_.Load(), std::chrono::steady_clock::now());
@@ -1602,21 +1615,11 @@ void CombinedDroneAwarenessHandler::updateGroundAltitudeEstimate(
 
     if (!vehicle_global_position_adapter_history_->empty()) {
 
-        float altitude_amsl = (*vehicle_global_position_adapter_history_)[0].altitude();
-
-        if (altitude_amsl != 0 && altitude_amsl != NAN) {
-
-            float altitude_local = (*vehicle_odometry_adapter_history_)[0].position()[2];
-
-            float diff = altitude_amsl - altitude_local;
-
-            ground_altitude_estimate_amsl_->Store(ground_altitude_estimate + diff);
-
-        } else {
-
-            ground_altitude_estimate_amsl_->Store(NAN);
-
-        }
+        ground_altitude_estimate_amsl_->Store(GroundAltitudeEstimateAmsl(
+            ground_altitude_estimate,
+            (*vehicle_global_position_adapter_history_)[0].altitude(),
+            (*vehicle_odometry_adapter_history_)[0].position()[2]
+        ));
 
     } else {
 
