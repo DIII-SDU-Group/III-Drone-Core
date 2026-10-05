@@ -342,6 +342,25 @@ Reference FollowWaypointPathManeuverServer::computeReference(const State & state
     return active_sample_.reference.CopyWithNewStamp(node()->now());
 }
 
+bool FollowWaypointPathManeuverServer::terminalBlocked(
+    const char * reason, double position_error, double yaw_error
+) {
+    const auto now = std::chrono::steady_clock::now();
+    if (!terminal_blocked_since_) {
+        terminal_blocked_since_ = now;
+    }
+    const double blocked_s = std::chrono::duration<double>(now - *terminal_blocked_since_).count();
+    if (blocked_s >= 30.0 && now - terminal_block_logged_at_ >= std::chrono::seconds(30)) {
+        terminal_block_logged_at_ = now;
+        RCLCPP_INFO(node()->get_logger(),
+            "FollowWaypointPath terminal phase has not succeeded for %.0f s: %s "
+            "(position error %.3f m, yaw error %.3f rad, hold phase %d)",
+            blocked_s, reason, position_error, yaw_error,
+            terminal_hold_ ? static_cast<int>(terminal_hold_->phase()) : -1);
+    }
+    return false;
+}
+
 bool FollowWaypointPathManeuverServer::hasSucceeded(Maneuver & maneuver) {
     const auto params = follow_waypoint_path_maneuver_params_t(maneuver.maneuver_params());
     if (params.repeat) {
@@ -351,11 +370,13 @@ bool FollowWaypointPathManeuverServer::hasSucceeded(Maneuver & maneuver) {
     if (has_failed_ || plan_.prefix.references.empty()) {
         terminal_stop_proof_.reset();
         terminal_motion_proof_.reset();
+        terminal_blocked_since_.reset();
         return false;
     }
     if ((node()->now() - execution_start_time_).seconds() < plan_.prefixDurationS()) {
         terminal_stop_proof_.reset();
         terminal_motion_proof_.reset();
+        terminal_blocked_since_.reset();
         return false;
     }
     const State state = awareness_handler()->GetState();
@@ -367,43 +388,60 @@ bool FollowWaypointPathManeuverServer::hasSucceeded(Maneuver & maneuver) {
         terminal_motion_proof_.reset();
         return false;
     }
+    const double position_error = (state.position() - target.position()).norm();
+    const double yaw_error = std::abs(shortestYawError(state.yaw(), target.yaw()));
     const bool terminal_pose_reached =
-        (state.position() - target.position()).norm() < configuration_->GetParameter(
+        position_error < configuration_->GetParameter(
             "/control/maneuver_controller/reached_position_euclidean_distance_threshold"
         ).as_double() &&
-        std::abs(shortestYawError(state.yaw(), target.yaw())) < configuration_->GetParameter(
+        yaw_error < configuration_->GetParameter(
             "/control/maneuver_controller/reached_yaw_error_threshold"
         ).as_double();
     if (!terminal_hold_) {
         // Preserve the previous completion contract for a planner endpoint
         // that was not a stationary nominal reference.
-        return terminal_stop_proof_.observe(
+        const bool stopped = terminal_stop_proof_.observe(
             terminal_pose_reached, state,
             controlledCancellationConfigFrom(configuration_),
             WaypointPathTerminalStopProof::Clock::now());
+        if (!stopped) {
+            return terminalBlocked(
+                terminal_pose_reached ? "stop proof settling" : "terminal pose not reached",
+                position_error, yaw_error);
+        }
+        terminal_blocked_since_.reset();
+        return true;
     }
     if (terminal_hold_->phase() != TerminalTrackingHold::Phase::Tracking) {
         terminal_motion_proof_.reset();
-        return false;
+        return terminalBlocked("terminal hold not tracking", position_error, yaw_error);
     }
     if (!terminal_pose_reached) {
         terminal_motion_proof_.reset();
         terminal_hold_->ResumeTracking();
-        return false;
+        return terminalBlocked("terminal pose not reached", position_error, yaw_error);
     }
     terminal_hold_->RequestQuiescence();
-    if (!terminal_hold_->isQuiescent() || !applied_rest_reference_ ||
+    if (!terminal_hold_->isQuiescent()) {
+        terminal_motion_proof_.reset();
+        return terminalBlocked("terminal hold not quiescent", position_error, yaw_error);
+    }
+    if (!applied_rest_reference_ ||
         !applied_rest_reference_(maneuver.requestIdentity(), terminal_hold_->lastCommand())) {
         terminal_motion_proof_.reset();
-        return false;
+        return terminalBlocked("rest reference not applied by the consumer", position_error, yaw_error);
     }
     const auto measured = awareness_handler()->GetMeasuredOdometry();
     if (!measured) {
         terminal_motion_proof_.reset();
-        return false;
+        return terminalBlocked("no measured odometry", position_error, yaw_error);
     }
-    return terminal_motion_proof_.observe(
-        true, *measured, controlledCancellationConfigFrom(configuration_), node()->now());
+    if (!terminal_motion_proof_.observe(
+            true, *measured, controlledCancellationConfigFrom(configuration_), node()->now())) {
+        return terminalBlocked("motion proof settling", position_error, yaw_error);
+    }
+    terminal_blocked_since_.reset();
+    return true;
 }
 
 bool FollowWaypointPathManeuverServer::hasFailed(Maneuver &) {
