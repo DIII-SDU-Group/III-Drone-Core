@@ -26,8 +26,6 @@ SIMULATION = os.environ.get('SIMULATION', 'false').lower() == 'true'
 if SIMULATION:
     import debugpy
 
-#import pigpio
-
 class ChargerGripperNode(Node):
     def __init__(
             self,
@@ -269,6 +267,9 @@ class ChargerGripperNode(Node):
             if self.configurator.get_parameter("/payload/charger_gripper/gripper_command_interface").value == "gpio" and not self.simulation_:
                 # #self.declare_parameter("charger_gripper_rpi_gpio_pin", 18)
                 self.charger_gripper_rpi_gpio_pin_ = self.configurator.get_parameter("/payload/charger_gripper/charger_gripper_rpi_gpio_pin").value
+
+                # Only GPIO-wired aircraft need the pigpio daemon client.
+                import pigpio
 
                 self.pi_gpio_ = pigpio.pi()
 
@@ -531,7 +532,6 @@ class ChargerGripperNode(Node):
         self.get_logger().info("Received gripper command: " + str(request.gripper_command))
 
         gripper_command = request.gripper_command
-        previous_gripper_command = self.last_gripper_command_
 
         if (gripper_command == GripperCommand.Request.GRIPPER_COMMAND_OPEN):
             self.open_gripper()
