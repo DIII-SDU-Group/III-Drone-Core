@@ -318,8 +318,17 @@ void ManeuverScheduler::publishManeuverStatus() {
     for (Maneuver maneuver : maneuver_queue) {
         maneuver_queue_msg.scheduled_maneuvers.push_back(ManeuverAdapter(maneuver).ToMsg());
     }
+    const auto now = std::chrono::steady_clock::now();
+    if (published_maneuver_ && *published_maneuver_ == current_maneuver_msg &&
+        published_maneuver_queue_ && *published_maneuver_queue_ == maneuver_queue_msg &&
+        now - maneuver_status_published_at_ < std::chrono::seconds(1)) {
+        return;
+    }
     current_maneuver_publisher_->publish(current_maneuver_msg);
     maneuver_queue_publisher_->publish(maneuver_queue_msg);
+    published_maneuver_ = std::move(current_maneuver_msg);
+    published_maneuver_queue_ = std::move(maneuver_queue_msg);
+    maneuver_status_published_at_ = now;
 }
 
 void ManeuverScheduler::Stop() {

@@ -720,6 +720,11 @@ namespace maneuver {
          * @brief Maneuver queue publisher.
          */
         rclcpp_lifecycle::LifecyclePublisher<iii_drone_interfaces::msg::ManeuverQueue>::SharedPtr maneuver_queue_publisher_;
+        // Status observers (GC, rosbag) need changes and a heartbeat, not the
+        // same two messages ten times a second.
+        std::optional<iii_drone_interfaces::msg::Maneuver> published_maneuver_;
+        std::optional<iii_drone_interfaces::msg::ManeuverQueue> published_maneuver_queue_;
+        std::chrono::steady_clock::time_point maneuver_status_published_at_{};
 
         /**
          * @brief Maneuver publish timer.
