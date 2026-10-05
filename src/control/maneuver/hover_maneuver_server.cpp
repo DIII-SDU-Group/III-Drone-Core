@@ -308,7 +308,9 @@ bool HoverManeuverServer::rebaseExecution(
     std::string & reason
 ) {
     Update(stopped_state);
-    hover_start_time_ = node()->now();
+    // The same clock as the start (system time): hasSucceeded() subtracts it
+    // from rclcpp::Clock().now(), and mixed clock types throw.
+    hover_start_time_ = rclcpp::Clock().now();
     reason = "hover anchored at stopped state";
     return true;
 }
