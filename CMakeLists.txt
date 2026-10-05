@@ -455,6 +455,10 @@ if (BUILD_TESTING)
     test/control/odometry_ingress_starvation_test.cpp
   )
 
+  iii_drone_core_add_isolated_gtest(iii_drone_core_awareness_recompute_test
+    test/control/awareness_recompute_test.cpp
+  )
+
   # Several closed-loop cases cover over two minutes of virtual flight in Debug.
   iii_drone_core_add_isolated_gtest(iii_drone_core_trajectory_interpolator_test TIMEOUT 600
     test/control/trajectory_interpolator_test.cpp
@@ -576,6 +580,11 @@ if (BUILD_TESTING)
     target_include_directories(iii_drone_core_odometry_ingress_starvation_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
     target_link_libraries(iii_drone_core_odometry_ingress_starvation_test iii_drone_lib)
     ament_target_dependencies(iii_drone_core_odometry_ingress_starvation_test ${dependencies})
+  endif()
+  if(TARGET iii_drone_core_awareness_recompute_test)
+    target_include_directories(iii_drone_core_awareness_recompute_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_awareness_recompute_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_awareness_recompute_test ${dependencies})
   endif()
   if(TARGET iii_drone_core_reference_callback_token_test)
     target_include_directories(iii_drone_core_reference_callback_token_test PRIVATE ${III_DRONE_INCLUDE_DIRS})

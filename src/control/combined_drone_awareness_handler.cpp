@@ -134,9 +134,11 @@ void CombinedDroneAwarenessHandler::Start() {
     vehicle_status_adapter_history_ = std::make_shared<VehicleStatusAdapterHistory>(1);
     vehicle_odometry_adapter_history_ = std::make_shared<VehicleOdometryAdapterHistory>(2);
     measured_odometry_.Store(std::nullopt);
-    vehicle_global_position_adapter_history_ = std::make_shared<VehicleGlobalPositionAdapterHistory>(1);
     powerline_adapter_history_ = std::make_shared<PowerlineAdapterHistory>(1);
     gripper_status_adapter_history_ = std::make_shared<GripperStatusAdapterHistory>(1);
+    last_gripper_open_.reset();
+    ground_tf_published_altitude_ = std::numeric_limits<double>::quiet_NaN();
+    local_reference_altitude_amsl_.store(std::numeric_limits<double>::quiet_NaN());
     {
         std::lock_guard<std::mutex> lock(odometry_ingest_mutex_);
         latest_local_reset_.reset();
@@ -309,23 +311,15 @@ void CombinedDroneAwarenessHandler::Start() {
         [this, lifetime = callback_lifetime_.token()](const px4_msgs::msg::VehicleLocalPosition::SharedPtr msg) {
             const auto alive = lifetime.Enter();
             if (!alive.owns_lock()) return;
+            const uint64_t odometry_version = measured_odometry_version_.load();
             ingestVehicleLocalPosition(*msg, node_->now());
-            if (vehicle_odometry_adapter_history_ &&
+            if (measured_odometry_version_.load() != odometry_version &&
+                vehicle_odometry_adapter_history_ &&
                 !vehicle_odometry_adapter_history_->empty())
                 updateCombinedDroneAwarenessFromVehicleOdometry();
         },
         odometry_options);
     startOdometryIngress();
-
-    vehicle_global_position_sub_ = node_->create_subscription<px4_msgs::msg::VehicleGlobalPosition>(
-        "/fmu/out/vehicle_global_position",
-        px4_sub_qos,
-        [this](const px4_msgs::msg::VehicleGlobalPosition::SharedPtr msg) {
-            if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::vehicle_global_position_sub_: Vehicle global position received");
-            iii_drone::adapters::px4::VehicleGlobalPositionAdapter adapter(*msg);
-            vehicle_global_position_adapter_history_->Store(adapter);
-        }
-    );
 
     powerline_sub_ = node_->create_subscription<iii_drone_interfaces::msg::Powerline>(
         "/perception/pl_mapper/powerline",
@@ -348,7 +342,10 @@ void CombinedDroneAwarenessHandler::Start() {
             if(debug_) RCLCPP_DEBUG(node_->get_logger(), "CombinedDroneAwarenessHandler::gripper_status_sub_: Gripper status received");
             iii_drone::adapters::GripperStatusAdapter adapter(*msg);
             gripper_status_adapter_history_->Store(adapter);
-            updateCombinedDroneAwarenessFromGripperStatus();
+            if (last_gripper_open_ != adapter.open()) {
+                last_gripper_open_ = adapter.open();
+                updateCombinedDroneAwarenessFromGripperStatus();
+            }
         }
     );
 
@@ -751,6 +748,7 @@ void CombinedDroneAwarenessHandler::acceptMeasuredOdometry(
         odometry_source_epoch_, position_epoch_, message.reset_counter, qualified};
     vehicle_odometry_adapter_history_->Store(adapter);
     measured_odometry_.Store(snapshot);
+    ++measured_odometry_version_;
     ++accepted_odometry_samples_;
     latest_accepted_odometry_available_ = true;
     latest_accepted_source_sample_us_ = message.timestamp_sample;
@@ -884,6 +882,10 @@ void CombinedDroneAwarenessHandler::ingestVehicleLocalPosition(
     const px4_msgs::msg::VehicleLocalPosition & message,
     const rclcpp::Time & receipt) {
     std::lock_guard<std::mutex> lock(odometry_ingest_mutex_);
+    local_reference_altitude_amsl_.store(
+        message.z_global && message.ref_timestamp != 0 && std::isfinite(message.ref_alt)
+            ? static_cast<double>(message.ref_alt)
+            : std::numeric_limits<double>::quiet_NaN());
     if (message.timestamp_sample == 0 || message.ref_timestamp == 0 ||
         !message.xy_global || !message.z_global ||
         !message.xy_valid || !message.z_valid ||
@@ -899,6 +901,7 @@ void CombinedDroneAwarenessHandler::ingestVehicleLocalPosition(
             invalidated.position_continuity = PositionContinuityIdentity{
                 odometry_source_epoch_, position_epoch_, current->reset_counter, false};
             measured_odometry_.Store(invalidated); // original receipt/sample remain authoritative
+            ++measured_odometry_version_;
             RCLCPP_WARN(node_->get_logger(),
                 "PX4 local-position reset provenance became invalid (raw_reset=%u odometry_source_us=%llu local_source_us=%llu)",
                 static_cast<unsigned>(current->reset_counter),
@@ -951,6 +954,7 @@ void CombinedDroneAwarenessHandler::ingestVehicleLocalPosition(
                 current->position_continuity.position_epoch = position_epoch_;
                 current->position_continuity.source_qualified = false;
                 measured_odometry_.Store(current);
+                ++measured_odometry_version_;
             }
             return;
         }
@@ -967,6 +971,7 @@ void CombinedDroneAwarenessHandler::ingestVehicleLocalPosition(
                 current->position_continuity.position_epoch = position_epoch_;
                 current->position_continuity.source_qualified = false;
                 measured_odometry_.Store(current);
+                ++measured_odometry_version_;
             }
         }
         return;
@@ -1008,7 +1013,16 @@ void CombinedDroneAwarenessHandler::ingestVehicleLocalPosition(
         }
         qualified.position_continuity = PositionContinuityIdentity{
             odometry_source_epoch_, position_epoch_, current->reset_counter, true};
-        measured_odometry_.Store(qualified); // receipt and sample identity are unchanged.
+        const auto & before = current->position_continuity;
+        const auto & after = qualified.position_continuity;
+        // Most local-position messages re-qualify an already qualified sample.
+        if (before.source_epoch != after.source_epoch ||
+            before.position_epoch != after.position_epoch ||
+            before.raw_reset_counter != after.raw_reset_counter ||
+            before.source_qualified != after.source_qualified) {
+            measured_odometry_.Store(qualified); // receipt and sample identity are unchanged.
+            ++measured_odometry_version_;
+        }
         verified_local_reset_ = metadata;
     }
 }
@@ -1600,31 +1614,25 @@ void CombinedDroneAwarenessHandler::updateGroundAltitudeEstimate(
 
     ground_altitude_estimate_->Store(ground_altitude_estimate);
 
-    if (!vehicle_global_position_adapter_history_->empty()) {
-
-        float altitude_amsl = (*vehicle_global_position_adapter_history_)[0].altitude();
-
-        if (altitude_amsl != 0 && altitude_amsl != NAN) {
-
-            float altitude_local = (*vehicle_odometry_adapter_history_)[0].position()[2];
-
-            float diff = altitude_amsl - altitude_local;
-
-            ground_altitude_estimate_amsl_->Store(ground_altitude_estimate + diff);
-
-        } else {
-
-            ground_altitude_estimate_amsl_->Store(NAN);
-
-        }
-
-    } else {
-
-        ground_altitude_estimate_amsl_->Store(NAN);
-
-    }
+    // The local position's reference altitude is the AMSL altitude of the
+    // local origin (PX4 computes the global altitude as ref_alt - z_NED), and
+    // the odometry adapter's z points up, so ground AMSL = estimate + ref_alt.
+    const double reference_altitude_amsl = local_reference_altitude_amsl_.load();
+    ground_altitude_estimate_amsl_->Store(
+        std::isfinite(reference_altitude_amsl)
+            ? ground_altitude_estimate + reference_altitude_amsl
+            : std::numeric_limits<double>::quiet_NaN());
 
     ground_altitude_update_timer_->reset();
+
+    const auto now = std::chrono::steady_clock::now();
+    if (std::isfinite(ground_tf_published_altitude_) &&
+        std::abs(ground_altitude_estimate - ground_tf_published_altitude_) < 0.01 &&
+        now - ground_tf_published_at_ < std::chrono::seconds(1)) {
+        return;
+    }
+    ground_tf_published_altitude_ = ground_altitude_estimate;
+    ground_tf_published_at_ = now;
 
     geometry_msgs::msg::TransformStamped ground_tf;
 
@@ -1693,8 +1701,13 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(CombinedDroneAwarenessAd
         return;
     }
 
-    // Check if on cable:
+    // Check if on cable (a powerline without lines has nothing to be on, and
+    // GetClosestLine would throw). History hands out copies: take one.
+    std::optional<iii_drone::adapters::PowerlineAdapter> powerline;
     if (!powerline_adapter_history_->empty()) {
+        powerline = (*powerline_adapter_history_)[0];
+    }
+    if (powerline && !powerline->single_line_adapters().empty()) {
 
         bool could_transform = false;
 
@@ -1719,7 +1732,7 @@ void CombinedDroneAwarenessHandler::updateDroneLocation(CombinedDroneAwarenessAd
 
             point_t gripper_position = drone_position + v_drone_to_gripper;
 
-            iii_drone::adapters::PowerlineAdapter powerline_adapter = (*powerline_adapter_history_)[0];
+            const iii_drone::adapters::PowerlineAdapter & powerline_adapter = *powerline;
 
             iii_drone::adapters::SingleLineAdapter closest_line;
 

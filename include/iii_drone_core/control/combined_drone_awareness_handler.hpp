@@ -9,6 +9,8 @@
 
 #include <memory>
 #include <thread>
+#include <atomic>
+#include <limits>
 #include <optional>
 #include <chrono>
 #include <array>
@@ -630,6 +632,15 @@ namespace control {
         */
         VehicleOdometryAdapterHistory::SharedPtr vehicle_odometry_adapter_history_;
         iii_drone::utils::Atomic<std::optional<MeasuredOdometrySnapshot>> measured_odometry_;
+        // Bumped whenever measured_odometry_ changes: a local-position message
+        // that changes nothing (most of them, 100 Hz) does not recompute the
+        // awareness.
+        std::atomic<uint64_t> measured_odometry_version_{0};
+        // AMSL altitude of PX4's local origin (vehicle_local_position.ref_alt),
+        // NaN while it has no global reference. PX4 derives the global
+        // altitude from the same reference, so the ground estimate's AMSL
+        // value needs no 100 Hz global-position subscription.
+        std::atomic<double> local_reference_altitude_amsl_{std::numeric_limits<double>::quiet_NaN()};
 
         struct LocalResetMetadata {
             uint64_t source_sample_us = 0;
@@ -714,9 +725,6 @@ namespace control {
          */
         void updateCombinedDroneAwarenessFromVehicleOdometry(iii_drone::adapters::CombinedDroneAwarenessAdapter & combined_drone_awareness_adapter);
 
-        rclcpp::Subscription<px4_msgs::msg::VehicleGlobalPosition>::SharedPtr vehicle_global_position_sub_;
-
-        VehicleGlobalPositionAdapterHistory::SharedPtr vehicle_global_position_adapter_history_;
 
 		/**
 		 * @brief Powerline subscription
@@ -755,6 +763,10 @@ namespace control {
          * @brief Gripper status adapter history.
         */
         GripperStatusAdapterHistory::SharedPtr gripper_status_adapter_history_;
+
+        // Gripper status arrives at 50-100 Hz; the awareness only depends on
+        // whether the gripper is open, so it is recomputed when that changes.
+        std::optional<bool> last_gripper_open_;
 
         /**
          * @brief Updates the combined drone awareness from the gripper status.
@@ -821,6 +833,12 @@ namespace control {
          * @brief Timer for updating the ground altitude estimate.
          */
         rclcpp::TimerBase::SharedPtr ground_altitude_update_timer_;
+
+        // Last published ground frame (only rviz shows it): published when it
+        // moves or once a second, not at the 20 Hz estimate rate, since every
+        // /tf listener receives each message.
+        double ground_tf_published_altitude_ = std::numeric_limits<double>::quiet_NaN();
+        std::chrono::steady_clock::time_point ground_tf_published_at_{};
 
         /**
          * @brief Updates the ground altitude estimate based on given information.
