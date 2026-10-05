@@ -953,6 +953,10 @@ void ManeuverServer::asyncExecute(
     bool canceling = false;
     bool controlled_cancel_started = false;
     std::string terminal_reason = "UNKNOWN";
+    // A success that the recheck below keeps rejecting holds the goal open
+    // without any server-specific diagnostic firing.
+    std::optional<std::chrono::steady_clock::time_point> unconfirmed_success_since;
+    std::chrono::steady_clock::time_point unconfirmed_success_logged_at{};
 
     while(true) {
 
@@ -1108,6 +1112,18 @@ void ManeuverServer::asyncExecute(
             }
             if (!verify_maneuver_active_(maneuver) ||
                 goal_handle->is_canceling() || !hasSucceeded(maneuver)) {
+                const auto now = std::chrono::steady_clock::now();
+                if (!unconfirmed_success_since) unconfirmed_success_since = now;
+                if (now - *unconfirmed_success_since >= std::chrono::seconds(30) &&
+                    now - unconfirmed_success_logged_at >= std::chrono::seconds(30)) {
+                    unconfirmed_success_logged_at = now;
+                    RCLCPP_INFO(
+                        node_->get_logger(),
+                        "ManeuverServer::asyncExecute(): %s: success has not survived its recheck for %.0f s",
+                        action_name_.c_str(),
+                        std::chrono::duration<double>(now - *unconfirmed_success_since).count()
+                    );
+                }
                 if (managed_lease) managed_lease->resume();
                 rate.sleep();
                 continue;
@@ -1116,6 +1132,7 @@ void ManeuverServer::asyncExecute(
             terminal_reason = "MANEUVER_HAS_SUCCEEDED";
             break;
         }
+        unconfirmed_success_since.reset();
 
         if (hasFailed(maneuver)) {
             success = false;

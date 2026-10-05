@@ -25,6 +25,7 @@ public:
         previous_receipt_.reset();
         previous_now_.reset();
         path_speed_m_s_.reset();
+        settled_ = false;
     }
 
     bool observe(
@@ -61,8 +62,13 @@ public:
             if (measured.reset_counter != reset_counter_ || stamp < samples_.back().stamp_us ||
                 measured.receipt_stamp.get_clock_type() != previous_receipt_->get_clock_type() ||
                 measured.receipt_stamp < *previous_receipt_) return reject();
-            // Repeated polling/publication cannot advance the history or dwell.
-            if (stamp == samples_.back().stamp_us) return false;
+            // Repeated polling/publication cannot advance the history or
+            // dwell, nor withdraw the verdict on this sample while it is
+            // fresh: the action loop rechecks success right after certifying
+            // it, and a false here held FollowWaypointPath completion until
+            // a new PX4 sample arrived between the two checks (HIL
+            // 2026-10-05: 79 s, then more than 560 s).
+            if (stamp == samples_.back().stamp_us) return settled_ && age_s <= 0.25;
             const auto max_gap_us = static_cast<uint64_t>(kMaximumOdometrySampleGapS * 1.0e6);
             if (stamp - samples_.back().stamp_us > max_gap_us ||
                 (measured.receipt_stamp - *previous_receipt_).seconds() > kMaximumOdometrySampleGapS) return reject();
@@ -77,6 +83,7 @@ public:
         if (samples_.size() > 512) return reject();
         // A stale sample cannot certify rest now, but a pause shorter than the
         // odometry gap bound does not restart the dwell (HIL: ~0.3 s gaps).
+        settled_ = false;
         if (age_s > 0.25) return false;
         if (stamp - samples_.front().stamp_us < window_us_) return false;
 
@@ -98,8 +105,9 @@ public:
             return false;
         }
         if (!settled_since_us_) settled_since_us_ = stamp;
-        return static_cast<double>(stamp - *settled_since_us_) * 1.0e-6 + 1.0e-12 >=
+        settled_ = static_cast<double>(stamp - *settled_since_us_) * 1.0e-6 + 1.0e-12 >=
             config.settle_time_s;
+        return settled_;
     }
 
     std::optional<double> pathSpeedMS() const { return path_speed_m_s_; }
@@ -115,6 +123,8 @@ private:
     std::optional<rclcpp::Time> previous_receipt_;
     std::optional<rclcpp::Time> previous_now_;
     std::optional<double> path_speed_m_s_;
+    // Verdict on the newest sample.
+    bool settled_ = false;
     uint8_t reset_counter_ = 0;
 };
 
