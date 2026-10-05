@@ -28,7 +28,7 @@ const rotation_matrix_t iii_drone::math::eulToMat(const euler_angles_t & eul) {
     mat(0,2) = cos_roll*sin_pitch*cos_yaw+sin_roll*sin_yaw;
     mat(1,0) = cos_pitch*sin_yaw;
     mat(1,1) = sin_roll*sin_pitch*sin_yaw+cos_roll*cos_yaw;
-    mat(1,2) = cos_roll*sin_pitch*sin_yaw-sin_roll*cos_pitch; // wrong? cos_roll*sin_pitch*sin_yaw-sin_roll*cos_yaw
+    mat(1,2) = cos_roll*sin_pitch*sin_yaw-sin_roll*cos_yaw;
     mat(2,0) = -sin_pitch;
     mat(2,1) = sin_roll*cos_pitch;
     mat(2,2) = cos_roll*cos_pitch;
