@@ -395,6 +395,10 @@ if (BUILD_TESTING)
     test/test_tf_launch_profile.py
   )
 
+  ament_add_pytest_test(iii_drone_core_charger_gripper_framing_test
+    test/payload/test_charger_gripper_framing.py
+  )
+
   iii_drone_core_add_isolated_gtest(iii_drone_core_history_test
     test/utils/history_test.cpp
   )

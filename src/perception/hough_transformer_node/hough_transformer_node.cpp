@@ -215,33 +215,9 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughT
 		return parent_return;
 	}
 
-	rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(1));
-	qos.best_effort();
-	qos.durability_volatile();
-
 	const std::string image_transport =
 		configurator_->GetParameter("/perception/hough_transformer/image_transport").as_string();
-	if (image_transport == "compressed") {
-		compressed_camera_subscription_ = this->create_subscription<sensor_msgs::msg::CompressedImage>(
-			"/sensor/cable_camera/image_raw/compressed",
-			qos,
-			std::bind(
-				&HoughTransformerNode::onCompressedCameraMsg,
-				this,
-				std::placeholders::_1
-			)
-		);
-	} else if (image_transport == "raw") {
-		camera_subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
-			"/sensor/cable_camera/image_raw",	
-			qos,
-			std::bind(
-				&HoughTransformerNode::onCameraMsg, 
-				this, 
-				std::placeholders::_1
-			)
-		);
-	} else {
+	if (image_transport != "compressed" && image_transport != "raw") {
 		RCLCPP_ERROR(
 			this->get_logger(),
 			"HoughTransformerNode::on_activate(): unsupported image_transport '%s' (expected raw or compressed)",
@@ -261,8 +237,53 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughT
 	);
 
 	running_ = configurator_->GetParameter("/perception/begin_running").as_bool();
+	setCameraSubscribed(running_);
 
 	return CallbackReturn::SUCCESS;
+
+}
+
+void HoughTransformerNode::setCameraSubscribed(bool subscribed) {
+
+	// The camera only matters while running: a stopped node received and
+	// deserialized every frame to drop it (C9, 2026-10-06).
+	std::lock_guard<std::mutex> lock(camera_subscription_mutex_);
+	if (!subscribed) {
+		camera_subscription_.reset();
+		compressed_camera_subscription_.reset();
+		return;
+	}
+	if (camera_subscription_ || compressed_camera_subscription_) {
+		return;
+	}
+
+	rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(1));
+	qos.best_effort();
+	qos.durability_volatile();
+
+	const std::string image_transport =
+		configurator_->GetParameter("/perception/hough_transformer/image_transport").as_string();
+	if (image_transport == "compressed") {
+		compressed_camera_subscription_ = this->create_subscription<sensor_msgs::msg::CompressedImage>(
+			"/sensor/cable_camera/image_raw/compressed",
+			qos,
+			std::bind(
+				&HoughTransformerNode::onCompressedCameraMsg,
+				this,
+				std::placeholders::_1
+			)
+		);
+	} else {
+		camera_subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
+			"/sensor/cable_camera/image_raw",	
+			qos,
+			std::bind(
+				&HoughTransformerNode::onCameraMsg, 
+				this, 
+				std::placeholders::_1
+			)
+		);
+	}
 
 }
 
@@ -285,8 +306,7 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn HoughT
 		return parent_return;
 	}
 
-	camera_subscription_.reset();
-	compressed_camera_subscription_.reset();
+	setCameraSubscribed(false);
 
 	command_service_->clear_on_new_request_callback();
 	command_service_.reset();
@@ -353,6 +373,7 @@ void HoughTransformerNode::commandCallback(
 		);
 
 		running_ = true;
+		setCameraSubscribed(true);
 
 		response->ack = response->SYSTEM_ACK_OK;
 
@@ -364,6 +385,7 @@ void HoughTransformerNode::commandCallback(
 		);
 
 		running_ = false;
+		setCameraSubscribed(false);
 
 		response->ack = response->SYSTEM_ACK_OK;
 

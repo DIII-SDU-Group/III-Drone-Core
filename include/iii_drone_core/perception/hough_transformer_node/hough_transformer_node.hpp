@@ -180,6 +180,10 @@ namespace hough_transformer_node {
 		// "compressed": frames cross a network link as lossless PNG and are
 		// decoded back to their original encoding here.
 		rclcpp::Subscription<sensor_msgs::msg::CompressedImage>::SharedPtr compressed_camera_subscription_;
+		std::mutex camera_subscription_mutex_;
+
+		// Camera subscription only while running (START/STOP).
+		void setCameraSubscribed(bool subscribed);
 
 		/**
 		 * @brief Command service
