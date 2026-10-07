@@ -214,6 +214,11 @@ namespace pl_dir_computer_node {
         std::shared_ptr<tf2_ros::TransformListener> transform_listener_{nullptr};
         rclcpp::TimerBase::SharedPtr drone_tf_timer_{nullptr};
 
+        // The 40 Hz attitude timer and the TF listener (all of /tf at
+        // 100 Hz) only run between START and STOP; stopped, the node did
+        // nothing with them.
+        void setRunning(bool running);
+
         /**
          * @brief Callback function for the odometry timer
          * 

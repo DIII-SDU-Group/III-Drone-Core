@@ -62,7 +62,10 @@ bool finalizeGoalSafely(
             goal_handle->execute();
         }
 
-        if (terminal_state == GoalTerminalState::Cancel || goal_handle->is_canceling()) {
+        // Only a goal whose client asked to cancel may end canceled: ROS
+        // rejects EXECUTING -> CANCELED, so a requested cancel of an
+        // executing goal ends it aborted.
+        if (goal_handle->is_canceling()) {
             RCLCPP_WARN(
                 node->get_logger(),
                 "ManeuverServer::finalizeGoalSafely(): %s: Finalizing goal as canceled during %s (was_executing=%s, was_canceling=%s)",
@@ -75,9 +78,10 @@ bool finalizeGoalSafely(
         } else {
             RCLCPP_WARN(
                 node->get_logger(),
-                "ManeuverServer::finalizeGoalSafely(): %s: Finalizing goal as aborted during %s (was_executing=%s, was_canceling=%s)",
+                "ManeuverServer::finalizeGoalSafely(): %s: Finalizing goal as aborted during %s (requested %s, was_executing=%s, was_canceling=%s)",
                 action_name.c_str(),
                 context,
+                terminal_state == GoalTerminalState::Cancel ? "cancel" : "abort",
                 was_executing ? "true" : "false",
                 was_canceling ? "true" : "false"
             );
@@ -974,6 +978,10 @@ void ManeuverServer::asyncExecute(
     bool canceling = false;
     bool controlled_cancel_started = false;
     std::string terminal_reason = "UNKNOWN";
+    // A success that the recheck below keeps rejecting holds the goal open
+    // without any server-specific diagnostic firing.
+    std::optional<std::chrono::steady_clock::time_point> unconfirmed_success_since;
+    std::chrono::steady_clock::time_point unconfirmed_success_logged_at{};
 
     while(true) {
 
@@ -994,9 +1002,15 @@ void ManeuverServer::asyncExecute(
                     action_name_.c_str()
                 );
             }
+            // No client cancel request: the goal is still EXECUTING, and ROS
+            // rejects EXECUTING -> CANCELED. The exception escaped this
+            // detached worker and aborted the controller when HIL stopped
+            // during a mission (2026-10-05); a Mission Exit that removes the
+            // maneuver first takes this path in flight.
+            const bool client_canceled = goal_handle->is_canceling();
             publishResultAndFinalize(
                 maneuver,
-                MANEUVER_RESULT_TYPE_CANCEL
+                client_canceled ? MANEUVER_RESULT_TYPE_CANCEL : MANEUVER_RESULT_TYPE_ABORT
             );
             maneuver.Terminate(false);
             cancel_maneuver_(maneuver);
@@ -1006,7 +1020,7 @@ void ManeuverServer::asyncExecute(
             auto terminal = iii_drone::diagnostics::HilTrace::event("maneuver_server_execution_result");
             terminal.text("endpoint", action_name_);
             terminal.text("goal_id", goal_id);
-            terminal.text("result_code", "CANCELED");
+            terminal.text("result_code", client_canceled ? "CANCELED" : "ABORTED");
             terminal.text("reason", "ACTIVE_MANEUVER_REMOVED_OR_SERVER_STOPPED");
             terminal.boolean("success", false);
             terminal.commit();
@@ -1129,6 +1143,18 @@ void ManeuverServer::asyncExecute(
             }
             if (!verify_maneuver_active_(maneuver) ||
                 goal_handle->is_canceling() || !hasSucceeded(maneuver)) {
+                const auto now = std::chrono::steady_clock::now();
+                if (!unconfirmed_success_since) unconfirmed_success_since = now;
+                if (now - *unconfirmed_success_since >= std::chrono::seconds(30) &&
+                    now - unconfirmed_success_logged_at >= std::chrono::seconds(30)) {
+                    unconfirmed_success_logged_at = now;
+                    RCLCPP_INFO(
+                        node_->get_logger(),
+                        "ManeuverServer::asyncExecute(): %s: success has not survived its recheck for %.0f s",
+                        action_name_.c_str(),
+                        std::chrono::duration<double>(now - *unconfirmed_success_since).count()
+                    );
+                }
                 if (managed_lease) managed_lease->resume();
                 rate.sleep();
                 continue;
@@ -1137,6 +1163,7 @@ void ManeuverServer::asyncExecute(
             terminal_reason = "MANEUVER_HAS_SUCCEEDED";
             break;
         }
+        unconfirmed_success_since.reset();
 
         if (hasFailed(maneuver)) {
             success = false;

@@ -170,12 +170,12 @@ namespace perception {
          * 
          * @return bool Whether the position is in the FOV.
          */
-        bool IsInFOV(
+        static bool IsInFOV(
             const iii_drone::types::point_t & position,
             const float min_point_dist,
             const float max_point_dist,
             const float view_cone_slope
-        ) const;
+        );
 
         /**
          * @brief Returns whether the line is in FOV, non strict.

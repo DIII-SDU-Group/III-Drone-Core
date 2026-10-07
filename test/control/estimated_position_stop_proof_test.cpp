@@ -139,3 +139,24 @@ TEST(EstimatedPositionStopProofTest, UsesActualThreeDimensionalTravelAndExactRol
         if (proof.pathSpeedMS()) { EXPECT_NEAR(*proof.pathSpeedMS(), 0.079, 1.0e-7); }
     }
 }
+
+// The action loop rechecks a certified success at once, usually before PX4's
+// next odometry sample. The verdict on a sample must survive that repeated
+// observation while the sample is fresh (HIL 2026-10-05: FollowWaypointPath
+// held its completion for minutes until a sample landed between the checks).
+TEST(EstimatedPositionStopProofTest, RepeatedSampleKeepsItsVerdictWhileFresh) {
+    EstimatedPositionStopProof proof;
+    ControlledCancellationConfig config;
+    for (int ms = 1000; ms < 2200; ms += 50) {
+        // Before the window and dwell complete a repeat advances nothing.
+        EXPECT_FALSE(proof.observe(true, measured(ms), config, stamp(ms)));
+        EXPECT_FALSE(proof.observe(true, measured(ms), config, stamp(ms + 1)));
+    }
+    EXPECT_TRUE(proof.observe(true, measured(2200), config, stamp(2200)));
+    EXPECT_TRUE(proof.observe(true, measured(2200), config, stamp(2200)));
+    EXPECT_TRUE(proof.observe(true, measured(2200), config, stamp(2201)));
+    // A stale sample cannot certify rest, and a fresh one within the gap
+    // bound keeps the established dwell.
+    EXPECT_FALSE(proof.observe(true, measured(2200), config, stamp(2500)));
+    EXPECT_TRUE(proof.observe(true, measured(2550), config, stamp(2550)));
+}

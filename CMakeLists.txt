@@ -410,6 +410,10 @@ if (BUILD_TESTING)
     test/test_tf_launch_profile.py
   )
 
+  ament_add_pytest_test(iii_drone_core_charger_gripper_framing_test
+    test/payload/test_charger_gripper_framing.py
+  )
+
   iii_drone_core_add_isolated_gtest(iii_drone_core_history_test
     test/utils/history_test.cpp
   )
@@ -436,6 +440,10 @@ if (BUILD_TESTING)
 
   iii_drone_core_add_isolated_gtest(iii_drone_core_math_types_test
     test/utils/math_types_test.cpp
+  )
+
+  iii_drone_core_add_isolated_gtest(iii_drone_core_sample_decimator_test
+    test/utils/sample_decimator_test.cpp
   )
 
   iii_drone_core_add_isolated_gtest(iii_drone_core_timestamp_test
@@ -474,6 +482,14 @@ if (BUILD_TESTING)
 
   iii_drone_core_add_isolated_gtest(iii_drone_core_odometry_ingress_starvation_test
     test/control/odometry_ingress_starvation_test.cpp
+  )
+
+  iii_drone_core_add_isolated_gtest(iii_drone_core_awareness_recompute_test
+    test/control/awareness_recompute_test.cpp
+  )
+
+  iii_drone_core_add_isolated_gtest(iii_drone_core_radar_extrinsic_test
+    test/perception/radar_extrinsic_test.cpp
   )
 
   # Several closed-loop cases cover over two minutes of virtual flight in Debug.
@@ -548,6 +564,10 @@ if (BUILD_TESTING)
     ament_target_dependencies(iii_drone_core_opti_track_pose_relay_test ${dependencies} diagnostic_msgs)
   endif()
 
+  if(TARGET iii_drone_core_sample_decimator_test)
+    target_include_directories(iii_drone_core_sample_decimator_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+  endif()
+
   if(TARGET iii_drone_core_math_types_test)
     target_include_directories(iii_drone_core_math_types_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
     target_link_libraries(iii_drone_core_math_types_test iii_drone_lib)
@@ -606,6 +626,16 @@ if (BUILD_TESTING)
     target_include_directories(iii_drone_core_odometry_ingress_starvation_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
     target_link_libraries(iii_drone_core_odometry_ingress_starvation_test iii_drone_lib)
     ament_target_dependencies(iii_drone_core_odometry_ingress_starvation_test ${dependencies})
+  endif()
+  if(TARGET iii_drone_core_awareness_recompute_test)
+    target_include_directories(iii_drone_core_awareness_recompute_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_awareness_recompute_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_awareness_recompute_test ${dependencies})
+  endif()
+  if(TARGET iii_drone_core_radar_extrinsic_test)
+    target_include_directories(iii_drone_core_radar_extrinsic_test PRIVATE ${III_DRONE_INCLUDE_DIRS})
+    target_link_libraries(iii_drone_core_radar_extrinsic_test iii_drone_lib)
+    ament_target_dependencies(iii_drone_core_radar_extrinsic_test ${dependencies})
   endif()
   if(TARGET iii_drone_core_reference_callback_token_test)
     target_include_directories(iii_drone_core_reference_callback_token_test PRIVATE ${III_DRONE_INCLUDE_DIRS})

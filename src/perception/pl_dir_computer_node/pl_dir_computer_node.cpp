@@ -171,7 +171,7 @@ PowerlineDirectionComputerNode::on_configure(const rclcpp_lifecycle::State & sta
     );
 
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
-    transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+    // The listener is created on START (setRunning()).
 
     return CallbackReturn::SUCCESS;
 
@@ -308,7 +308,7 @@ PowerlineDirectionComputerNode::on_activate(const rclcpp_lifecycle::State & stat
         )
     );
 
-    running_ = configurator_->GetParameter("/perception/begin_running").as_bool();
+    setRunning(configurator_->GetParameter("/perception/begin_running").as_bool());
 
     return CallbackReturn::SUCCESS;
 
@@ -432,7 +432,7 @@ void PowerlineDirectionComputerNode::commandCallback(
             pl_direction_->Reset();
         }
 
-		running_ = true;
+		setRunning(true);
 
 		response->ack = response->SYSTEM_ACK_OK;
 
@@ -443,7 +443,7 @@ void PowerlineDirectionComputerNode::commandCallback(
 			"PowerlineDirectionComputerNode::commandCallback(): Stopping pl dir computer node"
 		);
 
-		running_ = false;
+		setRunning(false);
 
 		response->ack = response->SYSTEM_ACK_OK;
 
@@ -457,6 +457,25 @@ void PowerlineDirectionComputerNode::commandCallback(
 		response->ack = response->SYSTEM_ACK_INVALID_CMD;
 
 	}
+}
+
+void PowerlineDirectionComputerNode::setRunning(bool running) {
+
+    running_ = running;
+    if (running) {
+        if (!transform_listener_ && tf_buffer_) {
+            transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+        }
+        if (drone_tf_timer_ && drone_tf_timer_->is_canceled()) {
+            drone_tf_timer_->reset();
+        }
+    } else {
+        if (drone_tf_timer_) {
+            drone_tf_timer_->cancel();
+        }
+        transform_listener_.reset();
+    }
+
 }
 
 void PowerlineDirectionComputerNode::odometryCallback() {

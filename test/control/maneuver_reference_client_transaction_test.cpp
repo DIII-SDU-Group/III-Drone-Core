@@ -9398,3 +9398,31 @@ TEST(ManeuverReferenceClientTransaction, ModeChangeDuringReadIsNotALostReference
     EXPECT_TRUE(next.position().allFinite());
     EXPECT_EQ(fixture.client.failed_attempts_, 0);
 }
+
+// A stop-proof rebase anchored the hover start on the node's ROS clock while
+// hasSucceeded() measures with the system clock: a sustained hover that had
+// been rebased threw "can't subtract times with different time sources".
+TEST(ManeuverReferenceClientTransaction, RebasedSustainedHoverMeasuresOnOneClock) {
+    auto isolated_context = std::make_shared<rclcpp::Context>();
+    rclcpp::InitOptions init_options;
+    init_options.set_domain_id(217);
+    isolated_context->init(0, nullptr, init_options);
+    rclcpp::NodeOptions node_options;
+    node_options.context(isolated_context);
+    rclcpp_lifecycle::LifecycleNode producer("hover_rebase_clock_test", node_options);
+    auto config = makeConfiguration();
+    auto awareness = std::make_shared<iii_drone::control::CombinedDroneAwarenessHandler>(
+        config, std::make_shared<tf2_ros::Buffer>(producer.get_clock()), &producer);
+    auto hover = std::make_shared<iii_drone::control::maneuver::HoverManeuverServer>(
+        &producer, awareness, "hover", 1, 1, false);
+    hover->sustain_action_ = true;
+    hover->hover_duration_s_ = 10.0F;
+    std::string reason;
+    ASSERT_TRUE(hover->rebaseExecution(
+        iii_drone::control::State(point_t::Zero(), vector_t::Zero(), 0.0, vector_t::Zero(), producer.now()),
+        reason));
+    iii_drone::control::maneuver::Maneuver maneuver;
+    bool succeeded = true;
+    EXPECT_NO_THROW(succeeded = hover->hasSucceeded(maneuver));
+    EXPECT_FALSE(succeeded);
+}

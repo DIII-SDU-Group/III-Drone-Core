@@ -318,8 +318,17 @@ void ManeuverScheduler::publishManeuverStatus() {
     for (Maneuver maneuver : maneuver_queue) {
         maneuver_queue_msg.scheduled_maneuvers.push_back(ManeuverAdapter(maneuver).ToMsg());
     }
+    const auto now = std::chrono::steady_clock::now();
+    if (published_maneuver_ && *published_maneuver_ == current_maneuver_msg &&
+        published_maneuver_queue_ && *published_maneuver_queue_ == maneuver_queue_msg &&
+        now - maneuver_status_published_at_ < std::chrono::seconds(1)) {
+        return;
+    }
     current_maneuver_publisher_->publish(current_maneuver_msg);
     maneuver_queue_publisher_->publish(maneuver_queue_msg);
+    published_maneuver_ = std::move(current_maneuver_msg);
+    published_maneuver_queue_ = std::move(maneuver_queue_msg);
+    maneuver_status_published_at_ = now;
 }
 
 void ManeuverScheduler::Stop() {
@@ -2015,12 +2024,12 @@ void ManeuverScheduler::acknowledgeReferenceStream(
             std::static_pointer_cast<FlyToObjectManeuverServer>(fly_entry->second)
                 ->RetainsTrackedSource(binding);
         if (!binding.callback || (!hover_owner && !fly_owner)) return;
-        const auto now = std::chrono::steady_clock::now();
         const auto max_ack_age = std::chrono::milliseconds(configuration_->GetParameter(
             "/control/maneuver_controller/reference_stream_timeout_ms").as_int());
         bool accepted = false;
         {
             std::lock_guard<std::mutex> lock(reference_stream_mutex_);
+            const auto now = std::chrono::steady_clock::now();
             auto & stream = reference_stream_state_;
             if (stream.valid && !stream.paused && !stream.prepared &&
                 !stream.committed_waiting_for_applied && !stream.claim_ack_pending &&
@@ -2268,10 +2277,13 @@ bool ManeuverScheduler::firstManeuverReferenceApplied(
          std::static_pointer_cast<HoverByObjectManeuverServer>(server->second)
              ->RetainsTrackedSource(binding));
 
-    const auto now = std::chrono::steady_clock::now();
     const auto max_ack_age = std::chrono::milliseconds(configuration_->GetParameter(
         "/control/maneuver_controller/reference_stream_timeout_ms").as_int());
     std::lock_guard<std::mutex> lock(reference_stream_mutex_);
+    // Read the clock under the stream lock: an acknowledgement stamped while
+    // this thread waited for the lock is newer than a time read before it,
+    // and would be taken for a clock running backwards (HIL soak run 36).
+    const auto now = std::chrono::steady_clock::now();
     const auto & stream = reference_stream_state_;
     if (!stream.valid || stream.paused || stream.prepared ||
         stream.committed_waiting_for_applied ||
@@ -3691,10 +3703,15 @@ void ManeuverScheduler::progressScheduler() {
                             configuration_->GetParameter(
                                 "/control/maneuver_controller/reference_stream_timeout_ms"
                             ).as_int());
+                        // The clock is read under the stream lock: an
+                        // acknowledgement stamped while this thread waited
+                        // for the lock is newer than a time read before it,
+                        // and was taken for a clock running backwards, which
+                        // failed a healthy hand-off (HIL soak run 36).
                         const auto acknowledgement_expired = [this, ack_deadline]() {
-                            const auto now = std::chrono::steady_clock::now();
                             std::lock_guard<std::mutex> stream_lock(
                                 reference_stream_mutex_);
+                            const auto now = std::chrono::steady_clock::now();
                             const auto & stream = reference_stream_state_;
                             const auto age = stream.ack_seen
                                 ? now - stream.last_ack
@@ -3739,10 +3756,10 @@ void ManeuverScheduler::progressScheduler() {
                             }
                             return;
                         }
-                        const auto now = std::chrono::steady_clock::now();
                         bool expired = false;
                         {
                             std::lock_guard<std::mutex> stream_lock(reference_stream_mutex_);
+                            const auto now = std::chrono::steady_clock::now();
                             const auto & stream = reference_stream_state_;
                             const bool known_ack = std::any_of(
                                 stream.recent_references.begin(), stream.recent_references.end(),

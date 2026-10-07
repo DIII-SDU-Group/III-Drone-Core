@@ -26,6 +26,32 @@ SIMULATION = os.environ.get('SIMULATION', 'false').lower() == 'true'
 if SIMULATION:
     import debugpy
 
+
+def take_status_frames(pending: bytearray, data: bytes, first_byte: int, last_byte: int,
+                       length: int) -> tuple[list[bytes], int]:
+    """Frames the board's status stream.
+
+    pending holds a partial frame (it starts with first_byte) and keeps the next
+    one. Returns the frames completed by data and how many were dropped for a
+    wrong last byte; bytes before a first byte are skipped.
+    """
+    frames: list[bytes] = []
+    dropped = 0
+    for byte in data:
+        if not pending:
+            if byte == first_byte:
+                pending.append(byte)
+            continue
+        pending.append(byte)
+        if len(pending) == length:
+            if byte == last_byte:
+                frames.append(bytes(pending))
+            else:
+                dropped += 1
+            pending.clear()
+    return frames, dropped
+
+
 class ChargerGripperNode(Node):
     def __init__(
             self,
@@ -383,29 +409,19 @@ class ChargerGripperNode(Node):
         if not self.gripper_command_only_ and not self.simulation_:
             # self.ser_lock_.acquire()
 
-            if (self.ser_.in_waiting > 0):
-                if (len(self.received_data_) >= self.status_message_length_):
-                    self.get_logger().error("Received data is too long. Discarding.")
-                    self.received_data_.clear()
-
-                if (len(self.received_data_) == 0):
-                    if (self.ser_.read(1)[0] == self.status_message_first_byte_):
-                        self.received_data_.append(self.status_message_first_byte_)
-
-                    # self.ser_lock_.release()
-                    return
-
-                #data = self.ser_.read(1)
-                #self.received_data_.append(data)
-                self.received_data_.append(self.ser_.read(1)[0])
-
-                if (len(self.received_data_) == self.status_message_length_):
-                    if (self.received_data_[self.status_message_length_ - 1] == self.status_message_last_byte_):
-                        self.parse_and_publish_data()
-                    else:
-                        self.get_logger().warn("Received wrong status message last byte. Discarding.")
-
-                    self.received_data_.clear()
+            # Drain everything the board sent since the last tick: one byte per
+            # 10 ms tick capped the node at ~11 frames/s and let the serial
+            # buffer back up behind the board (2026-10-06).
+            waiting = self.ser_.in_waiting
+            if waiting > 0:
+                frames, dropped = take_status_frames(
+                    self.received_data_, self.ser_.read(waiting), self.status_message_first_byte_,
+                    self.status_message_last_byte_, self.status_message_length_)
+                if dropped:
+                    self.get_logger().warn(
+                        f"Received wrong status message last byte. Discarded {dropped} frame(s).")
+                for frame in frames:
+                    self.parse_and_publish_data(frame)
 
             # self.ser_lock_.release()
 
@@ -439,22 +455,22 @@ class ChargerGripperNode(Node):
 
         # self.ser_lock_.release()
 
-    def parse_and_publish_data(self):
-        battery_voltage = int(self.received_data_[self.status_message_battery_voltage_start_index_]) * 256 + int(self.received_data_[self.status_message_battery_voltage_start_index_ + self.status_message_battery_voltage_length_ - 1])
+    def parse_and_publish_data(self, frame: bytes):
+        battery_voltage = int(frame[self.status_message_battery_voltage_start_index_]) * 256 + int(frame[self.status_message_battery_voltage_start_index_ + self.status_message_battery_voltage_length_ - 1])
         self.battery_voltage_buffer_.append(battery_voltage)
         if (len(self.battery_voltage_buffer_) > self.battery_voltage_avg_filter_size_):
             self.battery_voltage_buffer_.pop(0)
         battery_voltage = sum(self.battery_voltage_buffer_) / len(self.battery_voltage_buffer_)
         
-        charging_power = int(self.received_data_[self.status_message_charging_power_start_index_]) * 256 + int(self.received_data_[self.status_message_charging_power_start_index_ + self.status_message_charging_power_length_ - 1])
+        charging_power = int(frame[self.status_message_charging_power_start_index_]) * 256 + int(frame[self.status_message_charging_power_start_index_ + self.status_message_charging_power_length_ - 1])
         self.charging_power_buffer_.append(charging_power)
         if (len(self.charging_power_buffer_) > self.charging_power_avg_filter_size_):
             self.charging_power_buffer_.pop(0)
         charging_power = sum(self.charging_power_buffer_) / len(self.charging_power_buffer_)
 
-        charger_status = int(self.received_data_[self.status_message_charger_status_index_])
-        charger_operating_mode = int(self.received_data_[self.status_message_charger_operating_mode_index_])
-        gripper_status = int(self.received_data_[self.status_message_gripper_status_index_])
+        charger_status = int(frame[self.status_message_charger_status_index_])
+        charger_operating_mode = int(frame[self.status_message_charger_operating_mode_index_])
+        gripper_status = int(frame[self.status_message_gripper_status_index_])
 
         battery_voltage_msg = Float32()
         battery_voltage_msg.data = battery_voltage / 100.0

@@ -15,37 +15,56 @@
 
 namespace iii_drone::diagnostics {
 
-/** Small, opt-in JSONL trace for bounded split-host HIL diagnostics. */
+/** Small, opt-in JSONL trace for bounded split-host HIL diagnostics.
+ *
+ * Events are built on hot paths (reference streams, mode status, tree
+ * transitions), so with tracing off (III_HIL_DIAGNOSTIC_TRACE unset, read
+ * once) an event formats nothing.
+ */
 class HilTrace {
 public:
     class Event {
     public:
-        explicit Event(std::string type) : type_(std::move(type)) {}
+        explicit Event(std::string type) : enabled_(HilTrace::enabled()) {
+            if (enabled_) {
+                type_ = std::move(type);
+            }
+        }
 
         Event &text(const std::string &key, const std::string &value) {
-            field(key, escape(value), false);
+            if (enabled_) {
+                field(key, escape(value), false);
+            }
             return *this;
         }
 
         Event &number(const std::string &key, uint64_t value) {
-            field(key, std::to_string(value), true);
+            if (enabled_) {
+                field(key, std::to_string(value), true);
+            }
             return *this;
         }
 
         Event &signed_number(const std::string &key, int64_t value) {
-            field(key, std::to_string(value), true);
+            if (enabled_) {
+                field(key, std::to_string(value), true);
+            }
             return *this;
         }
 
         Event &decimal(const std::string &key, double value) {
-            std::ostringstream stream;
-            stream << std::setprecision(17) << value;
-            field(key, stream.str(), true);
+            if (enabled_) {
+                std::ostringstream stream;
+                stream << std::setprecision(17) << value;
+                field(key, stream.str(), true);
+            }
             return *this;
         }
 
         Event &boolean(const std::string &key, bool value) {
-            field(key, value ? "true" : "false", true);
+            if (enabled_) {
+                field(key, value ? "true" : "false", true);
+            }
             return *this;
         }
 
@@ -53,9 +72,11 @@ public:
             if (committed_) {
                 return;
             }
-            HilTrace::write(type_, fields_);
-            fields_.clear();
             committed_ = true;
+            if (enabled_) {
+                HilTrace::write(type_, fields_);
+                fields_.clear();
+            }
         }
 
         ~Event() { commit(); }
@@ -73,6 +94,7 @@ public:
             }
         }
 
+        bool enabled_;
         std::string type_;
         std::string fields_;
         bool committed_{false};
@@ -80,7 +102,18 @@ public:
 
     static Event event(const std::string &type) { return Event(type); }
 
+    /** Whether III_HIL_DIAGNOSTIC_TRACE names a trace file. */
+    static bool enabled() { return !trace_path().empty(); }
+
 private:
+    static const std::string &trace_path() {
+        static const std::string path = []() {
+            const char *value = std::getenv("III_HIL_DIAGNOSTIC_TRACE");
+            return std::string(value != nullptr ? value : "");
+        }();
+        return path;
+    }
+
     static uint64_t process_start_monotonic_ns() {
         static const uint64_t value = []() -> uint64_t {
             std::ifstream input("/proc/self/stat");
@@ -138,8 +171,8 @@ private:
             return;
         }
 
-        const char *path = std::getenv("III_HIL_DIAGNOSTIC_TRACE");
-        if (path == nullptr || *path == '\0') {
+        const std::string &path = trace_path();
+        if (path.empty()) {
             return;
         }
 

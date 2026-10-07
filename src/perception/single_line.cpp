@@ -161,7 +161,7 @@ bool SingleLine::IsInFOV(
     const float min_point_dist,
     const float max_point_dist,
     const float view_cone_slope
-) const {
+) {
 
     bool in_FOV = true;
 
@@ -170,10 +170,13 @@ bool SingleLine::IsInFOV(
     in_FOV &= dist <= max_point_dist;
     in_FOV &= dist >= min_point_dist;
 
-    const char* simulation_env = std::getenv("SIMULATION");
-    std::string simulation_env_str = (simulation_env != nullptr) ? std::string(simulation_env) : "";
-    std::transform(simulation_env_str.begin(), simulation_env_str.end(), simulation_env_str.begin(), ::tolower);
-    bool simulation = simulation_env_str == "true";
+    // Read once: the check runs for every radar point.
+    static const bool simulation = []() {
+        const char* simulation_env = std::getenv("SIMULATION");
+        std::string simulation_env_str = (simulation_env != nullptr) ? std::string(simulation_env) : "";
+        std::transform(simulation_env_str.begin(), simulation_env_str.end(), simulation_env_str.begin(), ::tolower);
+        return simulation_env_str == "true";
+    }();
 
     if (simulation) {
 

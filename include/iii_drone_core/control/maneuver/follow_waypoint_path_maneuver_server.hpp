@@ -98,6 +98,12 @@ private:
     bool has_failed_ = false;
     WaypointPathTerminalStopProof terminal_stop_proof_;
     EstimatedPositionStopProof terminal_motion_proof_;
+    // Diagnostic: a terminal phase that has not succeeded for 30 s logs what
+    // blocks it every 30 s (a HIL return route held 339 s inside its
+    // position and yaw thresholds without saying why).
+    std::optional<std::chrono::steady_clock::time_point> terminal_blocked_since_;
+    std::chrono::steady_clock::time_point terminal_block_logged_at_{};
+    bool terminalBlocked(const char * reason, double position_error, double yaw_error);
     EstimatedPositionStopProof cancellation_motion_proof_;
     std::shared_ptr<TerminalTrackingHold> terminal_hold_;
     std::function<bool(const std::string &, const Reference &)> applied_rest_reference_;
