@@ -693,6 +693,8 @@ namespace control {
         std::optional<LocalResetMetadata> verified_local_reset_;
         std::optional<PendingOdometry> pending_odometry_;
         bool local_provenance_invalid_ = false;
+        bool local_provenance_was_valid_ = false;
+        std::optional<uint64_t> local_provenance_valid_since_us_;
         uint64_t odometry_source_epoch_ = 0;
         uint64_t position_epoch_ = 0;
         void ingestVehicleOdometry(const px4_msgs::msg::VehicleOdometry & message,

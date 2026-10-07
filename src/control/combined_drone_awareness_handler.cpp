@@ -915,19 +915,36 @@ void CombinedDroneAwarenessHandler::ingestVehicleLocalPosition(
                 odometry_source_epoch_, position_epoch_, current->reset_counter, false};
             measured_odometry_.Store(invalidated); // original receipt/sample remain authoritative
             ++measured_odometry_version_;
-            RCLCPP_WARN(node_->get_logger(),
-                "PX4 local-position reset provenance became invalid (raw_reset=%u odometry_source_us=%llu local_source_us=%llu)",
-                static_cast<unsigned>(current->reset_counter),
-                static_cast<unsigned long long>(current->source_sample_timestamp_us),
-                static_cast<unsigned long long>(message.timestamp_sample));
+            if (local_provenance_was_valid_) {
+                RCLCPP_WARN(node_->get_logger(),
+                    "PX4 local-position reset provenance became invalid (raw_reset=%u odometry_source_us=%llu local_source_us=%llu)",
+                    static_cast<unsigned>(current->reset_counter),
+                    static_cast<unsigned long long>(current->source_sample_timestamp_us),
+                    static_cast<unsigned long long>(message.timestamp_sample));
+            } else {
+                // Estimator start-up, e.g. without GPS: odometry is valid
+                // before PX4 has its global origin (external vision sets it).
+                RCLCPP_INFO(node_->get_logger(),
+                    "PX4 local position has no valid global provenance yet (raw_reset=%u odometry_source_us=%llu local_source_us=%llu)",
+                    static_cast<unsigned>(current->reset_counter),
+                    static_cast<unsigned long long>(current->source_sample_timestamp_us),
+                    static_cast<unsigned long long>(message.timestamp_sample));
+            }
         }
         latest_local_reset_.reset();
         verified_local_reset_.reset();
         pending_odometry_.reset();
         local_provenance_invalid_ = true;
+        local_provenance_valid_since_us_.reset();
         return;
     }
     local_provenance_invalid_ = false;
+    // Settled once it has held for 2 s: the estimator's own start-up toggles
+    // it within its first seconds.
+    if (!local_provenance_valid_since_us_) local_provenance_valid_since_us_ = message.timestamp_sample;
+    if (message.timestamp_sample - *local_provenance_valid_since_us_ >= 2'000'000) {
+        local_provenance_was_valid_ = true;
+    }
     LocalResetMetadata metadata;
     metadata.source_sample_us = message.timestamp_sample;
     metadata.receipt = receipt;
