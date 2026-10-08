@@ -44,25 +44,23 @@ set(MATLAB_MPC_INCLUDE_DIRS
   PARENT_SCOPE
 )
 
-add_library(matlab_mpc 
-    SHARED
-    STATIC 
-    ${MATLAB_MPC_SOURCES} 
-    ${MATLAB_MPC_HEADERS}
-)
-
-target_sources(matlab_mpc
-    PUBLIC
+# Compiled once and linked into iii_drone_lib only. Publishing the sources
+# (target_sources PUBLIC) recompiled the solver and its globals into every
+# consumer, giving each Core executable duplicate definitions of the same
+# symbols (an ODR violation that AddressSanitizer refuses to run with).
+add_library(matlab_mpc
+    STATIC
     ${MATLAB_MPC_SOURCES}
     ${MATLAB_MPC_HEADERS}
 )
+
+set_target_properties(matlab_mpc PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_include_directories(matlab_mpc
     PUBLIC
     ${MATLAB_MPC_INCLUDE_DIRS}
 )
 
-message(STATUS "Test 123123")
 
 # # Yaml cpp
 # include(FetchContent)

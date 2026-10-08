@@ -1,4 +1,6 @@
 #pragma once
+#include <deque>
+#include <utility>
 
 /*****************************************************************************/
 // Includes
@@ -11,6 +13,8 @@
 #include <mutex>
 #include <shared_mutex>
 #include <chrono>
+#include <functional>
+#include <optional>
 #include <string>
 
 /*****************************************************************************/
@@ -37,7 +41,9 @@
 #include <iii_drone_interfaces/srv/pause_reference_stream.hpp>
 #include <iii_drone_interfaces/srv/rebase_reference_stream.hpp>
 #include <iii_drone_interfaces/srv/commit_reference_stream.hpp>
+#include <iii_drone_interfaces/srv/terminal_hold_transfer.hpp>
 #include <iii_drone_interfaces/srv/clear_maneuver_queue.hpp>
+#include <iii_drone_interfaces/srv/release_consumer_control.hpp>
 
 /*****************************************************************************/
 // III-Drone-Configuration:
@@ -74,6 +80,7 @@
 #include <iii_drone_core/control/maneuver/hover_maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/hover_by_object_maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/hover_on_cable_maneuver_server.hpp>
+#include <iii_drone_core/utils/callback_lifetime.hpp>
 
 /*****************************************************************************/
 // Class
@@ -84,6 +91,96 @@ namespace iii_drone {
 namespace control {
 
 namespace maneuver {
+
+    namespace detail {
+
+        /**
+         * @brief Whether the consumer's acknowledgement of the reference
+         * stream is too old for a pending HoverByObject to adopt the tracked
+         * object session. The deadline is the stream's acknowledgement
+         * deadline (reference_stream_timeout_ms); the consumer acknowledges
+         * once per setpoint update (every /control/dt, 0.2 s).
+         */
+        inline bool ObjectHandoffAcknowledgementExpired(
+            std::chrono::steady_clock::duration age,
+            bool clock_went_backwards,
+            std::chrono::milliseconds deadline
+        ) {
+            return age >= deadline || clock_went_backwards;
+        }
+
+        /**
+         * @brief Applied-acknowledgement deadline of a retained terminal hold.
+         * The hold bridges a mode handoff: its consumer stops acknowledging
+         * when the predecessor completes and resumes when the successor adopts
+         * it, across two PX4 round trips (the completion report and the mode
+         * switch) that the HIL link may each lose and retry. One stream
+         * deadline did not cover that (HIL soak run 23: a lost completion and
+         * a retried mode switch made the gap 1.54 s against 1.5 s; the hold
+         * failed 4 ms before Reach Cable adopted it). PX4 holds the last
+         * setpoint meanwhile. Live streams keep the stream deadline.
+         */
+        inline constexpr int kTerminalHoldAckTimeoutFactor = 3;
+
+        inline std::chrono::milliseconds TerminalHoldAckTimeout(std::chrono::milliseconds stream_timeout) {
+            return kTerminalHoldAckTimeoutFactor * stream_timeout;
+        }
+
+        /**
+         * @brief The binding a terminal successor was started with: the
+         * retained hold's applied rest under the successor's request.
+         */
+        struct SeededSuccessorExecution {
+            std::string request_identity;
+            uint64_t execution_id = 0;
+            uint64_t revision = 0;
+        };
+
+        /** @brief Inputs of UnexecutedSuccessorOwnsRetainedHold(). */
+        struct UnexecutedSuccessor {
+            SeededSuccessorExecution seeded;
+            std::string request_identity;
+            bool started = false;
+            bool terminated = false;
+            bool succeeded = false;
+            std::string binding_request_identity;
+            uint64_t binding_execution_id = 0;
+            uint64_t binding_revision = 0;
+            uint64_t current_execution_id = 0;
+            bool master_has_token = false;
+            bool hold_tracking = false;
+            std::string hold_owner;
+        };
+
+        /**
+         * @brief Whether a terminal successor that ended before its server
+         * took over must own the retained hold it was started from.
+         *
+         * The scheduler starts a successor by binding the hold's applied rest
+         * under the successor's request before the successor's server
+         * executes. A goal cancelled or aborted in that window has only ever
+         * streamed that rest, so its stream is the hold, and the halt that
+         * ended it must be able to retain the hold as the successor's. HIL
+         * soak run 26: a recharge decision cancelled Inspection Demo's
+         * waypoint path 80 ms after it was started from the yaw alignment's
+         * hold; the hold stayed with the yaw alignment, the halt's retention
+         * was rejected and the mission failed. The unchanged seed binding
+         * (execution and revision) proves the server never took over.
+         */
+        inline bool UnexecutedSuccessorOwnsRetainedHold(const UnexecutedSuccessor & state) {
+            return !state.seeded.request_identity.empty() &&
+                state.request_identity == state.seeded.request_identity &&
+                state.started && state.terminated && !state.succeeded &&
+                state.binding_request_identity == state.seeded.request_identity &&
+                state.binding_execution_id == state.seeded.execution_id &&
+                state.binding_revision == state.seeded.revision &&
+                state.binding_execution_id == state.current_execution_id &&
+                state.master_has_token && state.hold_tracking &&
+                !state.hold_owner.empty() && state.hold_owner != state.request_identity;
+        }
+
+    } // namespace detail
+
 
     /**
      * @brief Class that schedules execution of drone maneuvers.
@@ -248,7 +345,7 @@ namespace maneuver {
          *
          * @return Number of queued maneuvers that were cleared.
          */
-        uint32_t ClearManeuverQueue();
+        uint32_t ClearManeuverQueue(const std::string & request_identity = "");
 
         /**
          * @brief Shared pointer type.
@@ -261,6 +358,8 @@ namespace maneuver {
         typedef std::unique_ptr<ManeuverScheduler> UniquePtr;
 
     private:
+        void publishManeuverStatus();
+
         /**
          * @brief Is started flag.
          */
@@ -393,6 +492,9 @@ namespace maneuver {
 
         rclcpp::Publisher<iii_drone_interfaces::msg::ManeuverReferenceStream>::SharedPtr
             reference_stream_publisher_;
+        // Ends the ROS callbacks that capture `this` before destruction.
+        iii_drone::utils::CallbackLifetime callback_lifetime_;
+
         rclcpp::Subscription<iii_drone_interfaces::msg::ManeuverReferenceAck>::SharedPtr
             reference_ack_subscription_;
         rclcpp::Service<iii_drone_interfaces::srv::PauseReferenceStream>::SharedPtr
@@ -401,10 +503,19 @@ namespace maneuver {
             rebase_reference_stream_service_;
         rclcpp::Service<iii_drone_interfaces::srv::CommitReferenceStream>::SharedPtr
             commit_reference_stream_service_;
+        rclcpp::Service<iii_drone_interfaces::srv::TerminalHoldTransfer>::SharedPtr
+            terminal_hold_transfer_service_;
+        rclcpp::Service<iii_drone_interfaces::srv::ReleaseConsumerControl>::SharedPtr
+            release_consumer_control_service_;
+        // Mission Exit scope; guarded by reference_stream_mutex_. Sticky so an
+        // owner retained after an in-scope goal ends is retired on the next tick.
+        std::optional<ManeuverRequestScope> released_consumer_scope_;
 
         struct ReferenceStreamState {
             std::string stream_id;
             std::string provider;
+            std::string request_identity;
+            uint64_t execution_id = 0;
             uint64_t generation = 0;
             uint64_t sequence = 0;
             uint64_t last_ack_sequence = 0;
@@ -415,19 +526,96 @@ namespace maneuver {
             bool committed_waiting_for_applied = false;
             bool abort_waiting_for_consumer_ready = false;
             bool ack_seen = false;
+            std::string claimed_consumer_identity;
+            bool claim_ack_pending = false;
+            uint64_t claim_source_ack_sequence = 0;
+            std::chrono::steady_clock::time_point claim_deadline;
+            std::string offer_consumer_identity;
+            uint64_t offer_ack_sequence = 0;
+            uint64_t offer_execution_id = 0;
+            std::chrono::steady_clock::time_point offer_deadline;
+            Reference last_ack_reference;
+            bool last_ack_reference_valid = false;
+            std::deque<std::pair<uint64_t, Reference>> recent_references;
+            std::deque<uint64_t> object_tracking_sequences;
+            uint64_t object_stop_requested_sequence = 0;
             Reference prepared_reference;
             Reference latest_reference;
             std::chrono::steady_clock::time_point generation_started;
             std::chrono::steady_clock::time_point last_ack;
         };
         ReferenceStreamState reference_stream_state_;
+        struct RetainedNativeHoldEpoch {
+            std::string request_identity;
+            uint64_t execution_id = 0;
+            std::string stream_id;
+            uint64_t status_source_epoch = 0;
+            uint64_t external_status_timestamp_us = 0;
+            uint64_t external_nav_transition_us = 0;
+            uint64_t minimum_external_transition_us = 0;
+            std::chrono::steady_clock::time_point owner_started;
+            std::string claimed_consumer_identity;
+            bool claimed_applied = true;
+            bool completed = false;
+            bool succeeded = false;
+            // Completed non-sustained hover callback kept by the idle count.
+            bool idle_callback = false;
+        };
+        RetainedNativeHoldEpoch retained_native_hold_epoch_;
         std::mutex reference_stream_mutex_;
+        // Empty in production; lets the transaction regression place token
+        // completion immediately after eligibility is read deterministically.
+        std::function<void()> terminal_hold_transfer_after_validity_hook_;
+        std::string terminal_quiesce_request_identity_;
+        std::chrono::steady_clock::time_point terminal_quiesce_started_;
+        // Seed binding of the last terminal successor (reference_stream_mutex_).
+        std::optional<detail::SeededSuccessorExecution> seeded_successor_execution_;
 
         bool pauseReferenceStreamIfRequired();
         void publishReferenceStream();
+        void beginReferenceExecution(
+            const std::string & provider,
+            const std::string & request_identity,
+            std::optional<Reference> initial_command = std::nullopt
+        );
+        void beginReferenceExecution(const std::string & provider);
+        /** Starts a terminal successor from the retained hold's applied rest. */
+        void beginSeededSuccessorExecution(
+            const std::string & provider,
+            const std::string & request_identity,
+            const Reference & seed
+        );
+        /**
+         * Gives the retained hold to a terminal successor that ended before
+         * its server took over (reference_stream_mutex_ held).
+         */
+        bool installUnexecutedSuccessorHoldLocked();
         void acknowledgeReferenceStream(
             const iii_drone_interfaces::msg::ManeuverReferenceAck::SharedPtr message
         );
+        void terminalHoldTransfer(
+            const std::shared_ptr<iii_drone_interfaces::srv::TerminalHoldTransfer::Request> request,
+            std::shared_ptr<iii_drone_interfaces::srv::TerminalHoldTransfer::Response> response
+        );
+        std::shared_ptr<TerminalTrackingHold> retainedTerminalHold() const;
+        bool retireCompletedTerminalHoldAfterNativeHold();
+        /** Mission Exit: retire the retained owner of a released consumer scope. */
+        bool retireReleasedConsumerOwner();
+        /** Clears an exact retained owner binding and its stream (reference_stream_mutex_ held). */
+        void clearRetainedOwnerLocked(
+            const char * provider_label, uint64_t execution_id,
+            const std::string & request_identity);
+        void releaseConsumerControl(
+            const std::shared_ptr<iii_drone_interfaces::srv::ReleaseConsumerControl::Request> request,
+            std::shared_ptr<iii_drone_interfaces::srv::ReleaseConsumerControl::Response> response
+        );
+        bool blendedReferenceApplied(const std::string & request_identity);
+        bool firstObjectReferenceApplied(const std::string & request_identity);
+        bool firstTerminalHoverReferenceApplied(const std::string & request_identity);
+        bool firstManeuverReferenceApplied(
+            maneuver_type_t maneuver_type, const std::string & request_identity);
+        bool appliedFiniteRestReference(
+            const std::string & request_identity, const Reference & command);
         void pauseReferenceStream(
             const std::shared_ptr<iii_drone_interfaces::srv::PauseReferenceStream::Request> request,
             std::shared_ptr<iii_drone_interfaces::srv::PauseReferenceStream::Response> response
@@ -441,7 +629,7 @@ namespace maneuver {
             std::shared_ptr<iii_drone_interfaces::srv::CommitReferenceStream::Response> response
         );
         ManeuverServer::SharedPtr activeManeuverServer() const;
-        bool currentReferenceValid() const;
+        bool currentReferenceValid(const ReferenceCallbackBinding & binding) const;
         std::string nextReferenceStreamId(const std::string & provider);
 
         /**
@@ -507,7 +695,9 @@ namespace maneuver {
          * 
          * @return reference msg
          */
-        iii_drone_interfaces::msg::Reference fetchNextReferenceAndPublish();
+        std::optional<iii_drone_interfaces::msg::Reference> fetchNextReferenceAndPublish(
+            const ReferenceCallbackBinding & binding
+        );
 
         /**
          * @brief Cancels all pending maneuvers.
@@ -530,11 +720,18 @@ namespace maneuver {
          * @brief Maneuver queue publisher.
          */
         rclcpp_lifecycle::LifecyclePublisher<iii_drone_interfaces::msg::ManeuverQueue>::SharedPtr maneuver_queue_publisher_;
+        // Status observers (GC, rosbag) need changes and a heartbeat, not the
+        // same two messages ten times a second.
+        std::optional<iii_drone_interfaces::msg::Maneuver> published_maneuver_;
+        std::optional<iii_drone_interfaces::msg::ManeuverQueue> published_maneuver_queue_;
+        std::chrono::steady_clock::time_point maneuver_status_published_at_{};
 
         /**
          * @brief Maneuver publish timer.
          */
         rclcpp::TimerBase::SharedPtr maneuver_publish_timer_;
+
+        iii_drone::utils::Atomic<uint64_t> current_reference_execution_id_ = 0;
 
 
     };

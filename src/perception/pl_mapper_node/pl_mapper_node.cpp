@@ -3,6 +3,7 @@
 /*****************************************************************************/
 
 #include "iii_drone_core/perception/pl_mapper_node/pl_mapper_node.hpp"
+#include <iii_drone_core/utils/multi_threaded_executor.hpp>
 
 using namespace iii_drone::perception::pl_mapper_node;
 using namespace iii_drone::math;
@@ -174,7 +175,7 @@ PowerlineMapperNode::PowerlineMapperNode(
                     break;
             }
 
-            state_pub_->publish(std::move(msg));
+            if (state_pub_->is_activated()) state_pub_->publish(std::move(msg));
         }
     );
 
@@ -221,6 +222,7 @@ PowerlineMapperNode::on_configure(const rclcpp_lifecycle::State & state) {
     );
 
     pl_mapper_state_ = configurator_->GetParameter("/perception/begin_running").as_bool() ? pl_mapper_state_running : pl_mapper_state_idle;
+    pl_direction_ready_ = false;
 
     // Tf:
     RCLCPP_DEBUG(
@@ -397,10 +399,7 @@ PowerlineMapperNode::on_activate(const rclcpp_lifecycle::State & state) {
 
     }
 
-    quaternion_t mmw_quat = quaternionFromTransformMsg(mmw_tf.transform);
-
-    R_drone_to_mmw_ = quatToMat(mmw_quat);
-    v_drone_to_mmw_ = vectorFromTransformMsg(mmw_tf.transform);
+    tf2::fromMsg(mmw_tf.transform, drone_from_mmwave_);
 
 
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
@@ -538,6 +537,13 @@ void PowerlineMapperNode::plMapperCommandCallback(
     };
 
     pl_mapper_state_t previous_state = pl_mapper_state_;
+
+    if (request->pl_mapper_cmd.reset) {
+        // Close the ingestion gate before requesting an asynchronous reset of
+        // the direction computer.  It will reopen only on a subsequent
+        // measured-direction publication.
+        pl_direction_ready_ = false;
+    }
 
     RCLCPP_DEBUG(this->get_logger(), "PowerlineMapperNode::plMapperCommandCallback(): Received command");
 
@@ -704,6 +710,11 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
     }
 
+    if (!pl_direction_ready_) {
+        RCLCPP_DEBUG(this->get_logger(), "Ignoring mmWave data until powerline direction is initialized");
+        return;
+    }
+
     // RCLCPP_INFO(this->get_logger(), "PowerlineMapperNode::mmWaveCallback(): Processing %u points", msg->width);
 
     iii_drone::adapters::PointCloudAdapter pcl_adapter(msg);
@@ -715,6 +726,25 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
     int n_skipped = 0;
 
+    // Points in the radar frame (the normal case) need no TF per point: the
+    // field-of-view check is in that frame, and radar->drone is the static
+    // mount cached at activation (drone_from_mmwave_).
+    const auto powerline_configuration = configurator_->GetConfiguration("powerline");
+    if (msg->header.frame_id == configurator_->GetParameter("/tf/mmwave_frame_id").as_string()) {
+        const float min_point_dist = powerline_configuration->GetParameter("/perception/pl_mapper/min_point_dist").as_double();
+        const float max_point_dist = powerline_configuration->GetParameter("/perception/pl_mapper/max_point_dist").as_double();
+        const float view_cone_slope = powerline_configuration->GetParameter("/perception/pl_mapper/view_cone_slope").as_double();
+        for (const point_t & point : pcl_points) {
+            if (!SingleLine::IsInFOV(point, min_point_dist, max_point_dist, view_cone_slope)) {
+                n_skipped++;
+                continue;
+            }
+            const tf2::Vector3 in_drone = drone_from_mmwave_ * tf2::Vector3(point.x(), point.y(), point.z());
+            transformed_points.push_back(point_t(in_drone.x(), in_drone.y(), in_drone.z()));
+        }
+        pcl_points.clear();
+    }
+
     for (size_t i = 0; i < pcl_points.size(); i++) {
 
         auto line = SingleLine(
@@ -723,7 +753,7 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
             pl_direction_,
             msg->header.frame_id,
             tf_buffer_,
-            configurator_->GetConfiguration("powerline")
+            powerline_configuration
         );
 
         if(!line.IsInFOV()) {
@@ -794,6 +824,7 @@ void PowerlineMapperNode::plDirectionCallback(const geometry_msgs::msg::Quaterni
     quaternion_t quat = quaternionFromQuaternionMsg(msg->quaternion);
 
     pl_direction_ = quat;
+    pl_direction_ready_ = true;
 
     powerline_->UpdateDirection(quat);
 }
@@ -829,7 +860,7 @@ int main(int argc, char *argv[]) {
     setvbuf(stdout, NULL, _IONBF, BUFSIZ);
     rclcpp::init(argc, argv);
 
-    rclcpp::executors::MultiThreadedExecutor executor;
+    iii_drone::utils::MultiThreadedExecutor executor;
 
     auto node = std::make_shared<PowerlineMapperNode>();
 

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <chrono>
 #include <limits>
 
@@ -182,4 +183,30 @@ TEST(ManeuverReferenceSafetyGuard, RejectsInfiniteOrUncontrolledAxes) {
         ).decision,
         ManeuverReferenceSafetyDecision::BEGIN_STOP
     );
+}
+
+// HoverOnCable's pre-release push commands the vertical axis as an
+// acceleration (vertical velocity NaN). Its jerk-bounded ramp, sampled at the
+// reference period with the mission's continuity limits, stays accepted.
+TEST(ManeuverReferenceSafetyGuard, AcceptsTheCablePushRampWithVerticalAccelerationOnly) {
+    ManeuverReferenceSafetyConfig config;
+    config.loss_timeout = std::chrono::milliseconds(500);
+    config.max_jerk_m_s3 = 1.0;
+    config.acceleration_tolerance_m_s2 = 0.75;
+    config.velocity_tolerance_m_s = 0.5;
+    config.position_tolerance_m = 0.25;
+    ManeuverReferenceSafetyGuard guard(config);
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const auto start = ManeuverReferenceSafetyGuard::Clock::time_point{};
+    double acceleration = 0.2;
+    for (int i = 0; i <= 200; ++i) {
+        if (i > 20) acceleration = std::min(3.0, acceleration + 1.0 * 0.02);
+        const Reference push(
+            point_t::Constant(nan), nan, vector_t(0.0, 0.0, nan), 0.0,
+            vector_t(nan, nan, acceleration), nan);
+        ASSERT_EQ(
+            guard.observeReference(push, start + std::chrono::milliseconds(20 * i)).decision,
+            ManeuverReferenceSafetyDecision::ACCEPT) << "sample " << i;
+    }
+    EXPECT_DOUBLE_EQ(acceleration, 3.0);
 }

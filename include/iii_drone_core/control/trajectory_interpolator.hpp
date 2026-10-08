@@ -40,6 +40,7 @@
 
 #include <vector>
 #include <memory>
+#include <functional>
 
 /*****************************************************************************/
 // Eigen:
@@ -58,7 +59,8 @@ namespace control {
     public:
         TrajectoryInterpolator(
             iii_drone::configuration::Configuration::SharedPtr params,
-            rclcpp_lifecycle::LifecycleNode * node
+            rclcpp_lifecycle::LifecycleNode * node,
+            std::function<rclcpp::Time()> clock_now = {}
         );
 
         ~TrajectoryInterpolator();
@@ -74,6 +76,15 @@ namespace control {
             const Reference &start_reference,
             const Reference &end_reference,
             bool set_reference,
+            bool reset,
+            bool bounded_interpolation = false
+        );
+
+        /** Bounded full-P/V/A interpolation for an object-tracking command. */
+        ReferenceTrajectory ComputeBoundedPositionalTrajectory(
+            const Reference &start_reference,
+            const Reference &end_reference,
+            bool set_reference,
             bool reset
         );
 
@@ -82,6 +93,7 @@ namespace control {
     private:
         iii_drone::configuration::Configuration::SharedPtr configuration_;
         rclcpp_lifecycle::LifecycleNode * node_;
+        std::function<rclcpp::Time()> clock_now_;
 
         Reference reference_;
         ReferenceTrajectory reference_trajectory_;
@@ -89,6 +101,7 @@ namespace control {
         State state_;
 
         bool first_ = true;
+        bool bounded_interpolation_ = false;
 
         rclcpp::Time start_time_;
         rclcpp::Time end_time_;
@@ -96,17 +109,32 @@ namespace control {
         Eigen::Matrix<double, 6, 3> q;
         Eigen::Matrix<double, 6, 1> q_yaw;
 
+        struct BoundedDerivativeSample {
+            iii_drone::types::vector_t velocity;
+            iii_drone::types::vector_t acceleration;
+            iii_drone::types::vector_t jerk;
+            double yaw_rate;
+            double yaw_acceleration;
+            double yaw_jerk;
+        };
+
+        BoundedDerivativeSample boundedDerivativeSample(double t) const;
+
         double computeInterpolation(
             const Reference &start_reference,
-            const Reference &end_reference
+            const Reference &end_reference,
+            bool bounded_interpolation = false
         );
 
         iii_drone::types::point_t positionFunction(double t);
         iii_drone::types::vector_t velocityFunction(double t);
         iii_drone::types::vector_t accelerationFunction(double t);
+        iii_drone::types::vector_t jerkFunction(double t);
 
         double yawFunction(double t);
         double yawRateFunction(double t);
+        double yawAccelerationFunction(double t);
+        double yawJerkFunction(double t);
 
         Reference referenceFunction(double t);
 

@@ -5,6 +5,7 @@
 #include <iii_drone_core/control/maneuver/fly_to_position_maneuver_server.hpp>
 
 #include <cmath>
+#include <utility>
 
 using namespace iii_drone::control::maneuver;
 using namespace iii_drone::control;
@@ -65,6 +66,12 @@ FlyToPositionManeuverServer::FlyToPositionManeuverServer(
 
 }
 
+void FlyToPositionManeuverServer::RegisterBlendReferenceAppliedCallback(
+    std::function<bool(const std::string &)> callback
+) {
+    blend_reference_applied_ = std::move(callback);
+}
+
 bool FlyToPositionManeuverServer::CanExecuteManeuver(
     const Maneuver & maneuver,
     const iii_drone::adapters::CombinedDroneAwarenessAdapter & drone_awareness
@@ -87,10 +94,7 @@ bool FlyToPositionManeuverServer::CanExecuteManeuver(
     }
 
     if (!drone_awareness.offboard()) {
-        RCLCPP_WARN(
-            node()->get_logger(),
-            "FlyToPositionManeuverServer::CanExecuteManeuver(): Drone is not in offboard mode"
-        );
+        logNotOffboard("FlyToPositionManeuverServer::CanExecuteManeuver(): Drone is not in offboard mode");
         return false;
     }
 
@@ -218,6 +222,10 @@ void FlyToPositionManeuverServer::startExecution(Maneuver & maneuver) {
     }
 
     first_iteration_ = true;
+    {
+        std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+        terminal_hold_.reset();
+    }
     has_failed_ = false;
     mpc_settle_active_ = false;
     mpc_settle_first_iteration_ = false;
@@ -258,6 +266,17 @@ void FlyToPositionManeuverServer::startExecution(Maneuver & maneuver) {
             blend_start_reference.yaw_acceleration()
         );
     }
+    if (const auto terminal_seed = consumeTerminalStartReference(maneuver.requestIdentity())) {
+        if (active_blend_to_next_) {
+            has_failed_ = true;
+            RCLCPP_ERROR(node()->get_logger(),
+                "FlyToPosition: a terminal hold cannot seed a blended goal");
+            return;
+        }
+        std::lock_guard<std::mutex> lock(blend_mutex_);
+        initial_blend_start_reference_ = *terminal_seed;
+        latest_streamed_reference_ = *terminal_seed;
+    }
 
     cda_handler->ClearTarget();
 
@@ -270,6 +289,31 @@ bool FlyToPositionManeuverServer::canCancel() {
 std::optional<ControlledCancellationConfig>
 FlyToPositionManeuverServer::controlledCancellationConfig() const {
     return controlledCancellationConfigFrom(configuration_);
+}
+
+Reference FlyToPositionManeuverServer::initializationReference(const State & state) const {
+    const rclcpp::Time now = node()->now();
+    const auto terminal_initialization = ManeuverServer::initializationReference(state);
+    if (terminal_initialization.position().allFinite() &&
+        terminal_initialization.velocity().allFinite() &&
+        terminal_initialization.acceleration().allFinite()) {
+        return terminal_initialization.CopyWithNewStamp(now);
+    }
+    {
+        std::lock_guard<std::mutex> lock(blend_mutex_);
+        double age_s = 0.0;
+        if (hasFreshPendingBlendStartReferenceLocked(now, age_s)) {
+            return pending_blend_start_reference_->CopyWithNans();
+        }
+        if (pending_blend_start_reference_) {
+            RCLCPP_DEBUG(
+                node()->get_logger(),
+                "FlyToPositionManeuverServer::initializationReference(): Ignoring stale pending blend reference. age=%.3f s",
+                age_s
+            );
+        }
+    }
+    return ManeuverServer::initializationReference(state);
 }
 
 bool FlyToPositionManeuverServer::rebaseExecution(
@@ -300,6 +344,10 @@ bool FlyToPositionManeuverServer::rebaseExecution(
 Reference FlyToPositionManeuverServer::computeReference(const State & state) {
 
     std::lock_guard<std::mutex> reference_generation_lock(reference_generation_mutex_);
+    {
+        std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+        if (terminal_hold_) return terminal_hold_->GetReference();
+    }
 
     const bool use_mpc = configuration_->GetParameter("/control/maneuver_controller/fly_to_position_use_mpc").as_bool();
     bool reset, set_reference;
@@ -397,11 +445,40 @@ Reference FlyToPositionManeuverServer::computeReference(const State & state) {
 
     storeLatestStreamedReference(ref);
 
+    // The nominal interpolation (or post-MPC interpolation settle) must have
+    // reached its original stationary endpoint before correction begins.
+    // The normal FTP contract has no CableAware clearance envelope.
+    if (!has_failed_ && !active_blend_to_next_ && (!use_mpc || mpc_settle_active_) &&
+        interpolationFinalReferenceStreamed(target_reference_) &&
+        (ref.position() - target_reference_->position()).norm() <= kFinalReferencePositionToleranceM &&
+        ref.velocity().norm() <= kFinalReferenceVelocityToleranceMps &&
+        ref.acceleration().norm() <= kFinalReferenceAccelerationToleranceMps2) {
+        auto limits = TerminalPositionTrackingController::Limits{};
+        limits.arrival_tolerance_m = active_completion_position_tolerance_m_ > 0.0
+            ? active_completion_position_tolerance_m_
+            : configuration_->GetParameter(
+                "/control/maneuver_controller/reached_position_euclidean_distance_threshold").as_double();
+        auto hold = std::make_shared<TerminalTrackingHold>(
+            target_reference_, awareness_handler(), node()->get_clock(),
+            TerminalTrackingHold::Clearance{}, 0.0, limits);
+        {
+            std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+            terminal_hold_ = hold;
+        }
+        auto hover = std::static_pointer_cast<HoverManeuverServer>(
+            registered_maneuvers().at(MANEUVER_TYPE_HOVER));
+        hover->AdoptTerminalHold(hold, current_maneuver().Load().requestIdentity());
+        RCLCPP_INFO(node()->get_logger(),
+            "FlyToPosition terminal tracking started: nominal error %.3f m, correction authority %.3f m",
+            (state.position() - target_reference_->position()).norm(), limits.max_offset_m);
+        return hold->GetReference();
+    }
+
     return ref;
 
 }
 
-bool FlyToPositionManeuverServer::hasSucceeded(Maneuver &) {
+bool FlyToPositionManeuverServer::hasSucceeded(Maneuver & maneuver) {
 
     auto cda_handler = awareness_handler();
 
@@ -442,6 +519,9 @@ bool FlyToPositionManeuverServer::hasSucceeded(Maneuver &) {
     }
 
     if (active_blend_to_next_ && vehicle_reached_target) {
+        if (!blend_reference_applied_ || !blend_reference_applied_(maneuver.requestIdentity())) {
+            return false;
+        }
         prepareBlendCompletionReference(state);
         if (!success_timing_logged_) {
             success_timing_logged_ = true;
@@ -537,6 +617,12 @@ bool FlyToPositionManeuverServer::hasSucceeded(Maneuver &) {
         }
     }
 
+    if (!active_blend_to_next_) {
+        std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+        succeeded = succeeded && terminal_hold_ &&
+            terminal_hold_->phase() == TerminalTrackingHold::Phase::Tracking;
+    }
+
     if (succeeded) {
         if (!success_timing_logged_) {
             success_timing_logged_ = true;
@@ -611,6 +697,18 @@ bool FlyToPositionManeuverServer::interpolationFinalReferenceStreamed(
 
 bool FlyToPositionManeuverServer::hasFailed(Maneuver &) {
 
+    {
+        std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+        if (terminal_hold_ &&
+            (terminal_hold_->phase() == TerminalTrackingHold::Phase::Degraded ||
+             terminal_hold_->phase() == TerminalTrackingHold::Phase::Unrecoverable)) {
+            RCLCPP_ERROR(node()->get_logger(),
+                "FlyToPosition terminal tracking failed: %s",
+                terminal_hold_->failureReason().c_str());
+            return true;
+        }
+    }
+
     auto cda_handler = awareness_handler();
     const auto drone_awareness = cda_handler->adapter();
 
@@ -627,10 +725,7 @@ bool FlyToPositionManeuverServer::hasFailed(Maneuver &) {
     }
 
     if (!cda_handler->offboard()) {
-        RCLCPP_WARN(
-            node()->get_logger(),
-            "FlyToPositionManeuverServer::hasFailed(): Drone is not in offboard mode"
-        );
+        logNotOffboard("FlyToPositionManeuverServer::hasFailed(): Drone is not in offboard mode");
         return true;
     }
 
@@ -701,7 +796,7 @@ void FlyToPositionManeuverServer::publishResultAndFinalize(
 
 }
 
-void FlyToPositionManeuverServer::registerReferenceCallbackOnSuccess(const Maneuver &) {
+void FlyToPositionManeuverServer::registerReferenceCallbackOnSuccess(const Maneuver & maneuver) {
 
     if (active_blend_to_next_) {
         RCLCPP_INFO(
@@ -711,11 +806,18 @@ void FlyToPositionManeuverServer::registerReferenceCallbackOnSuccess(const Maneu
         return;
     }
 
-    auto registered_hover_maneuver = registered_maneuvers().find(MANEUVER_TYPE_HOVER);
+    // registered_maneuvers() returns a copy: take the server within this
+    // statement, never an iterator into the temporary map.
+    std::shared_ptr<HoverManeuverServer> hover_maneuver_server = std::static_pointer_cast<HoverManeuverServer>(
+        registered_maneuvers().at(MANEUVER_TYPE_HOVER));
 
-    std::shared_ptr<HoverManeuverServer> hover_maneuver_server = std::static_pointer_cast<HoverManeuverServer>(registered_hover_maneuver->second);
-
-    hover_maneuver_server->Update(successReferenceForResult());
+    std::shared_ptr<TerminalTrackingHold> hold;
+    {
+        std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+        hold = terminal_hold_;
+    }
+    if (hold) hover_maneuver_server->AdoptTerminalHold(hold, maneuver.requestIdentity());
+    else hover_maneuver_server->Update(successReferenceForResult());
 
     registerCallback(
         std::bind(
@@ -727,6 +829,17 @@ void FlyToPositionManeuverServer::registerReferenceCallbackOnSuccess(const Maneu
 
 }
 
+bool FlyToPositionManeuverServer::hasFreshPendingBlendStartReferenceLocked(
+    const rclcpp::Time & now,
+    double & age_s
+) const {
+    if (!pending_blend_start_reference_) {
+        return false;
+    }
+    age_s = (now - pending_blend_start_time_).seconds();
+    return std::isfinite(age_s) && age_s >= 0.0 && age_s <= kBlendStartReferenceMaxAgeS;
+}
+
 bool FlyToPositionManeuverServer::consumePendingBlendStartReference(Reference & start_reference) {
 
     std::lock_guard<std::mutex> lock(blend_mutex_);
@@ -735,8 +848,9 @@ bool FlyToPositionManeuverServer::consumePendingBlendStartReference(Reference & 
         return false;
     }
 
-    const double age_s = (node()->now() - pending_blend_start_time_).seconds();
-    if (age_s > kBlendStartReferenceMaxAgeS) {
+    const rclcpp::Time now = node()->now();
+    double age_s = 0.0;
+    if (!hasFreshPendingBlendStartReferenceLocked(now, age_s)) {
         RCLCPP_WARN(
             node()->get_logger(),
             "FlyToPositionManeuverServer::consumePendingBlendStartReference(): Discarding stale blend start reference. age=%.3f s",
@@ -746,7 +860,7 @@ bool FlyToPositionManeuverServer::consumePendingBlendStartReference(Reference & 
         return false;
     }
 
-    start_reference = pending_blend_start_reference_->CopyWithNewStamp(node()->now());
+    start_reference = pending_blend_start_reference_->CopyWithNewStamp(now);
     pending_blend_start_reference_.reset();
     return true;
 

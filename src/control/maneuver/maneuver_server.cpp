@@ -3,6 +3,9 @@
 /*****************************************************************************/
 
 #include <iii_drone_core/control/maneuver/maneuver_server.hpp>
+#include <iii_drone_core/control/maneuver/maneuver_request_identity.hpp>
+#include <iii_drone_core/control/maneuver/hover_maneuver_server.hpp>
+#include <iii_drone_core/diagnostics/hil_trace.hpp>
 
 using namespace iii_drone::control::maneuver;
 using namespace iii_drone::control;
@@ -14,9 +17,20 @@ using namespace iii_drone::utils;
 
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 
 namespace {
+
+std::string goalUuidToString(const rclcpp_action::GoalUUID & uuid) {
+    std::ostringstream stream;
+    stream << std::hex << std::setfill('0');
+    for (const auto byte : uuid) {
+        stream << std::setw(2) << static_cast<unsigned int>(byte);
+    }
+    return stream.str();
+}
 
 enum class GoalTerminalState {
     Abort,
@@ -48,7 +62,10 @@ bool finalizeGoalSafely(
             goal_handle->execute();
         }
 
-        if (terminal_state == GoalTerminalState::Cancel || goal_handle->is_canceling()) {
+        // Only a goal whose client asked to cancel may end canceled: ROS
+        // rejects EXECUTING -> CANCELED, so a requested cancel of an
+        // executing goal ends it aborted.
+        if (goal_handle->is_canceling()) {
             RCLCPP_WARN(
                 node->get_logger(),
                 "ManeuverServer::finalizeGoalSafely(): %s: Finalizing goal as canceled during %s (was_executing=%s, was_canceling=%s)",
@@ -61,9 +78,10 @@ bool finalizeGoalSafely(
         } else {
             RCLCPP_WARN(
                 node->get_logger(),
-                "ManeuverServer::finalizeGoalSafely(): %s: Finalizing goal as aborted during %s (was_executing=%s, was_canceling=%s)",
+                "ManeuverServer::finalizeGoalSafely(): %s: Finalizing goal as aborted during %s (requested %s, was_executing=%s, was_canceling=%s)",
                 action_name.c_str(),
                 context,
+                terminal_state == GoalTerminalState::Cancel ? "cancel" : "abort",
                 was_executing ? "true" : "false",
                 was_canceling ? "true" : "false"
             );
@@ -144,8 +162,16 @@ void ManeuverServer::Start(
     RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::Start(): %s: Finished", action_name_.c_str());
 }
 
+ManeuverServer::~ManeuverServer() {
+    callback_lifetime_.Close();
+}
+
 void ManeuverServer::Stop() {
     running_ = false;
+
+    // Workers observe running_ within one poll period and finish their
+    // cancel path through the callbacks and token cleared below.
+    waitForExecutionWorkers();
 
     registered_maneuvers_.clear();
 
@@ -161,8 +187,28 @@ void ManeuverServer::Stop() {
 
 }
 
+void ManeuverServer::waitForExecutionWorkers() {
+    std::unique_lock<std::mutex> lock(workers_mutex_);
+    while (!workers_cv_.wait_for(lock, std::chrono::seconds(1), [this]() { return active_workers_ == 0; })) {
+        RCLCPP_WARN(
+            node_->get_logger(),
+            "ManeuverServer::Stop(): %s: waiting for %d execution worker(s) to finish",
+            action_name_.c_str(),
+            active_workers_
+        );
+    }
+}
+
 bool ManeuverServer::running() const {
     return running_;
+}
+
+void ManeuverServer::SetUnavailable(const std::string & reason) {
+    unavailable_reason_.Store(reason);
+}
+
+bool ManeuverServer::available() const {
+    return unavailable_reason_.Load().empty();
 }
 
 void ManeuverServer::PauseReferenceStream() {
@@ -201,9 +247,65 @@ bool ManeuverServer::referenceStreamPaused() const {
     return reference_stream_paused_.Load();
 }
 
+bool ManeuverServer::startupRejected(
+    const ReferenceCallbackBinding & binding) const {
+    const StartupRejection rejection = startup_rejection_.Load();
+    return binding.execution_id != 0 &&
+        rejection.execution_id == binding.execution_id &&
+        rejection.request_identity == binding.request_identity;
+}
+
 bool ManeuverServer::rebaseExecution(const State &, std::string & reason) {
     reason = action_name_ + " does not support safe transparent rebase";
     return false;
+}
+
+bool ManeuverServer::StageTerminalStartReference(
+    const std::string & request_identity, const Reference & reference
+) {
+    if (!isValidManeuverRequestIdentity(request_identity) ||
+        !reference.position().allFinite() || !reference.velocity().allFinite() ||
+        !reference.acceleration().allFinite() || !std::isfinite(reference.yaw()) ||
+        !std::isfinite(reference.yaw_rate()) ||
+        !std::isfinite(reference.yaw_acceleration())) return false;
+    std::lock_guard<std::mutex> lock(terminal_start_mutex_);
+    terminal_start_request_identity_ = request_identity;
+    terminal_start_reference_ = reference;
+    return true;
+}
+
+std::optional<Reference> ManeuverServer::terminalStartReferenceFor(
+    const std::string & request_identity
+) const {
+    std::lock_guard<std::mutex> lock(terminal_start_mutex_);
+    return terminal_start_request_identity_ == request_identity
+        ? terminal_start_reference_ : std::nullopt;
+}
+
+std::optional<Reference> ManeuverServer::consumeTerminalStartReference(
+    const std::string & request_identity
+) {
+    std::lock_guard<std::mutex> lock(terminal_start_mutex_);
+    if (terminal_start_request_identity_ != request_identity) return std::nullopt;
+    auto reference = terminal_start_reference_;
+    terminal_start_reference_.reset();
+    terminal_start_request_identity_.clear();
+    return reference;
+}
+
+Reference ManeuverServer::initializationReference(const State & state) const {
+    if (reference_callback_token_) {
+        const auto binding = reference_callback_token_->resource().snapshot();
+        if (const auto seed = terminalStartReferenceFor(binding.request_identity)) {
+            return seed->CopyWithNewStamp(node_->now());
+        }
+    }
+    return Reference(state).CopyWithNans();
+}
+
+ReferenceCallbackBinding ManeuverServer::currentReferenceBinding() const {
+    return reference_callback_token_ ? reference_callback_token_->resource().snapshot()
+        : ReferenceCallbackBinding{};
 }
 
 ReferenceStreamRecoveryDisposition ManeuverServer::referenceLossRecoveryDisposition(
@@ -221,6 +323,47 @@ std::string ManeuverServer::action_name() const {
 
 const CombinedDroneAwarenessHandler::SharedPtr &ManeuverServer::awareness_handler() const {
     return awareness_handler_;
+}
+
+void ManeuverServer::ReleaseConsumerScope(const ManeuverRequestScope & scope) {
+    std::lock_guard<std::mutex> lock(released_consumer_mutex_);
+    released_consumer_scope_ = scope;
+}
+
+bool ManeuverServer::consumerReleased(const std::string & request_identity) const {
+    std::lock_guard<std::mutex> lock(released_consumer_mutex_);
+    return released_consumer_scope_.has_value() &&
+        released_consumer_scope_->contains(request_identity);
+}
+
+namespace {
+// Set on the thread admitting a goal (handleGoal -> scheduler -> CanExecute).
+thread_local bool goal_admission_in_progress = false;
+}  // namespace
+
+ManeuverServer::GoalAdmissionScope::GoalAdmissionScope()
+: previous_(goal_admission_in_progress) {
+    goal_admission_in_progress = true;
+}
+
+ManeuverServer::GoalAdmissionScope::~GoalAdmissionScope() {
+    goal_admission_in_progress = previous_;
+}
+
+bool ManeuverServer::operatorNativeControl() const {
+    // Goal admission keeps its original classification; only maneuvers that
+    // are already running are reclassified under operator native control.
+    return !goal_admission_in_progress &&
+        awareness_handler_ != nullptr && awareness_handler_->OperatorNativeControl();
+}
+
+void ManeuverServer::logNotOffboard(const char * message) const {
+    if (operatorNativeControl()) {
+        RCLCPP_INFO(node_->get_logger(),
+            "%s (operator selected a PX4-native mode)", message);
+    } else {
+        RCLCPP_WARN(node_->get_logger(), "%s", message);
+    }
 }
 
 const iii_drone::utils::Atomic<iii_drone::control::maneuver::Maneuver> & ManeuverServer::current_maneuver() const {
@@ -311,6 +454,11 @@ void ManeuverServer::resetControlledCancellation() {
     controlled_stop_below_threshold_since_.reset();
 }
 
+void ManeuverServer::PrimeOwnedManagedReference(const Reference & reference) {
+    std::lock_guard<std::mutex> lock(controlled_cancellation_mutex_);
+    latest_managed_reference_ = reference;
+}
+
 bool ManeuverServer::startControlledCancellation(const ControlledCancellationConfig & config) {
     std::lock_guard<std::mutex> lock(controlled_cancellation_mutex_);
     if (controlled_stop_trajectory_.has_value()) {
@@ -342,6 +490,15 @@ bool ManeuverServer::startControlledCancellation(const ControlledCancellationCon
 
     try {
         controlled_stop_trajectory_.emplace(initial, config.limits);
+        std::string validation_reason;
+        if (!validateControlledCancellationStop(
+                initial, *controlled_stop_trajectory_, validation_reason)) {
+            controlled_stop_trajectory_.reset();
+            RCLCPP_ERROR(node_->get_logger(),
+                "ManeuverServer::startControlledCancellation(): %s: unsafe owned stop: %s",
+                action_name_.c_str(), validation_reason.c_str());
+            return false;
+        }
     } catch (const std::exception & error) {
         RCLCPP_ERROR(
             node_->get_logger(),
@@ -407,6 +564,14 @@ bool ManeuverServer::controlledCancellationComplete(const ControlledCancellation
     ).count() >= config.settle_time_s;
 }
 
+bool ManeuverServer::controlledCancellationProfileComplete() const {
+    std::lock_guard<std::mutex> lock(controlled_cancellation_mutex_);
+    return controlled_stop_trajectory_.has_value() &&
+        std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - controlled_stop_start_time_
+        ).count() >= controlled_stop_trajectory_->durationS();
+}
+
 std::optional<Reference> ManeuverServer::controlledCancellationFinalReference() const {
     std::lock_guard<std::mutex> lock(controlled_cancellation_mutex_);
     if (!controlled_stop_trajectory_.has_value()) {
@@ -423,13 +588,50 @@ rclcpp_action::GoalResponse ManeuverServer::handleGoal(
 
     std::string action_name_ = action_name();
 
+    auto received = iii_drone::diagnostics::HilTrace::event("maneuver_server_goal_received");
+    received.text("endpoint", action_name_);
+    received.text("goal_id", goalUuidToString(uuid));
+    received.commit();
+
     RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::handleGoal(): %s: Received goal", action_name_.c_str());
 
-    if (!running_) {
+    // Checked first: the rejection does not depend on server or scheduler state.
+    const std::string unavailable_reason = unavailable_reason_.Load();
+    if (!unavailable_reason.empty()) {
+        auto decision = iii_drone::diagnostics::HilTrace::event("maneuver_server_goal_decision");
+        decision.text("endpoint", action_name_);
+        decision.text("goal_id", goalUuidToString(uuid));
+        decision.text("decision", "REJECT");
+        decision.text("reason", "MANEUVER_UNAVAILABLE");
+        decision.commit();
+        RCLCPP_ERROR(node_->get_logger(), "%s", unavailable_reason.c_str());
         return rclcpp_action::GoalResponse::REJECT;
     }
 
-    (void)uuid;
+    if (!running_) {
+        auto decision = iii_drone::diagnostics::HilTrace::event("maneuver_server_goal_decision");
+        decision.text("endpoint", action_name_);
+        decision.text("goal_id", goalUuidToString(uuid));
+        decision.text("decision", "REJECT");
+        decision.text("reason", "SERVER_NOT_RUNNING");
+        decision.commit();
+        return rclcpp_action::GoalResponse::REJECT;
+    }
+
+    if (!isValidManeuverRequestIdentity(goal->request_identity)) {
+        auto decision = iii_drone::diagnostics::HilTrace::event("maneuver_server_goal_decision");
+        decision.text("endpoint", action_name_);
+        decision.text("goal_id", goalUuidToString(uuid));
+        decision.text("decision", "REJECT");
+        decision.text("reason", "INVALID_REQUEST_IDENTITY");
+        decision.commit();
+        RCLCPP_WARN(
+            node_->get_logger(),
+            "ManeuverServer::handleGoal(): %s: Rejecting missing or malformed request identity.",
+            action_name_.c_str()
+        );
+        return rclcpp_action::GoalResponse::REJECT;
+    }
 
     Maneuver maneuver(
         maneuver_type(),
@@ -439,20 +641,44 @@ rclcpp_action::GoalResponse ManeuverServer::handleGoal(
     maneuver.SetFromGoal<ActionT>(goal);
 
     bool executing_instantly;
-    bool success = register_maneuver_(maneuver, executing_instantly);
+    bool success = false;
+    {
+        // Admission keeps its rejection semantics and log levels in every
+        // PX4 state; the Mission client withholds goals at a handover.
+        GoalAdmissionScope admission;
+        success = register_maneuver_(maneuver, executing_instantly);
+    }
 
     if (!success) {
+
+        auto decision = iii_drone::diagnostics::HilTrace::event("maneuver_server_goal_decision");
+        decision.text("endpoint", action_name_);
+        decision.text("goal_id", goalUuidToString(uuid));
+        decision.text("decision", "REJECT");
+        decision.text("reason", "MANEUVER_REGISTRATION_FAILED");
+        decision.commit();
 
         RCLCPP_WARN(node_->get_logger(), "ManeuverServer::handleGoal(): %s: Could not register maneuver, rejecting goal", action_name_.c_str());
         return rclcpp_action::GoalResponse::REJECT;
     }
 
     if (executing_instantly) {
+        auto decision = iii_drone::diagnostics::HilTrace::event("maneuver_server_goal_decision");
+        decision.text("endpoint", action_name_);
+        decision.text("goal_id", goalUuidToString(uuid));
+        decision.text("decision", "ACCEPT_AND_EXECUTE");
+        decision.commit();
         RCLCPP_INFO(node_->get_logger(), "ManeuverServer::handleGoal(): %s: Accepting and executing goal", action_name_.c_str());
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
     }
 
     RCLCPP_INFO(node_->get_logger(), "ManeuverServer::handleGoal(): %s: Accepting and deferring goal", action_name_.c_str());
+
+    auto decision = iii_drone::diagnostics::HilTrace::event("maneuver_server_goal_decision");
+    decision.text("endpoint", action_name_);
+    decision.text("goal_id", goalUuidToString(uuid));
+    decision.text("decision", "ACCEPT_AND_DEFER");
+    decision.commit();
 
     return rclcpp_action::GoalResponse::ACCEPT_AND_DEFER;
 
@@ -486,6 +712,11 @@ void ManeuverServer::handleAccepted(
 
     std::string action_name_ = action_name();
 
+    auto accepted = iii_drone::diagnostics::HilTrace::event("maneuver_server_goal_accepted");
+    accepted.text("endpoint", action_name_);
+    accepted.text("goal_id", goalUuidToString(goal_handle->get_goal_id()));
+    accepted.commit();
+
     RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::handleAccepted(): %s: Received accepted", action_name_.c_str());
 
     Maneuver maneuver = Maneuver::FromGoalHandle<ActionT>(goal_handle);
@@ -506,13 +737,24 @@ void ManeuverServer::handleAccepted(
 
     RCLCPP_INFO(node_->get_logger(), "ManeuverServer::handleAccepted(): %s: Starting async execution", action_name_.c_str());
 
+    {
+        std::lock_guard<std::mutex> workers_lock(workers_mutex_);
+        ++active_workers_;
+    }
     std::thread{
-        std::bind(
-            &ManeuverServer::asyncExecute<ActionT>,
-            this, 
-            std::placeholders::_1
-        ),
-        goal_handle
+        [self = shared_from_this(), goal_handle]() {
+            struct WorkerExit {
+                ManeuverServer & server;
+                ~WorkerExit() {
+                    {
+                        std::lock_guard<std::mutex> workers_lock(server.workers_mutex_);
+                        --server.active_workers_;
+                    }
+                    server.workers_cv_.notify_all();
+                }
+            } worker_exit{*self};
+            self->asyncExecute<ActionT>(goal_handle);
+        }
     }.detach();
 
 }
@@ -523,6 +765,12 @@ void ManeuverServer::asyncExecute(
 ) {
 
     std::string action_name_ = action_name();
+    const std::string goal_id = goalUuidToString(goal_handle->get_goal_id());
+
+    auto started = iii_drone::diagnostics::HilTrace::event("maneuver_server_execution_started");
+    started.text("endpoint", action_name_);
+    started.text("goal_id", goal_id);
+    started.commit();
 
     RCLCPP_INFO(node_->get_logger(), "ManeuverServer::asyncExecute(): %s", action_name_.c_str());
 
@@ -559,6 +807,25 @@ void ManeuverServer::asyncExecute(
     while(!goal_handle->is_executing()) {
         // RCLCPP_DEBUG(node_->get_logger(), "ManeuverServer::asyncExecute(): Waiting for goal to start executing");
         rate.sleep();
+        if (!running_) {
+            RCLCPP_WARN(
+                node_->get_logger(),
+                "ManeuverServer::asyncExecute(): %s: Server stopped before execution, aborting goal",
+                action_name_.c_str()
+            );
+            abort_maneuver();
+            return;
+        }
+        const bool released = consumerReleased(maneuver.requestIdentity());
+        if (released) {
+            RCLCPP_INFO(
+                node_->get_logger(),
+                "ManeuverServer::asyncExecute(): %s: Consumer released (Mission Exit) before execution, %s goal",
+                action_name_.c_str(), maneuver.canceling() ? "canceling" : "aborting"
+            );
+            if (maneuver.canceling()) cancel_maneuver(); else abort_maneuver();
+            return;
+        }
         if (!verify_maneuver_in_queue_(maneuver)) {
             RCLCPP_WARN(
                 node_->get_logger(), 
@@ -616,21 +883,71 @@ void ManeuverServer::asyncExecute(
         return;
     }
 
-    // Maneuver initialization may perform synchronous planning. Publish a
-    // current-pose hold under this maneuver's provider identity immediately
-    // after acquiring the token, then replace it with computeReference below.
-    // This prevents clients from seeing either the previous maneuver's
-    // callback or an invalid reference while initialization is in progress.
-    const Reference initialization_hold =
-        Reference(awareness_handler_->GetState()).CopyWithNans();
-    reference_callback_token_->resource().set(
-        [initialization_hold](const State &) {
-            return initialization_hold.CopyWithNewStamp();
-        },
-        action_name()
-    );
+    const ReferenceCallbackBinding pending_binding = reference_callback_token_->resource().snapshot();
+    if (
+        pending_binding.execution_id == 0 ||
+        pending_binding.reference_provider_name != action_name() ||
+        pending_binding.request_identity != maneuver.requestIdentity()
+    ) {
+        RCLCPP_ERROR(
+            node_->get_logger(),
+            "ManeuverServer::asyncExecute(): %s: scheduler did not prepare this execution binding, aborting goal",
+            action_name_.c_str()
+        );
+        abort_maneuver();
+        if (pending_binding.lease) {
+            pending_binding.lease->requestQuiescence();
+            pending_binding.lease->waitUntilDrained();
+            pending_binding.lease->retire();
+        }
+        reference_callback_token_->Release();
+        return;
+    }
 
-    startExecution(maneuver);
+    // Maneuver initialization may perform synchronous planning. Publish its
+    // initialization hold under this maneuver's provider identity immediately
+    // after acquiring the token. This is normally a current-pose hold; a
+    // blended FlyToPosition may retain its fresh planned anchor. Replace it
+    // with computeReference below so clients never see the previous
+    // maneuver's callback or an invalid reference during initialization.
+    startup_rejection_.Store(StartupRejection{});
+    try {
+        const Reference initialization_hold =
+            initializationReference(awareness_handler_->GetState());
+        reference_callback_token_->resource().set(
+            [initialization_hold](const State &) {
+                return initialization_hold.CopyWithNewStamp();
+            },
+            action_name(),
+            pending_binding.execution_id,
+            pending_binding.request_identity
+        );
+
+        startExecution(maneuver);
+    } catch (const std::exception & error) {
+        const auto initialization_binding = reference_callback_token_->resource().snapshot();
+        if (initialization_binding.lease) {
+            initialization_binding.lease->requestQuiescence();
+            initialization_binding.lease->waitUntilDrained();
+            initialization_binding.lease->retire();
+        }
+        startup_rejection_.Store(StartupRejection{
+            pending_binding.request_identity, pending_binding.execution_id});
+        // Object-session seed certification can reject a moving reference.
+        // This worker is detached: an escaping exception would terminate the
+        // controller process. No new computed reference is installed here;
+        // the scheduler's exact finite predecessor seed (when present) stays
+        // bound until its normal completion/failure callback handles ownership.
+        RCLCPP_ERROR(node_->get_logger(),
+            "ManeuverServer::asyncExecute(): %s: startup rejected for request %s: %s",
+            action_name_.c_str(), maneuver.requestIdentity().c_str(), error.what());
+        publishResultAndFinalize(maneuver, MANEUVER_RESULT_TYPE_ABORT);
+        maneuver.Terminate(false);
+        done_callback_(maneuver);
+        current_maneuver_ = Maneuver();
+        reference_callback_token_->Release();
+        return;
+    }
 
     RCLCPP_DEBUG(
         node_->get_logger(), 
@@ -644,38 +961,116 @@ void ManeuverServer::asyncExecute(
             this, 
             std::placeholders::_1
         ),
-        action_name()
+        action_name(),
+        pending_binding.execution_id,
+        pending_binding.request_identity
     );
+    const auto managed_binding = reference_callback_token_->resource().snapshot();
+    const auto managed_lease = managed_binding.lease;
+    const auto drain_managed = [&managed_lease]() {
+        if (managed_lease) {
+            managed_lease->requestQuiescence();
+            managed_lease->waitUntilDrained();
+        }
+    };
 
     bool success = false;
     bool canceling = false;
     bool controlled_cancel_started = false;
+    std::string terminal_reason = "UNKNOWN";
+    // A success that the recheck below keeps rejecting holds the goal open
+    // without any server-specific diagnostic firing.
+    std::optional<std::chrono::steady_clock::time_point> unconfirmed_success_since;
+    std::chrono::steady_clock::time_point unconfirmed_success_logged_at{};
 
     while(true) {
 
-        if (!verify_maneuver_active_(maneuver) || !running_) {
+        if (!running_ || !verify_maneuver_active_(maneuver)) {
+            drain_managed();
+            if (managed_lease) managed_lease->retire();
 
-            RCLCPP_WARN(
-                node_->get_logger(), 
-                "ManeuverServer::asyncExecute(): %s: Goal was removed from active maneuvers, cancelling goal",
-                action_name_.c_str()
-            );
+            if (consumerReleased(maneuver.requestIdentity())) {
+                RCLCPP_INFO(
+                    node_->get_logger(),
+                    "ManeuverServer::asyncExecute(): %s: Released goal was removed from active maneuvers, cancelling goal",
+                    action_name_.c_str()
+                );
+            } else {
+                RCLCPP_WARN(
+                    node_->get_logger(), 
+                    "ManeuverServer::asyncExecute(): %s: Goal was removed from active maneuvers, cancelling goal",
+                    action_name_.c_str()
+                );
+            }
+            // No client cancel request: the goal is still EXECUTING, and ROS
+            // rejects EXECUTING -> CANCELED. The exception escaped this
+            // detached worker and aborted the controller when HIL stopped
+            // during a mission (2026-10-05); a Mission Exit that removes the
+            // maneuver first takes this path in flight.
+            const bool client_canceled = goal_handle->is_canceling();
             publishResultAndFinalize(
                 maneuver,
-                MANEUVER_RESULT_TYPE_CANCEL
+                client_canceled ? MANEUVER_RESULT_TYPE_CANCEL : MANEUVER_RESULT_TYPE_ABORT
             );
             maneuver.Terminate(false);
             cancel_maneuver_(maneuver);
             current_maneuver_ = Maneuver();
             reference_callback_token_->Release();
 
+            auto terminal = iii_drone::diagnostics::HilTrace::event("maneuver_server_execution_result");
+            terminal.text("endpoint", action_name_);
+            terminal.text("goal_id", goal_id);
+            terminal.text("result_code", client_canceled ? "CANCELED" : "ABORTED");
+            terminal.text("reason", "ACTIVE_MANEUVER_REMOVED_OR_SERVER_STOPPED");
+            terminal.boolean("success", false);
+            terminal.commit();
+
             return;
+        }
+
+        // Mission Exit: the consumer released its command authority. PX4 is
+        // no longer applying Core's commands, so no controlled stop or ACK
+        // proof can complete; end the goal now (as requested cancel, if any).
+        if (consumerReleased(maneuver.requestIdentity())) {
+            success = false;
+            canceling = goal_handle->is_canceling();
+            terminal_reason = "CONSUMER_RELEASED";
+            break;
         }
 
         if (goal_handle->is_canceling()) {
             success = false;
+            const auto hover_entry = registered_maneuvers_.find(MANEUVER_TYPE_HOVER);
+            if (hover_entry != registered_maneuvers_.end()) {
+                const auto owner = std::static_pointer_cast<HoverManeuverServer>(
+                    hover_entry->second)->terminalHoldBinding();
+                if (owner.hold && owner.request_identity == maneuver.requestIdentity()) {
+                    if (!controlled_cancel_started) {
+                        owner.hold->Fail("terminal action canceled");
+                        controlled_cancel_started = true;
+                    }
+                    if (owner.hold->phase() == TerminalTrackingHold::Phase::Degraded) {
+                        terminal_reason = "TERMINAL_COMMITTED_STOP_COMPLETE";
+                        canceling = true;
+                        break;
+                    }
+                    if (owner.hold->phase() == TerminalTrackingHold::Phase::Unrecoverable) {
+                        terminal_reason = "TERMINAL_COMMITTED_STOP_UNRECOVERABLE";
+                        break;
+                    }
+                    auto feedback = getFeedback(maneuver);
+                    if (feedback == nullptr) {
+                        feedback = std::static_pointer_cast<void>(
+                            std::make_shared<typename ActionT::Feedback>());
+                    }
+                    maneuver.PublishFeedback<ActionT>(feedback);
+                    rate.sleep();
+                    continue;
+                }
+            }
             const auto cancel_config = controlledCancellationConfig();
             if (!cancel_config.has_value()) {
+                terminal_reason = "ACTION_CANCEL_REQUEST";
                 canceling = true;
                 break;
             }
@@ -693,7 +1088,12 @@ void ManeuverServer::asyncExecute(
                 controlled_cancel_started &&
                 controlledCancellationComplete(cancel_config.value())
             ) {
+                terminal_reason = "CONTROLLED_ACTION_CANCEL_COMPLETE";
                 canceling = true;
+                break;
+            }
+            if (controlled_cancel_started && controlledCancellationFailure()) {
+                terminal_reason = "CONTROLLED_ACTION_CANCEL_PROOF_FAILED";
                 break;
             }
 
@@ -727,16 +1127,47 @@ void ManeuverServer::asyncExecute(
                 action_name_.c_str()
             );
             success = false;
+            terminal_reason = "REFERENCE_LOSS_ABORT";
             break;
         }
 
         if (hasSucceeded(maneuver)) {
+            // A timer/service may already be inside the managed callable.
+            // Keep the worker's token until that invocation finishes, then
+            // recheck the outcome before publishing a success or fallback.
+            drain_managed();
+            if (hasFailed(maneuver)) {
+                success = false;
+                terminal_reason = "MANEUVER_FAILED_DURING_COMPLETION_DRAIN";
+                break;
+            }
+            if (!verify_maneuver_active_(maneuver) ||
+                goal_handle->is_canceling() || !hasSucceeded(maneuver)) {
+                const auto now = std::chrono::steady_clock::now();
+                if (!unconfirmed_success_since) unconfirmed_success_since = now;
+                if (now - *unconfirmed_success_since >= std::chrono::seconds(30) &&
+                    now - unconfirmed_success_logged_at >= std::chrono::seconds(30)) {
+                    unconfirmed_success_logged_at = now;
+                    RCLCPP_INFO(
+                        node_->get_logger(),
+                        "ManeuverServer::asyncExecute(): %s: success has not survived its recheck for %.0f s",
+                        action_name_.c_str(),
+                        std::chrono::duration<double>(now - *unconfirmed_success_since).count()
+                    );
+                }
+                if (managed_lease) managed_lease->resume();
+                rate.sleep();
+                continue;
+            }
             success = true;
+            terminal_reason = "MANEUVER_HAS_SUCCEEDED";
             break;
         }
+        unconfirmed_success_since.reset();
 
         if (hasFailed(maneuver)) {
             success = false;
+            terminal_reason = "MANEUVER_HAS_FAILED";
             break;
         }
 
@@ -758,11 +1189,18 @@ void ManeuverServer::asyncExecute(
 
     }
 
+    drain_managed();
+    if (success && hasFailed(maneuver)) {
+        success = false;
+        terminal_reason = "MANEUVER_FAILED_DURING_COMPLETION_DRAIN";
+    }
+    if (!success && managed_lease) managed_lease->retire();
+
     maneuver_result_type_t maneuver_result_type = MANEUVER_RESULT_TYPE_ABORT;
 
     if (canceling) {
 
-        RCLCPP_WARN(
+        RCLCPP_INFO(
             node_->get_logger(), 
             "ManeuverServer::asyncExecute(): %s: Goal is canceling, cancelling maneuver",
             action_name_.c_str()
@@ -779,6 +1217,19 @@ void ManeuverServer::asyncExecute(
 
         registerReferenceCallbackOnSuccess(maneuver);
 
+        // A blended FlyToPosition deliberately keeps its managed callback
+        // through the successor boundary. Every other successful hook in the
+        // current maneuver set replaces this binding. Resume only if the
+        // hook left this exact request/execution/revision installed; a
+        // replacement (including one with the same provider) is retired.
+        const auto completed_binding = reference_callback_token_->resource().snapshot();
+        if (managed_lease && completed_binding.lease == managed_lease &&
+            completed_binding.revision == managed_binding.revision &&
+            completed_binding.request_identity == managed_binding.request_identity &&
+            completed_binding.execution_id == managed_binding.execution_id) {
+            managed_lease->resume();
+        }
+
         publishResultAndFinalize(
             maneuver,
             MANEUVER_RESULT_TYPE_SUCCEED
@@ -786,11 +1237,25 @@ void ManeuverServer::asyncExecute(
 
     } else {
 
-        RCLCPP_WARN(
-            node_->get_logger(), 
-            "ManeuverServer::asyncExecute(): %s: Maneuver failed",
-            action_name_.c_str()
-        );
+        if (terminal_reason == "CONSUMER_RELEASED") {
+            RCLCPP_INFO(
+                node_->get_logger(),
+                "ManeuverServer::asyncExecute(): %s: Maneuver ended: consumer released (Mission Exit)",
+                action_name_.c_str()
+            );
+        } else if (terminal_reason == "MANEUVER_HAS_FAILED" && operatorNativeControl()) {
+            RCLCPP_INFO(
+                node_->get_logger(),
+                "ManeuverServer::asyncExecute(): %s: Maneuver ended: operator selected a PX4-native mode",
+                action_name_.c_str()
+            );
+        } else {
+            RCLCPP_WARN(
+                node_->get_logger(), 
+                "ManeuverServer::asyncExecute(): %s: Maneuver failed",
+                action_name_.c_str()
+            );
+        }
         maneuver_result_type = MANEUVER_RESULT_TYPE_ABORT;
 
     }
@@ -803,6 +1268,14 @@ void ManeuverServer::asyncExecute(
         );
 
     }
+
+    auto terminal = iii_drone::diagnostics::HilTrace::event("maneuver_server_execution_result");
+    terminal.text("endpoint", action_name_);
+    terminal.text("goal_id", goal_id);
+    terminal.text("result_code", canceling ? "CANCELED" : (success ? "SUCCEEDED" : "ABORTED"));
+    terminal.text("reason", terminal_reason);
+    terminal.boolean("success", success);
+    terminal.commit();
 
     RCLCPP_DEBUG(
         node_->get_logger(), 
@@ -832,10 +1305,16 @@ void ManeuverServer::asyncExecute(
 
 }
 
-void ManeuverServer::registerCallback(const ReferenceCallback &callback) {
+void ManeuverServer::registerCallback(
+    const ReferenceCallback & callback,
+    const std::string & reference_provider_name
+) {
+    const ReferenceCallbackBinding binding = reference_callback_token_->resource().snapshot();
     reference_callback_token_->resource().set(
         callback,
-        action_name()
+        reference_provider_name.empty() ? action_name() : reference_provider_name,
+        binding.execution_id,
+        binding.request_identity
     );
 }
 
@@ -843,25 +1322,28 @@ template <typename ActionT>
 void ManeuverServer::createServer() {
     
     // Create action server
+    const auto lifetime = callback_lifetime_.token();
     std::shared_ptr<rclcpp_action::Server<ActionT>> server = rclcpp_action::create_server<ActionT>(
         node_,
         action_name_,
-        std::bind(
-            &ManeuverServer::handleGoal<ActionT>,
-            this, 
-            std::placeholders::_1, 
-            std::placeholders::_2
-        ),
-        std::bind(
-            &ManeuverServer::handleCancel<ActionT>,
-            this, 
-            std::placeholders::_1
-        ),
-        std::bind(
-            &ManeuverServer::handleAccepted<ActionT>,
-            this, 
-            std::placeholders::_1
-        )
+        [this, lifetime](
+            const rclcpp_action::GoalUUID & uuid,
+            std::shared_ptr<const typename ActionT::Goal> goal
+        ) {
+            const auto alive = lifetime.Enter();
+            if (!alive.owns_lock()) return rclcpp_action::GoalResponse::REJECT;
+            return handleGoal<ActionT>(uuid, goal);
+        },
+        [this, lifetime](const std::shared_ptr<rclcpp_action::ServerGoalHandle<ActionT>> goal_handle) {
+            const auto alive = lifetime.Enter();
+            if (!alive.owns_lock()) return rclcpp_action::CancelResponse::REJECT;
+            return handleCancel<ActionT>(goal_handle);
+        },
+        [this, lifetime](const std::shared_ptr<rclcpp_action::ServerGoalHandle<ActionT>> goal_handle) {
+            const auto alive = lifetime.Enter();
+            if (!alive.owns_lock()) return;
+            handleAccepted<ActionT>(goal_handle);
+        }
     );
 
     server_ = std::static_pointer_cast<void>(server);

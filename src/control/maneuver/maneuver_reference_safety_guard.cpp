@@ -1,4 +1,5 @@
 #include <iii_drone_core/control/maneuver/maneuver_reference_safety_guard.hpp>
+#include <iii_drone_core/diagnostics/hil_trace.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -106,12 +107,19 @@ ManeuverReferenceSafetyEvaluation ManeuverReferenceSafetyGuard::observeReference
         return evaluation;
     }
     if (!validReference(reference)) {
+        auto event = iii_drone::diagnostics::HilTrace::event("reference_continuity_evaluation");
+        event.text("decision", "begin_stop");
+        event.text("reason", "received invalid maneuver reference channels");
+        event.commit();
         return latchFault(std::move(evaluation), "received invalid maneuver reference channels");
     }
     if (!last_reference_ || !last_reference_received_at_) {
         last_reference_ = reference;
         last_reference_received_at_ = received_at;
         evaluation.decision = ManeuverReferenceSafetyDecision::ACCEPT;
+        auto event = iii_drone::diagnostics::HilTrace::event("reference_continuity_evaluation");
+        event.text("decision", "accept_baseline");
+        event.commit();
         return evaluation;
     }
 
@@ -121,6 +129,11 @@ ManeuverReferenceSafetyEvaluation ManeuverReferenceSafetyGuard::observeReference
     );
     evaluation.reference_age_s = elapsed_s;
     if (received_at - *last_reference_received_at_ >= config_.loss_timeout) {
+        auto event = iii_drone::diagnostics::HilTrace::event("reference_continuity_evaluation");
+        event.text("decision", "begin_stop");
+        event.text("reason", "reference response exceeded delivery deadline");
+        event.decimal("reference_age_s", evaluation.reference_age_s);
+        event.commit();
         return latchFault(std::move(evaluation), "reference response exceeded delivery deadline");
     }
 
@@ -193,12 +206,33 @@ ManeuverReferenceSafetyEvaluation ManeuverReferenceSafetyGuard::observeReference
         evaluation.yaw_acceleration_error_rad_s2 >
             evaluation.yaw_acceleration_limit_rad_s2
     ) {
+        auto event = iii_drone::diagnostics::HilTrace::event("reference_continuity_evaluation");
+        event.text("decision", "begin_stop");
+        event.text("reason", "reference violates continuity envelope");
+        event.decimal("reference_age_s", evaluation.reference_age_s);
+        event.decimal("position_error_m", evaluation.position_error_m);
+        event.decimal("position_limit_m", evaluation.position_limit_m);
+        event.decimal("velocity_error_m_s", evaluation.velocity_error_m_s);
+        event.decimal("velocity_limit_m_s", evaluation.velocity_limit_m_s);
+        event.decimal("acceleration_error_m_s2", evaluation.acceleration_error_m_s2);
+        event.decimal("acceleration_limit_m_s2", evaluation.acceleration_limit_m_s2);
+        event.decimal("yaw_error_rad", evaluation.yaw_error_rad);
+        event.decimal("yaw_limit_rad", evaluation.yaw_limit_rad);
+        event.decimal("yaw_rate_error_rad_s", evaluation.yaw_rate_error_rad_s);
+        event.decimal("yaw_rate_limit_rad_s", evaluation.yaw_rate_limit_rad_s);
+        event.decimal("yaw_acceleration_error_rad_s2", evaluation.yaw_acceleration_error_rad_s2);
+        event.decimal("yaw_acceleration_limit_rad_s2", evaluation.yaw_acceleration_limit_rad_s2);
+        event.commit();
         return latchFault(std::move(evaluation), "reference violates continuity envelope");
     }
 
     last_reference_ = reference;
     last_reference_received_at_ = received_at;
     evaluation.decision = ManeuverReferenceSafetyDecision::ACCEPT;
+    auto event = iii_drone::diagnostics::HilTrace::event("reference_continuity_evaluation");
+    event.text("decision", "accept");
+    event.decimal("reference_age_s", evaluation.reference_age_s);
+    event.commit();
     return evaluation;
 }
 
@@ -223,6 +257,10 @@ ManeuverReferenceSafetyEvaluation ManeuverReferenceSafetyGuard::observeMiss(Time
     }
     evaluation.decision = ManeuverReferenceSafetyDecision::HOLD_LAST;
     evaluation.reason = "transient reference miss within delivery deadline";
+    auto event = iii_drone::diagnostics::HilTrace::event("reference_continuity_miss");
+    event.text("decision", "hold_last");
+    event.decimal("reference_age_s", evaluation.reference_age_s);
+    event.commit();
     return evaluation;
 }
 

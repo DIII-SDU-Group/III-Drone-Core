@@ -14,6 +14,7 @@
 #include <rclcpp_lifecycle/lifecycle_publisher.hpp>
 
 #include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/compressed_image.hpp>
 
 #include <std_msgs/msg/float32.hpp>
 
@@ -175,6 +176,14 @@ namespace hough_transformer_node {
 		 *	@brief Subscription object for the image topic
 		 */
 		rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr camera_subscription_;
+		// Used instead when /perception/hough_transformer/image_transport is
+		// "compressed": frames cross a network link as lossless PNG and are
+		// decoded back to their original encoding here.
+		rclcpp::Subscription<sensor_msgs::msg::CompressedImage>::SharedPtr compressed_camera_subscription_;
+		std::mutex camera_subscription_mutex_;
+
+		// Camera subscription only while running (START/STOP).
+		void setCameraSubscribed(bool subscribed);
 
 		/**
 		 * @brief Command service
@@ -209,6 +218,8 @@ namespace hough_transformer_node {
 		 * @param _msg Message containing the image
 		 */
 		void onCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg);
+		void onCompressedCameraMsg(const sensor_msgs::msg::CompressedImage::SharedPtr msg);
+		void processImage(const cv::Mat & img);
 
 		/**
 		 * @brief Publisher object for the cable yaw angle

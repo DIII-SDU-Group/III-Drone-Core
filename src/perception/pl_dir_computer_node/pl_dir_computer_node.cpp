@@ -3,6 +3,7 @@
 /*****************************************************************************/
 
 #include <iii_drone_core/perception/pl_dir_computer_node/pl_dir_computer_node.hpp>
+#include <iii_drone_core/utils/multi_threaded_executor.hpp>
 
 using namespace iii_drone::perception::pl_dir_computer_node;
 using namespace iii_drone::types;
@@ -111,7 +112,7 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(
             iii_drone_interfaces::msg::StringStamped status_stamped_msg;
             status_stamped_msg.stamp = this->now();
             status_stamped_msg.data = running_ ? "Running" : "Stopped";
-            status_pub_->publish(status_stamped_msg);
+            if (status_pub_->is_activated()) status_pub_->publish(status_stamped_msg);
         }
     );
 
@@ -170,7 +171,7 @@ PowerlineDirectionComputerNode::on_configure(const rclcpp_lifecycle::State & sta
     );
 
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
-    transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+    // The listener is created on START (setRunning()).
 
     return CallbackReturn::SUCCESS;
 
@@ -307,7 +308,7 @@ PowerlineDirectionComputerNode::on_activate(const rclcpp_lifecycle::State & stat
         )
     );
 
-    running_ = configurator_->GetParameter("/perception/begin_running").as_bool();
+    setRunning(configurator_->GetParameter("/perception/begin_running").as_bool());
 
     return CallbackReturn::SUCCESS;
 
@@ -431,7 +432,7 @@ void PowerlineDirectionComputerNode::commandCallback(
             pl_direction_->Reset();
         }
 
-		running_ = true;
+		setRunning(true);
 
 		response->ack = response->SYSTEM_ACK_OK;
 
@@ -442,7 +443,7 @@ void PowerlineDirectionComputerNode::commandCallback(
 			"PowerlineDirectionComputerNode::commandCallback(): Stopping pl dir computer node"
 		);
 
-		running_ = false;
+		setRunning(false);
 
 		response->ack = response->SYSTEM_ACK_OK;
 
@@ -456,6 +457,25 @@ void PowerlineDirectionComputerNode::commandCallback(
 		response->ack = response->SYSTEM_ACK_INVALID_CMD;
 
 	}
+}
+
+void PowerlineDirectionComputerNode::setRunning(bool running) {
+
+    running_ = running;
+    if (running) {
+        if (!transform_listener_ && tf_buffer_) {
+            transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+        }
+        if (drone_tf_timer_ && drone_tf_timer_->is_canceled()) {
+            drone_tf_timer_->reset();
+        }
+    } else {
+        if (drone_tf_timer_) {
+            drone_tf_timer_->cancel();
+        }
+        transform_listener_.reset();
+    }
+
 }
 
 void PowerlineDirectionComputerNode::odometryCallback() {
@@ -493,6 +513,14 @@ void PowerlineDirectionComputerNode::odometryCallback() {
 
 void PowerlineDirectionComputerNode::publishPowerlineDirection() {
 
+    // Do not turn "no camera estimate yet" into a plausible identity
+    // direction.  The mapper must wait for the first Hough observation before
+    // it can project radar points onto cable-aligned lines.
+    if (!pl_direction_->HasEstimate()) {
+        RCLCPP_DEBUG(this->get_logger(), "Powerline direction is not initialized; skipping publication");
+        return;
+    }
+
     RCLCPP_DEBUG(this->get_logger(), "Publishing powerline direction");
 
     geometry_msgs::msg::PoseStamped pose_msg = pl_direction_->ToPoseStampedMsg(
@@ -514,7 +542,7 @@ int main(int argc, char *argv[]) {
     setvbuf(stdout, NULL, _IONBF, BUFSIZ);
     rclcpp::init(argc, argv);
 
-    rclcpp::executors::MultiThreadedExecutor executor;
+    iii_drone::utils::MultiThreadedExecutor executor;
 
     auto node = std::make_shared<PowerlineDirectionComputerNode>();
 

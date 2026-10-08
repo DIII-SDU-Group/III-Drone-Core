@@ -10,6 +10,9 @@
 #include <chrono>
 #include <memory>
 #include <mutex>
+#include <condition_variable>
+
+#include <iii_drone_core/utils/callback_lifetime.hpp>
 #include <optional>
 
 /*****************************************************************************/
@@ -47,6 +50,7 @@
 
 #include <iii_drone_core/control/maneuver/maneuver.hpp>
 #include <iii_drone_core/control/maneuver/maneuver_types.hpp>
+#include <iii_drone_core/control/maneuver/maneuver_request_identity.hpp>
 #include <iii_drone_core/control/maneuver/reference_callback_token.hpp>
 
 #include <iii_drone_core/adapters/combined_drone_awareness_adapter.hpp>
@@ -92,7 +96,7 @@ namespace maneuver {
      * and publish feedback accordingly. When the maneuver is done, the maneuver server will call the done callback function,
      * and the maneuver scheduler will take back the reference callback token.
      */
-    class ManeuverServer {
+    class ManeuverServer : public std::enable_shared_from_this<ManeuverServer> {
     public:
         /**
          * @brief Constructor
@@ -110,6 +114,8 @@ namespace maneuver {
             unsigned int wait_for_execute_poll_ms,
             unsigned int evaluate_done_poll_ms
         );
+
+        virtual ~ManeuverServer();
 
         /**
          * @brief Method to start the maneuver server. The maneuver server will reject any new goals until started.
@@ -159,7 +165,23 @@ namespace maneuver {
          * @return void
          */
         void Stop();
- 
+
+        /**
+         * @brief Marks the maneuver unavailable, e.g. in the opti_track runtime
+         * profile: every goal is then rejected immediately, before it reaches
+         * the scheduler, and reason is logged as an ERROR. The action server
+         * stays up, so a client gets a rejection instead of waiting for a
+         * server that never appears.
+         *
+         * @param reason The rejection text, see ManeuverUnavailableMessage().
+         */
+        void SetUnavailable(const std::string & reason);
+
+        /**
+         * @brief Returns whether goals of this maneuver can be served (see SetUnavailable()).
+         */
+        bool available() const;
+
         /**
          * @brief Virtual function which checks if a maneuver can be executed given an awareness.
          * Must be implemented specific to the maneuver type.
@@ -216,12 +238,45 @@ namespace maneuver {
 
         bool referenceStreamPaused() const;
 
+        /** Request/execution-fenced startup rejection, readable without the worker mutex. */
+        bool startupRejected(const ReferenceCallbackBinding & binding) const;
+
+        /** Scheduler-staged, request-fenced finite start command from a quiescent terminal hold. */
+        bool StageTerminalStartReference(
+            const std::string & request_identity, const Reference & reference
+        );
+
+        /**
+         * @brief Mission Exit: the consumer that minted this scope released its
+         * command authority. Goals in scope end without executing further and
+         * without controlled-cancel ACK waits; late goals in scope are accepted
+         * and aborted. The scope is sticky until replaced by a newer release.
+         */
+        void ReleaseConsumerScope(const ManeuverRequestScope & scope);
+
+        /** True when request_identity belongs to a released consumer scope. */
+        bool consumerReleased(const std::string & request_identity) const;
+
         /**
          * @brief Shared pointer type.
          */
         typedef std::shared_ptr<ManeuverServer> SharedPtr;
 
     protected:
+        /**
+         * @brief Fresh PX4-native navigation without PX4 failsafe: an operator
+         * (or test driver) ended external control. Used only to classify logs
+         * of maneuvers that are already running; always false while a goal is
+         * being admitted (admission keeps its rejection and log levels).
+         */
+        bool operatorNativeControl() const;
+
+        /**
+         * @brief Log that the vehicle is not in an offboard/external mode:
+         * INFO under operator native control, WARN otherwise (same text).
+         */
+        void logNotOffboard(const char * message) const;
+
         /**
          * @brief Combined drone awareness handler, accessible to derived classes through the protected method.
          */
@@ -291,6 +346,22 @@ namespace maneuver {
         virtual Reference computeReference(const State &) = 0;
 
         /**
+         * Reference published under the new execution identity while
+         * startExecution performs any synchronous initialization.
+         */
+        virtual Reference initializationReference(const State & state) const;
+
+        /** Exact scheduler-prepared callback owner for this action execution. */
+        ReferenceCallbackBinding currentReferenceBinding() const;
+
+        std::optional<Reference> terminalStartReferenceFor(
+            const std::string & request_identity
+        ) const;
+        std::optional<Reference> consumeTerminalStartReference(
+            const std::string & request_identity
+        );
+
+        /**
          * Replan the remaining maneuver from a stopped state. Implementations
          * must guarantee that their first computed sample is continuous with
          * stopped_state. The safe default refuses transparent recovery.
@@ -351,7 +422,10 @@ namespace maneuver {
          * 
          * @return void
          */
-        void registerCallback(const ReferenceCallback & callback);
+        void registerCallback(
+            const ReferenceCallback & callback,
+            const std::string & reference_provider_name = ""
+        );
 
         /**
          * @brief Creates the underlying action server.
@@ -370,6 +444,14 @@ namespace maneuver {
 
         /** Returns the controlled stop endpoint while a cancellation is active. */
         std::optional<Reference> controlledCancellationFinalReference() const;
+        /** True only after the commanded generic stop has reached its rest endpoint. */
+        bool controlledCancellationProfileComplete() const;
+        /** Maneuver-specific measured proof after the commanded stop. */
+        virtual bool controlledCancellationComplete(const ControlledCancellationConfig & config);
+        virtual bool controlledCancellationFailure() const { return false; }
+        virtual bool validateControlledCancellationStop(
+            const Reference &, const KinematicStopTrajectory &, std::string &) { return true; }
+        void PrimeOwnedManagedReference(const Reference & reference);
 
         static ControlledCancellationConfig controlledCancellationConfigFrom(
             const iii_drone::configuration::Configuration::SharedPtr & configuration
@@ -395,6 +477,18 @@ namespace maneuver {
          * @brief Mutex for restricting execution to one goal at a time.
          */
         std::mutex mutex_;
+
+        mutable std::mutex released_consumer_mutex_;
+        std::optional<ManeuverRequestScope> released_consumer_scope_;
+
+        /** Marks goal admission on this thread (see operatorNativeControl()). */
+        class GoalAdmissionScope {
+        public:
+            GoalAdmissionScope();
+            ~GoalAdmissionScope();
+        private:
+            bool previous_;
+        };
 
         /**
          * @brief Action name
@@ -472,7 +566,30 @@ namespace maneuver {
          */
         iii_drone::utils::Atomic<bool> running_;
 
+        /**
+         * @brief Rejection text while the maneuver is unavailable, empty otherwise.
+         */
+        iii_drone::utils::Atomic<std::string> unavailable_reason_;
+
+        // Detached execution workers. Stop() waits for them before tearing
+        // down the scheduler callbacks and token they use, and each worker
+        // co-owns the server so unregistering cannot free it under them.
+        std::mutex workers_mutex_;
+        std::condition_variable workers_cv_;
+        int active_workers_ = 0;
+
+        void waitForExecutionWorkers();
+
+        // Ends the action-server callbacks (they capture `this`) before the
+        // server is destroyed.
+        iii_drone::utils::CallbackLifetime callback_lifetime_;
+
         iii_drone::utils::Atomic<bool> reference_stream_paused_ = false;
+        struct StartupRejection {
+            std::string request_identity;
+            uint64_t execution_id = 0;
+        };
+        iii_drone::utils::Atomic<StartupRejection> startup_rejection_;
 
         /**
          * @brief Action server shared void pointer
@@ -482,7 +599,6 @@ namespace maneuver {
         Reference computeManagedReference(const State & state);
         void resetControlledCancellation();
         bool startControlledCancellation(const ControlledCancellationConfig & config);
-        bool controlledCancellationComplete(const ControlledCancellationConfig & config);
 
         mutable std::mutex controlled_cancellation_mutex_;
         std::optional<Reference> latest_managed_reference_;
@@ -490,6 +606,9 @@ namespace maneuver {
         std::chrono::steady_clock::time_point controlled_stop_start_time_;
         std::optional<std::chrono::steady_clock::time_point>
             controlled_stop_below_threshold_since_;
+        mutable std::mutex terminal_start_mutex_;
+        std::string terminal_start_request_identity_;
+        std::optional<Reference> terminal_start_reference_;
 
         /**
          * @brief Handle goal callback.

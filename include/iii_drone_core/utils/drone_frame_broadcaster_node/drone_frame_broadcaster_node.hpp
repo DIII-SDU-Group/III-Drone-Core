@@ -24,6 +24,7 @@
 #include <iii_drone_configuration/configurator.hpp>
 
 #include <iii_drone_core/adapters/px4/vehicle_odometry_adapter.hpp>
+#include <iii_drone_core/utils/sample_decimator.hpp>
 
 /*****************************************************************************/
 // Class
@@ -44,17 +45,12 @@ namespace drone_frame_broadcaster_node {
 
     private:
         void odometryCallback(const std::shared_ptr<px4_msgs::msg::VehicleOdometry> msg);
-        void compensateOdometryReset(iii_drone::adapters::px4::VehicleOdometryAdapter & adapter);
         void publishIsAlive();
 
         rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr subscription_;
         std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
         iii_drone::types::rotation_matrix_t R_NED_to_body_frame;
-        iii_drone::types::point_t odometry_position_reset_offset_ = iii_drone::types::point_t::Zero();
-        iii_drone::types::point_t last_raw_odometry_position_ = iii_drone::types::point_t::Zero();
-        uint8_t last_odometry_reset_counter_ = 0;
-        bool has_last_odometry_for_reset_compensation_ = false;
 
         iii_drone::configuration::Configurator<rclcpp::Node>::SharedPtr configurator_;
 
@@ -62,6 +58,11 @@ namespace drone_frame_broadcaster_node {
         rclcpp::TimerBase::SharedPtr is_alive_timer_;
 
         rclcpp::Time last_alive_pub_time_;
+
+        // At least 15 ms of PX4 sample time between poses: every second
+        // sample, whether 10 ms apart (100 Hz: 20 ms) or SITL's 8 or 16 ms
+        // (16-24 ms).
+        iii_drone::utils::SampleDecimator tf_decimator_{15000};
 
     };
 

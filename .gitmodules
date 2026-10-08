@@ -1,3 +1,0 @@
-[submodule "include/hough-accel-ip"]
-	path = src/hough-accel-ip
-	url = https://github.com/DIII-SDU-Group/hough-accel-ip.git

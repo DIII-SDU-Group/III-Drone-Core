@@ -8,6 +8,14 @@
 // Std:
 
 #include <memory>
+#include <thread>
+#include <atomic>
+#include <limits>
+#include <optional>
+#include <chrono>
+#include <array>
+#include <cstdint>
+#include <mutex>
 
 /*****************************************************************************/
 // ROS2:
@@ -29,7 +37,10 @@
 // PX4 msgs:
 
 #include <px4_msgs/msg/vehicle_status.hpp>
+#include <px4_msgs/msg/vehicle_land_detected.hpp>
+#include <px4_msgs/msg/vehicle_local_position_setpoint.hpp>
 #include <px4_msgs/msg/vehicle_odometry.hpp>
+#include <px4_msgs/msg/vehicle_local_position.hpp>
 #include <px4_msgs/msg/vehicle_global_position.hpp>
 
 /*****************************************************************************/
@@ -56,6 +67,7 @@
 
 #include <iii_drone_core/utils/atomic.hpp>
 #include <iii_drone_core/utils/history.hpp>
+#include <iii_drone_core/utils/callback_lifetime.hpp>
 
 #include <iii_drone_core/adapters/px4/vehicle_status_adapter.hpp>
 #include <iii_drone_core/adapters/px4/vehicle_odometry_adapter.hpp>
@@ -68,7 +80,9 @@
 #include <iii_drone_core/adapters/combined_drone_awareness_adapter.hpp>
 
 #include <iii_drone_core/control/state.hpp>
+#include <iii_drone_core/control/hover_thrust_meter.hpp>
 #include <iii_drone_core/control/reference.hpp>
+#include <iii_drone_core/control/position_continuity_identity.hpp>
 
 #include <iii_drone_core/control/maneuver/maneuver_types.hpp>
 
@@ -79,6 +93,93 @@
 namespace iii_drone {
 
 namespace control {
+
+    struct MeasuredOdometrySnapshot {
+        State state;
+        // ROS receipt time is comparable with the command-emission clock.
+        // PX4 sample identity, independent of its publication timestamp.
+        rclcpp::Time receipt_stamp{0, 0, RCL_ROS_TIME};
+        uint64_t source_sample_timestamp_us = 0;
+        uint8_t reset_counter = 0;
+        PositionContinuityIdentity position_continuity{};
+    };
+
+    /** Fixed, process-local receipt evidence. Steady times share one clock epoch. */
+    struct OdometryIngressEvent {
+        uint64_t source_sample_timestamp_us = 0;
+        int64_t callback_receipt_ros_ns = 0;
+        int64_t callback_entry_steady_ns = 0;
+        int64_t lock_acquired_steady_ns = 0;
+        int64_t completed_steady_ns = 0;
+        int64_t accepted_steady_ns = 0;
+        uint8_t reset_counter = 0;
+        bool accepted = false;
+        bool pending_before = false;
+        bool pending_after = false;
+    };
+
+    struct OdometryIngressDiagnostics {
+        static constexpr size_t history_capacity = 64;
+        bool available = false;
+        bool busy = false;
+        bool latest_available = false;
+        uint64_t latest_source_sample_timestamp_us = 0;
+        uint8_t latest_reset_counter = 0;
+        int64_t latest_receipt_ros_ns = 0;
+        int64_t latest_accepted_steady_ns = 0;
+        uint64_t total_callbacks = 0;
+        size_t history_count = 0;
+        std::array<OdometryIngressEvent, history_capacity> history{};
+    };
+
+    struct VehicleNavigationSample {
+        uint64_t source_timestamp_us = 0;
+        uint64_t nav_state_timestamp_us = 0;
+        uint8_t nav_state = 0;
+        // PX4 vehicle_status.failsafe of this exact sample.
+        bool failsafe = false;
+        std::chrono::steady_clock::time_point receipt;
+    };
+
+    struct VehicleNavigationEvidence {
+        std::optional<VehicleNavigationSample> latest;
+        std::optional<VehicleNavigationSample> last_external;
+        // A raw PX4 clock regression invalidates all earlier owner epochs.
+        uint64_t source_epoch = 0;
+    };
+
+    /** Freshness bound of PX4 navigation evidence (vehicle_status cadence plus jitter). */
+    constexpr std::chrono::milliseconds kVehicleNavigationFreshness{1500};
+
+    /**
+     * Operator native control: the latest fresh PX4 sample is a PX4-native
+     * navigation state (not OFFBOARD and not an external mode) and PX4 is not
+     * in failsafe. This is how an operator (or test driver) ends a mission by
+     * selecting Hold/Position/... . Stale, missing or failsafe evidence is not
+     * operator control and keeps fault classification loud.
+     */
+    bool IsOperatorNativeControl(
+        const VehicleNavigationEvidence & navigation,
+        std::chrono::steady_clock::time_point now
+    );
+
+    /**
+     * @brief AMSL altitude of the ground: the local ground altitude estimate
+     * plus the offset between PX4's AMSL altitude and the local altitude of
+     * the same instant. NaN when the AMSL altitude is unknown (zero or not
+     * finite) or the local altitude is not finite.
+     *
+     * @param ground_altitude_estimate Local ground altitude estimate [m, up].
+     * @param altitude_amsl PX4 global position altitude [m AMSL].
+     * @param altitude_local Local altitude of the same instant [m, up].
+     *
+     * @return double The ground altitude AMSL, or NaN.
+     */
+    double GroundAltitudeEstimateAmsl(
+        double ground_altitude_estimate,
+        float altitude_amsl,
+        float altitude_local
+    );
 
     /**
      * @brief Class which subscribes to various topics related to the drone awareness and keeps track of the current combined awareness.
@@ -137,6 +238,35 @@ namespace control {
          * @return The current drone state.
          */
         iii_drone::control::State GetState() const;
+
+        /** Latest measured odometry with its source and receipt metadata. */
+        std::optional<MeasuredOdometrySnapshot> GetMeasuredOdometry() const;
+        /** Nonblocking diagnostic copy; busy means no ingress lock was acquired. */
+        OdometryIngressDiagnostics TryGetOdometryIngressDiagnostics() const;
+        static std::optional<MeasuredOdometrySnapshot> AdvanceMeasuredOdometry(
+            std::optional<MeasuredOdometrySnapshot> previous,
+            const iii_drone::adapters::px4::VehicleOdometryAdapter & adapter,
+            uint64_t source_sample_timestamp_us,
+            const rclcpp::Time & receipt_stamp
+        );
+        VehicleNavigationEvidence GetVehicleNavigationEvidence() const;
+        /** IsOperatorNativeControl() on the latest navigation evidence. */
+        bool OperatorNativeControl() const;
+        static VehicleNavigationEvidence AdvanceVehicleNavigation(
+            VehicleNavigationEvidence previous,
+            const px4_msgs::msg::VehicleStatus & status,
+            std::chrono::steady_clock::time_point receipt,
+            bool external_mode
+        );
+
+        /**
+         * @brief Whether status and odometry needed to form a vehicle state are available.
+         *
+         * Status can arrive before odometry after an XRCE reconnect or controller
+         * lifecycle recovery.  Maneuvers must not treat that partial snapshot as
+         * a usable state.
+         */
+        bool state_available() const;
 
         /**
          * @brief Computes the target state of the drone given a target adapter.
@@ -290,6 +420,63 @@ namespace control {
         bool gripper_open() const;
 
         /**
+         * @brief PX4's land detector stages, as last received.
+         */
+        struct Px4LandState {
+            bool landed = true;
+            bool maybe_landed = true;
+            bool ground_contact = true;
+            std::chrono::steady_clock::time_point received_at{};
+        };
+
+        /**
+         * @brief The last PX4 land-detector sample, if any was received.
+         */
+        std::optional<Px4LandState> px4_land_state() const;
+
+        /**
+         * @brief Whether PX4 reports the vehicle airborne: a sample no older
+         * than kPx4LandStateMaxAge (PX4 republishes at least at 1 Hz) with
+         * none of landed, maybe landed or ground contact set. Unknown counts
+         * as not airborne.
+         *
+         * Far above the ground PX4 reports airborne as soon as it arms, while
+         * its takeoff state machine still holds thrust at zero; see
+         * px4_thrust_up() for the thrust PX4 applies.
+         */
+        bool px4_airborne(std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now()) const;
+
+        static constexpr std::chrono::milliseconds kPx4LandStateMaxAge{2500};
+
+        /**
+         * @brief PX4 position controller output, as last received.
+         */
+        struct Px4ThrustSetpoint {
+            /** Upward collective thrust (normalized, NED z negated). */
+            double thrust_up = 0.0;
+            /** Upward acceleration setpoint the thrust realizes (m/s^2). */
+            double acceleration_up = 0.0;
+            std::chrono::steady_clock::time_point received_at{};
+        };
+
+        /**
+         * @brief The thrust PX4's position controller commands, if a sample
+         * no older than kPx4ThrustSetpointMaxAge (PX4 publishes it every
+         * control cycle) is available. It stays zero until PX4 has taken off.
+         */
+        std::optional<Px4ThrustSetpoint> px4_thrust_setpoint(
+            std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now()) const;
+
+        static constexpr std::chrono::milliseconds kPx4ThrustSetpointMaxAge{1000};
+
+        /**
+         * @brief The thrust the vehicle actually needs to hover, measured from
+         * PX4's commanded thrust in the latest steady free flight (not on the
+         * cable). Kept while disarmed.
+         */
+        std::optional<HoverThrustMeter::Estimate> measured_hover_thrust() const;
+
+        /**
          * @brief Returns the tf buffer shared ptr.
          * 
          * @return The tf buffer shared ptr.
@@ -403,10 +590,21 @@ namespace control {
 		 */
 		rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr vehicle_status_sub_;
 
+		/**
+		 * @brief PX4 land detector subscription and its last sample.
+		 */
+		rclcpp::Subscription<px4_msgs::msg::VehicleLandDetected>::SharedPtr vehicle_land_detected_sub_;
+		iii_drone::utils::Atomic<std::optional<Px4LandState>> px4_land_state_;
+		rclcpp::Subscription<px4_msgs::msg::VehicleLocalPositionSetpoint>::SharedPtr vehicle_local_position_setpoint_sub_;
+		iii_drone::utils::Atomic<std::optional<Px4ThrustSetpoint>> px4_thrust_setpoint_;
+		HoverThrustMeter hover_thrust_meter_;
+		mutable std::mutex hover_thrust_meter_mutex_;
+
         /**
          * @brief Vehicle status adapter history.
         */
         VehicleStatusAdapterHistory::SharedPtr vehicle_status_adapter_history_;
+        iii_drone::utils::Atomic<VehicleNavigationEvidence> vehicle_navigation_evidence_;
 
         /**
          * @brief Updates the combined drone awareness from the vehicle status.
@@ -430,18 +628,104 @@ namespace control {
 		 * @brief PX4 odometry subscription
 		 */
 		rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr vehicle_odometry_sub_;
+		// Odometry and local-position ingress (one measured-odometry
+		// transaction) run on their own executor thread: object tracking needs
+		// every sample promptly, and neither a busy callback group nor an
+		// exhausted executor thread pool of the node may delay them. The queue
+		// absorbs brief OS scheduling stalls.
+		rclcpp::CallbackGroup::SharedPtr odometry_callback_group_;
+		std::shared_ptr<rclcpp::executors::SingleThreadedExecutor> odometry_executor_;
+		std::thread odometry_thread_;
+		void startOdometryIngress();
+		void stopOdometryIngress();
+		static constexpr size_t odometry_queue_depth_ = 64;  // 0.5 s at 125 Hz
+		// Serialises the read-modify-write updates of the awareness snapshot,
+		// which now run from more than one callback group.
+		std::mutex awareness_update_mutex_;
+		iii_drone::utils::CallbackLifetime callback_lifetime_;
+		rclcpp::Subscription<px4_msgs::msg::VehicleLocalPosition>::SharedPtr vehicle_local_position_sub_;
 
         /**
          * @brief Vehicle odometry adapter history.
         */
         VehicleOdometryAdapterHistory::SharedPtr vehicle_odometry_adapter_history_;
+        iii_drone::utils::Atomic<std::optional<MeasuredOdometrySnapshot>> measured_odometry_;
+        // Bumped whenever measured_odometry_ changes: a local-position message
+        // that changes nothing (most of them, 100 Hz) does not recompute the
+        // awareness.
+        std::atomic<uint64_t> measured_odometry_version_{0};
+        // AMSL altitude of PX4's local origin (vehicle_local_position.ref_alt),
+        // NaN while it has no global reference. PX4 derives the global
+        // altitude from the same reference, so the ground estimate's AMSL
+        // value needs no 100 Hz global-position subscription.
+        std::atomic<double> local_reference_altitude_amsl_{std::numeric_limits<double>::quiet_NaN()};
 
-        iii_drone::types::point_t odometry_position_reset_offset_;
-        iii_drone::types::point_t last_raw_odometry_position_;
-        uint8_t last_odometry_reset_counter_ = 0;
-        bool has_last_odometry_for_reset_compensation_ = false;
-
-        void compensateOdometryReset(iii_drone::adapters::px4::VehicleOdometryAdapter & adapter);
+        struct LocalResetMetadata {
+            uint64_t source_sample_us = 0;
+            rclcpp::Time receipt{0, 0, RCL_ROS_TIME};
+            uint8_t xy = 0, z = 0, vxy = 0, vz = 0, heading = 0;
+            bool xy_global = false, z_global = false;
+            uint64_t origin_timestamp_us = 0;
+            double origin_lat = 0, origin_lon = 0;
+            float origin_alt = 0;
+            uint8_t aggregate() const {
+                return static_cast<uint8_t>(xy + z + vxy + vz + heading);
+            }
+        };
+        struct PendingOdometry {
+            px4_msgs::msg::VehicleOdometry message;
+            rclcpp::Time receipt{0, 0, RCL_ROS_TIME};
+        };
+        // The two DDS callbacks and the measured snapshot form one transaction.
+        mutable std::mutex odometry_ingest_mutex_;
+        std::array<OdometryIngressEvent,
+            OdometryIngressDiagnostics::history_capacity> odometry_ingress_history_{};
+        size_t odometry_ingress_next_ = 0;
+        size_t odometry_ingress_count_ = 0;
+        uint64_t odometry_ingress_total_callbacks_ = 0;
+        uint64_t accepted_odometry_samples_ = 0;
+        bool latest_accepted_odometry_available_ = false;
+        uint64_t latest_accepted_source_sample_us_ = 0;
+        uint8_t latest_accepted_reset_counter_ = 0;
+        int64_t latest_accepted_receipt_ros_ns_ = 0;
+        int64_t latest_accepted_steady_ns_ = 0;
+        std::optional<LocalResetMetadata> latest_local_reset_;
+        std::optional<LocalResetMetadata> verified_local_reset_;
+        std::optional<PendingOdometry> pending_odometry_;
+        bool local_provenance_invalid_ = false;
+        bool local_provenance_was_valid_ = false;
+        std::optional<uint64_t> local_provenance_valid_since_us_;
+        uint64_t odometry_source_epoch_ = 0;
+        uint64_t position_epoch_ = 0;
+        void ingestVehicleOdometry(const px4_msgs::msg::VehicleOdometry & message,
+            const rclcpp::Time & receipt);
+        void ingestVehicleLocalPosition(const px4_msgs::msg::VehicleLocalPosition & message,
+            const rclcpp::Time & receipt);
+        void acceptMeasuredOdometry(const px4_msgs::msg::VehicleOdometry & message,
+            const rclcpp::Time & receipt, bool qualified, bool new_position_epoch,
+            bool force_source_fault = false);
+        bool metadataMatches(const LocalResetMetadata & metadata,
+            const px4_msgs::msg::VehicleOdometry & message,
+            const rclcpp::Time & receipt) const;
+        static bool headingOnly(const LocalResetMetadata & before,
+            const LocalResetMetadata & after);
+        static bool samePositionBasis(const LocalResetMetadata & before,
+            const LocalResetMetadata & after);
+        // A PX4 timesync filter reset publishes a few samples with a zero
+        // offset (boot-relative stamps between agent-clock stamps). These
+        // report whether a regressing sample is such an isolated stamp-only
+        // anomaly on an unchanged, source-qualified, fresh position basis.
+        // Discarding it never refreshes a receipt; sustained regressions age
+        // past the 250 ms bound and fence as before.
+        bool isolatedOdometryStampRegression(
+            const MeasuredOdometrySnapshot & previous,
+            const px4_msgs::msg::VehicleOdometry & message,
+            const rclcpp::Time & receipt) const;
+        bool isolatedLocalStampRegression(const LocalResetMetadata & metadata) const;
+        uint64_t discarded_stamp_regressions_ = 0;
+        void logResetClassification(bool heading_only, const char * context,
+            uint8_t from_counter, uint8_t to_counter, uint64_t odometry_source_us,
+            uint64_t local_source_us, uint64_t prior_local_source_us) const;
 
         /**
          * @brief Updates the combined drone awareness from the vehicle odometry.
@@ -461,9 +745,6 @@ namespace control {
          */
         void updateCombinedDroneAwarenessFromVehicleOdometry(iii_drone::adapters::CombinedDroneAwarenessAdapter & combined_drone_awareness_adapter);
 
-        rclcpp::Subscription<px4_msgs::msg::VehicleGlobalPosition>::SharedPtr vehicle_global_position_sub_;
-
-        VehicleGlobalPositionAdapterHistory::SharedPtr vehicle_global_position_adapter_history_;
 
 		/**
 		 * @brief Powerline subscription
@@ -502,6 +783,10 @@ namespace control {
          * @brief Gripper status adapter history.
         */
         GripperStatusAdapterHistory::SharedPtr gripper_status_adapter_history_;
+
+        // Gripper status arrives at 50-100 Hz; the awareness only depends on
+        // whether the gripper is open, so it is recomputed when that changes.
+        std::optional<bool> last_gripper_open_;
 
         /**
          * @brief Updates the combined drone awareness from the gripper status.
@@ -568,6 +853,12 @@ namespace control {
          * @brief Timer for updating the ground altitude estimate.
          */
         rclcpp::TimerBase::SharedPtr ground_altitude_update_timer_;
+
+        // Last published ground frame (only rviz shows it): published when it
+        // moves or once a second, not at the 20 Hz estimate rate, since every
+        // /tf listener receives each message.
+        double ground_tf_published_altitude_ = std::numeric_limits<double>::quiet_NaN();
+        std::chrono::steady_clock::time_point ground_tf_published_at_{};
 
         /**
          * @brief Updates the ground altitude estimate based on given information.

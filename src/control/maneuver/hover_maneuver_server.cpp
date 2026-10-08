@@ -46,7 +46,7 @@ bool HoverManeuverServer::CanExecuteManeuver(
 
     if (!drone_awareness.offboard()) {
 
-        RCLCPP_WARN(node()->get_logger(), "HoverManeuverServer::CanExecuteManeuver(): Drone is not in offboard mode, cannot execute");
+        logNotOffboard("HoverManeuverServer::CanExecuteManeuver(): Drone is not in offboard mode, cannot execute");
 
         return false;
 
@@ -117,6 +117,12 @@ iii_drone::adapters::CombinedDroneAwarenessAdapter HoverManeuverServer::Expected
 
 void HoverManeuverServer::Update(const State & hover_state) {
 
+    {
+        std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+        terminal_hold_.reset();
+        terminal_hold_request_identity_.clear();
+    }
+
     point_t position = hover_state.position();
     double yaw = hover_state.yaw();
 
@@ -149,6 +155,12 @@ void HoverManeuverServer::Update(const State & hover_state) {
 }
 
 void HoverManeuverServer::Update(const Reference & hover_reference) {
+
+    {
+        std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+        terminal_hold_.reset();
+        terminal_hold_request_identity_.clear();
+    }
 
     point_t position = hover_reference.position();
     double yaw = hover_reference.yaw();
@@ -183,12 +195,59 @@ void HoverManeuverServer::Update(const Reference & hover_reference) {
 
 iii_drone::control::Reference HoverManeuverServer::GetReference(const iii_drone::control::State & ) {
 
+    if (auto hold = terminalHold()) {
+        return hold->GetReference();
+    }
+
     //RCLCPP_DEBUG(node()->get_logger(), "HoverManeuverServer::GetReference(): Returning hover reference");
 
     hover_reference_ = hover_reference_->CopyWithNewStamp();
 
     return hover_reference_;
 
+}
+
+void HoverManeuverServer::AdoptTerminalHold(
+    std::shared_ptr<TerminalTrackingHold> hold,
+    const std::string & request_identity
+) {
+    std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+    terminal_hold_ = std::move(hold);
+    terminal_hold_request_identity_ = request_identity;
+}
+
+std::shared_ptr<TerminalTrackingHold> HoverManeuverServer::terminalHold() const {
+    std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+    return terminal_hold_;
+}
+
+HoverManeuverServer::TerminalHoldBinding HoverManeuverServer::terminalHoldBinding() const {
+    std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+    return {terminal_hold_, terminal_hold_request_identity_};
+}
+
+iii_drone::control::Reference HoverManeuverServer::initializationReference(
+    const iii_drone::control::State & state
+) const {
+    const auto staged = ManeuverServer::initializationReference(state);
+    if (staged.position().allFinite() && staged.velocity().allFinite() &&
+        staged.acceleration().allFinite()) return staged;
+    if (const auto hold = terminalHold()) {
+        return hold->lastCommand().CopyWithNewStamp(node()->now());
+    }
+    return staged;
+}
+
+void HoverManeuverServer::ClearTerminalHold() {
+    std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+    terminal_hold_.reset();
+    terminal_hold_request_identity_.clear();
+}
+
+void HoverManeuverServer::RegisterFirstReferenceAppliedCallback(
+    std::function<bool(const std::string &)> callback
+) {
+    first_reference_applied_ = std::move(callback);
 }
 
 maneuver_type_t HoverManeuverServer::maneuver_type() const {
@@ -199,7 +258,21 @@ void HoverManeuverServer::startExecution(Maneuver & maneuver) {
 
     hover_maneuver_params_t params(maneuver.maneuver_params());
 
-    Update(awareness_handler()->GetState());
+    const auto staged_rest = consumeTerminalStartReference(maneuver.requestIdentity());
+
+    if (const auto hold = terminalHold()) {
+        AdoptTerminalHold(hold, maneuver.requestIdentity());
+        // Nothing evaluated the hold while the predecessor handed over.
+        hold->ResumeAfterHandover();
+    } else if (staged_rest) {
+        // The predecessor's certified object stop is a finite commanded
+        // rest. Keep every finite channel even when ordinary Hover is
+        // configured to omit velocity/acceleration with NaNs.
+        Update(*staged_rest);
+        hover_reference_ = staged_rest->CopyWithNewStamp(node()->now());
+    } else {
+        Update(awareness_handler()->GetState());
+    }
 
     awareness_handler()->ClearTarget();
 
@@ -235,14 +308,28 @@ bool HoverManeuverServer::rebaseExecution(
     std::string & reason
 ) {
     Update(stopped_state);
-    hover_start_time_ = node()->now();
+    // The same clock as the start (system time): hasSucceeded() subtracts it
+    // from rclcpp::Clock().now(), and mixed clock types throw.
+    hover_start_time_ = rclcpp::Clock().now();
     reason = "hover anchored at stopped state";
     return true;
 }
 
-bool HoverManeuverServer::hasSucceeded(Maneuver & ) {
+bool HoverManeuverServer::hasSucceeded(Maneuver & maneuver) {
 
     if (!sustain_action_ && sustain_duration_s_ <= 0.0) {
+
+        // A same-target terminal correction remains a live commanded stream.
+        // Its action result must not precede the consumer's first APPLIED
+        // acknowledgement of this Hover execution, since Mission retains it
+        // after success using that exact generation as ownership proof.
+        const auto owner = terminalHoldBinding();
+        if (owner.hold) {
+            if (owner.request_identity != maneuver.requestIdentity() ||
+                owner.hold->phase() != TerminalTrackingHold::Phase::Tracking ||
+                !first_reference_applied_ ||
+                !first_reference_applied_(maneuver.requestIdentity())) return false;
+        }
 
         RCLCPP_INFO(node()->get_logger(), "HoverManeuverServer::hasSucceeded(): Hover maneuver not sustained, succeeding immediately");
 
@@ -284,6 +371,10 @@ bool HoverManeuverServer::hasSucceeded(Maneuver & ) {
 }
 
 bool HoverManeuverServer::hasFailed(Maneuver & ) {
+    if (const auto hold = terminalHold()) {
+        return hold->phase() == TerminalTrackingHold::Phase::Degraded ||
+            hold->phase() == TerminalTrackingHold::Phase::Unrecoverable;
+    }
     return false;
 }
 

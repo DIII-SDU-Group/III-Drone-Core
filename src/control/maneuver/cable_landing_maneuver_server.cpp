@@ -2,6 +2,7 @@
 // Includes
 /*****************************************************************************/
 
+#include <cstdio>
 #include <iii_drone_core/control/maneuver/cable_landing_maneuver_server.hpp>
 
 #include <algorithm>
@@ -84,7 +85,7 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
     }
 
     if (!drone_awareness.offboard()) {
-        RCLCPP_WARN(node()->get_logger(), "CableLandingManeuverServer::CanExecuteManeuver(): Drone is not offboard.");
+        logNotOffboard("CableLandingManeuverServer::CanExecuteManeuver(): Drone is not offboard.");
         return false;
     }
 
@@ -113,7 +114,7 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
     }
 
     if (!drone_awareness.target_position_known()) {
-        if (line_pid_has_last_cable_pose_) {
+        if (line_pid_has_last_cable_pose_ && line_pid_lock_retry_eligible_.Load()) {
             const vector_t delta_to_locked_target = line_pid_last_cable_pose_world_.position - drone_awareness.state().position();
             const quaternion_t target_quat_world = line_pid_last_cable_pose_world_.orientation;
             const quaternion_t quat_drone_to_target = quatMultiply(
@@ -129,7 +130,7 @@ bool CableLandingManeuverServer::CanExecuteManeuver(
             ).as_double();
 
             if (delta_to_locked_target.norm() <= max_initial_distance && std::abs(axis_yaw_error) <= max_initial_yaw) {
-                RCLCPP_WARN(
+                RCLCPP_INFO(
                     node()->get_logger(),
                     "CableLandingManeuverServer::CanExecuteManeuver(): Target position is not currently known; accepting retry using locked cable pose. distance=%.3f axis_yaw_error=%.3f",
                     delta_to_locked_target.norm(),
@@ -339,7 +340,18 @@ void CableLandingManeuverServer::startExecution(Maneuver & maneuver) {
         "CableLandingManeuverServer::startExecution(): Starting execution of maneuver."
     );
 
+    // Only a lock left by an aborted execution seeds this one. Clear the
+    // eligibility first so a startup rejection cannot promote an old lock.
+    const bool retry_after_abort = line_pid_lock_retry_eligible_.Load();
+    line_pid_lock_retry_eligible_ = false;
+    line_pid_lock_owned_by_execution_ = false;
+
     auto cda_handler = awareness_handler();
+    object_transition_start_reference_ = consumeTerminalStartReference(
+        maneuver.requestIdentity());
+    if (object_transition_start_reference_) {
+        PrimeOwnedManagedReference(*object_transition_start_reference_);
+    }
 
     cable_landing_maneuver_params_t cable_landing_maneuver_params(maneuver.maneuver_params());
     int effective_target_cable_id = cable_landing_maneuver_params.target_cable_id;
@@ -383,23 +395,26 @@ void CableLandingManeuverServer::startExecution(Maneuver & maneuver) {
 
     }
 
-    const bool had_locked_pose = line_pid_has_last_cable_pose_;
+    const bool had_locked_pose = retry_after_abort && line_pid_has_last_cable_pose_;
     const pose_t previous_locked_pose = line_pid_last_cable_pose_world_;
 
     first_iteration_ = true;
     has_failed_ = false;
     line_pid_initialized_ = false;
+    line_pid_heading_lock_.reset();
     line_pid_target_lock_initialized_ = false;
     line_pid_has_last_cable_pose_ = false;
     line_pid_along_pid_ = PidState();
     line_pid_cross_pid_ = PidState();
     line_pid_yaw_pid_ = PidState();
     gripper_v_gate_violation_active_ = false;
+    conductor_estimate_frozen_ = false;
+    conductor_freeze_z_gripper_ = std::numeric_limits<double>::quiet_NaN();
 
     if (had_locked_pose) {
         line_pid_last_cable_pose_world_ = previous_locked_pose;
         line_pid_has_last_cable_pose_ = true;
-        RCLCPP_WARN(
+        RCLCPP_INFO(
             node()->get_logger(),
             "CableLandingManeuverServer::startExecution(): Preserving locked cable pose for retry: [%.3f, %.3f, %.3f]",
             previous_locked_pose.position(0),
@@ -407,9 +422,18 @@ void CableLandingManeuverServer::startExecution(Maneuver & maneuver) {
             previous_locked_pose.position(2)
         );
     }
+    line_pid_lock_owned_by_execution_ = true;
 
     cda_handler->SetTarget(target_adapter_);
 
+}
+
+Reference CableLandingManeuverServer::initializationReference(const State & state) const {
+    const auto binding = currentReferenceBinding();
+    if (const auto seed = terminalStartReferenceFor(binding.request_identity)) {
+        return seed->CopyWithNewStamp(node()->now());
+    }
+    return ManeuverServer::initializationReference(state);
 }
 
 bool CableLandingManeuverServer::canCancel() {
@@ -524,26 +548,37 @@ Reference CableLandingManeuverServer::computeLinePidReference(const State & stat
 
     const double raw_cable_pose_yaw = quatToEul(cable_pose.orientation)(2);
     const double target_yaw = target_reference.yaw();
-    vector_t cable_direction_world(
-        std::cos(target_yaw),
-        std::sin(target_yaw),
-        0.0
-    );
-    if (cable_direction_world.norm() < 1e-6) {
-        cable_direction_world = vector_t::UnitX();
-    } else {
-        cable_direction_world.normalize();
-    }
-
-    if (line_pid_initialized_) {
-        if (cable_direction_world.dot(line_pid_cable_direction_world_) < 0.0) {
-            cable_direction_world = -cable_direction_world;
+    vector_t cable_direction_world;
+    if (line_pid_heading_lock_.locked()) {
+        // Live line orientation may still update the position target, but it
+        // must not rotate the world-frame yaw reference during the approach.
+        cable_direction_world = line_pid_heading_lock_.directionWorld();
+        cable_direction_world(2) = 0.0;
+        if (!cable_direction_world.allFinite() || cable_direction_world.norm() < 1e-6) {
+            has_failed_ = true;
+            return Reference(state, true, true);
         }
-    } else if (std::abs(shortestYawError(state.yaw(), std::atan2(cable_direction_world(1), cable_direction_world(0)))) > M_PI_2) {
-        cable_direction_world = -cable_direction_world;
-    }
+        cable_direction_world.normalize();
+    } else {
+        cable_direction_world = vector_t(
+            std::cos(target_yaw),
+            std::sin(target_yaw),
+            0.0
+        );
+        if (cable_direction_world.norm() < 1e-6) {
+            cable_direction_world = vector_t::UnitX();
+        } else {
+            cable_direction_world.normalize();
+        }
 
-    line_pid_cable_direction_world_ = cable_direction_world;
+        // Freeze the aligned world heading and choose its cable-axis
+        // equivalent nearest the vehicle's current yaw exactly once.
+        if (!line_pid_heading_lock_.capture(target_yaw, state.yaw())) {
+            has_failed_ = true;
+            return Reference(state, true, true);
+        }
+        cable_direction_world = line_pid_heading_lock_.directionWorld();
+    }
 
     const vector_t world_up = vector_t::UnitZ();
     vector_t cable_cross_world = world_up.cross(cable_direction_world);
@@ -586,7 +621,8 @@ Reference CableLandingManeuverServer::computeLinePidReference(const State & stat
     if (!line_pid_initialized_) {
         const vector_t cable_to_gripper = gripper_position_world - cable_pose.position;
         line_pid_anchor_point_world_ = cable_pose.position + cable_to_gripper.dot(cable_direction_world) * cable_direction_world;
-        line_pid_position_reference_world_ = state.position();
+        line_pid_position_reference_world_ = object_transition_start_reference_
+            ? object_transition_start_reference_->position() : state.position();
         line_pid_last_stamp_ = state.stamp();
         line_pid_last_cable_pose_world_ = cable_pose;
         line_pid_has_last_cable_pose_ = true;
@@ -648,9 +684,19 @@ Reference CableLandingManeuverServer::computeLinePidReference(const State & stat
         configuration_->GetParameter("/control/maneuver_controller/cable_landing_line_pid_max_along_velocity").as_double()
     );
 
+    // The cross velocity moves the position reference that PX4 tracks with a
+    // lag. Driving it with the vehicle's error keeps it moving after it has
+    // reached the conductor and overshoots by the lag (+-9 cm in HIL); drive
+    // it with the reference's own remaining error so it settles on the line.
+    const double reference_cross_error = detail::ReferenceCrossError(
+        cross_error,
+        state.position(),
+        line_pid_position_reference_world_,
+        gripper_y_axis_world
+    );
     const double cross_velocity = computePidOutput(
         line_pid_cross_pid_,
-        cross_error,
+        reference_cross_error,
         dt,
         configuration_->GetParameter("/control/maneuver_controller/cable_landing_line_pid_cross_kp").as_double(),
         configuration_->GetParameter("/control/maneuver_controller/cable_landing_line_pid_cross_ki").as_double(),
@@ -675,15 +721,36 @@ Reference CableLandingManeuverServer::computeLinePidReference(const State & stat
     const double configured_ascent_velocity = configuration_->GetParameter(
         "/control/maneuver_controller/cable_landing_line_pid_ascent_velocity"
     ).as_double();
-    const double ascent_cross_error_threshold = std::max(
-        configuration_->GetParameter("/control/maneuver_controller/cable_landing_gripper_v_gate_half_width_at_reference_z").as_double(),
-        0.15
-    );
+    // The V gate narrows as the conductor advances into the gripper.  Holding
+    // a fixed 0.15 m cross-track allowance here allowed vertical motion to
+    // continue after the same conductor point had already left the physical
+    // aperture.  Gate vertical motion by the opening at the *current* target
+    // height, using the same geometry as isTargetWithinGripperVGate().
+    const double gate_apex_z = configuration_->GetParameter(
+        "/control/maneuver_controller/cable_landing_gripper_v_gate_apex_z"
+    ).as_double();
+    const double gate_reference_z = configuration_->GetParameter(
+        "/control/maneuver_controller/cable_landing_gripper_v_gate_reference_z"
+    ).as_double();
+    const double gate_half_width_at_reference_z = configuration_->GetParameter(
+        "/control/maneuver_controller/cable_landing_gripper_v_gate_half_width_at_reference_z"
+    ).as_double();
+    const double gate_height = gate_reference_z - gate_apex_z;
+    // HIL: holding only at the full opening left no room to re-centre within
+    // the gate's grace; the vehicle met the funnel lip off-centre and the
+    // gate failed the landing. Hold with a margin inside the opening.
+    const double ascent_cross_error_threshold = gate_height > 0.0
+        ? detail::AscentHoldCrossErrorThreshold(
+            (gateHeight(target_point_gripper(2)) - gate_apex_z) * gate_half_width_at_reference_z / gate_height
+        )
+        : 0.0;
     const double ascent_velocity = std::abs(cross_error) <= ascent_cross_error_threshold
         ? configured_ascent_velocity
         : 0.0;
     if (ascent_velocity == 0.0) {
-        RCLCPP_WARN_THROTTLE(
+        // The designed gate response, not a fault: a persistent hold ends in
+        // the V-gate safety failure or the landing timeout, which warn.
+        RCLCPP_INFO_THROTTLE(
             node()->get_logger(),
             *node()->get_clock(),
             1000,
@@ -784,7 +851,7 @@ bool CableLandingManeuverServer::isCablePoseConsistentWithLock(
         return true;
     }
 
-    vector_t cable_direction_world = line_pid_cable_direction_world_;
+    vector_t cable_direction_world = line_pid_heading_lock_.directionWorld();
     if (cable_direction_world.norm() < 1e-6) {
         cable_direction_world = vector_t::UnitX();
     } else {
@@ -815,12 +882,73 @@ bool CableLandingManeuverServer::isCablePoseConsistentWithLock(
 
 }
 
+bool CableLandingManeuverServer::nearLockedConductor() const {
+    if (!line_pid_has_last_cable_pose_) {
+        return false;
+    }
+    try {
+        const double radius = configuration_->GetParameter(
+            "/control/maneuver_controller/cable_landing_safety_zone_radius"
+        ).as_double();
+        // Measured at the gripper, the part that meets the conductor (the
+        // body sits ~0.4 m below it), consistent with the landing's own zone.
+        iii_drone::types::vector_t lock_in_gripper;
+        return getTargetPointInCableGripperFrame(lock_in_gripper) &&
+            lock_in_gripper.norm() <= radius;
+    } catch (const std::runtime_error &) {
+        return false;  // Unknown zone: keep the warning level.
+    }
+}
+
 bool CableLandingManeuverServer::getStableCablePose(
     iii_drone::types::pose_t & cable_pose_world
 ) {
 
     auto cda_handler = awareness_handler();
     double orthogonal_distance = 0.0;
+    // Within the near-cable zone the mmWave is effectively at the conductor and
+    // below its useful range, so perception disagreeing with the lock is the
+    // expected physics the lock fallback exists for; elsewhere it is a warning.
+    const bool near_contact = nearLockedConductor();
+    auto log_lock_event = [&](const std::string & text) {
+        if (near_contact) {
+            RCLCPP_INFO_THROTTLE(node()->get_logger(), *node()->get_clock(), 1000, "%s", text.c_str());
+        } else {
+            RCLCPP_WARN_THROTTLE(node()->get_logger(), *node()->get_clock(), 1000, "%s", text.c_str());
+        }
+    };
+
+    // Inside the gripper the sensor no longer sees the conductor and its
+    // estimate jumps by centimetres; the conductor does not move, so steer to
+    // the last estimate seen before, using the vehicle's own odometry.
+    if (conductorEstimateFrozen()) {
+        cable_pose_world = line_pid_last_cable_pose_world_;
+        return true;
+    }
+
+    // Leaving the sensor's view just below the gripper, the mapped conductor
+    // jumps, and a brief spurious re-detection there jumps too: freeze the
+    // last estimate seen at the first loss of view near the conductor.
+    if (detail::FreezeConductorEstimateOnLossOfView(
+            conductor_estimate_frozen_, near_contact, line_pid_has_last_cable_pose_, targetLineInView())) {
+        conductor_estimate_frozen_ = true;
+        vector_t frozen_in_gripper;
+        if (getTargetPointInCableGripperFrame(frozen_in_gripper)) {
+            conductor_freeze_z_gripper_ = frozen_in_gripper(2);
+        }
+        const auto & frozen = line_pid_last_cable_pose_world_.position;
+        RCLCPP_INFO(
+            node()->get_logger(),
+            "CableLandingManeuverServer::getStableCablePose(): Conductor left the sensor view near the gripper; "
+            "steering to its last estimate [%.3f, %.3f, %.3f] (world, gripper z %.3f) from here.",
+            frozen(0),
+            frozen(1),
+            frozen(2),
+            conductor_freeze_z_gripper_
+        );
+        cable_pose_world = line_pid_last_cable_pose_world_;
+        return true;
+    }
 
     try {
         pose_t candidate_pose = cda_handler->GetPoseOfTarget(target_adapter_);
@@ -831,14 +959,12 @@ bool CableLandingManeuverServer::getStableCablePose(
             return true;
         }
 
-        RCLCPP_WARN_THROTTLE(
-            node()->get_logger(),
-            *node()->get_clock(),
-            1000,
+        char text[256];
+        std::snprintf(text, sizeof(text),
             "CableLandingManeuverServer::getStableCablePose(): target id %d jumped %.3f m from locked conductor; attempting physical-line reacquisition.",
             target_adapter_->target_id(),
-            orthogonal_distance
-        );
+            orthogonal_distance);
+        log_lock_event(text);
     } catch (const std::runtime_error & e) {
         RCLCPP_WARN_THROTTLE(
             node()->get_logger(),
@@ -905,13 +1031,11 @@ bool CableLandingManeuverServer::getStableCablePose(
                 return true;
             }
 
-            RCLCPP_WARN_THROTTLE(
-                node()->get_logger(),
-                *node()->get_clock(),
-                1000,
+            char text[256];
+            std::snprintf(text, sizeof(text),
                 "CableLandingManeuverServer::getStableCablePose(): No detected line matched locked conductor; best orthogonal distance %.3f m.",
-                best_distance
-            );
+                best_distance);
+            log_lock_event(text);
         } catch (const std::runtime_error & e) {
             RCLCPP_WARN_THROTTLE(
                 node()->get_logger(),
@@ -925,12 +1049,8 @@ bool CableLandingManeuverServer::getStableCablePose(
 
     if (line_pid_has_last_cable_pose_) {
         cable_pose_world = line_pid_last_cable_pose_world_;
-        RCLCPP_WARN_THROTTLE(
-            node()->get_logger(),
-            *node()->get_clock(),
-            1000,
-            "CableLandingManeuverServer::getStableCablePose(): Continuing with last locked cable pose while perception target is unavailable or inconsistent."
-        );
+        log_lock_event(
+            "CableLandingManeuverServer::getStableCablePose(): Continuing with last locked cable pose while perception target is unavailable or inconsistent.");
         return true;
     }
 
@@ -1040,10 +1160,7 @@ bool CableLandingManeuverServer::hasFailed(Maneuver &) {
     }
 
     if (!cda_handler->offboard()) {
-        RCLCPP_WARN(
-            node()->get_logger(),
-            "CableLandingManeuverServer::hasFailed(): Drone is not offboard."
-        );
+        logNotOffboard("CableLandingManeuverServer::hasFailed(): Drone is not offboard.");
         return true;
     }
 
@@ -1136,6 +1253,13 @@ void CableLandingManeuverServer::publishResultAndFinalize(
     maneuver_result_type_t maneuver_result_type
 ) {
 
+    // The reach_cable tree retries CableLanding only after ACTION_ABORTED.
+    // Success or cancellation must not let a later cycle reuse this lock.
+    line_pid_lock_retry_eligible_ =
+        maneuver_result_type == MANEUVER_RESULT_TYPE_ABORT &&
+        line_pid_lock_owned_by_execution_.Load() && line_pid_has_last_cable_pose_;
+    line_pid_lock_owned_by_execution_ = false;
+
     auto result = std::make_shared<iii_drone_interfaces::action::CableLanding::Result>();
     auto goal_handle = std::static_pointer_cast<GoalHandleCableLanding>(maneuver.goal_handle());
 
@@ -1159,9 +1283,10 @@ void CableLandingManeuverServer::publishResultAndFinalize(
 
 void CableLandingManeuverServer::registerReferenceCallbackOnSuccess(const Maneuver &) {
 
-    auto registered_hover_on_cable_maneuver = registered_maneuvers().find(MANEUVER_TYPE_HOVER_ON_CABLE);
-
-    std::shared_ptr<HoverOnCableManeuverServer> hover_on_cable_maneuver_server = std::static_pointer_cast<HoverOnCableManeuverServer>(registered_hover_on_cable_maneuver->second);
+    // registered_maneuvers() returns a copy: take the server within this
+    // statement, never an iterator into the temporary map.
+    std::shared_ptr<HoverOnCableManeuverServer> hover_on_cable_maneuver_server = std::static_pointer_cast<HoverOnCableManeuverServer>(
+        registered_maneuvers().at(MANEUVER_TYPE_HOVER_ON_CABLE));
 
     hover_on_cable_maneuver_server->Update(
         target_adapter_->target_id(),
@@ -1174,7 +1299,8 @@ void CableLandingManeuverServer::registerReferenceCallbackOnSuccess(const Maneuv
             &HoverOnCableManeuverServer::GetReference,
             hover_on_cable_maneuver_server,
             std::placeholders::_1
-        )
+        ),
+        hover_on_cable_maneuver_server->action_name()
     );
 
 }
@@ -1224,7 +1350,10 @@ Reference CableLandingManeuverServer::getUpdatedTargetReference(
 
         try {
 
-            try {
+            if (conductor_estimate_frozen_ && line_pid_has_last_cable_pose_) {
+                // The same frozen conductor the line PID steers to.
+                target_transform = targetTransformFromCablePose(line_pid_last_cable_pose_world_);
+            } else try {
                 target_transform = cda_handler->ComputeTargetTransform(target_adapter_);
             } catch (const std::runtime_error & e) {
                 if (!line_pid_has_last_cable_pose_) {
@@ -1259,15 +1388,77 @@ Reference CableLandingManeuverServer::getUpdatedTargetReference(
         }
 
         double raw_target_yaw = quatToEul(matToQuat(target_transform.block<3, 3>(0, 0)))[2];
-        if (line_pid_initialized_) {
-            vector_t locked_direction = line_pid_cable_direction_world_;
-            locked_direction(2) = 0.0;
-            if (locked_direction.norm() > 1e-6) {
-                locked_direction.normalize();
-                raw_target_yaw = std::atan2(locked_direction(1), locked_direction(0));
+        const bool line_pid_heading_locked = line_pid_heading_lock_.locked();
+        if (line_pid_heading_locked) {
+            const vector_t & locked_direction = line_pid_heading_lock_.directionWorld();
+            if (!locked_direction.allFinite() || locked_direction.norm() < 1e-6) {
+                has_failed_ = true;
+                return Reference(state, true, true);
+            }
+            raw_target_yaw = line_pid_heading_lock_.yawWorld();
+        }
+        double target_yaw = line_pid_heading_locked
+            ? raw_target_yaw
+            : state.yaw() + shortestCableAxisYawError(state.yaw(), raw_target_yaw);
+
+        // The gripper frame is rolled and yawed relative to the drone.  Taking
+        // yaw from the fully composed world-to-drone target transform therefore
+        // does not preserve cable-axis equivalence and can request a large yaw
+        // step immediately after the explicit gripper-alignment maneuver.  Use
+        // the same gripper-frame cable-axis error as GetGripperAlignmentYaw so
+        // the landing handoff is continuous.  Keep the composed-transform yaw
+        // as a fallback for a transient perception/TF miss.
+        if (!line_pid_heading_locked) {
+            try {
+                const PowerlineAdapter powerline = cda_handler->GetPowerlineAdapter();
+                const SingleLineAdapter target_line = powerline.GetLine(target_adapter_->target_id());
+
+                geometry_msgs::msg::QuaternionStamped source_q_cable;
+                source_q_cable.header.frame_id = target_line.frame_id();
+                source_q_cable.header.stamp = builtin_interfaces::msg::Time();
+                source_q_cable.quaternion = quaternionMsgFromQuaternion(target_line.quaternion());
+
+                const auto gripper_q_cable = cda_handler->tf_buffer()->transform(
+                    source_q_cable,
+                    target_adapter_->reference_frame_id()
+                );
+                const double raw_gripper_yaw_error = quatToEul(
+                    quaternionFromQuaternionMsg(gripper_q_cable.quaternion)
+                )(2);
+                const double gripper_axis_yaw_error = shortestCableAxisYawError(
+                    0.0,
+                    raw_gripper_yaw_error
+                );
+                target_yaw = state.yaw() + gripper_axis_yaw_error;
+
+                RCLCPP_DEBUG_THROTTLE(
+                    node()->get_logger(),
+                    *node()->get_clock(),
+                    1000,
+                    "CableLandingManeuverServer::getUpdatedTargetReference(): gripper-frame cable alignment raw_error=%.3f axis_error=%.3f target_yaw=%.3f composed_target_yaw=%.3f",
+                    raw_gripper_yaw_error,
+                    gripper_axis_yaw_error,
+                    target_yaw,
+                    raw_target_yaw
+                );
+            } catch (const tf2::TransformException & e) {
+                RCLCPP_WARN_THROTTLE(
+                    node()->get_logger(),
+                    *node()->get_clock(),
+                    1000,
+                    "CableLandingManeuverServer::getUpdatedTargetReference(): Could not transform cable orientation into gripper frame; using composed target yaw: %s",
+                    e.what()
+                );
+            } catch (const std::runtime_error & e) {
+                RCLCPP_WARN_THROTTLE(
+                    node()->get_logger(),
+                    *node()->get_clock(),
+                    1000,
+                    "CableLandingManeuverServer::getUpdatedTargetReference(): Could not derive gripper-frame cable yaw; using composed target yaw: %s",
+                    e.what()
+                );
             }
         }
-        const double target_yaw = state.yaw() + shortestCableAxisYawError(state.yaw(), raw_target_yaw);
 
         target_reference = Reference(
             target_transform.block<3, 1>(0, 3),
@@ -1388,7 +1579,7 @@ bool CableLandingManeuverServer::isWithinSafetyMargins(
         const double threshold = configuration_->GetParameter(
             "/control/maneuver_controller/cable_landing_safety_zone_radius"
         ).as_double();
-        RCLCPP_WARN_THROTTLE(
+        RCLCPP_INFO_THROTTLE(
             node()->get_logger(),
             *node()->get_clock(),
             1000,
@@ -1556,6 +1747,60 @@ bool CableLandingManeuverServer::getTargetPointInCableGripperFrame(
 
 }
 
+double CableLandingManeuverServer::gateHeight(double target_z_gripper) const {
+
+    // Below the freeze height the V gate would keep narrowing to its apex,
+    // demanding a precision the frozen estimate (a few cm) cannot give while
+    // the gripper's slot centres the conductor. Hold the width the gate had
+    // where the estimate froze: a real miss of the lips still fails it.
+    return detail::VGateHeight(
+        target_z_gripper,
+        conductor_estimate_frozen_,
+        conductor_freeze_z_gripper_,
+        configuration_->GetParameter("/control/maneuver_controller/cable_landing_gripper_capture_z").as_double()
+    );
+
+}
+
+bool CableLandingManeuverServer::targetLineInView() {
+    try {
+        return awareness_handler()->GetPowerlineAdapter().GetLine(target_adapter_->target_id()).in_fov();
+    } catch (const std::runtime_error &) {
+        // Unknown: let the regular target handling report it.
+        return true;
+    }
+}
+
+bool CableLandingManeuverServer::conductorEstimateFrozen() {
+
+    if (conductor_estimate_frozen_) return true;
+    if (!line_pid_has_last_cable_pose_) return false;
+
+    vector_t target_point_gripper;
+    if (!getTargetPointInCableGripperFrame(target_point_gripper)) return false;
+    const double freeze_z = configuration_->GetParameter(
+        "/control/maneuver_controller/cable_landing_gripper_capture_z"
+    ).as_double();
+    if (!detail::ConductorEstimateShouldFreeze(target_point_gripper, freeze_z)) return false;
+
+    conductor_estimate_frozen_ = true;
+    conductor_freeze_z_gripper_ = target_point_gripper(2);
+    const auto & frozen = line_pid_last_cable_pose_world_.position;
+    RCLCPP_INFO(
+        node()->get_logger(),
+        "CableLandingManeuverServer::conductorEstimateFrozen(): Conductor at the gripper (target_gripper=[%.4f, %.4f, %.4f]); "
+        "steering to its last estimate [%.3f, %.3f, %.3f] (world) from here.",
+        target_point_gripper(0),
+        target_point_gripper(1),
+        target_point_gripper(2),
+        frozen(0),
+        frozen(1),
+        frozen(2)
+    );
+    return true;
+
+}
+
 bool CableLandingManeuverServer::isTargetWithinGripperVGate(
     const iii_drone::types::vector_t & target_point_gripper
 ) const {
@@ -1588,7 +1833,7 @@ bool CableLandingManeuverServer::isTargetWithinGripperVGate(
         return false;
     }
 
-    const double z_above_apex = target_point_gripper(2) - apex_z;
+    const double z_above_apex = gateHeight(target_point_gripper(2)) - apex_z;
     const double lateral_y = target_point_gripper(1) - center_y;
     const double allowed_lateral_y = z_above_apex * half_width_at_reference_z / height;
 
@@ -1603,7 +1848,9 @@ bool CableLandingManeuverServer::isTargetWithinGripperVGate(
 
             const double violation_duration_s = (now - gripper_v_gate_violation_started_).seconds();
             if (violation_duration_s < violation_grace_s) {
-                RCLCPP_WARN_THROTTLE(
+                // Tolerated by design; only a violation outlasting the grace
+                // warns (below).
+                RCLCPP_INFO_THROTTLE(
                     node()->get_logger(),
                     *node()->get_clock(),
                     1000,
@@ -1672,7 +1919,12 @@ Reference CableLandingManeuverServer::truncateReferenceWithinSafetyZone(
 
     return Reference(
         point_t::Constant(NAN),
-        NAN,
+        // The near-cable controller intentionally drops absolute position so
+        // PX4 follows its velocity channels.  Keep the trajectory yaw,
+        // however: the MPC output commonly has no yaw-rate, and clearing both
+        // yaw and yaw-rate creates an invalid Reference that the mission-side
+        // safety guard must reject.
+        reference.yaw(),
         reference.velocity(),
         reference.yaw_rate(),
         reference.acceleration(),

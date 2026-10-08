@@ -7,6 +7,7 @@
 /*****************************************************************************/
 // ROS2:
 
+#include <algorithm>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
 
@@ -16,6 +17,10 @@
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/quaternion_stamped.hpp>
+
+#include <cmath>
+#include <limits>
+#include <optional>
 
 /*****************************************************************************/
 // III-Drone-Configuration:
@@ -54,6 +59,151 @@
 namespace iii_drone {
 namespace control {
 namespace maneuver {
+
+    namespace detail {
+
+        /**
+         * @brief Captures the aligned cable-axis heading once in world yaw.
+         *
+         * A cable axis is equivalent under a pi rotation. The captured
+         * equivalent is selected nearest the vehicle's current heading, then
+         * remains fixed while live perception updates the cable position.
+         */
+        class CableLandingHeadingLock {
+        public:
+            bool capture(double candidate_yaw, double vehicle_yaw) {
+                if (locked_) {
+                    return true;
+                }
+                if (!std::isfinite(candidate_yaw) || !std::isfinite(vehicle_yaw)) {
+                    return false;
+                }
+
+                double heading = std::atan2(std::sin(candidate_yaw), std::cos(candidate_yaw));
+                const double relative_yaw = std::atan2(
+                    std::sin(heading - vehicle_yaw),
+                    std::cos(heading - vehicle_yaw)
+                );
+                constexpr double pi = 3.14159265358979323846;
+                if (std::abs(relative_yaw) > pi / 2.0) {
+                    heading = std::atan2(std::sin(heading + pi), std::cos(heading + pi));
+                }
+
+                direction_world_ = iii_drone::types::vector_t(
+                    std::cos(heading),
+                    std::sin(heading),
+                    0.0
+                );
+                locked_ = true;
+                return true;
+            }
+
+            void reset() {
+                locked_ = false;
+                direction_world_ = iii_drone::types::vector_t::UnitX();
+            }
+
+            bool locked() const { return locked_; }
+
+            const iii_drone::types::vector_t & directionWorld() const {
+                return direction_world_;
+            }
+
+            double yawWorld() const {
+                return std::atan2(direction_world_(1), direction_world_(0));
+            }
+
+        private:
+            bool locked_ = false;
+            iii_drone::types::vector_t direction_world_ = iii_drone::types::vector_t::UnitX();
+        };
+
+        /**
+         * @brief Whether a conductor estimate at target_point_gripper (cable
+         * gripper frame, z up) has reached the height below which the sensor
+         * can no longer see it.
+         */
+        inline bool ConductorEstimateShouldFreeze(
+            const iii_drone::types::vector_t & target_point_gripper,
+            double freeze_z
+        ) {
+            return std::isfinite(target_point_gripper(2)) && target_point_gripper(2) <= freeze_z;
+        }
+
+        /** Fraction of the V-gate opening at which the line PID stops ascending. */
+        constexpr double kAscentHoldGateFraction = 0.7;
+
+        /**
+         * @brief The cross error above which the line PID holds its ascent:
+         * a margin inside the V-gate opening at the current height, so the
+         * vehicle re-centres before the gate safety check (which allows the
+         * full opening) fails the landing.
+         */
+        inline double AscentHoldCrossErrorThreshold(double gate_opening_half_width) {
+            return std::max(0.0, kAscentHoldGateFraction * gate_opening_half_width);
+        }
+
+        /**
+         * @brief Whether to keep steering to the last estimate of the locked
+         * conductor instead of a new one: near the conductor, an estimate of a
+         * line the sensor no longer sees is mapper extrapolation that jumps by
+         * centimetres as the sensor passes it.
+         */
+        inline bool HoldLastSeenConductor(bool near_conductor, bool has_last_estimate, bool target_in_view) {
+            return near_conductor && has_last_estimate && !target_in_view;
+        }
+
+        /**
+         * @brief Whether the conductor estimate is frozen for the rest of the
+         * approach: once the sensor has lost the conductor near it, it stays
+         * frozen. Near the conductor the sensor is below its useful range, so a
+         * later "in view" sample there is a spurious close-range detection with
+         * a jumped position (HIL soak run 20: back in view for 50 ms, 8 cm off;
+         * the V gate then failed a conductor the gripper had captured).
+         */
+        /**
+         * @brief Gripper height at which the V gate's width is evaluated. Once
+         * the conductor estimate is frozen, the gate keeps the width it had
+         * where the estimate froze: below that the estimate (good to a few
+         * cm near the sensor's minimum range) cannot give the precision the
+         * narrowing gate demands while the gripper's slot centres the
+         * conductor (HIL soak run 22: frozen 2.8 cm off a captured, centred
+         * conductor, the gate narrowed to 4.6 cm and failed the landing).
+         */
+        inline double VGateHeight(double target_z, bool frozen, double freeze_z, double fallback_z) {
+            if (!frozen) {
+                return target_z;
+            }
+            return std::max(target_z, std::isfinite(freeze_z) ? freeze_z : fallback_z);
+        }
+
+        inline bool FreezeConductorEstimateOnLossOfView(
+            bool already_frozen,
+            bool near_conductor,
+            bool has_last_estimate,
+            bool target_in_view
+        ) {
+            return already_frozen || HoldLastSeenConductor(near_conductor, has_last_estimate, target_in_view);
+        }
+
+        /**
+         * @brief The cross-track error left for the position reference: the
+         * vehicle's gripper error (target relative to the gripper along
+         * cross_axis_world) minus how far the reference already leads the
+         * vehicle along that axis. Zero once the reference is on the line.
+         */
+        inline double ReferenceCrossError(
+            double vehicle_cross_error,
+            const iii_drone::types::point_t & vehicle_position_world,
+            const iii_drone::types::point_t & reference_position_world,
+            const iii_drone::types::vector_t & cross_axis_world
+        ) {
+            iii_drone::types::vector_t lead = reference_position_world - vehicle_position_world;
+            lead(2) = 0.0;
+            return vehicle_cross_error - lead.dot(cross_axis_world);
+        }
+
+    }  // namespace detail
 
     /**
      * @brief Class for serving cable landing.     
@@ -121,6 +271,7 @@ namespace maneuver {
          * @return void
          */
         void startExecution(Maneuver & maneuver) override;
+        Reference initializationReference(const State & state) const override;
 
         /**
          * @brief Whether the maneuver can be canceled, always returns true.
@@ -212,6 +363,7 @@ namespace maneuver {
          * @brief Flag for first iteration.
          */
         iii_drone::utils::Atomic<bool> first_iteration_ = true;
+        std::optional<Reference> object_transition_start_reference_;
 
         /**
          * @brief Has failed flag.
@@ -228,14 +380,23 @@ namespace maneuver {
         rclcpp::Time line_pid_last_stamp_;
         iii_drone::types::point_t line_pid_anchor_point_world_ = iii_drone::types::point_t::Zero();
         iii_drone::types::point_t line_pid_position_reference_world_ = iii_drone::types::point_t::Zero();
-        iii_drone::types::vector_t line_pid_cable_direction_world_ = iii_drone::types::vector_t::UnitX();
+        detail::CableLandingHeadingLock line_pid_heading_lock_;
         bool line_pid_target_lock_initialized_ = false;
         bool line_pid_has_last_cable_pose_ = false;
         iii_drone::types::pose_t line_pid_last_cable_pose_world_;
+        // The locked pose may seed only the retry of an aborted execution;
+        // a successful or canceled landing leaves it for its own callbacks.
+        iii_drone::utils::Atomic<bool> line_pid_lock_retry_eligible_ = false;
+        iii_drone::utils::Atomic<bool> line_pid_lock_owned_by_execution_ = false;
         PidState line_pid_along_pid_;
         PidState line_pid_cross_pid_;
         PidState line_pid_yaw_pid_;
         mutable bool gripper_v_gate_violation_active_ = false;
+        // Set once the conductor estimate reached the gripper; see
+        // conductorEstimateFrozen().
+        bool conductor_estimate_frozen_ = false;
+        // Gripper-frame height of the conductor estimate when it froze.
+        double conductor_freeze_z_gripper_ = std::numeric_limits<double>::quiet_NaN();
         mutable rclcpp::Time gripper_v_gate_violation_started_;
 
         /**
@@ -259,6 +420,11 @@ namespace maneuver {
         bool getGripperPositionInWorld(
             iii_drone::types::point_t & gripper_position_world
         ) const;
+
+        bool nearLockedConductor() const;
+
+        /** Whether perception currently sees the target line (true if unknown). */
+        bool targetLineInView();
 
         bool getStableCablePose(
             iii_drone::types::pose_t & cable_pose_world
@@ -331,6 +497,23 @@ namespace maneuver {
         bool isTargetWithinGripperVGate(
             const iii_drone::types::vector_t & target_point_gripper
         ) const;
+
+        /**
+         * @brief Whether the landing steers to a frozen conductor estimate.
+         * Latches (per execution) once the estimate is at or below
+         * cable_landing_gripper_capture_z in the gripper frame: from there the
+         * sensor, offset from the gripper, no longer sees the conductor and its
+         * estimate jumps by several centimetres, while the conductor does not
+         * move. The last estimate before that point is kept.
+         */
+        bool conductorEstimateFrozen();
+
+        /**
+         * @brief The conductor height (gripper frame) at which to evaluate
+         * the V gate: the target height, but not below the freeze height once
+         * the estimate is frozen.
+         */
+        double gateHeight(double target_z_gripper) const;
 
         /**
          * @brief Truncates the reference to only velocity (sets position to nans).

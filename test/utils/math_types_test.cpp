@@ -67,6 +67,17 @@ TEST(MathTypesTest, PoseDefaultConstructorCreatesIdentityOrientation)
     iii_drone::types::quaternion_t(1.0F, 0.0F, 0.0F, 0.0F));
 }
 
+TEST(MathTypesTest, LineAndPlaneDefaultConstructorsInitializeGeometry)
+{
+  const iii_drone::types::line_t line;
+  const iii_drone::types::plane_t plane;
+
+  ExpectPointNear(line.p, iii_drone::types::point_t::Zero());
+  ExpectVectorNear(line.v, iii_drone::types::vector_t::Zero());
+  ExpectPointNear(plane.p, iii_drone::types::point_t::Zero());
+  ExpectVectorNear(plane.normal, iii_drone::types::vector_t::Zero());
+}
+
 TEST(MathTypesTest, PointVectorQuaternionConversionsRoundTrip)
 {
   const iii_drone::types::point_t point(1.5F, -2.0F, 3.25F);

@@ -14,6 +14,8 @@
 // Std:
 
 #include <memory>
+#include <mutex>
+#include <optional>
 
 /*****************************************************************************/
 // III-Drone-Configuration:
@@ -38,6 +40,7 @@
 #include <iii_drone_core/control/maneuver/maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/maneuver.hpp>
 #include <iii_drone_core/control/maneuver/maneuver_types.hpp>
+#include <iii_drone_core/control/maneuver/cable_push_profile.hpp>
 
 /*****************************************************************************/
 // III-Drone-Interfaces:
@@ -114,7 +117,8 @@ namespace maneuver {
         void RegisterOnFailCallback(std::function<void()> on_fail_callback);
 
         /**
-         * @brief Updates the hover on cable reference.
+         * @brief Updates the hover on cable reference. The vertical axis
+         * becomes a velocity setpoint again, ending any push.
          * 
          * @param target_cable_id The target cable id.
          * @param target_z_velocity The target z velocity.
@@ -130,6 +134,8 @@ namespace maneuver {
 
         /**
          * @brief Gets the hover on cable reference. Will call the on fail callback if the drone is not on the cable.
+         * During a push the vertical axis is an upward acceleration and its
+         * velocity is NaN.
          * 
          * @param state The current state, is not used.
          * 
@@ -266,6 +272,35 @@ namespace maneuver {
          * @brief The start time of the hover maneuver.
          */
         iii_drone::utils::Atomic<rclcpp::Time> hover_start_time_;
+
+        /**
+         * @brief What PX4 reports about the push: airborne and commanding
+         * thrust, not, or unknown (stale samples).
+         */
+        CablePushProfile::Px4 px4Push(std::chrono::steady_clock::time_point now) const;
+
+        /**
+         * @brief Once PX4 applies the push, sizes it so PX4 commands
+         * cable_push_thrust_over_hover times the hover thrust measured in free
+         * flight, whatever hover thrust PX4 assumes; keeps the goal's
+         * acceleration when nothing was measured. Call with push_mutex_ held.
+         */
+        void calibratePush(std::chrono::steady_clock::time_point now);
+
+        /**
+         * @brief Whether the active push has been sized.
+         */
+        bool push_calibrated_ = false;
+
+        /**
+         * @brief The active pre-release push, if the goal requested one.
+         */
+        std::optional<CablePushProfile> push_;
+
+        /**
+         * @brief Guards push_ between reference and evaluation threads.
+         */
+        mutable std::mutex push_mutex_;
 
     };
 

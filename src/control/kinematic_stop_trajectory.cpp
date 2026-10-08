@@ -10,7 +10,6 @@ using namespace iii_drone::types;
 namespace {
 
 constexpr double kMinimumDurationS = 0.05;
-constexpr double kMaximumDurationS = 60.0;
 constexpr int kLimitSamples = 200;
 constexpr double kLimitTolerance = 1.0e-9;
 
@@ -81,10 +80,12 @@ KinematicStopTrajectory::KinematicStopTrajectory(
     }
 
     duration_s_ = kMinimumDurationS;
-    while (!satisfiesLimits(duration_s_) && duration_s_ < kMaximumDurationS) {
+    while (!satisfiesLimits(duration_s_) &&
+           duration_s_ < KinematicStopTrajectory::MaximumCertifiedDurationS) {
         duration_s_ *= 1.05;
     }
-    if (duration_s_ > kMaximumDurationS || !satisfiesLimits(duration_s_)) {
+    if (duration_s_ > KinematicStopTrajectory::MaximumCertifiedDurationS ||
+        !satisfiesLimits(duration_s_)) {
         throw std::runtime_error("unable to construct bounded kinematic stop trajectory");
     }
 }

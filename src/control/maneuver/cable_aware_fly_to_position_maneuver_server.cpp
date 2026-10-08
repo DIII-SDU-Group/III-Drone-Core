@@ -1,6 +1,7 @@
 #include <iii_drone_core/control/maneuver/cable_aware_fly_to_position_maneuver_server.hpp>
 
 #include <chrono>
+#include <algorithm>
 #include <cmath>
 #include <future>
 #include <limits>
@@ -87,7 +88,7 @@ bool CableAwareFlyToPositionManeuverServer::CanExecuteManeuver(
         return false;
     }
     if (!drone_awareness.offboard()) {
-        RCLCPP_WARN(node()->get_logger(), "CableAwareFlyToPositionManeuverServer::CanExecuteManeuver(): Drone is not in offboard mode");
+        logNotOffboard("CableAwareFlyToPositionManeuverServer::CanExecuteManeuver(): Drone is not in offboard mode");
         return false;
     }
 
@@ -178,6 +179,11 @@ void CableAwareFlyToPositionManeuverServer::startExecution(Maneuver & maneuver) 
     first_iteration_ = true;
     waiting_for_initial_plan_ = false;
     has_failed_ = false;
+    {
+        std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+        terminal_hold_.reset();
+        execution_powerline_ = storedPowerlineOverview();
+    }
     cda_handler->ClearTarget();
 }
 
@@ -201,12 +207,22 @@ bool CableAwareFlyToPositionManeuverServer::rebaseExecution(
     first_iteration_ = true;
     waiting_for_initial_plan_ = false;
     has_failed_ = false;
+    {
+        std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+        terminal_hold_.reset();
+    }
     reason = "replanned cable-aware flight from stopped state";
     return true;
 }
 
 Reference CableAwareFlyToPositionManeuverServer::computeReference(const State & state) {
     try {
+        {
+            std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+            if (terminal_hold_) {
+                return terminal_hold_->GetReference();
+            }
+        }
         if (first_iteration_) {
             trajectory_generator_client_->Reset(state);
             trajectory_generator_client_->ComputeReferenceTrajectoryAsync(
@@ -259,6 +275,46 @@ Reference CableAwareFlyToPositionManeuverServer::computeReference(const State & 
 
         Reference ref = trajectory.references().front();
 
+        // The planner's stationary nominal endpoint is the only entry to the
+        // bounded terminal correction. Transit and cable-relative control
+        // retain their existing reference generation.
+        const bool terminal_reference =
+            (ref.position() - target_reference_->position()).norm() <= 1.0e-4 &&
+            ref.velocity().allFinite() && ref.velocity().norm() <= 1.0e-5 &&
+            ref.acceleration().allFinite() && ref.acceleration().norm() <= 1.0e-5 &&
+            std::isfinite(ref.yaw_rate()) && std::abs(ref.yaw_rate()) <= 1.0e-5 &&
+            std::isfinite(ref.yaw_acceleration()) &&
+            std::abs(ref.yaw_acceleration()) <= 1.0e-5;
+        if (terminal_reference && execution_powerline_) {
+            const auto powerline = *execution_powerline_;
+            const double clearance_m = getDoubleParameter(
+                configuration_, "/control/trajectory_generator/cable_aware_clearance_m", 1.0
+            );
+            auto clearance = [this, powerline](const point_t & point) {
+                double minimum = std::numeric_limits<double>::infinity();
+                for (const auto & line : powerline.single_line_adapters()) {
+                    minimum = std::min(minimum, distanceToCable(point, powerline, line));
+                }
+                return minimum;
+            };
+            TerminalPositionTrackingController::Limits limits;
+            limits.arrival_tolerance_m = configuration_->GetParameter(
+                "/control/maneuver_controller/reached_position_euclidean_distance_threshold"
+            ).as_double();
+            auto hold = std::make_shared<TerminalTrackingHold>(
+                target_reference_, awareness_handler(), node()->get_clock(),
+                std::move(clearance), clearance_m, limits
+            );
+            {
+                std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+                terminal_hold_ = hold;
+            }
+            std::static_pointer_cast<HoverManeuverServer>(
+                registered_maneuvers().at(MANEUVER_TYPE_HOVER))
+                ->AdoptTerminalHold(hold, current_maneuver().Load().requestIdentity());
+            return hold->GetReference();
+        }
+
         if (!trajectory_generator_client_->busy()) {
             trajectory_generator_client_->ComputeReferenceTrajectoryAsync(
                 state,
@@ -284,6 +340,12 @@ Reference CableAwareFlyToPositionManeuverServer::computeReference(const State & 
 }
 
 bool CableAwareFlyToPositionManeuverServer::hasSucceeded(Maneuver &) {
+    {
+        std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+        if (terminal_hold_ && terminal_hold_->phase() != TerminalTrackingHold::Phase::Tracking) {
+            return false;
+        }
+    }
     auto cda_handler = awareness_handler();
     State state = cda_handler->GetState();
     double distance = (state.position() - target_reference_->position()).norm();
@@ -297,6 +359,16 @@ bool CableAwareFlyToPositionManeuverServer::hasSucceeded(Maneuver &) {
 }
 
 bool CableAwareFlyToPositionManeuverServer::hasFailed(Maneuver &) {
+    {
+        std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+        if (terminal_hold_ &&
+            (terminal_hold_->phase() == TerminalTrackingHold::Phase::Degraded ||
+             terminal_hold_->phase() == TerminalTrackingHold::Phase::Unrecoverable)) {
+            RCLCPP_ERROR(node()->get_logger(), "CableAware terminal tracking failed: %s",
+                terminal_hold_->failureReason().c_str());
+            return true;
+        }
+    }
     auto cda_handler = awareness_handler();
     const auto drone_awareness = cda_handler->adapter();
     if (!isFlightCapableForPositionFlight(drone_awareness)) {
@@ -310,7 +382,7 @@ bool CableAwareFlyToPositionManeuverServer::hasFailed(Maneuver &) {
         return true;
     }
     if (!cda_handler->offboard()) {
-        RCLCPP_WARN(node()->get_logger(), "CableAwareFlyToPositionManeuverServer::hasFailed(): Drone is not in offboard mode");
+        logNotOffboard("CableAwareFlyToPositionManeuverServer::hasFailed(): Drone is not in offboard mode");
         return true;
     }
     if (!cda_handler->armed()) {
@@ -361,10 +433,21 @@ void CableAwareFlyToPositionManeuverServer::publishResultAndFinalize(
     }
 }
 
-void CableAwareFlyToPositionManeuverServer::registerReferenceCallbackOnSuccess(const Maneuver &) {
-    auto registered_hover_maneuver = registered_maneuvers().find(MANEUVER_TYPE_HOVER);
-    std::shared_ptr<HoverManeuverServer> hover_maneuver_server = std::static_pointer_cast<HoverManeuverServer>(registered_hover_maneuver->second);
-    hover_maneuver_server->Update(target_reference_);
+void CableAwareFlyToPositionManeuverServer::registerReferenceCallbackOnSuccess(const Maneuver & maneuver) {
+    // registered_maneuvers() returns a copy: take the server within this
+    // statement, never an iterator into the temporary map.
+    std::shared_ptr<HoverManeuverServer> hover_maneuver_server = std::static_pointer_cast<HoverManeuverServer>(
+        registered_maneuvers().at(MANEUVER_TYPE_HOVER));
+    std::shared_ptr<TerminalTrackingHold> hold;
+    {
+        std::lock_guard<std::mutex> lock(terminal_hold_mutex_);
+        hold = terminal_hold_;
+    }
+    if (hold) {
+        hover_maneuver_server->AdoptTerminalHold(std::move(hold), maneuver.requestIdentity());
+    } else {
+        hover_maneuver_server->Update(target_reference_);
+    }
     registerCallback(std::bind(&HoverManeuverServer::GetReference, hover_maneuver_server, std::placeholders::_1));
 }
 

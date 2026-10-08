@@ -8,6 +8,7 @@
 // Std:
 
 #include <memory>
+#include <string>
 
 /*****************************************************************************/
 // III-Drone-Core:
@@ -158,6 +159,11 @@ namespace maneuver {
         maneuver_type_t maneuver_type() const;
 
         /**
+         * @brief Native request identity carried from the action goal.
+         */
+        const std::string & requestIdentity() const;
+
+        /**
          * @brief Maneuver parameters getter.
          * 
          * @return The maneuver parameters.
@@ -233,6 +239,11 @@ namespace maneuver {
 		 * @brief The maneuver type.
 		 */
         maneuver_type_t maneuver_type_;
+
+		/**
+		 * @brief Opaque request identity copied from the accepted action goal.
+		 */
+		std::string request_identity_;
 
 		/**
 		 * @brief The maneuver parameters void pointer.

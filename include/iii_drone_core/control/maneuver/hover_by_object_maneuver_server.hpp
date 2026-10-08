@@ -1,5 +1,10 @@
 #pragma once
 
+#include <cstdint>
+#include <functional>
+#include <mutex>
+#include <string>
+
 /*****************************************************************************/
 // Includes
 /*****************************************************************************/
@@ -15,6 +20,8 @@
 #include <iii_drone_core/control/maneuver/maneuver_server.hpp>
 #include <iii_drone_core/control/maneuver/maneuver.hpp>
 #include <iii_drone_core/control/maneuver/maneuver_types.hpp>
+#include <iii_drone_core/control/maneuver/object_tracking_session.hpp>
+#include <iii_drone_core/control/maneuver/terminal_tracking_hold.hpp>
 
 #include <iii_drone_core/adapters/target_adapter.hpp>
 #include <iii_drone_core/adapters/combined_drone_awareness_adapter.hpp>
@@ -109,6 +116,37 @@ namespace maneuver {
          */
         bool Update(const iii_drone::adapters::TargetAdapter &target_adapter);
 
+        /** Continue a successful non-MPC object approach under its exact source owner. */
+        bool UpdateTracked(
+            const iii_drone::adapters::TargetAdapter & target_adapter,
+            std::shared_ptr<ObjectTrackingSession> session,
+            std::string source_request_identity,
+            uint64_t source_execution_id,
+            double minimum_altitude_above_ground_m);
+
+        bool CanAdoptTrackedSession(const Maneuver & successor,
+            const ReferenceCallbackBinding & predecessor) const;
+        bool HasMatchingTrackedSession(const Maneuver & successor) const;
+        // Preliminary identity check while an entered callback may hold the
+        // session mutex in its planner. Full ownership/health is checked after
+        // the callback lease drains.
+        bool HasTrackedSourceIdentity(const ReferenceCallbackBinding & source) const;
+        bool RetainsTrackedSource(const ReferenceCallbackBinding & source) const;
+        bool TrackedSourceFailed(const ReferenceCallbackBinding & source) const;
+        std::optional<Reference> TrackedFailureRest(
+            const ReferenceCallbackBinding & source) const;
+        bool TrackedSourceUnrecoverable(const ReferenceCallbackBinding & source) const;
+        bool HasTrackedSession() const;
+        bool RequestTrackedTransitionStop(const ReferenceCallbackBinding & source);
+        bool TrackedTransitionStopping(const ReferenceCallbackBinding & source) const;
+        std::optional<Reference> TrackedTransitionRest(
+            const ReferenceCallbackBinding & source) const;
+        void RetireTrackedSource(const ReferenceCallbackBinding & source);
+        void RegisterFirstReferenceAppliedCallback(
+            std::function<bool(const std::string &)> callback);
+        void RegisterAppliedRestReferenceCallback(
+            std::function<bool(const std::string &, const Reference &)> callback);
+
         /**
          * @brief Gets the hover reference. The current state is not used.
          * Will call the on fail callback if the target is not visible or the drone has drifted too far away from the target relative pose.
@@ -143,6 +181,12 @@ namespace maneuver {
          * @return bool True.
          */
         bool canCancel() override;
+        std::optional<ControlledCancellationConfig> controlledCancellationConfig() const override;
+        bool controlledCancellationComplete(const ControlledCancellationConfig & config) override;
+        bool controlledCancellationFailure() const override;
+        bool validateControlledCancellationStop(
+            const Reference & initial, const KinematicStopTrajectory & candidate,
+            std::string & reason) override;
 
         /**
          * @brief Computes the hover by object reference for the maneuver server.
@@ -152,6 +196,7 @@ namespace maneuver {
          * @return iii_drone::control::Reference The hover reference.
          */
         iii_drone::control::Reference computeReference(const iii_drone::control::State & state) override;
+        iii_drone::control::Reference initializationReference(const iii_drone::control::State & state) const override;
 
         /**
          * @brief Returns true if the maneuver has succeeded. Has succeeded if the target is visible and the drone is within the maximum euclidean distance to the object.
@@ -263,6 +308,15 @@ namespace maneuver {
          * @brief The start time of the hover maneuver.
          */
         iii_drone::utils::Atomic<rclcpp::Time> hover_start_time_;
+
+        mutable std::mutex object_tracking_mutex_;
+        std::shared_ptr<ObjectTrackingSession> object_tracking_session_;
+        std::shared_ptr<TerminalTrackingHold> object_failure_hold_;
+        std::string object_owner_request_identity_;
+        uint64_t object_owner_execution_id_ = 0;
+        double object_minimum_altitude_above_ground_m_ = 0.0;
+        std::function<bool(const std::string &)> first_reference_applied_;
+        std::function<bool(const std::string &, const Reference &)> applied_rest_reference_;
 
     };
 

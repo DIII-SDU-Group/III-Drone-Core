@@ -12,6 +12,7 @@
 
 #include <mutex>
 #include <optional>
+#include <functional>
 
 #include <tf2/convert.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -104,6 +105,14 @@ namespace maneuver {
          * @return The expected awareness after execution.
          */
         iii_drone::adapters::CombinedDroneAwarenessAdapter ExpectedAwarenessAfterExecution(const Maneuver & maneuver) override;
+
+        /** Scheduler-owned check for an applied reference from this goal's stream generation. */
+        void RegisterBlendReferenceAppliedCallback(
+            std::function<bool(const std::string &)> callback
+        );
+
+    protected:
+        iii_drone::control::Reference initializationReference(const State & state) const override;
 
     private:
         /**
@@ -269,7 +278,11 @@ namespace maneuver {
 
         bool active_blend_to_next_ = false;
 
+        std::function<bool(const std::string &)> blend_reference_applied_;
+
         double active_completion_position_tolerance_m_ = 0.0;
+        mutable std::mutex terminal_hold_mutex_;
+        std::shared_ptr<TerminalTrackingHold> terminal_hold_;
 
         /**
          * @brief True when the latest streamed interpolation reference is the
@@ -280,6 +293,11 @@ namespace maneuver {
         ) const;
 
         bool consumePendingBlendStartReference(iii_drone::control::Reference & start_reference);
+
+        bool hasFreshPendingBlendStartReferenceLocked(
+            const rclcpp::Time & now,
+            double & age_s
+        ) const;
 
         iii_drone::control::Reference latestStreamedReferenceOrState(const iii_drone::control::State & state) const;
 
